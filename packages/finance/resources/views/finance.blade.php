@@ -901,6 +901,7 @@ $permissions = ['printSettings.create', 'letters.index', 'officialVacations.inde
         'finance.finance-center-list.index',
         'finance.profit-loss.index',
         'finance.audit-budget-supplier.index',
+        'finance.client-trial-balance.index',
         'finance.trail-balance.index',
         'finance.audit-budget-monthly.index',
     ]) &&
@@ -919,6 +920,8 @@ $permissions = ['printSettings.create', 'letters.index', 'officialVacations.inde
                                          'finance.finance-center-list.index',
                                          'finance.profit-loss.index',
                                          'finance.audit-budget-supplier.index',
+                                         'finance.client-trial-balance.index',
+        'finance.client-trial-balance.index',
                                          'finance.trail-balance.index',
                                          'finance.audit-budget-monthly.index',
                                      ]) &&
@@ -955,6 +958,12 @@ $permissions = ['printSettings.create', 'letters.index', 'officialVacations.inde
             </a>
         </li>
         {{--        @endif --}}
+        <li>
+            <a class="m-link {{ Route::currentRouteName() == 'finance.client-trial-balance.index' ? 'active' : '' }}"
+                href="{{ route('finance.client-trial-balance.index') }}">
+                <span class="ms-2"> ميزان مراجعة العملاء </span>
+            </a>
+        </li>
         {{--        @if (in_array('finance.audit-budget-supplier-read', $user_permission_list)) --}}
         <li>
             <a class="m-link {{ Route::currentRouteName() == 'finance.audit-budget-supplier.index' ? 'active' : '' }}"

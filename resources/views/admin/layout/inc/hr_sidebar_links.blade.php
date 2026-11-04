@@ -33,10 +33,19 @@
 </li>
 @if ($hasHrMaidsRoute)
     <li>
-        <a class="m-link {{ request()->routeIs('hr.maids.*') ? 'active' : '' }}"
+        <a class="m-link {{ request()->routeIs('hr.maids.index') ? 'active' : '' }}"
            href="{{ route('hr.maids.index') }}">
             <i class="fas fa-user-nurse"></i>
             <span class="ms-2">{{ __('hr::hr.maids') }}</span>
+        </a>
+    </li>
+@endif
+@if (Route::has('hr.maids.employees'))
+    <li>
+        <a class="m-link {{ request()->routeIs('hr.maids.employees') ? 'active' : '' }}"
+           href="{{ route('hr.maids.employees') }}">
+            <i class="fas fa-user-tie"></i>
+            <span class="ms-2">{{ __('hr::hr.employed_maids') }}</span>
         </a>
     </li>
 @endif

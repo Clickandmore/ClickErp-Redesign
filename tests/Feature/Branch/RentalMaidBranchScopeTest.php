@@ -29,6 +29,38 @@ class RentalMaidBranchScopeTest extends TestCase
     }
 
     /** @test */
+    public function rental_and_recruitment_cv_order_badges_link_to_the_latest_open_order(): void
+    {
+        $branch = $this->makeBranch(['is_main' => true]);
+        $admin = $this->branchAdmin($branch);
+        $this->grant($admin, \App\PermKeys::MAIDS_RENTAL_VIEW);
+        $this->grant($admin, \App\PermKeys::MAIDS_VIEW);
+        $maid = $this->makeRentalMaid('Order badge maid', $branch->id);
+        $clientId = $this->makeClient();
+        $orders = [];
+        foreach (['new', 'under_process', 'return', 'refused', 'canceled_by_system'] as $status) {
+            $orders[] = Order::query()->create([
+                'user_id' => $clientId, 'maid_id' => $maid->id, 'job_type_id' => 2,
+                'status' => $status, 'order_code' => 'BADGE-' . uniqid(),
+            ]);
+        }
+        $assertBadges = function ($response, string $column) use ($maid, $orders) {
+            $response->assertOk();
+            $row = collect($response->json('data'))->firstWhere('id', $maid->id);
+            $this->assertNotNull($row);
+            $html = $row[$column];
+            $url = e(route('showSingleOrder', ['orderId' => $orders[1]->id]));
+            $this->assertSame(2, substr_count($html, 'href="' . $url . '"'));
+            $this->assertStringContainsString($orders[1]->order_code, $html);
+            $this->assertStringNotContainsString($orders[4]->order_code, $html);
+        };
+        $this->actingAsAdmin($admin);
+        $assertBadges($this->get(route('maids.rental.index'), ['X-Requested-With' => 'XMLHttpRequest']), 'is_show');
+        DB::table('maid_jobs')->where('maid_id', $maid->id)->delete();
+        $assertBadges($this->get(route('maids.index'), ['X-Requested-With' => 'XMLHttpRequest']), 'status_badge');
+    }
+
+    /** @test */
     public function rental_maid_page_is_scoped_to_the_current_branch(): void
     {
         $own = $this->makeBranch(['is_main' => true]);

@@ -475,14 +475,25 @@
                                             <small class="d-block">{{ $row->document_type === 'extension' ? 'تمديد' : 'فاتورة أساسية' }} #{{ $row->id }}</small>
                                         @endif
                                     </td>
-                                    <td>{{ $row->client_name ?: '—' }}</td>
+                                    <td>
+                                        @if(!empty($row->client_account_id) && \Illuminate\Support\Facades\Route::has('finance.account-statement-clients.index'))
+                                            <a href="{{ route('finance.account-statement-clients.index', ['account_id' => $row->client_account_id]) }}">{{ $row->client_name ?: '—' }}</a>
+                                        @else
+                                            {{ $row->client_name ?: '—' }}
+                                        @endif
+                                    </td>
                                     <td class="num">{{ $row->client_phone ?: '—' }}</td>
                                     <td class="num">{{ $row->client_identity ?: '—' }}</td>
                                     <td class="num">{{ $row->invoiced_at ? \Carbon\Carbon::parse($row->invoiced_at)->format('Y-m-d') : '—' }}</td>
                                     <td class="num"><span class="pill {{ $row->aging_bucket === 'over' ? 'is-hot' : '' }}">{{ $row->age_days ?? '—' }}</span></td>
                                     <td class="num">{{ number_format($row->total_due, 2) }}</td>
                                     @if($block['show_paid'])<td class="num positive">{{ number_format($row->paid_amount, 2) }}</td>@endif
-                                    <td class="num negative"><strong>{{ number_format($row->remaining_amount, 2) }}</strong></td>
+                                    <td class="num negative">
+                                        <strong>{{ number_format($row->remaining_amount, 2) }}</strong>
+                                        @if(abs($row->adjustment_amount ?? 0) > 0.005)
+                                            <small class="d-block text-muted">{{ __('finance::finance.ops_adjustments') }}: {{ number_format($row->adjustment_amount, 2) }}</small>
+                                        @endif
+                                    </td>
                                     <td>{{ $row->payment_status ?? '—' }}</td>
                                 </tr>
                             @endforeach

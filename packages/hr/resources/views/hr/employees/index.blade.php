@@ -21,8 +21,13 @@
         </div>
     @endif
 
-    <div class="row mb-2">
-        <div class="col-3">
+    <form id="employee-filters" class="card card-body mb-3">
+    <div class="row g-3 align-items-end">
+        <div class="col-12 col-md-6 col-xl-3">
+            <label for="employee_name" class="form-label">{{ __('hr::hr.filter_employee_name') }}</label>
+            <input type="search" id="employee_name" name="employee_name" class="form-control" maxlength="255" placeholder="{{ __('hr::hr.filter_employee_name') }}">
+        </div>
+        <div class="col-12 col-md-6 col-xl-3">
             <div class="form-group">
                 <label for="department_id" class="form-label">{{__('hr::hr.department')}}</label>
                 <select class="form-select select2" id="department_id" name="department_id">
@@ -30,7 +35,7 @@
                 </select>
             </div>
         </div>
-        <div class="col-3">
+        <div class="col-12 col-md-6 col-xl-3">
             <div class="form-group">
                 <label for="job_id" class="form-label">{{__('hr::hr.job')}}</label>
                 <select class="form-select select2" id="job_id" name="job_id">
@@ -42,15 +47,51 @@
             'id' => 'branch_id',
             'name' => 'branch_id',
             'label' => __('financial_requests.branch'),
-            'containerClass' => 'col-3',
+            'containerClass' => 'col-12 col-md-6 col-xl-3',
         ])
-        <div class="col-3">
-            <br>
+        <div class="col-12 col-md-6 col-xl-3">
+            <label for="filter_status" class="form-label">{{ __('hr::hr.Status') }}</label>
+            <select id="filter_status" name="status" class="form-select">
+                <option value="">{{ __('hr::hr.all') }}</option>
+                <option value="1">{{ __('hr::hr.filter_active') }}</option>
+                <option value="0">{{ __('hr::hr.filter_inactive') }}</option>
+            </select>
+        </div>
+        <div class="col-12 col-md-6 col-xl-3">
+            <label for="filter_country" class="form-label">{{ __('hr::hr.filter_nationality') }}</label>
+            <select id="filter_country" name="country_id" class="form-select select2">
+                <option value="">{{ __('hr::hr.all') }}</option>
+                @foreach ($filterCountries as $country)
+                    <option value="{{ $country->id }}">{{ app()->getLocale() === 'ar' ? ($country->name_ar ?: $country->name_en) : ($country->name_en ?: $country->name_ar) }}</option>
+                @endforeach
+            </select>
+        </div>
+        <div class="col-12 col-md-6 col-xl-3">
+            <label for="hired_from" class="form-label">{{ __('hr::hr.filter_hired_from') }}</label>
+            <input type="date" id="hired_from" name="hired_from" class="form-control">
+        </div>
+        <div class="col-12 col-md-6 col-xl-3">
+            <label for="hired_to" class="form-label">{{ __('hr::hr.filter_hired_to') }}</label>
+            <input type="date" id="hired_to" name="hired_to" class="form-control">
+        </div>
+        <div class="col-12 col-md-6 col-xl-3">
+            <label for="contract_status" class="form-label">{{ __('hr::hr.filter_contract_status') }}</label>
+            <select id="contract_status" name="contract_status" class="form-select">
+                <option value="">{{ __('hr::hr.all') }}</option>
+                <option value="valid">{{ __('hr::hr.filter_contract_valid') }}</option>
+                <option value="expired">{{ __('hr::hr.filter_contract_expired') }}</option>
+                <option value="expiring">{{ __('hr::hr.filter_contract_expiring') }}</option>
+            </select>
+        </div>
+        <div class="col-12 d-flex flex-wrap gap-2">
+            <button type="submit" class="btn btn-primary"><i class="fa fa-filter" aria-hidden="true"></i> {{ __('hr::hr.filter_apply') }}</button>
+            <button type="button" id="reset-employee-filters" class="btn btn-outline-secondary">{{ __('hr::hr.filter_reset') }}</button>
             @if (!empty($createRoute))
                 {!! addEmplyeeButton($createRoute , $addButtonText) !!}
             @endif
         </div>
     </div>
+    </form>
 
     <table id="dataTableObject" class="table display dataTable table-hover" style="width:100%">
         <thead>
@@ -93,8 +134,14 @@
                     "url": "{{ $dataTableRoute }}",
                     "data": function (d) {
                         d.department_id = $('#department_id').val();
+                        d.employee_name = $('#employee_name').val();
                         d.job_id = $('#job_id').val();
                         d.branch_id = $('[name="branch_id"]').val();
+                        d.status = $('#filter_status').val();
+                        d.country_id = $('#filter_country').val();
+                        d.hired_from = $('#hired_from').val();
+                        d.hired_to = $('#hired_to').val();
+                        d.contract_status = $('#contract_status').val();
                     }
                 },
                 "columns": [
@@ -135,7 +182,32 @@
                 ]
             });
 
-            $('#department_id, #job_id, [name="branch_id"]').change(function () {
+            $('#employee-filters').on('submit', function (event) {
+                event.preventDefault();
+                if (!this.reportValidity()) return;
+                table.draw();
+            });
+            $('#hired_from').on('change', function () {
+                $('#hired_to').attr('min', this.value || null);
+            });
+            $('#employee-filters select').on('change', function () {
+                $('#employee-filters').trigger('submit');
+            });
+            let nameSearchTimer;
+            $('#employee_name').on('input', function () {
+                clearTimeout(nameSearchTimer);
+                nameSearchTimer = setTimeout(function () {
+                    $('#employee-filters').trigger('submit');
+                }, 350);
+            });
+            $('#reset-employee-filters').on('click', function () {
+                clearTimeout(nameSearchTimer);
+                $('#employee_name').val('');
+                $('#employee-filters select').not('[name="branch_id"]').val('').trigger('change.select2');
+                $('#employee-filters select[name="branch_id"]').val('').trigger('change.select2');
+                $('#hired_from, #hired_to').val('');
+                $('#hired_to').removeAttr('min');
+                table.search('').columns().search('');
                 table.draw();
             });
         });

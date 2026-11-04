@@ -77,6 +77,7 @@ Route::group(
         Route::post('toggleStatus', [ToggleStatusController::class, 'toggleStatus'])->name('toggleStatus');
         Route::resource('employees', EmployeeController::class);
         Route::get('maids', [EmployeeController::class, 'maids'])->name('hr.maids.index');
+        Route::get('employed-maids', [EmployeeController::class, 'employedMaids'])->name('hr.maids.employees');
         Route::post('maids/{maidId}/employ', [EmployeeController::class, 'employMaid'])->name('hr.maids.employ');
         Route::get('/get-allowance-data/{id}', [getAllowanceDataController::class, 'getAllowanceData'])->name('getAllowanceData');
         Route::resource('employeeVacations', EmployeeVacationController::class);

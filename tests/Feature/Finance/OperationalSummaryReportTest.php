@@ -546,6 +546,56 @@ class OperationalSummaryReportTest extends TestCase
         $this->assertSame(0, $offices['unlinked_offices']);
     }
 
+    public function test_closure_credits_reduce_receivables_aging_and_exports_without_becoming_payments(): void
+    {
+        $this->rentalInvoice('2031-03-01', 1900, 1000, 'RC-CLOSURE');
+        $contractId = DB::table('rental_contracts')->where('contract_number', 'RC-CLOSURE')->value('id');
+        DB::table('rental_financial_adjustments')->insert([
+            'rental_contract_id' => $contractId, 'type' => 'expense', 'label' => 'Closure credit',
+            'context' => 'closure', 'amount' => 316.67, 'issue_date' => '2031-03-20',
+            'created_at' => '2031-03-20', 'updated_at' => '2031-03-20',
+        ]);
+        $report = $this->report(['per_page' => null]);
+        $section = $report['rental_receivables'];
+        $this->assertSame(583.33, $section['totals']['remaining']);
+        $this->assertSame(1000.0, $section['totals']['paid']);
+        $this->assertSame(316.67, $section['totals']['adjustments']);
+        $this->assertEquals(583.33, $section['rows']->first()->remaining_amount);
+        $this->assertSame(583.33, array_sum($section['aging']));
+        $this->assertSame(583.33, app(OperationalSummaryService::class)->headline(self::FROM, self::TO)['rental_receivables']);
+        $book = app(OperationalSummaryExportService::class)->workbook($report);
+        $sheet = $book->getSheetByName('ذمم التأجير');
+        $this->assertEquals(583.33, $sheet->getCell('I4')->getValue());
+        $this->assertEquals(1000, $sheet->getCell('H4')->getValue());
+        $book->disconnectWorksheets();
+
+        $beforeCredit = app(OperationalSummaryService::class)->report(self::FROM, '2031-03-19');
+        $this->assertSame(900.0, $beforeCredit['rental_receivables']['totals']['remaining']);
+    }
+
+    public function test_contract_credit_is_allocated_once_across_base_and_extension_before_period_filtering(): void
+    {
+        $this->rentalInvoice('2030-12-01', 1200, 0, 'RC-CREDIT-EXT');
+        $contractId = DB::table('rental_contracts')->where('contract_number', 'RC-CREDIT-EXT')->value('id');
+        DB::table('rental_contract_extensions')->insert([
+            'rental_contract_id' => $contractId, 'extension_value' => 1000, 'payment_amount' => 100,
+            'payment_status' => 'partial', 'created_at' => '2031-02-01', 'updated_at' => '2031-02-01',
+        ]);
+        DB::table('rental_financial_adjustments')->insert([
+            'rental_contract_id' => $contractId, 'type' => 'expense', 'label' => 'Closure credit',
+            'context' => 'closure', 'amount' => 1500, 'issue_date' => '2031-03-01',
+            'created_at' => '2031-03-01', 'updated_at' => '2031-03-01',
+        ]);
+        $section = $this->report()['rental_receivables'];
+        $this->assertSame(1, $section['totals']['documents']);
+        $this->assertSame(600.0, $section['totals']['remaining']);
+        $this->assertSame(600.0, $section['outstanding_all']);
+        $this->assertSame(600.0, array_sum($section['aging']));
+        $this->assertSame('extension', $section['rows']->first()->document_type);
+        DB::table('rental_financial_adjustments')->where('rental_contract_id', $contractId)->update(['amount' => 5000]);
+        $this->assertSame(0.0, $this->report()['rental_receivables']['totals']['remaining']);
+    }
+
     public function test_headline_matches_the_full_report_for_the_shared_figures(): void
     {
         $this->rentalInvoice('2031-02-10', 8000, 3000, 'RC-31-PARTIAL');

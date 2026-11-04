@@ -6,6 +6,25 @@ use Illuminate\Http\Request;
 
 class TrailBalanceExportService
 {
+    private function filtersTitle(array $filters, TrailBalanceService $service): string
+    {
+        $parts = [];
+        if ($filters['balance'] !== 'all') {
+            $parts[] = TrailBalanceService::BALANCE_FILTERS[$filters['balance']];
+        }
+        if ($filters['movement'] !== 'all') {
+            $parts[] = TrailBalanceService::MOVEMENT_FILTERS[$filters['movement']];
+        }
+        if ($filters['root'] !== '') {
+            $parts[] = 'الحساب الرئيسي ' . $filters['root'];
+        }
+        if ($filters['search'] !== '') {
+            $parts[] = 'بحث: ' . $filters['search'];
+        }
+
+        return $parts ? ' — ' . implode('، ', $parts) : '';
+    }
+
     public function download(
         Request $request,
         string $format,
@@ -22,7 +41,8 @@ class TrailBalanceExportService
         $fromDate = (string) $request->query('from_date', $period->from_date);
         $toDate = (string) $request->query('to_date', $period->to_date);
         $includeOpening = $request->boolean('show_first_balance');
-        $accounts = $service->getAccountSummaryForTrailBalance($level, $fromDate, $toDate, $includeOpening);
+        $filters = $service->filtersFromRequest($request);
+        $accounts = $service->applyFilters($service->getAccountSummaryForTrailBalance($level, $fromDate, $toDate, $includeOpening), $filters);
 
         $headers = ['رمز الحساب', 'اسم الحساب'];
         if ($level === 'all') {
@@ -43,6 +63,7 @@ class TrailBalanceExportService
             $creditorBalance = $account->status === 'creditor' ? $finalCreditor - $finalDebtor : 0;
             $debtorBalance = $account->status === 'debtor' ? $finalDebtor - $finalCreditor : 0;
 
+            // مثل الشاشة: الحساب الذي لا رصيد له ولا حركة لا يظهر
             if (abs($firstDebtor) + abs($firstCreditor) + abs($periodDebtor) + abs($periodCreditor) < 0.00001) {
                 return null;
             }
@@ -64,7 +85,7 @@ class TrailBalanceExportService
 
         return $exporter->download(
             $format,
-            'ميزان المراجعة الشامل من ' . $fromDate . ' إلى ' . $toDate,
+            'ميزان المراجعة الشامل من ' . $fromDate . ' إلى ' . $toDate . $this->filtersTitle($filters, $service),
             'trial-balance',
             $headers,
             $rows,

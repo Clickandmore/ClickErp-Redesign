@@ -497,6 +497,19 @@ php artisan optimize:clear && php artisan queue:restart
 
 الاختبارات: `tests/Feature/Finance/ChartRestructureTest.php`.
 
+## 17. ميزان مراجعة العملاء وفلاتر ميزان المراجعة العام
+
+**ميزان مراجعة العملاء** (`finance.client-trial-balance.index`، المالية ← القوائم المالية): كل حساب نوعه «عميل»، مع أول المدة
+وحركة الفترة والرصيد (مدين − دائن). الفلاتر في الرابط: الفترة، الرصيد (غير صفري، صفري، مدين، دائن)، الحركة في الفترة،
+بحث بالاسم أو الكود، حد أدنى للرصيد، أول المدة، القيود المعتمدة فقط، الترتيب. المجاميع لكل النتيجة المفلترة لا للصفحة،
+والتصدير (`finance.client-trial-balance.export`) يبني الشيت من الفلاتر نفسها ويكتبها في رأسه.
+الصلاحيات: `finance_client_trial_balance_view` (أو `finance_module`)، و`finance_client_trial_balance_export` حصرية.
+
+**ميزان المراجعة العام**: فلاتر الرصيد والحركة والحساب الرئيسي والبحث في `TrailBalanceService::applyFilters()`، تستدعيها
+الشاشة والتصدير معاً. الحساب الذي لا رصيد له ولا حركة لا يظهر في الشاشة ولا في الشيت. بلا فلاتر لا يتغير شيء.
+
+الاختبارات: `tests/Feature/Finance/ClientTrialBalanceTest.php`، `tests/Feature/Finance/TrailBalanceFiltersTest.php`.
+
 ## قيود المشتريات والوكلاء الخارجيون (إعدادات مستقلة)
 
 قسم جديد في صفحة الإعدادات:

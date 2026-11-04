@@ -49,7 +49,12 @@ class EmployeeController extends Controller
         return $this->renderListing($request, $action, objModel::CATEGORY_MAID);
     }
 
-    protected function renderListing(Request $request, objService $action, string $category)
+    public function employedMaids(Request $request, objService $action)
+    {
+        return $this->renderListing($request, $action, objModel::CATEGORY_EMPLOYEE, true);
+    }
+
+    protected function renderListing(Request $request, objService $action, string $category, bool $employedMaids = false)
     {
         $isMaidListing = $category === objModel::CATEGORY_MAID;
         $costCenterService = null;
@@ -59,7 +64,8 @@ class EmployeeController extends Controller
             $costCenterService = app($class);
         }
         if ($request->ajax()) {
-            $dataTable = $action->GetFilterEmployees($request, $category);
+            $dataTable = $action->GetFilterEmployees($request, $category, $employedMaids);
+            $listingIds = $dataTable->pluck('id');
             if ($request->notification == "true") {
                 if (!$isMaidListing && $costCenterService) {
                     if ($request->has('employees_has_cost_center')) {
@@ -73,6 +79,8 @@ class EmployeeController extends Controller
                     }
                 }
             }
+            $dataTable = $dataTable->whereIn('id', $listingIds)->values();
+
             return DataTables::of($dataTable)
                 ->addIndexColumn()
                 ->editColumn('image', function ($row) {
@@ -159,20 +167,22 @@ class EmployeeController extends Controller
                 })->rawColumns(['name', 'image', 'actions', 'status', 'job_id', 'deparment_id'])->make(true);
         }
 
-        $data["createRoute"] = $isMaidListing ? null : route($this->mainRoute . ".create");
-        $data["dataTableRoute"] = $isMaidListing ? route('hr.maids.index') : route($this->mainRoute . ".index");
-        $data["bladeTitle"] = $isMaidListing ? __('hr::hr.maids') : __('hr::hr.employees');
+        $data["createRoute"] = $isMaidListing || $employedMaids ? null : route($this->mainRoute . ".create");
+        $data["dataTableRoute"] = $employedMaids ? route('hr.maids.employees') : ($isMaidListing ? route('hr.maids.index') : route($this->mainRoute . ".index"));
+        $data["bladeTitle"] = $employedMaids ? __('hr::hr.employed_maids') : ($isMaidListing ? __('hr::hr.maids') : __('hr::hr.employees'));
         $data["addButtonText"] = $isMaidListing ? __('hr::hr.maid') : __('hr::hr.employee');
         $data['isMaidListing'] = $isMaidListing;
-        $data["identityColumnLabel"] = $isMaidListing
+        $data['filterCountries'] = \Illuminate\Support\Facades\DB::table('countries')
+            ->orderBy('name_ar')->get(['id', 'name_ar', 'name_en']);
+        $data["identityColumnLabel"] = $isMaidListing || $employedMaids
             ? __('hr::hr.maid_identity')
             : __('hr::hr.Employee ID number');
-        $data['departments'] = $isMaidListing
+        $data['departments'] = $isMaidListing || $employedMaids
             ? $action->getDepartmentsForCategory($category)
             : $action->getdepartment()->reject(function ($department) {
                 return $department->title === 'قسم العاملات';
             })->values();
-        $data['jobs'] = $isMaidListing
+        $data['jobs'] = $isMaidListing || $employedMaids
             ? $action->getJobsForCategory($category)
             : $action->getJob()->reject(function ($job) {
                 return $job->title === 'عاملة';

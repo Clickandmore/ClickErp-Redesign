@@ -32,6 +32,7 @@ class TrailBalanceController extends Controller
                 $toDate,
                 $includeFirstBalance
             );
+            $accountsWithChildren = $service->applyFilters($accountsWithChildren, $service->filtersFromRequest($request));
 
             $returnHTML = view($this->folderPath . ".result")->with([
                 'accountsWithChildren' => $accountsWithChildren,

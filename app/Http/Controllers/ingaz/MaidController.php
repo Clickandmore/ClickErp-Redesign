@@ -359,6 +359,7 @@ class MaidController extends Controller
                         // Visibility & Availability
                         . '<div class="d-flex flex-column gap-3">'
                         . $visibilityBadge
+                        . $this->maidOpenOrderBadges($row)
                         . $availabilityBadge
                         . '</div>'
 
@@ -3699,10 +3700,12 @@ class MaidController extends Controller
         $statusLabel = RecruitmentOrderStatusLabels::label($order->status, app()->getLocale())
             ?: $order->status;
 
-        return '<span class="badge bg-warning text-dark" title="' . e(helperTrans('ingaz.order_status') . ': ' . $statusLabel) . '">'
+        $orderUrl = e(route('showSingleOrder', ['orderId' => $order->id]));
+
+        return '<a href="' . $orderUrl . '" class="badge bg-warning text-dark text-decoration-none" title="' . e(helperTrans('ingaz.order_status') . ': ' . $statusLabel) . '">'
             . '<i class="fa fa-clipboard-list"></i> ' . helperTrans('ingaz.has_open_order') . ' #' . e($reference)
-            . '</span>'
-            . '<span class="badge ' . $this->orderStatusBadgeClass($order->status) . '">' . e($statusLabel) . '</span>';
+            . '</a>'
+            . '<a href="' . $orderUrl . '" class="badge text-decoration-none ' . $this->orderStatusBadgeClass($order->status) . '">' . e($statusLabel) . '</a>';
     }
 
     private function orderStatusBadgeClass(?string $status): string

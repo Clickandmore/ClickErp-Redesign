@@ -42,6 +42,7 @@ use Nami\Finance\Http\Controllers\BondSarfController;
 use Nami\Finance\Http\Controllers\BoxController;
 use Nami\Finance\Http\Controllers\CashMovementController;
 use Nami\Finance\Http\Controllers\ChartSettingController;
+use Nami\Finance\Http\Controllers\ClientTrialBalanceController;
 use Nami\Finance\Http\Controllers\DailyCashReferenceLineController;
 use Nami\Finance\Http\Controllers\OperationalSummaryController;
 use Nami\Finance\Http\Controllers\CatchCheckController;
@@ -251,6 +252,8 @@ Route::group(
             ->name('confirm-settings.account-options');
         Route::resource('chart-settings', ChartSettingController::class)->only('index', 'store');
         Route::resource('confirm-settings', ConfirmSettingController::class);
+        Route::get('client-trial-balance/export', [ClientTrialBalanceController::class, 'export'])->name('client-trial-balance.export');
+        Route::resource('client-trial-balance', ClientTrialBalanceController::class)->only('index');
         Route::resource('audit-budget-supplier', AuditBudgetController::class);
         Route::resource('audit-budget-monthly', AuditBudgetMonthlyController::class);
 

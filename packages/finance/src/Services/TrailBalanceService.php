@@ -86,6 +86,74 @@ class TrailBalanceService extends MainService
         return $results;
     }
 
+    public const BALANCE_FILTERS = [
+        'all' => 'كل الحسابات',
+        'non_zero' => 'رصيده لا يساوي صفر',
+        'zero' => 'رصيده صفر',
+        'debit' => 'رصيده مدين',
+        'credit' => 'رصيده دائن',
+    ];
+
+    public const MOVEMENT_FILTERS = [
+        'all' => 'الكل',
+        'with' => 'له حركة في الفترة',
+        'without' => 'بلا حركة في الفترة',
+    ];
+
+    /** فلاتر الميزان من الطلب. الشاشة والتصدير يمرران الطلب نفسه فيطابق الشيت الشاشة. */
+    public function filtersFromRequest($request): array
+    {
+        $balance = (string) $request->input('balance_filter', 'all');
+        $movement = (string) $request->input('movement_filter', 'all');
+        $root = (string) $request->input('root_code', '');
+
+        return [
+            'balance' => array_key_exists($balance, self::BALANCE_FILTERS) ? $balance : 'all',
+            'movement' => array_key_exists($movement, self::MOVEMENT_FILTERS) ? $movement : 'all',
+            'search' => trim((string) $request->input('account_search', '')),
+            'root' => preg_match('/^\d+$/', $root) ? $root : '',
+        ];
+    }
+
+    public function hasActiveFilters(array $filters): bool
+    {
+        return $filters['balance'] !== 'all' || $filters['movement'] !== 'all' || $filters['search'] !== '' || $filters['root'] !== '';
+    }
+
+    /** الرصيد الختامي = (أول المدة + الفترة) مدين − دائن. */
+    public function applyFilters($accounts, array $filters)
+    {
+        if (!$this->hasActiveFilters($filters)) {
+            return $accounts;
+        }
+
+        return collect($accounts)->filter(function ($account) use ($filters) {
+            $balance = (float) $account->first_debtor + (float) $account->total_debtor - (float) $account->first_creditor - (float) $account->total_creditor;
+            $zero = abs($balance) < 0.005;
+            $moved = abs((float) $account->total_debtor) + abs((float) $account->total_creditor) >= 0.005;
+            $passes = match ($filters['balance']) {
+                'non_zero' => !$zero,
+                'zero' => $zero,
+                'debit' => $balance >= 0.005,
+                'credit' => $balance <= -0.005,
+                default => true,
+            };
+            $passes = $passes && match ($filters['movement']) {
+                'with' => $moved,
+                'without' => !$moved,
+                default => true,
+            };
+            if ($passes && $filters['root'] !== '') {
+                $passes = str_starts_with((string) $account->code, $filters['root']);
+            }
+            if ($passes && $filters['search'] !== '') {
+                $passes = mb_stripos((string) $account->name, $filters['search']) !== false || str_starts_with((string) $account->code, $filters['search']);
+            }
+
+            return $passes;
+        })->values();
+    }
+
     public function getAccountSummaryForTrailBalance(int|string $level, ?string $fromDate, ?string $toDate, bool $includeFirstBalance = false)
     {
         $allLevels = $level === 'all';

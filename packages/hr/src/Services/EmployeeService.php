@@ -36,11 +36,30 @@ class EmployeeService extends MainService
         $this->fileFolder = "employees/";
     }
 
-    public function GetFilterEmployees($request, string $category = Employee::CATEGORY_EMPLOYEE)
+    public function GetFilterEmployees($request, string $category = Employee::CATEGORY_EMPLOYEE, bool $employedMaids = false)
     {
+        $filters = validator($request->only(['employee_name', 'status', 'country_id', 'hired_from', 'hired_to', 'contract_status']), [
+            'employee_name' => ['nullable', 'string', 'max:255'],
+            'status' => ['nullable', 'in:0,1'],
+            'country_id' => ['nullable', 'integer', 'min:1'],
+            'hired_from' => ['nullable', 'date_format:Y-m-d'],
+            'hired_to' => array_filter(['nullable', 'date_format:Y-m-d', $request->filled('hired_from') ? 'after_or_equal:hired_from' : null]),
+            'contract_status' => ['nullable', 'in:expired,expiring,valid'],
+        ])->validate();
+
         $query = $category === Employee::CATEGORY_MAID
             ? $this->model->query()->currentlyCompanySponsoredMaids()->latest()
             : $this->model->query()->onlyEmployees()->latest();
+
+        if ($category === Employee::CATEGORY_EMPLOYEE) {
+            if (\Illuminate\Support\Facades\Schema::hasColumn('hr_employee', 'maid_id')) {
+                $employedMaids
+                    ? $query->whereNotNull('hr_employee.maid_id')
+                    : $query->whereNull('hr_employee.maid_id');
+            } elseif ($employedMaids) {
+                $query->whereRaw('1 = 0');
+            }
+        }
 
         $query->with(['branch', $category === Employee::CATEGORY_MAID ? 'maid' : 'admin']);
 
@@ -48,6 +67,9 @@ class EmployeeService extends MainService
         $branchId = $branchAccess->selectedBranchId($request);
 
         return $query
+            ->when(trim($filters['employee_name'] ?? '') !== '', function ($builder) use ($filters) {
+                $builder->where('hr_employee.name', 'like', '%' . trim($filters['employee_name']) . '%');
+            })
             ->when($branchId, function ($builder) use ($branchId, $branchAccess) {
                 $branchAccess->applyBranchIdToQuery($builder, $branchId, 'hr_employee');
             })
@@ -56,6 +78,28 @@ class EmployeeService extends MainService
             })
             ->when($request->filled('job_id'), function ($builder) use ($request) {
                 $builder->where('job_id', $request->job_id);
+            })
+            ->when(isset($filters['status']) && $filters['status'] !== '', function ($builder) use ($filters) {
+                $builder->where('hr_employee.status', $filters['status']);
+            })
+            ->when(!empty($filters['country_id']), function ($builder) use ($filters) {
+                $builder->where('hr_employee.country_id', $filters['country_id']);
+            })
+            ->when(!empty($filters['hired_from']), function ($builder) use ($filters) {
+                $builder->whereDate('hired_date', '>=', $filters['hired_from']);
+            })
+            ->when(!empty($filters['hired_to']), function ($builder) use ($filters) {
+                $builder->whereDate('hired_date', '<=', $filters['hired_to']);
+            })
+            ->when(!empty($filters['contract_status']), function ($builder) use ($filters) {
+                if ($filters['contract_status'] === 'expired') {
+                    $builder->whereDate('contract_end_date', '<', today());
+                } else {
+                    $builder->whereDate('contract_end_date', '>=', today());
+                    if ($filters['contract_status'] === 'expiring') {
+                        $builder->whereDate('contract_end_date', '<=', today()->addDays(30));
+                    }
+                }
             })
             ->get();
     }
