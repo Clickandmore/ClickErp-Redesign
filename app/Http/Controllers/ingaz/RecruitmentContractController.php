@@ -1657,12 +1657,12 @@ class RecruitmentContractController extends Controller
 
                     // الفاتورة
                     $invoice = $row->invoice;
-                    if ($row->isLateFinanceEligible() && (!$invoice || !$row->externalOfficeDispatch || !$invoice->ingaz_delegation_cost_constraint_id || !$invoice->musanedTransferItem?->transfer) && @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_LATE_FINANCE)) {
+                    if (!$row->isCompanyRecruitment() && $row->isLateFinanceEligible() && (!$invoice || !$row->externalOfficeDispatch || !$invoice->ingaz_delegation_cost_constraint_id || !$invoice->musanedTransferItem?->transfer) && @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_LATE_FINANCE)) {
                             $actions .= '<li><a class="dropdown-item text-primary" href="' . e(route('RecruitmentContract.lateFinance.show', $row->id)) . '">
                                         <i class="fas fa-money-bill-transfer"></i> استكمال العمليات المالية
                                     </a></li>';
                     }
-                    if ($row->isInvoiceEligible() && InvoiceAuthorization::canCreate() && !$row->blockingInvoices()->exists()) {
+                    if (!$row->isCompanyRecruitment() && $row->isInvoiceEligible() && InvoiceAuthorization::canCreate() && !$row->blockingInvoices()->exists()) {
                             $actions .= '<li><a class="dropdown-item" href="' . route('invoices.create') . '?contract_id=' . $row->id . '" target="_blank">
                                         <i class="fas fa-file-invoice"></i> اضافة فاتورة
                                     </a></li>';
@@ -1680,7 +1680,7 @@ class RecruitmentContractController extends Controller
                                         <i class="fas fa-trash"></i> حذف تحويل مساند
                                     </a></li>';
                         }
-                    } else {
+                    } elseif (!$row->isCompanyRecruitment()) {
                         $actions .= '<li><a class="dropdown-item" href="' . e(route('musaned-transfers.create', ['contract_ids' => [$row->id]])) . '">
                                     <i class="fas fa-money-bill-transfer"></i> تسجيل تحويل مساند
                                 </a></li>';
@@ -3532,6 +3532,10 @@ class RecruitmentContractController extends Controller
                 }
                 $contractData['user_id'] = $user->id;
                 $contractData['marketer_id'] = $marketerId; // تقييد المسوق حسب صلاحية المستخدم الحالي
+            }
+
+            if ($request->input('client_type') !== 'internal_company') {
+                app(\App\Services\ingaz\RecruitmentOrderClientCompletionService::class)->saveDeliveryCity($user, $request);
             }
 
             logger()->info('Creating contract with data:', $contractData);

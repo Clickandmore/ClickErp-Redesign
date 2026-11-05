@@ -107,4 +107,35 @@ class RecruitmentOrderClientCompletionTest extends TestCase
         $this->assertNull($client->national_num);
         $this->assertNull($client->birthdate);
     }
+
+    public function test_existing_client_delivery_city_is_saved_without_order_and_used_as_supplier_arrival_station(): void
+    {
+        foreach ([null, 'الرياض'] as $oldCity) {
+            $client = $this->client(['city' => $oldCity, 'national_num' => (string) random_int(1000000000, 1999999999)]);
+            $this->submit($client, [
+                'order_id' => null, 'client_type' => 'new_client', 'client_id' => $client->id, 'new_existing_client_id' => $client->id,
+                'client_name' => $client->name, 'client_phone' => $client->phone,
+                'new_client_national_num' => $client->national_num, 'client_nationality_id' => 1,
+                'new_client_city' => 'الدمام',
+            ])->assertOk()->assertJsonPath('success', true);
+            $this->assertSame('الدمام', $client->fresh()->city);
+            $contract = Contract::where('user_id', $client->id)->firstOrFail();
+            $this->assertSame('الدمام', $contract->resolveExternalOfficeDispatchArrivalStation());
+        }
+    }
+
+    public function test_order_contract_delivery_city_replaces_existing_city(): void
+    {
+        $client = $this->client(['city' => 'الرياض']);
+        $this->submit($client, ['city' => 'الدمام'])->assertOk()->assertJsonPath('success', true);
+        $this->assertSame('الدمام', $client->fresh()->city);
+        $this->assertSame('الدمام', Contract::where('user_id', $client->id)->firstOrFail()->resolveExternalOfficeDispatchArrivalStation());
+    }
+
+    public function test_empty_delivery_city_does_not_clear_existing_city(): void
+    {
+        $client = $this->client(['city' => 'الرياض']);
+        $this->submit($client, ['client_city' => ''])->assertOk()->assertJsonPath('success', true);
+        $this->assertSame('الرياض', $client->fresh()->city);
+    }
 }

@@ -9,6 +9,21 @@ use Illuminate\Validation\Rule;
 
 class RecruitmentOrderClientCompletionService
 {
+    public function saveDeliveryCity(User $user, Request $request): void
+    {
+        $city = $request->filled('order_id')
+            ? $request->input('client_city')
+            : ($request->input('new_client_city') ?: $request->input('client_city'));
+        if (!is_string($city) || trim($city) === '') {
+            return;
+        }
+        $city = trim($city);
+        Validator::make(['city' => $city], ['city' => 'string|max:255'])->validate();
+        if ($user->city !== $city) {
+            $user->update(['city' => $city]);
+        }
+    }
+
     public function complete(User $user, Request $request): void
     {
         $accountType = $user->client_type ?: $request->input('account_client_type', 'person');

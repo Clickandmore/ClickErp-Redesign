@@ -2502,14 +2502,14 @@
                     </a>
                 @endif
 
-                @if ($contract->isLateFinanceEligible() && (!$contract->invoice || !$contract->externalOfficeDispatch || !$contract->invoice->ingaz_delegation_cost_constraint_id || !$contract->invoice->musanedTransferItem?->transfer) && @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_LATE_FINANCE))
+                @if (!$contract->isCompanyRecruitment() && $contract->isLateFinanceEligible() && (!$contract->invoice || !$contract->externalOfficeDispatch || !$contract->invoice->ingaz_delegation_cost_constraint_id || !$contract->invoice->musanedTransferItem?->transfer) && @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_LATE_FINANCE))
                     <a href="{{ route('RecruitmentContract.lateFinance.show', $contract->id) }}"
                         class="btn btn-outline-primary" title="استكمال العمليات المالية">
                         <i class="fas fa-money-bill-transfer"></i> استكمال العمليات المالية
                     </a>
                 @endif
 
-                @if ($contract->isInvoiceEligible() && \App\Support\InvoiceAuthorization::canCreate() && !$contract->blockingInvoices()->exists())
+                @if (!$contract->isCompanyRecruitment() && $contract->isInvoiceEligible() && \App\Support\InvoiceAuthorization::canCreate() && !$contract->blockingInvoices()->exists())
                     <a href="{{ route('invoices.create', ['contract_id' => $contract->id]) }}"
                         class="btn-icon btn-invoice" title="إضافة فاتورة" aria-label="إضافة فاتورة"
                         target="_blank" rel="noopener">

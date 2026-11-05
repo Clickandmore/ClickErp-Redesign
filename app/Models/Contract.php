@@ -59,6 +59,21 @@ class Contract extends Model
         return $this->belongsTo(CompanyProfile::class);
     }
 
+    public function isCompanyRecruitment(): bool
+    {
+        return (bool) $this->company_profile_id
+            || ($this->exists && self::query()->whereKey($this->id)->forCompanyRecruitment()->exists());
+    }
+
+    public function assertCustomerBillingAllowed(): void
+    {
+        if ($this->isCompanyRecruitment()) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'contract_id' => 'عقود عاملات الشركة متاح لها فاتورة المورد فقط؛ لا يمكن إضافة فاتورة عميل أو تحويل مساند.',
+            ]);
+        }
+    }
+
     public function legacyCompanyUser()
     {
         return $this->belongsTo(User::class, 'legacy_company_user_id')->withTrashed();
