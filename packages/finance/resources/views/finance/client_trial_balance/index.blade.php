@@ -98,7 +98,7 @@
                     <td class="n">{{ number_format($totals['closing_debit'], 2) }}</td><td class="n">{{ number_format($totals['closing_credit'], 2) }}</td></tr>
             </tfoot>
         </table></div>
-        <div class="mt-3 no-print">{{ $rows->links() }}</div>
+        <div class="mt-3 no-print">{{ $rows->onEachSide(1)->links('pagination::bootstrap-4') }}</div>
         @endif
     </div>
 </div>
