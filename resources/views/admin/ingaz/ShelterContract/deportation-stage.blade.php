@@ -468,7 +468,7 @@
                             });
                         }
                     });
-                } else if (action === 'back') {
+                } else if (action === 'back' || action === 'return-to-customer') {
                     Swal.fire({
                         title: 'تأكيد',
                         text: text,
@@ -481,7 +481,7 @@
                     }).then((result) => {
                         if (result.isConfirmed) {
                             $.ajax({
-                                url: '{{ route('ShelterContract.back', ':id') }}'.replace(
+                                url: (action === 'return-to-customer' ? '{{ route('ShelterContract.returnToCustomer', ':id') }}' : '{{ route('ShelterContract.back', ':id') }}').replace(
                                     ':id', id),
                                 type: 'POST',
                                 data: {

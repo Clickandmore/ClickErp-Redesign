@@ -43,6 +43,7 @@ use Nami\Finance\Http\Controllers\BoxController;
 use Nami\Finance\Http\Controllers\CashMovementController;
 use Nami\Finance\Http\Controllers\ChartSettingController;
 use Nami\Finance\Http\Controllers\ClientTrialBalanceController;
+use Nami\Finance\Http\Controllers\ClientReceivablesController;
 use Nami\Finance\Http\Controllers\DailyCashReferenceLineController;
 use Nami\Finance\Http\Controllers\OperationalSummaryController;
 use Nami\Finance\Http\Controllers\CatchCheckController;
@@ -237,6 +238,7 @@ Route::group(
         Route::resource('cash-movements', CashMovementController::class)->only('index');
         Route::resource('daily-cash-reference-lines', DailyCashReferenceLineController::class)->only('index', 'store', 'update', 'destroy');
         Route::resource('operational-summary', OperationalSummaryController::class)->only('index');
+        Route::get('client-receivables', [ClientReceivablesController::class, 'index'])->name('client-receivables.index');
         Route::get('bank-account-statement/export/{format}', [BankAccountStatementController::class, 'export'])
             ->where('format', 'pdf|excel|xlsx')
             ->name('bank-account-statement.export');

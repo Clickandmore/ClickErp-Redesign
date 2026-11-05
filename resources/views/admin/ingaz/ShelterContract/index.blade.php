@@ -1532,6 +1532,9 @@
                 let method = 'POST';
 
                 switch (action) {
+                    case 'return-to-customer':
+                        url = '{{ route('ShelterContract.returnToCustomer', ':id') }}'.replace(':id', id);
+                        break;
                     case 'back':
                         url = '{{ route('ShelterContract.back', ':id') }}'.replace(':id', id);
                         break;

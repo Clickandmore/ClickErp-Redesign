@@ -727,6 +727,7 @@ Route::group(
             Route::get('ShelterContract/get-shelter-places', [ShelterContractController::class, 'getShelterPlaces'])->name('ShelterContract.getShelterPlaces');
             Route::get('ShelterContract/export/{format}', [ShelterContractController::class, 'export'])->name('ShelterContract.export');
             Route::post('ShelterContract/{id}/back', [ShelterContractController::class, 'back'])->name('ShelterContract.back');
+            Route::post('ShelterContract/{id}/return-to-customer', [ShelterContractController::class, 'returnToCustomer'])->name('ShelterContract.returnToCustomer');
             Route::get('ShelterContract/{id}/release-form', [ShelterContractController::class, 'releaseForm'])->name('ShelterContract.releaseForm');
             Route::post('ShelterContract/{id}/vacation', [ShelterContractController::class, 'leaveForVacation'])->name('ShelterContract.vacation');
             Route::post('ShelterContract/{id}/return-from-vacation', [ShelterContractController::class, 'returnFromVacation'])->name('ShelterContract.returnFromVacation');

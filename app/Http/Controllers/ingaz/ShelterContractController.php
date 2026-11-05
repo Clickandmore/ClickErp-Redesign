@@ -67,7 +67,7 @@ class ShelterContractController extends Controller
         $this->middleware($this->permissionMiddleware($this->shelterAdditionCreatePermissions()), ['only' => ['create', 'store']]);
         $this->middleware($this->permissionMiddleware($this->shelterContractEditPermissions()), ['only' => ['edit', 'update', 'storeLivingExpense', 'livingExpenses', 'reportEscape']]);
         $this->middleware($this->permissionMiddleware($this->shelterContractDetailViewPermissions()), ['only' => ['downloadEscapeReportAttachment']]);
-        $this->middleware($this->permissionMiddleware($this->shelterRemoveFromShelterPermissions()), ['only' => ['back', 'leaveForVacation', 'returnFromVacation']]);
+        $this->middleware($this->permissionMiddleware($this->shelterRemoveFromShelterPermissions()), ['only' => ['back', 'returnToCustomer', 'leaveForVacation', 'returnFromVacation']]);
         $this->middleware($this->permissionMiddleware($this->shelterQuickTagsEditPermissions()), ['only' => ['updateQuickTags']]);
         $this->middleware($this->permissionMiddleware($this->shelterDeportationProceduresEditPermissions()), [
             'only' => ['startDeportation', 'updateDeportationProcedures', 'cancelDeportation'],
@@ -3074,6 +3074,17 @@ class ShelterContractController extends Controller
     /**
      * إرجاع العقد
      */
+    public function returnToCustomer($id)
+    {
+        $contract = Contract::findOrFail($id);
+        $this->assertCanAccessBranchModel($contract, 'contracts');
+        DB::transaction(function () use ($contract) {
+            $returned = app(\App\Services\ingaz\ShelterReturnToCustomerService::class)->returnToCustomer($contract);
+            $this->syncMaidInstantDisplay($returned, false);
+        });
+        return response()->json(['success' => true, 'message' => 'تمت إعادة العاملة للعميل الأصلي وإخراجها من الإيواء وتسوية قيد الدخول إن وجد.']);
+    }
+
     public function back($id)
     {
         $this->assertCanAccessBranchModel(Contract::findOrFail($id), 'contracts');
@@ -3636,6 +3647,7 @@ class ShelterContractController extends Controller
 
                     if ($canRemoveFromShelter) {
                         $actions .= '<li><hr class="dropdown-divider"></li>';
+                        $actions .= '<li><a class="dropdown-item confirm-action" href="#" data-action="return-to-customer" data-id="' . $row->id . '" data-text="هل تريد إعادة العاملة للعميل الأصلي؟ سيتم إخراجها من الإيواء وعكس تكلفة الدخول إن وجدت."><i class="fas fa-user-check"></i> إعادة العاملة للعميل الأصلي</a></li>';
                         $actions .= '<li><a class="dropdown-item text-info confirm-action" href="#" data-action="vacation" data-id="' . $row->id . '" data-text="هل تريد إخراج العاملة من الإيواء بسبب الإجازة؟">
                                         <i class="fas fa-plane-departure"></i> خروج العاملة في إجازة
                                     </a></li>';

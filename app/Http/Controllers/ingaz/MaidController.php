@@ -4086,9 +4086,7 @@ class MaidController extends Controller
                 return false;
             }
 
-            $arrivalDate = $contract->info?->arrival_date
-                ?: $maid->arrival_date
-                ?: $contract->travelHistory?->arrival_date;
+            $arrivalDate = $contract->resolveRecruitmentArrivalDateTime();
 
             if (!$arrivalDate) {
                 return false;

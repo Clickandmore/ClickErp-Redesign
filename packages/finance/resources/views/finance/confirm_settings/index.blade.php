@@ -1027,6 +1027,8 @@
                             'rental_contract_cash_account' => 'rental_contract_cash_account',
                             'rental_contract_bank_account' => 'rental_contract_bank_account',
                             'rental_contract_electronic_account' => 'rental_contract_electronic_account',
+                            'rental_contract_mada_fee_account' => 'rental_contract_mada_fee_account',
+                            'rental_contract_mada_tax_account' => 'rental_contract_mada_tax_account',
                         ] as $settingKey => $translationKey)
                             <div class="setting-field">
                                 <div class="setting-field__top">
@@ -1037,7 +1039,7 @@
                                 </div>
                                 <input type="hidden" value="{{ $settingKey }}" name="data[{{ $settingKey }}][title]">
                                 <select name="data[{{ $settingKey }}][value]" id="{{ $settingKey }}"
-                                        class="form-control account-ajax-select" data-account-scope="rental_receipt">
+                                        class="form-control account-ajax-select" data-account-scope="{{ in_array($settingKey, ['rental_contract_mada_fee_account', 'rental_contract_mada_tax_account']) ? 'debtor_leaf' : 'rental_receipt' }}">
                                     <option value="">{{ __('finance::finance.choose') }}</option>
                                     @if ($item = $settingAccountOption($settingKey))
                                         <option value="{{ $item->id }}" selected>{{ $item->code }} / {{ $item->name }}</option>

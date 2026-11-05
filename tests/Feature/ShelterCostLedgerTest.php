@@ -321,6 +321,76 @@ class ShelterCostLedgerTest extends TestCase
         $this->assertSame(1, ShelterCostEntry::query()->where('kind', ShelterCostEntry::KIND_RETURN_TO_CUSTOMER)->count());
     }
 
+    public function test_explicit_customer_return_exits_shelter_reverses_receipt_and_is_not_repeatable(): void
+    {
+        [$contract] = $this->arrivedContractWithInvoice(officeCostUsd: 600);
+        $ledger = app(ShelterCostLedgerService::class);
+        $ledger->capitalizeOfficeCost($contract, 2250, now()->toDateString(), $contract, 'دخول مباشر');
+        $contract->update(['status' => ContractStatusEnum::Shelter->value]);
+        $contract->info->update(['shelter_id' => 1, 'is_available_for_instant' => true, 'is_outside_shelter' => false]);
+        $contract->maid->update(['status' => 'available', 'available' => true, 'is_show' => true]);
+        $this->grantShelterPermissions();
+        $this->postJson(route('ShelterContract.returnToCustomer', $contract->id))->assertOk();
+        $this->assertSame('completed', $contract->fresh()->status);
+        $this->assertNull($contract->info->fresh()->shelter_id);
+        $this->assertFalse((bool) $contract->info->fresh()->is_available_for_instant);
+        $this->assertFalse((bool) $contract->maid->fresh()->available);
+        $this->assertSame('contracted', $contract->maid->fresh()->status);
+        $this->assertSame(0.0, $ledger->balance($contract->maid_id));
+        $entry = ShelterCostEntry::query()->where('kind', ShelterCostEntry::KIND_RETURN_TO_CUSTOMER)->sole();
+        $this->assertSame([[$this->costReturns->id, 2250.0, 0.0], [$this->asset->id, 0.0, 2250.0]], $this->lines($entry->constraint));
+        $this->postJson(route('ShelterContract.returnToCustomer', $contract->id))->assertStatus(422);
+        $this->assertSame(1, ShelterCostEntry::query()->where('kind', ShelterCostEntry::KIND_RETURN_TO_CUSTOMER)->count());
+        if (Schema::hasTable('shelter_stays')) {
+            $this->assertFalse(DB::table('shelter_stays')->where('contract_id', $contract->id)->whereNull('exited_at')->exists());
+            $this->assertSame('return_to_customer', DB::table('shelter_stays')->where('contract_id', $contract->id)->latest('id')->value('exit_reason'));
+        }
+    }
+
+    public function test_explicit_customer_return_without_receipt_creates_no_financial_movement(): void
+    {
+        [$contract] = $this->arrivedContractWithInvoice();
+        $contract->update(['status' => ContractStatusEnum::Shelter->value]);
+        $this->grantShelterPermissions();
+        $before = Constraint::query()->count();
+        $this->postJson(route('ShelterContract.returnToCustomer', $contract->id))->assertOk();
+        $this->assertSame($before, Constraint::query()->count());
+        $this->assertSame(0, ShelterCostEntry::query()->where('maid_id', $contract->maid_id)->count());
+    }
+
+    public function test_explicit_customer_return_cannot_bypass_a_cancelled_contract_even_without_cost(): void
+    {
+        [$contract] = $this->arrivedContractWithInvoice();
+        $contract->update(['status' => ContractStatusEnum::Shelter->value]);
+        $contract->contract_status_logs()->create(['status' => 'shelter', 'previous_status' => 'back', 'date' => now()]);
+        $this->grantShelterPermissions();
+        $this->postJson(route('ShelterContract.returnToCustomer', $contract->id), ['write_off_reason' => 'تجاوز'])->assertStatus(422);
+        $this->assertSame('shelter', $contract->fresh()->status);
+    }
+
+    public function test_explicit_customer_return_rejects_worker_already_outside(): void
+    {
+        [$contract] = $this->arrivedContractWithInvoice();
+        $contract->update(['status' => ContractStatusEnum::Shelter->value]);
+        $contract->info->update(['is_outside_shelter' => true, 'outside_shelter_reason' => 'vacation']);
+        $this->grantShelterPermissions();
+        $this->postJson(route('ShelterContract.returnToCustomer', $contract->id))->assertStatus(422);
+        $this->assertSame('shelter', $contract->fresh()->status);
+    }
+
+    public function test_explicit_customer_return_cannot_clear_posted_cost_when_automatic_entries_are_disabled(): void
+    {
+        [$contract] = $this->arrivedContractWithInvoice(officeCostUsd: 600);
+        $ledger = app(ShelterCostLedgerService::class);
+        $ledger->capitalizeOfficeCost($contract, 2250, now()->toDateString(), $contract, 'دخول مباشر');
+        $contract->update(['status' => 'shelter']);
+        ConfirmSetting::query()->updateOrCreate(['title' => \App\Support\AutomaticJournalEntries::SETTING_KEY], ['value' => 'off']);
+        $this->grantShelterPermissions();
+        $this->postJson(route('ShelterContract.returnToCustomer', $contract->id))->assertStatus(422);
+        $this->assertSame('shelter', $contract->fresh()->status);
+        $this->assertSame(2250.0, $ledger->balance($contract->maid_id));
+    }
+
     public function test_capitalized_living_expense_debits_shelter_asset_and_records_ledger(): void
     {
         [$contract] = $this->arrivedContractWithInvoice();
@@ -591,6 +661,7 @@ class ShelterCostLedgerTest extends TestCase
             $contract->contract_status_logs()->latest('id')->value('previous_status')
         );
         $this->assertFalse((bool) $contract->info->fresh()->is_outside_shelter);
+        $this->assertTrue(app(\App\Services\commissions\RecruitmentCommissionService::class)->isEligible($contract->fresh()));
         $summary = app(\App\Services\ingaz\ShelterAgentCostRecoveryService::class)->summary($contract->fresh());
         $this->assertEquals(5250, $summary['available']);
         $this->assertEmpty($summary['issues']);
@@ -619,6 +690,7 @@ class ShelterCostLedgerTest extends TestCase
         $this->assertSame(ContractStatusEnum::Shelter->value, $contract->fresh()->status);
         $this->assertSame(ContractStatusEnum::Back->value,
             $contract->contract_status_logs()->latest('id')->value('previous_status'));
+        $this->assertFalse(app(\App\Services\commissions\RecruitmentCommissionService::class)->isEligible($contract->fresh()));
     }
 
     public function test_admission_rolls_back_when_supplier_cost_cannot_be_posted(): void

@@ -218,11 +218,11 @@ class RecruitmentCommissionReturnTest extends TestCase
         $this->assertSame(0.0, (float) $item->reversalTransaction->balance_after);
     }
 
-    public function test_shelter_contract_with_approved_commission_can_be_settled(): void
+    public function test_shelter_admission_preserves_approved_commission_and_cannot_be_settled_as_return(): void
     {
         $marketer = Admin::factory()->create();
         $contract = Contract::query()->create([
-            'status' => ContractStatusEnum::Shelter->value,
+            'status' => ContractStatusEnum::Completed->value,
             'marketer_id' => $marketer->id,
             'contract_cost' => 3980.75,
             'contract_date' => now()->toDateString(),
@@ -255,21 +255,66 @@ class RecruitmentCommissionReturnTest extends TestCase
             'balance_after' => 100,
         ]);
 
+        $contract->update(['status' => ContractStatusEnum::Shelter->value]);
         $operation = app(CommissionOperationService::class)
             ->getOperations($marketer->id)
             ->firstWhere('source_id', $contract->id);
 
-        $this->assertFalse($operation['commission_eligible']);
-        $this->assertSame(RecruitmentCommissionService::SETTLEMENT_PENDING, $operation['return_settlement_status']);
+        $this->assertTrue($operation['commission_eligible']);
+        $this->assertNotSame(RecruitmentCommissionService::SETTLEMENT_PENDING, $operation['return_settlement_status']);
+        $this->assertFalse(app(RecruitmentCommissionService::class)->pendingDeductions($marketer->id)->contains('id', $item->id));
+        $this->assertNull($item->fresh()->commission_reversal_transaction_id);
+        $this->assertNull($item->fresh()->commission_reversal_reason);
+        $this->assertSame(100.0, app(CommissionPaymentService::class)->getPaymentSummary($marketer->id)['balance']);
 
+        $this->expectException(ValidationException::class);
         app(RecruitmentCommissionService::class)->resolveSettlement(
             $item,
             RecruitmentCommissionService::SETTLEMENT_DEDUCTED,
             $marketer->id
         );
 
-        $this->assertNotNull($item->fresh()->commission_reversal_transaction_id);
-        $this->assertSame(0.0, app(CommissionPaymentService::class)->getPaymentSummary($marketer->id)['balance']);
+    }
+
+    public function test_uncommissioned_shelter_admission_does_not_create_zero_marker_or_financial_movement(): void
+    {
+        $marketer = Admin::factory()->create();
+        $contract = Contract::query()->create([
+            'status' => ContractStatusEnum::Completed->value, 'marketer_id' => $marketer->id,
+            'contract_cost' => 12000, 'contract_date' => now()->toDateString(),
+        ]);
+        $constraints = DB::table('fn_constraints')->count();
+        $transactions = CommissionBalanceTransaction::query()->count();
+        $contract->update(['status' => ContractStatusEnum::Shelter->value]);
+        $contract->setRelation('info', new \App\Models\ContractInfo(['shelter_id' => 123]));
+        $service = app(RecruitmentCommissionService::class);
+        $this->assertTrue($service->isEligible($contract));
+        $service->assertEligible($contract);
+        $this->assertNull($service->settleReturnedContract($contract));
+        $this->assertFalse(CommissionBatchItem::query()->where('source_type', CommissionOperationService::SOURCE_RECRUITMENT_CONTRACT)->where('source_id', $contract->id)->exists());
+        $this->assertSame($constraints, DB::table('fn_constraints')->count());
+        $this->assertSame($transactions, CommissionBalanceTransaction::query()->count());
+    }
+
+    public function test_shelter_admission_does_not_restore_commission_of_an_explicitly_returned_contract(): void
+    {
+        foreach ([ContractStatusEnum::Back->value, ContractStatusEnum::Refunded->value] as $status) {
+            $contract = Contract::query()->create(['status' => ContractStatusEnum::Shelter->value]);
+            $contract->contract_status_logs()->create(['status' => ContractStatusEnum::Shelter->value, 'previous_status' => $status, 'date' => now()]);
+            $this->assertFalse(app(RecruitmentCommissionService::class)->isEligible($contract->fresh()));
+        }
+    }
+
+    public function test_approved_return_request_still_blocks_shelter_commission_but_pending_request_does_not(): void
+    {
+        $contract = new Contract(['status' => ContractStatusEnum::Shelter->value]);
+        $contract->setRelation('latestShelterLog', null);
+        $request = new \App\Models\ContractReturnRequest(['status' => 'pending']);
+        $contract->setRelation('returnRequests', collect([$request]));
+        $service = app(RecruitmentCommissionService::class);
+        $this->assertTrue($service->isEligible($contract));
+        $request->status = 'approved';
+        $this->assertFalse($service->isEligible($contract));
     }
 
     public function test_zero_decision_closes_returned_commission_without_deduction(): void

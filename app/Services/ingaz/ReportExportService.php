@@ -496,10 +496,6 @@ class ReportExportService
             $arrival = $date($contract->info?->arrival_date);
             if ($arrival) $source = 'تاريخ الوصول بالعقد';
         }
-        if (!$arrival && $hasArrived) {
-            $arrival = $date($contract->maid?->arrival_date);
-            if ($arrival) $source = 'تاريخ الوصول بالعاملة';
-        }
         // A dated arrival event remains evidence after cancellation/return; never use an arbitrary update timestamp.
         if (!$arrival && $hasArrived) {
             $arrivalLog = $logs->where('status', 'arrival')->sortBy('id')->first(fn ($log) => $date($log->date));

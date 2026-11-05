@@ -327,7 +327,7 @@ class OperationalSummaryService extends MainService
     }
 
     /** Apply contract credits once, oldest outstanding document first, before period filtering. */
-    private function rentalReceivableBillingQuery(string $to): Builder
+    public function rentalReceivableBillingQuery(string $to): Builder
     {
         $credits = $this->scoped('rental_financial_adjustments')
             ->whereIn('context', ['closure', 'manual_credit_note', 'closure_correction'])

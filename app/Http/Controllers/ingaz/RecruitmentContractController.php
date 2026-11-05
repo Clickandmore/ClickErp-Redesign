@@ -3079,10 +3079,6 @@ class RecruitmentContractController extends Controller
             $arrivalDateTime = $this->normalizeContractStageDate($contract->info->arrival_date);
         }
 
-        if ($hasArrived && !$arrivalDateTime && $contract->maid?->arrival_date) {
-            $arrivalDateTime = $this->normalizeContractStageDate($contract->maid->arrival_date);
-        }
-
         $usesReportingDate = array_key_exists('reporting_has_arrived', $contract->getAttributes());
         $reportingDateChanged = false;
         if ($usesReportingDate) {
@@ -4493,7 +4489,7 @@ class RecruitmentContractController extends Controller
             'working_hours' => (string) ($info?->working_hours_num ?? ''),
             'ingaz_from' => (string) ($info?->ingaz_from ?? ''),
             'ingaz_to' => (string) ($info?->ingaz_to ?? ''),
-            'arrival_date' => (string) (array_key_exists('reporting_arrival_date', $contract->getAttributes()) ? $contract->reporting_arrival_date : ($info?->arrival_date ?? $maid?->arrival_date ?? '')),
+            'arrival_date' => (string) (array_key_exists('reporting_arrival_date', $contract->getAttributes()) ? $contract->reporting_arrival_date : $contract->resolveRecruitmentArrivalDateTime()?->toDateString()),
             'client_delivered_at' => (string) ($contract->getRawOriginal('client_delivered_at') ?? ''),
             'marketer' => (string) ($marketer?->name ?? ''),
             'status' => (string) getEnumValue('contract_statuses', $this->resolveRecruitmentLifecycleStatus($contract)),

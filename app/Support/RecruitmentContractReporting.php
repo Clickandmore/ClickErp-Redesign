@@ -28,13 +28,11 @@ class RecruitmentContractReporting
         $tripDate = self::validDate('t.arrival_date');
         $tripAt = self::validDate('t.arrived_at');
         $info = self::validDate('i.arrival_date');
-        $maid = self::validDate('m.arrival_date');
         $log = self::validDate('l.date');
         $proof = self::hasArrivalSql();
         return "COALESCE($warranty,
             (SELECT COALESCE($tripDate,$tripAt) FROM travel_histories t WHERE t.order_id=contracts.id AND t.deleted_at IS NULL AND t.status='completed' ORDER BY t.id DESC LIMIT 1),
             CASE WHEN $proof THEN (SELECT $info FROM contract_infos i WHERE i.contract_id=contracts.id LIMIT 1) END,
-            CASE WHEN $proof THEN (SELECT $maid FROM maids m WHERE m.id=contracts.maid_id LIMIT 1) END,
             (SELECT $log FROM contract_status_logs l WHERE l.contract_id=contracts.id AND l.status='arrival' AND $log IS NOT NULL ORDER BY l.id LIMIT 1))";
     }
 

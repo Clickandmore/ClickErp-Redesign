@@ -13,6 +13,18 @@ class RecruitmentContractArrivalReportingTest extends TestCase
 {
     use DatabaseTransactions, InteractsWithBranches;
 
+    public function test_cv_date_does_not_supply_arrival_date_in_contract_reporting(): void
+    {
+        [$branch] = $this->viewer();
+        $maid = DB::table('maids')->insertGetId(['name' => 'CV arrival regression', 'arrival_date' => '2026-06-15', 'branch_id' => $branch->id]);
+        foreach (['new', 'completed'] as $status) {
+            $id = $this->contract($branch->id, $status, null);
+            DB::table('contracts')->where('id', $id)->update(['maid_id' => $maid]);
+            $row = DB::table('contracts')->where('id', $id)->selectRaw(\App\Support\RecruitmentContractReporting::arrivalDateSql() . ' AS actual_arrival')->first();
+            $this->assertNull($row->actual_arrival);
+        }
+    }
+
     private function viewer()
     {
         $this->setUpBranches();

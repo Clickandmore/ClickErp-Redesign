@@ -947,7 +947,6 @@ class ComplaintController extends Controller
             $startDate = $contract->travelHistory->resolveArrivalDateTime();
         }
         $startDate ??= $contract->info?->arrival_date;
-        $startDate ??= $contract->maid?->arrival_date;
 
         $daysSinceArrival = $startDate
             ? max(0, (int) \Carbon\Carbon::parse($startDate)->startOfDay()->diffInDays(today(), false))

@@ -35,10 +35,7 @@
     $contractExpiryDate = $actualArrivalDate
         ? $contract->recruitmentContractExpiryDate($actualArrivalDate)
         : null;
-    $arrivalDateForDisplay = $actualArrivalDate
-        ?: $info->arrival_date
-        ?: optional($contract->travelHistory)->arrival_date
-        ?: optional($contract->maid)->arrival_date;
+    $arrivalDateForDisplay = $actualArrivalDate;
     $arrivalDateLabel = $arrivalDateForDisplay
         ? \Carbon\Carbon::parse($arrivalDateForDisplay)->format('Y-m-d')
         : 'غير محدد';

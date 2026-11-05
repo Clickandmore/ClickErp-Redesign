@@ -744,10 +744,6 @@ class Contract extends Model
             $arrivalDateTime = $realDate($this->info?->arrival_date);
         }
 
-        if (!$arrivalDateTime && $hasReachedArrivalStage) {
-            $arrivalDateTime = $realDate($this->maid?->arrival_date);
-        }
-
         return $arrivalDateTime;
     }
 
