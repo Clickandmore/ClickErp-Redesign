@@ -940,7 +940,7 @@ class MusanedTransferController extends Controller
             ->whereDoesntHave('musanedTransferItem.transfer')
             ->blockingReplacement()
             ->where(function ($query) {
-                $query->whereHas('contract')
+                $query->whereHas('contract', fn ($contract) => $contract->forCompanyRecruitment(false))
                     ->orWhereHas('ingazDelegation');
             });
 

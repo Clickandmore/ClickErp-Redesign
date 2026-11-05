@@ -1020,6 +1020,7 @@ class InvoiceController extends Controller
 
         if (!$contractId && !$ingazDelegationId && !$clientId && $contractSearchAttempted) {
             $searchedContract = Contract::query()
+                ->forCompanyRecruitment(false)
                 ->with(['user', 'maid.nationality', 'requiredMaidNationality'])
                 ->whereDoesntHave('blockingInvoices')
                 ->whereIn('status', Contract::invoiceEligibleStatuses())
@@ -1064,6 +1065,9 @@ class InvoiceController extends Controller
             }
         }
 
+        if ($selectedContract) {
+            $selectedContract->assertCustomerBillingAllowed();
+        }
         if ($selectedContract && !$selectedContract->isInvoiceEligible()) {
             $selectedContract = null;
             $contractId = null;
@@ -1373,6 +1377,7 @@ class InvoiceController extends Controller
 
         if ($request->filled('contract_id')) {
             $invoiceContract = Contract::query()->find($request->contract_id);
+            $invoiceContract?->assertCustomerBillingAllowed();
             $contractIsCurrent = $invoiceContract && ($allowLateContract
                 ? $invoiceContract->isLateFinanceEligible()
                 : $invoiceContract->isInvoiceEligible());
@@ -1614,6 +1619,8 @@ class InvoiceController extends Controller
                 ->with(['user', 'maid.nationality', 'requiredMaidNationality'])
                 ->lockForUpdate()
                 ->findOrFail($contractId);
+
+            $contract->assertCustomerBillingAllowed();
 
             if ($allowLateContract && !$contract->isLateFinanceEligible()) {
                 throw new \RuntimeException('هذه الصفحة مخصصة لعقود الاستقدام بحالة وصول أو مكتملة.');

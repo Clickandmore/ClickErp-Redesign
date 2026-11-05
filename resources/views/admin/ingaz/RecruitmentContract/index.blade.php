@@ -849,10 +849,12 @@
                         <i class="fas fa-paper-plane"></i>
                         فواتير الموردين
                     </a>
+                    @if (!$companyContractsMode)
                     <a href="{{ route('musaned-transfers.create') }}" class="btn btn-light">
                         <i class="fas fa-money-bill-transfer"></i>
                         تحويل مساند
                     </a>
+                    @endif
                     @if (AdminGuardHasAnyPerm([
                         \App\PermKeys::MUSANED_TRANSFERS_CREATE,
                         \App\PermKeys::MUSANED_TRANSFERS_CONTROL,
