@@ -58,7 +58,7 @@ class RecruitmentContractArrivalExpiryTest extends TestCase
         );
     }
 
-    public function test_maid_arrival_is_the_last_arrival_fallback(): void
+    public function test_cv_arrival_does_not_start_recruitment_contract_or_warranty(): void
     {
         $contract = new Contract([
             'contract_date' => '2020-01-01',
@@ -73,10 +73,11 @@ class RecruitmentContractArrivalExpiryTest extends TestCase
             'arrival_date' => '2023-07-20',
         ]));
 
-        $this->assertSame(
-            '2025-07-20',
-            $contract->recruitmentContractExpiryDate()?->toDateString()
-        );
+        $this->assertNull($contract->resolveRecruitmentArrivalDateTime());
+        $this->assertNull($contract->recruitmentContractExpiryDate());
+        $contract->calculateWarrantyStatus();
+        $this->assertNull($contract->warranty_start_date);
+        $this->assertNull($contract->warranty_end_date);
     }
 
     public function test_contract_date_is_not_used_when_arrival_date_is_missing(): void
@@ -116,5 +117,19 @@ class RecruitmentContractArrivalExpiryTest extends TestCase
 
         $this->assertNull($contract->resolveRecruitmentArrivalDateTime());
         $this->assertNull($contract->recruitmentContractExpiryDate());
+    }
+
+    public function test_commission_warranty_ignores_recruitment_cv_arrival(): void
+    {
+        $contract = new Contract(['status' => 'back']);
+        $contract->setRelation('travelHistory', null);
+        $contract->setRelation('info', new ContractInfo);
+        $contract->setRelation('maid', new Maid(['arrival_date' => '2026-01-01']));
+        $service = app(\App\Services\commissions\RecruitmentCommissionService::class);
+        $method = new \ReflectionMethod($service, 'contractWithResolvedWarranty');
+        $method->setAccessible(true);
+        $resolved = $method->invoke($service, $contract);
+        $this->assertNull($resolved->warranty_start_date);
+        $this->assertNull($resolved->warranty_end_date);
     }
 }

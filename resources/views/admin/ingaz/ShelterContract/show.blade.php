@@ -713,6 +713,10 @@
                 @endif
 
                 @if ($canRemoveFromShelter)
+                    <button onclick="confirmBack({{ $contract->id }}, true)" type="button" class="action-card">
+                        <i class="fas fa-user-check"></i>
+                        <span>إعادة العاملة للعميل الأصلي</span>
+                    </button>
                     <button onclick="leaveForVacation({{ $contract->id }})" type="button" class="action-card action-card--edit">
                         <i class="fas fa-plane-departure"></i>
                         <span>خروج العاملة في إجازة</span>
@@ -758,10 +762,10 @@ function leaveForVacation(id) {
     });
 }
 
-function confirmBack(id) {
+function confirmBack(id, returnToCustomer = false) {
     Swal.fire({
         title: 'تأكيد',
-        text: 'سيتم إخراج العاملة من الإيواء وإرجاع العقد إلى حالة مكتمل. هل تريد المتابعة؟',
+        text: returnToCustomer ? 'سيتم إعادة العاملة للعميل الأصلي وإخراجها من الإيواء وعكس تكلفة الدخول إن وجدت. هل تريد المتابعة؟' : 'سيتم إخراج العاملة من الإيواء وإرجاع العقد إلى حالة مكتمل. هل تريد المتابعة؟',
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#3085d6',
@@ -771,7 +775,7 @@ function confirmBack(id) {
     }).then((result) => {
         if (result.isConfirmed) {
             $.ajax({
-                url: '{{ route("ShelterContract.back", ":id") }}'.replace(':id', id),
+                url: (returnToCustomer ? '{{ route("ShelterContract.returnToCustomer", ":id") }}' : '{{ route("ShelterContract.back", ":id") }}').replace(':id', id),
                 type: 'POST',
                 data: {
                     _token: '{{ csrf_token() }}'

@@ -802,6 +802,15 @@
 @endsection
 
 @section('content')
+    @if(session('error'))
+        <div class="alert alert-danger m-3" role="alert">{{ session('error') }}</div>
+    @endif
+    @if(session('success'))
+        <div class="alert alert-success m-3" role="status">{{ session('success') }}</div>
+    @endif
+    @if($errors->any())
+        <div class="alert alert-danger m-3" role="alert">@foreach($errors->all() as $error)<div>{{ $error }}</div>@endforeach</div>
+    @endif
     @include('admin.ingaz.RentContract._escape-report')
     @if (@AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_VIEW))
         @php
@@ -1285,7 +1294,7 @@
                                         <select name="payment_type" id="show_payment_type" class="form-select" required>
                                             @foreach($paymentTypes as $value => $label)
                                                 @continue($value === 'pay_later')
-                                                <option value="{{ $value }}" {{ ($contract->info?->payment_type ?? '') === $value ? 'selected' : '' }}>
+                                                <option value="{{ $value }}" {{ old('payment_type', $contract->info?->payment_type ?? '') === $value ? 'selected' : '' }}>
                                                     {{ $label }}
                                                 </option>
                                             @endforeach

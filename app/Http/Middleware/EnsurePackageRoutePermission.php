@@ -92,6 +92,10 @@ class EnsurePackageRoutePermission
 
     private function financePermissions(string $routeName): array
     {
+        if (Str::startsWith($routeName, 'finance.client-receivables.')) {
+            return ['finance_client_receivables_view'];
+        }
+
         if (Str::startsWith($routeName, 'finance.procurement.')) {
             $action = Str::after($routeName, 'finance.procurement.');
             $ability = match ($action) {

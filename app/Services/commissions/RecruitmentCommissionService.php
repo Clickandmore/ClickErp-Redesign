@@ -38,7 +38,7 @@ class RecruitmentCommissionService
             ->whereNull('commission_reversal_transaction_id')
             ->orderBy('id')
             ->get();
-        $contracts = Contract::query()->with(['info', 'maid', 'travelHistory', 'returnRequests', 'contract_status_logs'])
+        $contracts = Contract::query()->with(['info', 'maid', 'travelHistory', 'returnRequests', 'contract_status_logs', 'latestShelterLog'])
             ->whereIn('id', $items->where('source_type', CommissionOperationService::SOURCE_RECRUITMENT_CONTRACT)->pluck('source_id'))->get()->keyBy('id');
         $extensions = RentalContractExtension::query()->whereIn('id', $items->filter(fn ($item) => $this->isRentalExtensionItem($item))->pluck('source_id'))
             ->get()->keyBy('id');
@@ -61,7 +61,7 @@ class RecruitmentCommissionService
                     && in_array($adjustment->context, ['closure', 'manual_credit_note', 'closure_correction'], true))
                     ->map(fn ($adjustment) => $adjustment->issue_date ?: $adjustment->created_at)->sort()->first())
                 : ($contract->returnRequests->where('status', 'approved')->pluck('processed_at')->filter()->sort()->first()
-                    ?: $contract->contract_status_logs->whereIn('status', [ContractStatusEnum::Refunded->value, ContractStatusEnum::Back->value, ContractStatusEnum::Shelter->value])->pluck('date')->filter()->sort()->first());
+                    ?: $contract->contract_status_logs->whereIn('status', [ContractStatusEnum::Refunded->value, ContractStatusEnum::Back->value])->pluck('date')->filter()->sort()->first());
             $item->setAttribute('return_date', $returnDate ? \Carbon\Carbon::parse($returnDate) : null);
             $item->setAttribute('deduction_contract_id', $contract->id);
             $item->setAttribute('deduction_reason', $this->deductionReason($contract));
@@ -129,14 +129,12 @@ class RecruitmentCommissionService
                 }
             }
         } else {
-            $label = match ((string) $contract->status) {
+            $label = match ($this->recruitmentReturnStatus($contract)) {
                 ContractStatusEnum::Refunded->value => 'استرداد قيمة عقد الاستقدام',
                 ContractStatusEnum::Back->value => 'إرجاع عاملة عقد الاستقدام',
-                ContractStatusEnum::Shelter->value => 'إرجاع عاملة عقد الاستقدام إلى الإيواء',
                 default => null,
             };
             if ($label) $reasons[] = $label;
-            elseif ($contract->info?->shelter_id) $reasons[] = 'عقد الاستقدام مرتبط بإرجاع إلى الإيواء';
             foreach ($contract->returnRequests->where('status', 'approved') as $request) {
                 $reasons[] = 'طلب إرجاع معتمد #' . $request->id
                     . (trim((string) $request->notes) !== '' ? ' — ' . trim($request->notes) : '');
@@ -163,7 +161,6 @@ class RecruitmentCommissionService
             $travel?->status === 'completed' ? $travel->resolveArrivalDateTime() : null,
             $travel?->status === 'completed' ? $travel->arrived_at : null,
             $contract->info?->arrival_date,
-            $contract->maid?->arrival_date,
             $contract->warranty_start_date,
         ];
         $arrival = null;
@@ -222,15 +219,7 @@ class RecruitmentCommissionService
                 $adjustment->type === 'expense' && (float) $adjustment->amount > 0
                 && in_array($adjustment->context, ['closure', 'manual_credit_note', 'closure_correction'], true));
         }
-        if (in_array((string) $contract->status, [
-            ContractStatusEnum::Refunded->value,
-            ContractStatusEnum::Back->value,
-            ContractStatusEnum::Shelter->value,
-        ], true)) {
-            return true;
-        }
-
-        if ((bool) $contract->info?->shelter_id) {
+        if ($this->recruitmentReturnStatus($contract) !== null) {
             return true;
         }
 
@@ -239,6 +228,25 @@ class RecruitmentCommissionService
         }
 
         return $contract->returnRequests()->where('status', 'approved')->exists();
+    }
+
+    /** Shelter admission is a location change, not a cancellation of the recruitment contract. */
+    private function recruitmentReturnStatus(Contract $contract): ?string
+    {
+        $returned = [ContractStatusEnum::Refunded->value, ContractStatusEnum::Back->value];
+        if (in_array((string) $contract->status, $returned, true)) {
+            return (string) $contract->status;
+        }
+        if ($contract->status !== ContractStatusEnum::Shelter->value) {
+            return null;
+        }
+        // Admission can replace the status of an already cancelled contract.
+        // Keep that explicit cancellation effective both during save and afterwards.
+        $previous = $contract->wasChanged('status') ? $contract->getOriginal('status') : null;
+        if (!in_array($previous, $returned, true)) {
+            $previous = $contract->latestShelterLog?->previous_status;
+        }
+        return in_array($previous, $returned, true) ? $previous : null;
     }
 
     public function assertEligible(Contract $contract): void

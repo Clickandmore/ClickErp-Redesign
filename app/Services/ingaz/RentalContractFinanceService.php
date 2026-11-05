@@ -36,6 +36,8 @@ class RentalContractFinanceService
     public const RENTAL_CASH_ACCOUNT_SETTING = 'rental_contract_cash_account';
     public const RENTAL_BANK_ACCOUNT_SETTING = 'rental_contract_bank_account';
     public const RENTAL_ELECTRONIC_ACCOUNT_SETTING = 'rental_contract_electronic_account';
+    public const RENTAL_MADA_FEE_ACCOUNT_SETTING = 'rental_contract_mada_fee_account';
+    public const RENTAL_MADA_TAX_ACCOUNT_SETTING = 'rental_contract_mada_tax_account';
 
     public function __construct(
         protected ConstraintService $constraintService,
@@ -561,6 +563,8 @@ class RentalContractFinanceService
             self::RENTAL_CASH_ACCOUNT_SETTING,
             self::RENTAL_BANK_ACCOUNT_SETTING,
             self::RENTAL_ELECTRONIC_ACCOUNT_SETTING,
+            self::RENTAL_MADA_FEE_ACCOUNT_SETTING,
+            self::RENTAL_MADA_TAX_ACCOUNT_SETTING,
         ];
     }
 
@@ -841,6 +845,7 @@ class RentalContractFinanceService
         ?int $receiptAccountId = null,
         ?string $statement = null
     ): array {
+        return DB::transaction(function () use ($invoice, $contract, $clientAccountId, $paidAmount, $paymentType, $paymentDate, $receiptAccountId, $statement) {
         $date = $paymentDate instanceof Carbon
             ? $paymentDate->toDateString()
             : ($paymentDate
@@ -881,10 +886,15 @@ class RentalContractFinanceService
 
         $bond = $bond->fresh();
 
+        if ($paymentType === 'mada') {
+            app(RentalMadaFeeService::class)->post($bond);
+        }
+
         return [
             'bond' => $bond,
             'constraint' => $bond?->constraint,
         ];
+        });
     }
 
     private function linkExistingInvoiceConstraint(RentalContractInvoice $invoice): RentalContractInvoice
