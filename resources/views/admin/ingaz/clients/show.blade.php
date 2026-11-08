@@ -147,6 +147,9 @@
 @endsection
 
 @section('content')
+    @if ((@AdminGuardHasPerm(\App\PermKeys::MAIDS_VIEW) || @AdminGuardHasPerm(\App\PermKeys::MAIDS_RENTAL_VIEW)) && @AdminGuardHasPerm(\App\PermKeys::MAIDS_SHARE_WHATSAPP))
+        <div class="container-fluid pt-3"><a class="btn btn-outline-success" href="{{ route('maid-cv-shares.index', ['client_id' => $client->id]) }}">تاريخ مشاركة السير مع العميل عبر واتساب</a></div>
+    @endif
     @if (@AdminGuardHasPerm(\App\PermKeys::CLIENTS_SHOW))
         <div class="container-fluid py-3 py-lg-4">
             @if (session('success'))

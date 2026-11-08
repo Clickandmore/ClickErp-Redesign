@@ -320,6 +320,7 @@ return array (
   'maids_show' => 'عرض تفاصيل السيرة الذاتية',
   'maids_toggle_status' => 'تغيير حالة الظهور',
   'maids_bulk_visibility' => 'إظهار/إخفاء السير جماعيًا',
+  'maids_share_whatsapp' => 'مشاركة السير عبر واتساب',
   'maids_toggle_pin' => 'تثبيت/إلغاء تثبيت',
   'maids_control' => 'التحكم في السير الذاتية',
   'maids_rental_view' => 'عرض سير عاملات الإيجار',

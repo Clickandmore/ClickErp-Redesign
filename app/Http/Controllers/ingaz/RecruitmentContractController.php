@@ -2023,7 +2023,10 @@ class RecruitmentContractController extends Controller
             ->orderByDesc('created_at')
             ->get();
 
+        $contractMessages = app(\App\Services\ContractMessageHistoryService::class)->forContract($contract);
+
         return view('admin.ingaz.RecruitmentContract.details', compact(
+            'contractMessages',
             'contract',
             'contractComplaints',
             'info',

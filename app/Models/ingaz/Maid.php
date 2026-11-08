@@ -791,6 +791,23 @@ class Maid extends Model
         return $query->where('available_at', '<', now()->toDateString());
     }
 
+    /** Cross-branch reservation existence only; details remain branch scoped. */
+    public function reservationOrders()
+    {
+        return $this->orders()->withoutGlobalScope(\App\Models\Scopes\BranchScope::class);
+    }
+
+    public function hasActiveOrderReservation(): bool
+    {
+        if (array_key_exists('active_order_reservation', $this->getAttributes())) {
+            return (bool) $this->getAttribute('active_order_reservation');
+        }
+
+        return $this->reservationOrders()
+            ->whereIn('status', ['new', 'under_process', 'contracted', 'contracted_without_contract'])
+            ->exists();
+    }
+
     public function orders()
     {
         return $this->hasMany(Order::class, 'maid_id');
@@ -1164,6 +1181,11 @@ class Maid extends Model
             || str_contains($title, 'immediate')
             || str_contains($title, 'transfer')
             || str_contains($title, 'نقل');
+    }
+
+    public function isRentalCv(): bool
+    {
+        return $this->getLoadedJobTypes()->contains(fn ($jobType) => $this->isRentalJobType($jobType));
     }
 
     protected function isRentalJobType(?JobType $jobType): bool

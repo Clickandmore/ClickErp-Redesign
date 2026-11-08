@@ -938,6 +938,8 @@ class RentContractController extends Controller
         ])->findOrFail($id);
         $this->assertCanAccessBranchModel($contract, 'rental_contracts');
 
+        $contractMessages = app(\App\Services\ContractMessageHistoryService::class)->forContract($contract);
+
         $marketers = AdminGuardHasPerm(PermKeys::RENT_CONTRACT_CHANGE_MARKETER)
             ? Admin::query()->activeForOperations()->orderBy('name')->get(['id', 'name'])
             : collect();
@@ -1052,6 +1054,7 @@ class RentContractController extends Controller
         }
 
         return view($this->folderPath . '.show', compact(
+            'contractMessages',
             'contract',
             'availableReplacementMaids',
             'marketers',

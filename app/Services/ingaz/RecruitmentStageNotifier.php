@@ -123,7 +123,10 @@ class RecruitmentStageNotifier
                 return;
             }
             if ($notification->channel === 'email') {
-                Mail::raw($notification->message, fn ($mail) => $mail->to($notification->recipient)->subject($notification->subject));
+                \App\Support\OutboundMessageRecorder::withContext(
+                    \App\Services\ContractMessageHistoryService::context($contract) + ['source' => 'recruitment_stage'],
+                    fn () => Mail::raw($notification->message, fn ($mail) => $mail->to($notification->recipient)->subject($notification->subject))
+                );
                 $status = 'sent';
                 $error = null;
             } else {

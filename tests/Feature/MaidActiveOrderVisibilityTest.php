@@ -102,6 +102,36 @@ class MaidActiveOrderVisibilityTest extends TestCase
         $this->assertTrue($this->isEligible());
     }
 
+    public function test_status_checks_cross_branch_reservation_without_exposing_order_details(): void
+    {
+        Order::query();
+        Order::addGlobalScope(\App\Models\Scopes\BranchScope::class, fn (Builder $query) => $query->where('branch_id', 1));
+
+        try {
+            $id = DB::table('orders')->insertGetId([
+                'maid_id' => 1, 'status' => 'new', 'branch_id' => 2,
+            ]);
+            $maid = Maid::withoutGlobalScopes()->without('translations')->findOrFail(1);
+            $this->assertFalse($maid->orders()->exists());
+            $this->assertTrue($maid->hasActiveOrderReservation());
+            $preloaded = Maid::withoutGlobalScopes()->without('translations')
+                ->select('id')->withExists([
+                    'reservationOrders as active_order_reservation' => fn ($q) => $q->where('status', 'new'),
+                ])->findOrFail(1);
+            $this->assertTrue($preloaded->hasActiveOrderReservation());
+            $this->assertFalse($preloaded->orders()->exists());
+            $this->assertFalse(Maid::withoutGlobalScopes()->whereKey(1)
+                ->whereDoesntHave('reservationOrders', fn ($q) => $q->where('status', 'new'))->exists());
+
+            DB::table('orders')->where('id', $id)->update(['deleted_at' => now()]);
+            $this->assertFalse($maid->hasActiveOrderReservation());
+            $this->assertTrue(Maid::withoutGlobalScopes()->whereKey(1)
+                ->whereDoesntHave('reservationOrders', fn ($q) => $q->where('status', 'new'))->exists());
+        } finally {
+            Order::clearBootedModels();
+        }
+    }
+
     private function isEligible(): bool
     {
         return Maid::withoutGlobalScopes()->whereKey(1)->withoutActiveOrders()->exists();

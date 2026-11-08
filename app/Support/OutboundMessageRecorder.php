@@ -9,6 +9,20 @@ use Illuminate\Support\Str;
 /** Transport-level audit. Audit failures must never interrupt a business message. */
 class OutboundMessageRecorder
 {
+    private static array $context = [];
+
+    /** Carry contract identity through transports and notification observers, including email. */
+    public static function withContext(array $context, callable $callback)
+    {
+        $previous = self::$context;
+        self::$context = $context + $previous;
+        try {
+            return $callback();
+        } finally {
+            self::$context = $previous;
+        }
+    }
+
     public static function source(): string
     {
         $command = app(\App\Support\Audit\ExecutionContext::class)->command();
@@ -48,9 +62,13 @@ class OutboundMessageRecorder
 
     public static function begin(string $channel, string $recipient, string $message, string $provider, array $context = []): ?OutboundMessageLog
     {
+        $context += self::$context;
         try {
             if (!Schema::hasTable('outbound_message_logs')) return null;
             $source = (string) ($context['source'] ?? self::source());
+            if (!empty($context['contract_id']) && empty($context['contract_type'])) {
+                $context['contract_type'] = \App\Services\ContractMessageHistoryService::typeForSource($source);
+            }
             $sensitive = self::sensitive($message, $context + ['source' => $source]);
             $admin = auth('admin')->user();
             $client = !empty($context['user_id']) ? \App\Models\ingaz\User::withTrashed()->find($context['user_id']) : null;
@@ -74,7 +92,7 @@ class OutboundMessageRecorder
                 'source' => Str::limit($source, 255, ''), 'purpose' => $sensitive ? 'verification' : 'message',
                 'message' => $sensitive ? '[محتوى التحقق / استعادة الحساب محجوب]' : self::clean($message),
                 'context' => self::clean(array_intersect_key($context, array_flip([
-                    'source', 'contract_id', 'order_id', 'reminder_id', 'conversation_id', 'user_id', 'admin_id', 'branch_id', 'alert_key', 'template_name', 'language', 'sender_key', 'sender', 'batch_id', 'notification_id',
+                    'source', 'contract_id', 'contract_type', 'order_id', 'reminder_id', 'conversation_id', 'user_id', 'admin_id', 'branch_id', 'alert_key', 'template_name', 'language', 'sender_key', 'sender', 'batch_id', 'notification_id',
                 ])) + ['command' => app(\App\Support\Audit\ExecutionContext::class)->command()]),
             ]);
         } catch (\Throwable $e) {

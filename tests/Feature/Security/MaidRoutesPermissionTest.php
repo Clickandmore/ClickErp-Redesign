@@ -29,6 +29,33 @@ class MaidRoutesPermissionTest extends TestCase
         return $admin;
     }
 
+    public function test_export_and_client_permissions_do_not_authorize_whatsapp_cv_sharing(): void
+    {
+        $this->actingAs($this->admin(PermKeys::MAIDS_VIEW, PermKeys::MAIDS_EXPORT_PDF, PermKeys::CLIENTS_VIEW), 'admin');
+        $this->getJson(route('maid-cv-shares.clients', ['q' => 'test']))->assertForbidden();
+        $this->postJson(route('maid-cv-shares.store'), [])->assertForbidden();
+        $this->postJson(route('maid-cv-shares.confirm', 1))->assertForbidden();
+        $this->postJson(route('maid-cv-shares.retry', 1))->assertForbidden();
+        $this->getJson(route('maid-cv-shares.download', 1))->assertForbidden();
+    }
+
+    public function test_dedicated_share_permission_works_without_export_or_client_view_permissions(): void
+    {
+        foreach ([PermKeys::MAIDS_VIEW, PermKeys::MAIDS_RENTAL_VIEW] as $viewPermission) {
+            $this->actingAs($this->admin($viewPermission, PermKeys::MAIDS_SHARE_WHATSAPP), 'admin');
+            $this->getJson(route('maid-cv-shares.clients', ['q' => 'test']))->assertOk();
+            // Validation, rather than a permission denial, confirms access to preparing a share.
+            $this->postJson(route('maid-cv-shares.store'), [])->assertUnprocessable();
+        }
+    }
+
+    public function test_sharing_routes_have_their_own_permission_in_the_matrix(): void
+    {
+        foreach (['index', 'create', 'clients', 'store', 'show', 'confirm', 'retry', 'download'] as $action) {
+            $this->assertSame([PermKeys::MAIDS_SHARE_WHATSAPP], AdminRoutePermissionMatrix::resolve('maid-cv-shares.' . $action));
+        }
+    }
+
     /** @test */
     public function every_admin_maid_route_has_a_matrix_entry(): void
     {

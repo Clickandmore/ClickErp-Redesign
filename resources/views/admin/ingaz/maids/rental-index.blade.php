@@ -21,6 +21,8 @@
         ->except(['job_type'])
         ->filter(fn($value) => !is_null($value) && $value !== '');
     $hasActiveFilters = $visibleDefaultFilters->isNotEmpty();
+    $canShareCvs = @AdminGuardHasPerm(\App\PermKeys::MAIDS_RENTAL_VIEW)
+        && @AdminGuardHasPerm(\App\PermKeys::MAIDS_SHARE_WHATSAPP);
 @endphp
 
 @section('style')
@@ -394,10 +396,17 @@
             </div>
 
             <div class="table-responsive">
+                @if ($canShareCvs)
+                    <div class="d-flex gap-2 align-items-center mb-3">
+                        <button type="button" id="shareRentalCvs" class="btn btn-success" disabled><i class="fab fa-whatsapp me-1"></i> إرسال السير عبر واتساب (<span id="rental-cv-count">0</span>)</button>
+                        <a href="{{ route('maid-cv-shares.index') }}" class="btn btn-outline-success">سجل مشاركة السير</a>
+                        <button type="button" id="clearRentalCvSelection" class="btn btn-outline-secondary">إلغاء التحديد</button>
+                    </div>
+                @endif
                 <table id="dataTableObject" class="table display dataTable table-hover" style="width:100%">
                     <thead>
                         <tr>
-                            <th class="d-none d-md-table-cell">ID</th>
+                            <th @class(['d-none d-md-table-cell' => !$canShareCvs])>@if ($canShareCvs)<input type="checkbox" id="selectRentalCvPage" aria-label="تحديد سير الصفحة الحالية"> @endif ID</th>
                             <th>{{ helperTrans('ingaz.cv_file') }}</th>
                             <th>{{ helperTrans('ingaz.name') }}</th>
                             @if ($hourlyEnabled)
@@ -530,6 +539,33 @@
             const defaultFiltersConfig = @json($defaultFilters);
             const enforcedFiltersConfig = @json($enforcedFilters);
             const csrfToken = $('meta[name="csrf-token"]').attr('content');
+            const selectedRentalCvIds = new Set();
+            const updateRentalCvSelection = () => {
+                $('#rental-cv-count').text(selectedRentalCvIds.size);
+                $('#shareRentalCvs').prop('disabled', selectedRentalCvIds.size === 0);
+                const boxes = $('#dataTableObject .rental-cv-select');
+                boxes.each(function () { this.checked = selectedRentalCvIds.has(String(this.value)); });
+                const count = boxes.filter(':checked').length;
+                $('#selectRentalCvPage').prop('checked', boxes.length > 0 && count === boxes.length)
+                    .prop('indeterminate', count > 0 && count < boxes.length);
+            };
+            $(document).on('change', '.rental-cv-select', function () {
+                this.checked ? selectedRentalCvIds.add(String(this.value)) : selectedRentalCvIds.delete(String(this.value));
+                updateRentalCvSelection();
+            });
+            $('#selectRentalCvPage').on('change', function () {
+                const checked = this.checked;
+                $('#dataTableObject .rental-cv-select').each(function () {
+                    checked ? selectedRentalCvIds.add(String(this.value)) : selectedRentalCvIds.delete(String(this.value));
+                });
+                updateRentalCvSelection();
+            });
+            $('#clearRentalCvSelection').on('click', () => { selectedRentalCvIds.clear(); updateRentalCvSelection(); });
+            $('#shareRentalCvs').on('click', () => {
+                const params = new URLSearchParams();
+                selectedRentalCvIds.forEach(id => params.append('maid_ids[]', id));
+                window.location.href = @json(route('maid-cv-shares.create')) + '?' + params.toString();
+            });
             @if ($branchesEnabled ?? false)
                 const branchOptions = @json(($branchSelector['branches'] ?? collect())->mapWithKeys(fn($branch) => [$branch->id => $branch->name]));
             @endif
@@ -592,7 +628,15 @@
             }
 
             const columns = [
-                { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false, className: 'd-none d-md-table-cell' },
+                { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false,
+                    className: @json($canShareCvs ? '' : 'd-none d-md-table-cell'),
+                    render: function (data, type, row) {
+                        @if ($canShareCvs)
+                            if (type === 'display') return '<input type="checkbox" class="rental-cv-select" value="' + Number(row.id) + '" aria-label="تحديد السيرة"> ' + Number(data);
+                        @endif
+                        return data;
+                    }
+                },
                 { data: 'cv_file', orderable: false, searchable: false },
                 { data: 'name', orderable: false, searchable: false },
                 @if ($hourlyEnabled)
@@ -701,6 +745,7 @@
                     className: 'align-middle'
                 }],
                 drawCallback: function() {
+                    updateRentalCvSelection();
                     $('#dataTableObject .actions-btn').removeAttr('data-bs-toggle data-bs-auto-close data-bs-display');
                     closeRentalActionsDropdown();
                 }

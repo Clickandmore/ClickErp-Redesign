@@ -3,6 +3,7 @@
 namespace App\Services\ingaz;
 
 use App\Models\ingaz\User;
+use Nami\Finance\Models\Client;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
@@ -21,6 +22,11 @@ class RecruitmentOrderClientCompletionService
         Validator::make(['city' => $city], ['city' => 'string|max:255'])->validate();
         if ($user->city !== $city) {
             $user->update(['city' => $city]);
+        }
+        // Existing finance profiles must follow the delivery city too, including
+        // profiles left stale by earlier contracts that already updated users.city.
+        if ($user->account_id) {
+            Client::query()->where('account_id', $user->account_id)->update(['city' => $city]);
         }
     }
 
