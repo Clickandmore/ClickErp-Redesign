@@ -422,8 +422,78 @@
             grid-column: span 3;
         }
 
-        .rule-field--channels {
+        .rule-field--channels,
+        .rule-field--full {
             grid-column: span 12;
+        }
+
+        /* بطاقة خيار تشغيل/إيقاف داخل القاعدة */
+        .rule-option {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin: 0;
+            padding: 12px 14px;
+            border: 1px dashed #cbd5e1;
+            border-radius: 12px;
+            background: #f8fafc;
+            cursor: pointer;
+            transition: border-color .15s ease, background .15s ease;
+        }
+
+        .rule-option:hover {
+            border-color: #a5b4fc;
+        }
+
+        .rule-option:has(.form-check-input:checked) {
+            border-style: solid;
+            border-color: #86efac;
+            background: #f0fdf4;
+        }
+
+        .rule-option__icon {
+            flex: 0 0 38px;
+            height: 38px;
+            border-radius: 10px;
+            display: grid;
+            place-items: center;
+            background: #eef2ff;
+            color: #6366f1;
+        }
+
+        .rule-option:has(.form-check-input:checked) .rule-option__icon {
+            background: #dcfce7;
+            color: #16a34a;
+        }
+
+        .rule-option__text {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .rule-option__title {
+            font-size: 0.88rem;
+            font-weight: 700;
+            color: #1f2937;
+        }
+
+        .rule-option__desc {
+            font-size: 0.76rem;
+            line-height: 1.7;
+            color: var(--ap-muted);
+        }
+
+        .rule-option__switch {
+            flex: 0 0 auto;
+            padding: 0;
+        }
+
+        .rule-option__switch .form-check-input {
+            float: none;
+            margin: 0;
         }
 
         .rule-field__label {
@@ -792,6 +862,7 @@
             foreach (old('alerts', []) as $key => $submittedRule) {
                 $alertSettings[$key] = array_replace($alertSettings[$key] ?? [], $submittedRule);
                 $alertSettings[$key]['channels'] = $submittedRule['channels'] ?? [];
+                $alertSettings[$key]['renewal_payment_methods'] = $submittedRule['renewal_payment_methods'] ?? [];
             }
             $customAlertSettings = old('custom_alerts', $customAlertSettings);
             $automationSettings = array_replace($automationSettings, old());

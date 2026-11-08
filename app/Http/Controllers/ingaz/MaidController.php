@@ -531,7 +531,7 @@ class MaidController extends Controller
                             . '<i class="fas fa-file-pdf text-danger me-2"></i>تنزيل النموذج PDF</a></li>';
                     }
                     if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_SHARE_WHATSAPP)) {
-                        $menuItems .= '<li><a class="dropdown-item" href="' . e(route('maid-cv-shares.create', ['maid_ids' => [$row->id]])) . '">'
+                        $menuItems .= '<li><a class="dropdown-item" data-maid-cv-share="' . $row->id . '" href="' . e(route('maid-cv-shares.create', ['maid_ids' => [$row->id]])) . '">'
                             . '<i class="fab fa-whatsapp text-success me-2"></i>مشاركة PDF عبر واتساب</a></li>';
                     }
 
@@ -919,7 +919,7 @@ class MaidController extends Controller
                         </a></li>';
                     }
                     if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_SHARE_WHATSAPP)) {
-                        $menuItems[] = '<li><a class="dropdown-item" href="' . e(route('maid-cv-shares.create', ['maid_ids' => [$row->id]])) . '">
+                        $menuItems[] = '<li><a class="dropdown-item" data-maid-cv-share="' . $row->id . '" href="' . e(route('maid-cv-shares.create', ['maid_ids' => [$row->id]])) . '">
                             <i class="fab fa-whatsapp text-success me-2"></i>مشاركة PDF عبر واتساب
                         </a></li>';
                     }

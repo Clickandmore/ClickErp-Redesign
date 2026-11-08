@@ -3,150 +3,44 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
-use App\Models\RentalContractExpiryReminder;
 use App\Services\MoyasarService;
-use App\Services\RentalContractExpiryReminderService;
-use App\Support\MoyasarSettings;
+use App\Services\RentalContractCustomerActionService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 
 class RentalContractExpiryReminderController extends Controller
 {
-    public function show(string $token)
+    public function show(string $token, RentalContractCustomerActionService $actions)
     {
-        $reminder = $this->findReminder($token);
+        $reminder = $actions->resolve($token);
         $contract = $reminder->rentalContract()->with(['user', 'maid', 'info'])->firstOrFail();
-
-        return view('site.pages.rental_contract_expiry_reminder', [
-            'reminder' => $reminder,
-            'contract' => $contract,
-        ]);
+        $canRespond = $actions->available($contract, $reminder);
+        $options = !$reminder->response && $canRespond ? $actions->options($contract, $reminder) : [];
+        $paymentMethods = \App\Support\NotificationAlertSettings::renewalPaymentMethods();
+        return view('site.pages.rental_contract_expiry_reminder', compact('reminder', 'contract', 'canRespond', 'options', 'paymentMethods'));
     }
 
-    public function respond(
-        Request $request,
-        string $token,
-        RentalContractExpiryReminderService $reminderService,
-        MoyasarService $moyasar
-    ) {
+    public function respond(Request $request, string $token, RentalContractCustomerActionService $actions, MoyasarService $moyasar)
+    {
         $data = $request->validate([
             'response' => ['required', 'in:extend,return'],
+            'quote_token' => ['nullable', 'string', 'max:64'],
+            'payment_method' => ['nullable', 'string', 'max:32'],
+            'preferred_return_date' => ['nullable', 'date', 'after_or_equal:today', 'before_or_equal:' . now()->addYear()->toDateString()],
+            'response_notes' => ['nullable', 'string', 'max:1000'],
         ]);
-
-        $reminder = $this->findReminder($token);
-        $contract = $reminder->rentalContract()->with(['user', 'info'])->firstOrFail();
-
-        $reminderService->markCustomerResponse($reminder, $data['response']);
-
+        $reminder = $actions->choose($actions->resolve($token), $data);
         if ($data['response'] === 'return') {
-            try {
-                $reminderService->applyReturnDecision($reminder->fresh());
-            } catch (\Throwable $exception) {
-                Log::error('Unable to apply rental contract return decision from expiry reminder', [
-                    'reminder_id' => $reminder->id,
-                    'contract_id' => $contract->id,
-                    'message' => $exception->getMessage(),
-                ]);
-
-                return redirect()
-                    ->route('rental-contract-reminders.show', $token)
-                    ->with('warning', 'تم تسجيل رغبتكم بتسليم العاملة، لكن تعذر تحديث حالة العقد تلقائياً. سيقوم الموظف المختص بمتابعة الطلب.');
-            }
-
-            return redirect()
-                ->route('rental-contract-reminders.show', $token)
-                ->with('success', 'تم تسجيل رغبتكم بتسليم العاملة وتحديث حالة العقد.');
+            return redirect()->route('rental-contract-reminders.show', $token)
+                ->with('success', 'تم تسجيل طلب تسليم العاملة. سيتواصل معكم الموظف لترتيب الاستلام وإكمال الإجراءات.');
         }
-
-        $paymentUrl = $this->resolvePaymentUrl($contract, $reminder->fresh(), $moyasar, $reminderService);
-
-        if ($paymentUrl) {
-            return redirect()->away($paymentUrl);
+        if ($reminder->customer_payment_method && $reminder->customer_payment_method !== 'moyasar') {
+            return redirect()->route('rental-contract-reminders.show', $token)
+                ->with('success', 'تم تسجيل طلب التمديد وطريقة الدفع. سيتواصل معكم الموظف لتأكيد السداد وتنفيذ التمديد.');
         }
-
-        return redirect()
-            ->route('rental-contract-reminders.show', $token)
-            ->with('warning', 'تم تسجيل رغبتكم بتمديد العقد، لكن رابط الدفع غير متاح حالياً. سيقوم الموظف المختص بالتواصل معكم.');
-    }
-
-    private function findReminder(string $token): RentalContractExpiryReminder
-    {
-        return RentalContractExpiryReminder::query()
-            ->where('token', $token)
-            ->firstOrFail();
-    }
-
-    private function resolvePaymentUrl(
-        $contract,
-        RentalContractExpiryReminder $reminder,
-        MoyasarService $moyasar,
-        RentalContractExpiryReminderService $reminderService
-    ): ?string {
-        if (!$contract->info) {
-            return null;
-        }
-
-        if (
-            !empty($reminder->payment_url)
-            && !in_array((string) $reminder->payment_status, ['paid', 'failed', 'expired', 'refunded', 'partially_refunded'], true)
-        ) {
-            return $reminder->payment_url;
-        }
-
-        if (
-            !empty($contract->info->moyasar_payment_url)
-            && !in_array((string) $contract->info->moyasar_payment_status, ['paid', 'refunded', 'partially_refunded'], true)
-        ) {
-            return $contract->info->moyasar_payment_url;
-        }
-
-        if (!MoyasarSettings::isEnabled()) {
-            return null;
-        }
-
-        $amount = $reminderService->renewalAmount($contract);
-        if ($amount <= 0) {
-            return null;
-        }
-
-        $contractNumber = $contract->contract_number ?: $contract->id;
-        $clientName = $contract->user?->name ?? 'العميل';
-
-        $callbackUrl = route('moyasar.callback', ['contract_id' => $contract->id, 'reminder_id' => $reminder->id]);
-        $result = $moyasar->createPaymentLink(
-            $amount,
-            "تمديد عقد إيجار رقم {$contractNumber} - {$clientName}",
-            $callbackUrl,
-            [
-                'contract_id' => $contract->id,
-                'contract_number' => $contractNumber,
-                'reminder_id' => $reminder->id,
-                'source' => 'rental_contract_expiry_reminder',
-            ],
-            $callbackUrl
-        );
-
-        if (!$result || empty($result['id']) || empty($result['url'])) {
-            Log::warning('Unable to create Moyasar payment link from expiry reminder', [
-                'contract_id' => $contract->id,
-                'reminder_id' => $reminder->id,
-            ]);
-
-            return null;
-        }
-
-        $payments = app(\App\Services\MoyasarContractPaymentService::class);
-        $payments->register($contract->info, $result['id'], $amount, $reminder->id);
-
-        $contract->info->update([
-            'payment_type' => 'moyasar',
-            'moyasar_payment_id' => $result['id'],
-            'moyasar_payment_url' => $result['url'],
-            'moyasar_payment_status' => 'initiated',
-        ]);
-
-        $reminderService->recordPaymentLink($reminder, $result['id'], $result['url']);
-
-        return $result['url'];
+        try { $url = $actions->paymentUrl($reminder, $moyasar); }
+        catch (\Throwable $e) { report($e); $url = null; }
+        if ($url) return redirect()->away($url);
+        return redirect()->route('rental-contract-reminders.show', $token)
+            ->with('warning', 'تم تسجيل رغبتكم بالتمديد، ولم يسجل تمديد حتى الآن. تعذر تجهيز الدفع؛ سيتابع الموظف المختص الطلب.');
     }
 }

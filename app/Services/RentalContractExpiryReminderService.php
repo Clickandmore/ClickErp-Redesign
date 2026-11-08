@@ -234,74 +234,9 @@ class RentalContractExpiryReminderService
 
     public function applyReturnDecision(RentalContractExpiryReminder $reminder): void
     {
-        DB::transaction(function () use ($reminder) {
-            $lockedReminder = RentalContractExpiryReminder::query()
-                ->lockForUpdate()
-                ->findOrFail($reminder->id);
-
-            if ($lockedReminder->contract_effect_applied_at) {
-                return;
-            }
-
-            $contract = RentalContract::query()
-                ->with(['info', 'maid'])
-                ->lockForUpdate()
-                ->findOrFail($lockedReminder->rental_contract_id);
-
-            if (!$contract->info) {
-                $this->markContractEffectFailed($lockedReminder, 'return', 'بيانات عقد الإيجار غير مكتملة.');
-                throw new \RuntimeException('بيانات عقد الإيجار غير مكتملة.');
-            }
-
-            if ($contract->status === 'completed' && $contract->closure_type === 'available') {
-                $lockedReminder->update([
-                    'contract_effect_type' => 'return',
-                    'contract_effect_applied_at' => now(),
-                    'contract_effect_error' => null,
-                ]);
-
-                return;
-            }
-
-            if (!$contract->canCloseOrExtend()) {
-                $message = 'لا يمكن إكمال العقد لأن حالته الحالية ليست نشطة.';
-                $this->markContractEffectFailed($lockedReminder, 'return', $message);
-                throw new \RuntimeException($message);
-            }
-
-            $closureDate = now()->startOfDay();
-
-            $contract->forceFill([
-                'status' => 'completed',
-                'closure_type' => 'available',
-                'closed_at' => $closureDate,
-                'warranty_status' => 'active',
-                'warranty_start_date' => $closureDate,
-                'warranty_end_date' => $closureDate->copy()->addMonths(3),
-            ])->save();
-
-            $contract->info->update([
-                'closure_return_reason' => 'اختار العميل تسليم العاملة من رابط تنبيه انتهاء عقد الإيجار.',
-            ]);
-
-            $this->completeLinkedRentalOrder($contract);
-
-            if ($contract->maid_id) {
-                $maid = Maid::query()->lockForUpdate()->find($contract->maid_id);
-                if ($maid) {
-                    $this->syncMaidBookingState($maid);
-                    $this->markRentalMaidAsAvailable($maid, $closureDate);
-                }
-            }
-
-            $this->returnShelterContractInsideForRental($contract);
-
-            $lockedReminder->update([
-                'contract_effect_type' => 'return',
-                'contract_effect_applied_at' => now(),
-                'contract_effect_error' => null,
-            ]);
-        });
+        // Customer input records intent only. Receiving the worker and closing the contract
+        // continue through the employee's existing operational workflow.
+        app(RentalContractCustomerActionService::class)->choose($reminder, ['response' => 'return']);
     }
 
     public function applyPaidExtensionForMoyasarPayment(
@@ -334,7 +269,18 @@ class RentalContractExpiryReminderService
                 throw new \RuntimeException('بيانات عقد الإيجار غير مكتملة.');
             }
 
-            $durationDays = $this->renewalDurationDays($contract);
+            // Money may arrive after an employee closed or extended the contract. Record it for review,
+            // but never reactivate the contract or extend a different expiry cycle.
+            $quote = $lockedReminder->renewal_quote;
+            if (!$contract->canCloseOrExtend() || $contract->closed_at || !$contract->info->ingaz_to
+                || ($quote && Carbon::parse($quote['end_date'])->lt(today()))
+                || $contract->info->ingaz_to->toDateString() !== $lockedReminder->expires_on->toDateString()) {
+                $lockedReminder->update(['payment_status' => 'paid', 'contract_effect_type' => 'extend_review',
+                    'contract_effect_error' => 'تم استلام دفعة تمديد بعد تغير حالة العقد أو تاريخ انتهائه؛ يلزم مراجعة الموظف.']);
+                return;
+            }
+
+            $durationDays = $quote ? (int) $quote['days'] : $this->renewalDurationDays($contract);
             if ($durationDays <= 0) {
                 $this->markContractEffectFailed($lockedReminder, 'extend', 'مدة التمديد غير محددة في بيانات العقد.');
                 throw new \RuntimeException('مدة التمديد غير محددة في بيانات العقد.');
@@ -348,13 +294,17 @@ class RentalContractExpiryReminderService
                 $baseEndDate = now()->startOfDay();
             }
 
-            $extensionStart = $baseEndDate->copy()->addDay();
-            $extensionEnd = $baseEndDate->copy()->addDays($durationDays);
+            $extensionStart = $quote ? Carbon::parse($quote['start_date']) : $baseEndDate->copy()->addDay();
+            $extensionEnd = $quote ? Carbon::parse($quote['end_date']) : $baseEndDate->copy()->addDays($durationDays);
             $extensionMonths = (int) floor($durationDays / 30);
-            $extensionValue = $this->renewalAmount($contract);
+            $extensionValue = $quote ? (float) $quote['amount'] : $this->renewalAmount($contract);
 
             $extension = RentalContractExtension::create([
                 'rental_contract_id' => $contract->id,
+                'branch_id' => $contract->branch_id,
+                'package_id' => $quote['package_id'] ?? null,
+                'package_snapshot' => $quote['package_snapshot'] ?? null,
+                'pricing_snapshot' => $quote['pricing_snapshot'] ?? null,
                 'extension_months' => $extensionMonths,
                 'extension_days' => $durationDays,
                 'extension_value' => $extensionValue,
@@ -363,13 +313,10 @@ class RentalContractExpiryReminderService
                 'payment_status' => 'paid',
                 'payment_receipt_path' => null,
                 'notes' => 'تمديد تلقائي بعد دفع العميل من رابط تنبيه انتهاء عقد الإيجار.',
-                'created_by' => $contract->marketer_id,
+                'created_by' => null,
             ]);
 
             $contract->info->update([
-                'moyasar_payment_status' => 'paid',
-                'moyasar_paid_at' => now(),
-                'payment_confirmed_at' => now(),
                 'ingaz_to' => $extensionEnd,
             ]);
 
@@ -382,7 +329,7 @@ class RentalContractExpiryReminderService
             ]);
 
             $lockedReminder->update([
-                'payment_id' => $paymentId ?: $lockedReminder->payment_id ?: $info->moyasar_payment_id,
+                'payment_id' => $lockedReminder->payment_id ?: $paymentId ?: $info->moyasar_payment_id,
                 'payment_status' => 'paid',
                 'extension_id' => $extension->id,
                 'contract_effect_type' => 'extend',
@@ -400,15 +347,24 @@ class RentalContractExpiryReminderService
             return;
         }
 
-        $responseLabel = $response === 'extend' ? 'تمديد العقد' : 'تسليم العاملة';
+        $responseLabel = match ($response) {
+            'extend' => $reminder->renewal_quote ? 'رغبة تمديد العقد — بانتظار الدفع' : 'طلب تمديد يحتاج تسعير الموظف',
+            'paid' => 'نجاح دفع التمديد وتسجيله',
+            'payment_review' => 'دفعة تمديد تحتاج مراجعة الموظف',
+            default => 'طلب تسليم العاملة — بانتظار متابعة الموظف',
+        };
         $title = 'رد العميل على تنبيه انتهاء عقد الإيجار';
         $message = 'العميل ' . ($contract->user?->name ?? 'غير محدد')
             . ' اختار: ' . $responseLabel
             . ' لعقد الإيجار رقم ' . ($contract->contract_number ?: $contract->id) . '.';
+        if ($response === 'extend' && $reminder->customer_payment_method) {
+            $message .= ' طريقة الدفع: ' . (NotificationAlertSettings::renewalPaymentMethodOptions()[$reminder->customer_payment_method] ?? $reminder->customer_payment_method) . '.';
+            if ($reminder->customer_payment_method !== 'moyasar') $message .= ' يلزم تأكيد الموظف للسداد وتنفيذ التمديد.';
+        }
 
         $adminIds = $contract->marketer_id
             ? [$contract->marketer_id]
-            : Admin::query()->pluck('id')->all();
+            : Admin::query()->when($contract->branch_id, fn ($query) => $query->where('branch_id', $contract->branch_id))->pluck('id')->all();
 
         $adminIds = array_filter(array_unique($adminIds));
 
@@ -486,7 +442,10 @@ class RentalContractExpiryReminderService
             }
 
             try {
-                $smsResult = $this->sendSMS($phone, $message);
+                $smsResult = \App\Support\OutboundMessageRecorder::withContext(
+                    ContractMessageHistoryService::context($contract) + ['source' => 'rental_contract_expiry_response', 'recipient_name' => $admin->name],
+                    fn () => $this->sendSMS($phone, $message)
+                );
 
                 if ($this->smsWasSent($smsResult)) {
                     $sentRecipients[] = [
@@ -689,13 +648,24 @@ class RentalContractExpiryReminderService
         $clientName = $contract->user?->name ?: '';
         $contractNumber = $contract->contract_number ?: $contract->id;
         $expiresOn = optional($contract->info?->ingaz_to)->format('Y-m-d');
-        // Use the contact-based wording even when an older template contains a response link.
         return \App\Support\RentalExpiryMessage::customer(
             (string) $clientName,
             (string) $contractNumber,
             (string) $expiresOn,
-            $reminder->notification_type === 'expired'
+            $reminder->notification_type === 'expired',
+            !empty(NotificationAlertSettings::rule('rent_contract_expiry')['include_renewal_link'])
+                ? route('rental-contract-reminders.show', $reminder->token) : null
         );
+    }
+
+    public function customerResponseUrl(RentalContract $contract, bool $expired = false): ?string
+    {
+        if (empty(NotificationAlertSettings::rule('rent_contract_expiry')['include_renewal_link']) || !$contract->info?->ingaz_to) return null;
+        $reminder = RentalContractExpiryReminder::firstOrCreate([
+            'rental_contract_id' => $contract->id, 'expires_on' => $contract->info->ingaz_to->toDateString(),
+            'notification_type' => $expired ? 'expired' : 'advance',
+        ], ['token' => Str::random(64), 'channel' => $this->channel(), 'status' => 'pending']);
+        return route('rental-contract-reminders.show', $reminder->token);
     }
 
     private function customerPhone(RentalContract $contract): string

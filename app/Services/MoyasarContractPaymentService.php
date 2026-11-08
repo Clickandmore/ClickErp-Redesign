@@ -18,6 +18,9 @@ class MoyasarContractPaymentService
             'rental_contract_id'=>$info->rental_contract_id, 'amount'=>$amount, 'reminder_id'=>$reminderId,
         ]);
         if ((int)$payment->rental_contract_id !== (int)$info->rental_contract_id) throw new \RuntimeException('Moyasar contract reference mismatch.');
+        if ($reminderId && ((int) $payment->reminder_id !== $reminderId || (int) round((float) $payment->amount * 100) !== (int) round($amount * 100))) {
+            throw new \RuntimeException('Moyasar renewal reference or amount mismatch.');
+        }
         return $payment;
     }
 
@@ -52,7 +55,7 @@ class MoyasarContractPaymentService
         if (!$info) return null;
         $amount = $reminder ? ($reminder->extension_id
             ? (float) RentalContractExtension::findOrFail($reminder->extension_id)->extension_value
-            : $this->reminders->renewalAmount($info->rentalContract)) : (float)$info->contract_value;
+            : (float) ($reminder->renewal_quote['amount'] ?? $this->reminders->renewalAmount($info->rentalContract))) : (float)$info->contract_value;
         return $this->register($info, $reference, $amount, $reminder?->id);
     }
 
@@ -69,6 +72,10 @@ class MoyasarContractPaymentService
         $snapshot = MoyasarPaymentSnapshot::fromInvoice($invoice,$payment->invoice_id,(float)$payment->amount,$payment->provider_payment_id);
         if (!$snapshot) {
             if (in_array($invoice['status'] ?? '', ['failed','expired'], true)) {
+                if ($payment->reminder_id && !$payment->paid_at) {
+                    RentalContractExpiryReminder::whereKey($payment->reminder_id)->whereNull('contract_effect_applied_at')
+                        ->update(['payment_status' => $invoice['status']]);
+                }
                 RentalContractInfo::where('rental_contract_id',$payment->rental_contract_id)
                     ->where('moyasar_payment_id',$payment->invoice_id)->whereNull('moyasar_paid_at')
                     ->update(['moyasar_payment_status'=>$invoice['status']]);
@@ -84,6 +91,7 @@ class MoyasarContractPaymentService
             $refunded = max((float)$payment->refunded_amount,$snapshot['refunded']);
             $delta = round($refunded-(float)$payment->refunded_amount,2);
             $contract->setRelation('info',$info);
+            $newRenewalPayment = $reminder && !$payment->paid_at;
 
             if (!$payment->paid_at) {
                 if ($reminder) {
@@ -93,9 +101,13 @@ class MoyasarContractPaymentService
                         $reminder->refresh(); $info->refresh();
                     }
                     $extension = $reminder->extension_id ? RentalContractExtension::findOrFail($reminder->extension_id) : null;
+                    if ($extension && $refunded == 0 && !$extension->invoice_constraint_id) {
+                        $this->finance->recordExtensionForContract($contract, $extension, now());
+                    }
                     $receipt = $extension?->receiptBond;
                     if (!$receipt) $receipt = $this->finance->recordMoyasarReceipt($contract,(float)$payment->amount,$payment->invoice_id);
-                    if ($extension) $extension->update(['payment_amount'=>$payment->amount,'payment_type'=>'moyasar','receipt_bond_id'=>$receipt->id]);
+                    if ($extension) $extension->update(['payment_amount'=>$payment->amount,'payment_type'=>'moyasar','receipt_bond_id'=>$receipt->id,
+                        'payment_date'=>today(), 'receipt_account_id'=>$receipt->debit_account_id, 'receipt_constraint_id'=>$receipt->constraint_id]);
                 } else {
                     // Imported/legacy paid contracts already include this money in their balance.
                     if (!$info->moyasar_paid_at) {
@@ -143,6 +155,15 @@ class MoyasarContractPaymentService
             }
             if ($info->moyasar_payment_id === $payment->invoice_id) $info->update(['moyasar_payment_status'=>$status]);
             $payment->update(['refunded_amount'=>$refunded,'provider_payment_id'=>$snapshot['id'] ?: $payment->provider_payment_id]);
+            if ($newRenewalPayment && $refunded == 0) {
+                $reminderId = $reminder->id;
+                DB::afterCommit(function () use ($reminderId) {
+                    try {
+                        $reminder = RentalContractExpiryReminder::find($reminderId);
+                        if ($reminder) $this->reminders->notifyResponsibleEmployee($reminder, $reminder->extension_id ? 'paid' : 'payment_review');
+                    } catch (\Throwable $e) { report($e); }
+                });
+            }
             return $payment;
         },3);
     }

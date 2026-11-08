@@ -21,6 +21,7 @@ class OutboundMessageLog extends Model
     {
         $labels = [
             'rental_contract_overdue_sms' => 'تذكير بتأخر عقد الإيجار',
+            'rental_contract_expiry_response' => 'متابعة رد العميل على انتهاء الإيجار',
             'rental_payment_link' => 'رابط دفع عقد الإيجار',
             'maid_cv_share' => 'مشاركة السير الذاتية',
             'rental_contract_expiry_reminder' => 'تنبيه انتهاء عقد التأجير',

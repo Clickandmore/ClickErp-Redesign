@@ -26,8 +26,17 @@ class MoyasarWebhookController extends Controller
             if (!$payment || (int)$payment->rental_contract_id !== $contractId) return $this->callbackView('error','لم يتم العثور على بيانات الدفع.');
             $payment = $contracts->synchronize($payment);
             if ((float)$payment->refunded_amount > 0) return $this->callbackView('refunded','تم استرداد '.number_format((float)$payment->refunded_amount,2).' ريال من الدفعة.');
-            if ($payment->paid_at) return $this->callbackView('success','تم الدفع بنجاح. شكرًا لك!');
-            $status = RentalContractInfo::where('rental_contract_id',$contractId)
+            if ($payment->paid_at) {
+                if ($payment->reminder_id) {
+                    $reminder = \App\Models\RentalContractExpiryReminder::find($payment->reminder_id);
+                    if (!$reminder?->extension_id) return $this->callbackView('success','تم استلام الدفعة. سيتابع الموظف المختص مراجعة التمديد؛ لا يلزم الدفع مرة أخرى.');
+                    return $this->callbackView('success','تم الدفع وتسجيل تمديد عقد الإيجار بنجاح. شكرًا لك!');
+                }
+                return $this->callbackView('success','تم الدفع بنجاح. شكرًا لك!');
+            }
+            $status = $payment->reminder_id
+                ? \App\Models\RentalContractExpiryReminder::whereKey($payment->reminder_id)->value('payment_status')
+                : RentalContractInfo::where('rental_contract_id',$contractId)
                 ->where('moyasar_payment_id',$payment->invoice_id)->value('moyasar_payment_status');
             if (in_array($status,['failed','expired'],true)) return $this->callbackView('failed','لم تكتمل عملية الدفع.');
             return $this->callbackView('pending','لم يتأكد السداد بعد.');

@@ -31,6 +31,11 @@ class MoyasarRefundSynchronizationTest extends TestCase
         Schema::create('orders',function(Blueprint $t){$t->id();$t->string('payment_method')->nullable();$t->softDeletes();$t->timestamps();});
         Schema::create('hourly_order_payments',function(Blueprint $t){$t->id();$t->string('provider')->nullable();$t->string('provider_reference')->nullable();});
         (require base_path('database/migrations/2026_09_29_180000_add_moyasar_refund_tracking.php'))->up();
+        Schema::table('rental_contract_extensions', function (Blueprint $table) {
+            $table->date('payment_date')->nullable();
+            $table->unsignedBigInteger('receipt_account_id')->nullable();
+            $table->unsignedBigInteger('receipt_constraint_id')->nullable();
+        });
         DB::table('rental_contracts')->insert(['id'=>1]);
         DB::table('rental_contract_infos')->insert(['id'=>1,'rental_contract_id'=>1,'moyasar_payment_id'=>'invoice-1','moyasar_paid_at'=>now(),'ingaz_to'=>'2030-01-01']);
         DB::table('rental_contract_invoices')->insert(['id'=>1,'rental_contract_id'=>1]);
