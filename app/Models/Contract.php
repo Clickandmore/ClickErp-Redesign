@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\ingaz\ContractStatusEnum;
+use App\Models\Concerns\Archivable;
 use App\Models\Concerns\AssignsBranch;
 use App\Models\ingaz\Maid;
 use App\Models\ContractReturnRequest;
@@ -23,10 +24,15 @@ use App\Models\Concerns\BranchScoped;
 
 class Contract extends Model
 {
-    use AssignsBranch, HasFactory, LogsActivity, BranchScoped;
+    use AssignsBranch, HasFactory, LogsActivity, BranchScoped, Archivable;
 
     protected $guarded = [];
     protected $with = ['info'];
+
+    public static function archiveContractType(): string
+    {
+        return 'recruitment';
+    }
 
     public function scopeForCompanyRecruitment($query, bool $company = true)
     {

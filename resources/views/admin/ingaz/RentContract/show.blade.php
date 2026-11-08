@@ -945,6 +945,8 @@
                 </a>
             </div>
 
+            @include('admin.ingaz.contract-archive._contract-banner', ['archiveType' => 'rental', 'contract' => $contract])
+
             <div class="hero-card">
                 <div class="hero-top">
                     <div>

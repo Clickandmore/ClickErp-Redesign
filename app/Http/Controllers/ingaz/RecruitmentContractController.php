@@ -6021,6 +6021,8 @@ class RecruitmentContractController extends Controller
 
     private function applyContractFilters($query, Request $request, bool $ignoreStatus = false, bool $ignoreWarranty = false): void
     {
+        // العقود المؤرشفة تُخفى من القائمة والإحصائيات والتصدير، وتُعرض من شاشة الأرشيف.
+        $query->applyArchiveFilter($request->input('archived'));
         $query->forCompanyRecruitment($request->boolean('company_contracts'));
         if ($request->boolean('shelter_contracts')) {
             abort_unless($this->canViewShelterRecruitmentContracts(), 403);

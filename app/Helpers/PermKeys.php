@@ -184,6 +184,8 @@ const PARTENR_CONTROL = 'partenr_control';
     const REC_CONTRACTS_EXPORT = 'rec_contracts_export';
     const REC_CONTRACTS_PRINT = 'rec_contracts_print';
     const REC_CONTRACTS_MANAGE = 'rec_contracts_manage';
+    const REC_CONTRACTS_ARCHIVE_VIEW = 'rec_contracts_archive_view';
+    const REC_CONTRACTS_ARCHIVE = 'rec_contracts_archive';
 
     // تفاويض الإنجاز
     const INGAZ_DELEGATIONS_VIEW = 'ingaz_delegations_view';
@@ -533,6 +535,8 @@ const PARTENR_CONTROL = 'partenr_control';
     const RENT_CONTRACT_SEND_OVERDUE_SMS = 'rent_contract_send_overdue_sms';
     const RENT_CONTRACT_DELETE = 'rent_contract_delete';
     const RENT_CONTRACT_CONTROL = 'rent_contract_control';
+    const RENT_CONTRACT_ARCHIVE_VIEW = 'rent_contract_archive_view';
+    const RENT_CONTRACT_ARCHIVE = 'rent_contract_archive';
     const RENT_CONTRACT_CLOSURE_ADJUSTMENT_OVERRIDE = 'rent_contract_closure_adjustment_override';
     const RENT_CONTRACT_CLOSURE_ADJUSTMENT_APPROVE = 'rent_contract_closure_adjustment_approve';
     const RENT_CONTRACT_TERMS_VIEW = 'rent_contract_terms_view';

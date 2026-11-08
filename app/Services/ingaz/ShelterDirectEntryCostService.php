@@ -68,12 +68,32 @@ class ShelterDirectEntryCostService
             || $lines->contains(fn ($line) => (float) $line->debtor_value < 0 || (float) $line->creditor_value < 0)) {
             throw new \RuntimeException('قيد المورد غير متوازن أو حسابه الدائن غير محدد بشكل منفرد.');
         }
-        $assetId = $ledger->assetAccountIdForContract($contract);
-        $returnId = NationalityAccountResolver::forNationality($ledger->nationalityOf($contract), 'recruitment_cost_return');
-        foreach ([$assetId, $returnId, $credits->first()->account_id] as $accountId) {
-            if (!$accountId || !Account::whereKey($accountId)->whereDoesntHave('children')->exists()) {
-                throw new \RuntimeException('حساب المورد أو أصل الإيواء أو مردودات التكلفة غير صالح للترحيل.');
+        $nationality = $ledger->nationalityOf($contract);
+        $nationalityLabel = trim((string) ($nationality?->sub_title ?: $nationality?->title ?: 'غير محددة'));
+        $assetId = NationalityAccountResolver::forNationality($nationality, 'shelter_prepaid_expense');
+        $returnId = NationalityAccountResolver::forNationality($nationality, 'recruitment_cost_return');
+        $nationalitySolution = $nationality
+            ? 'الحل: افتح إعدادات الحسابات ← حسابات الجنسيات، واختر حساباً طرفياً موجوداً لهذا البند لجنسية ' . $nationalityLabel . '.'
+            : 'الحل: حدد جنسية العاملة أو الجنسية المطلوبة في العقد، ثم اربط حسابات الإيواء ومردودات التكلفة لهذه الجنسية من إعدادات الحسابات ← حسابات الجنسيات.';
+        $issues = [];
+        foreach ([
+            ['أصل الإيواء', $assetId, $nationalitySolution],
+            ['مردودات التكلفة', $returnId, $nationalitySolution],
+            ['المورد في قيد التكلفة رقم ' . ($supplier->code ?: $supplier->id), $credits->first()->account_id,
+                'الحل: راجع قيد تكلفة المورد الأصلي مع المحاسب وصحح الحساب الدائن إلى حساب المورد الطرفي الصحيح وفق إجراءات تصحيح القيود، ثم أعد المحاولة.'],
+        ] as [$label, $accountId, $solution]) {
+            $account = $accountId ? Account::find($accountId) : null;
+            if (!$account) {
+                $issues[] = $label . ($accountId ? ' (معرف الحساب: ' . $accountId . ')' : '')
+                    . ': ' . ($accountId ? 'الحساب المرتبط غير موجود.' : 'لم يُعثر على حساب مرتبط.') . ' ' . $solution;
+            } elseif ($account->children()->exists()) {
+                $issues[] = $label . ' (الكود: ' . $account->code . '، الاسم: ' . $account->name
+                    . '، المعرف: ' . $account->id . '): حساب رئيسي له حسابات فرعية ولا يقبل الترحيل. ' . $solution;
             }
+        }
+        if ($issues) {
+            throw new \RuntimeException('تعذر ترحيل تكلفة الإيواء للعقد #' . $contract->id
+                . ' — الجنسية: ' . $nationalityLabel . '. ' . implode(' | ', $issues));
         }
         $centers = CostCenter::where('table_related_id', $contract->maid_id)->pluck('id');
         if (ConstraintDetails::where('account_id', $assetId)->where('debtor_value', '>', 0)
