@@ -25,6 +25,9 @@ final class RentalModeGuard
 
     public function assertMonthly(Maid $maid): void
     {
+        if ($maid->hasUnfinishedCompanyReturn()) {
+            throw ValidationException::withMessages(['maid_id' => 'لا يمكن تأجير العاملة قبل اكتمال نقل كفالتها للشركة.']);
+        }
         if ($maid->rental_mode === 'hourly') {
             throw ValidationException::withMessages(['maid_id' => self::MONTHLY_MESSAGE]);
         }

@@ -1941,6 +1941,15 @@ class SponsorshipTransferController extends Controller
                 ->findOrFail($id);
             $this->assertCanAccessBranchModel($transfer);
 
+            if (Schema::hasTable('rental_sponsorship_returns')
+                && \App\Models\RentalSponsorshipReturn::withoutBranchScope()
+                    ->where('source_transfer_id', $transfer->id)
+                    ->whereNotIn('status', ['transferred', 'cancelled'])->exists()) {
+                throw ValidationException::withMessages([
+                    'transfer' => 'يوجد طلب إعادة كفالة للشركة قيد التنفيذ؛ سجل استلام العاملة من داخل طلب الرجوع.',
+                ]);
+            }
+
             if ($transfer->status !== 'transferred') {
                 throw ValidationException::withMessages([
                     'transfer' => 'يمكن إعادة العاملة إلى الإيواء بعد اكتمال نقل الخدمات فقط.',

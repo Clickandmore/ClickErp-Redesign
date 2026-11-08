@@ -269,6 +269,9 @@ class StoreRentalContractRequest extends FormRequest
             $isSelectedOrderMaid = (bool) $selectedOrder;
 
             if ($this->maid_id) {
+                if ($maid && $maid->hasUnfinishedCompanyReturn()) {
+                    $validator->errors()->add('maid_id', 'لا يمكن تأجير العاملة قبل اكتمال نقل كفالتها للشركة.');
+                }
                 if (
                     $maid
                     && !$maid->available

@@ -681,6 +681,10 @@ Route::group(
                 ->where('id', '[0-9]+')
                 ->name('SponsorshipTransfer.maid-receipt');
 
+            Route::get('SponsorshipTransfer/{id}/return-company', [\App\Http\Controllers\ingaz\RentalSponsorshipReturnController::class, 'show'])->whereNumber('id')->name('SponsorshipTransfer.returnCompany');
+            Route::post('SponsorshipTransfer/{id}/return-company', [\App\Http\Controllers\ingaz\RentalSponsorshipReturnController::class, 'store'])->whereNumber('id')->name('SponsorshipTransfer.returnCompany.store');
+            Route::post('rental-sponsorship-returns/{id}/advance', [\App\Http\Controllers\ingaz\RentalSponsorshipReturnController::class, 'advance'])->whereNumber('id')->name('SponsorshipTransfer.returnCompany.advance');
+            Route::get('rental-sponsorship-returns/{id}/attachments/{index}', [\App\Http\Controllers\ingaz\RentalSponsorshipReturnController::class, 'attachment'])->whereNumber('id')->whereNumber('index')->name('SponsorshipTransfer.returnCompany.attachment');
             Route::resource('SponsorshipTransfer', SponsorshipTransferController::class);
             Route::post('SponsorshipTransfer/{id}/payments', [SponsorshipTransferController::class, 'addPayment'])->name('SponsorshipTransfer.addPayment');
             Route::post('SponsorshipTransfer/{id}/send-payment-link', [SponsorshipTransferController::class, 'sendPaymentLink'])->whereNumber('id')->name('SponsorshipTransfer.sendPaymentLink');

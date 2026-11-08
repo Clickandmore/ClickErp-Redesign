@@ -342,6 +342,11 @@
 @endsection
 
 @section('content')
+    @if($transfer->status === 'transferred' && auth('admin')->user()->can(\App\PermKeys::SPONSOR_TRANSFER_CONTROL))
+        @if($transfer->isRentalWorkflow() || $transfer->contract?->maid?->jobTypes->contains('id', 2))
+            <div class="container-fluid mt-3"><a class="btn btn-primary" href="{{ route('SponsorshipTransfer.returnCompany', $transfer->id) }}">إعادة نقل الكفالة للشركة / متابعة طلب الرجوع</a></div>
+        @endif
+    @endif
     <div class="details-container">
         @if (@SystemModuleEnabled('branches'))
             <div class="alert alert-info">

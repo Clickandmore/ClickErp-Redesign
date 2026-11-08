@@ -797,6 +797,16 @@ class Maid extends Model
         return $this->orders()->withoutGlobalScope(\App\Models\Scopes\BranchScope::class);
     }
 
+    public function hasUnfinishedCompanyReturn(): bool
+    {
+        if (!\Illuminate\Support\Facades\Schema::hasTable('rental_sponsorship_returns')) {
+            return false;
+        }
+        $latest = \App\Models\RentalSponsorshipReturn::withoutBranchScope()
+            ->where('maid_id', $this->id)->latest('id')->value('status');
+        return $latest !== null && $latest !== 'transferred';
+    }
+
     public function hasActiveOrderReservation(): bool
     {
         if (array_key_exists('active_order_reservation', $this->getAttributes())) {
