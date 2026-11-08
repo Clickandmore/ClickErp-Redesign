@@ -693,23 +693,21 @@ class ShelterCostLedgerTest extends TestCase
         $this->assertFalse(app(\App\Services\commissions\RecruitmentCommissionService::class)->isEligible($contract->fresh()));
     }
 
-    public function test_admission_rolls_back_when_supplier_cost_cannot_be_posted(): void
+    public function test_admission_is_saved_when_supplier_cost_cannot_be_posted(): void
     {
-        [$contract, $invoice] = $this->arrivedContractWithInvoice(1400);
+        [$contract] = $this->arrivedContractWithInvoice(1400);
         $contract->update(['status' => ContractStatusEnum::Completed->value]);
         $request = \App\Http\Requests\ingaz\ShelterContactStore::create('/', 'POST', [
             'contract_id' => $contract->id, 'maid_date_back' => now()->subDays(1)->toDateString(),
             'arrival_date' => now()->subDays(30)->toDateString(), 'receipt_source' => 'client',
             'duration_from_enter' => 0,
         ]);
-        try {
-            app(\App\Http\Controllers\ingaz\ShelterContractController::class)->store($request);
-            $this->fail('Admission must reject a date before the supplier journal.');
-        } catch (\Illuminate\Validation\ValidationException $exception) {
-            $this->assertArrayHasKey('contract_id', $exception->errors());
-        }
-        $this->assertSame(ContractStatusEnum::Completed->value, $contract->fresh()->status);
-        $this->assertNull($contract->info->fresh()->maid_date_back);
+        $response = app(\App\Http\Controllers\ingaz\ShelterContractController::class)->store($request);
+
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertTrue((bool) $response->getData(true)['data']['accounting_reconciliation_pending']);
+        $this->assertSame(ContractStatusEnum::Shelter->value, $contract->fresh()->status);
+        $this->assertSame(now()->subDays(1)->toDateString(), $contract->info->fresh()->maid_date_back);
         $this->assertFalse(ShelterCostEntry::where('maid_id', $contract->maid_id)->exists());
     }
 

@@ -30,6 +30,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 use Nami\Finance\Models\Account;
@@ -1507,20 +1508,6 @@ class ShelterContractController extends Controller
             $contract->status = ContractStatusEnum::Shelter->value;
             $contract->save();
 
-            // Direct shelter admission must transfer the posted supplier cost just
-            // like a warranty return, without creating another supplier charge.
-            $invoice = $contract->invoice()->first();
-            if ($invoice && ($invoice->external_office_cost_constraint_id || $contract->arabia_supplier_invoice_number)
-                && !$invoice->external_office_cost_reversal_constraint_id) {
-                try {
-                    app(\App\Services\ingaz\ShelterDirectEntryCostService::class)->reconcile($contract->id);
-                } catch (\RuntimeException $exception) {
-                    throw \Illuminate\Validation\ValidationException::withMessages([
-                        'contract_id' => $exception->getMessage(),
-                    ]);
-                }
-            }
-
             $statusLog = [
                 'contract_id' => $contract->id,
                 'status' => ContractStatusEnum::Shelter->value,
@@ -1540,7 +1527,42 @@ class ShelterContractController extends Controller
 
         $this->syncMaidInstantDisplay($contract, $displayOnSite);
 
-        return jsonSuccess(['success' => true], __('ingaz.shelter_contract_stored'), 200);
+        // Shelter admission is an operational action and must remain committed
+        // even when the separate accounting reconciliation needs attention.
+        $accountingWarning = $this->reconcileDirectShelterCostWithoutBlocking($contract);
+
+        return jsonSuccess([
+            'success' => true,
+            'accounting_reconciliation_pending' => $accountingWarning !== null,
+            'accounting_warning' => $accountingWarning,
+        ], __('ingaz.shelter_contract_stored'), 200);
+    }
+
+    private function reconcileDirectShelterCostWithoutBlocking(Contract $contract): ?string
+    {
+        $contract->refresh();
+        $invoice = $contract->invoice()->first();
+
+        if (!$invoice
+            || (!$invoice->external_office_cost_constraint_id && !$contract->arabia_supplier_invoice_number)
+            || $invoice->external_office_cost_reversal_constraint_id) {
+            return null;
+        }
+
+        try {
+            app(\App\Services\ingaz\ShelterDirectEntryCostService::class)->reconcile($contract->id);
+
+            return null;
+        } catch (\Throwable $exception) {
+            Log::warning('Shelter admission saved with accounting reconciliation pending.', [
+                'contract_id' => $contract->id,
+                'maid_id' => $contract->maid_id,
+                'exception' => $exception::class,
+                'error' => $exception->getMessage(),
+            ]);
+
+            return 'تمت الإضافة للإيواء، وتعذرت التسوية المحاسبية الآلية: ' . $exception->getMessage();
+        }
     }
 
     private function syncShelterComplaint(Contract $contract, Request $request): void
