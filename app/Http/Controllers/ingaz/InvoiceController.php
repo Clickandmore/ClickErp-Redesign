@@ -4003,51 +4003,13 @@ class InvoiceController extends Controller
         ObjService $service,
         YearService $yearService
     ): Constraint {
-        if ($invoice->legacy_invoice_number) {
-            $source = app(\App\Services\ingaz\LegacyInvoiceConstraintLinker::class)->link($invoice);
-            $invoice->refresh();
-            return $source;
-        }
+        // Missing linkage does not mean the original accounting entry is missing.
+        // Reuse a verified source or stop; a credit note must never recreate it.
+        $source = app(\App\Services\ingaz\LegacyInvoiceConstraintLinker::class)->link($invoice);
+        $invoice->refresh();
 
-        $invoice->loadMissing([
-            'contract.user',
-            'contract.maid.nationality',
-            'contract.requiredMaidNationality',
-        ]);
-        $contract = $invoice->contract;
-        if (!$contract) {
-            throw new \RuntimeException('الفاتورة غير مرتبطة بعقد استقدام صالح.');
-        }
-
-        $invoiceDate = optional($invoice->created_at)?->copy() ?: now();
-        $this->assertRecruitmentInvoiceAccountingConfiguration($invoiceDate, $yearService);
-        $nationality = $contract->maid?->nationality ?? $contract->requiredMaidNationality;
-        $nationalityName = $nationality?->sub_title ?? $nationality?->title ?? null;
-        $revenueMode = RecruitmentRevenueRecognition::modeForInvoice($invoice);
-        $nationalityAccountId = $this->resolveRecruitmentInvoiceCreditAccountId($nationality, $revenueMode);
-        if (!$nationalityAccountId) {
-            throw new \RuntimeException(
-                $revenueMode === RecruitmentRevenueRecognition::MODE_ON_INVOICE
-                    ? 'حساب مبيعات الجنسية غير مربوط أو غير صالح.'
-                    : 'حساب التزامات عقود الجنسية غير مربوط أو غير صالح.'
-            );
-        }
-
-        $constraint = $this->storeInvoiceConstraintForInvoice(
-            $invoice,
-            $service,
-            $yearService,
-            $nationalityAccountId,
-            $this->ensureClientAccountId($contract),
-            $this->ensureRecruitmentContractCostCenter($contract, $nationalityName)->id
-        );
-        if (!$constraint) {
-            throw new \RuntimeException('تعذر إنشاء قيد الفاتورة الأصلي قبل إشعار الدائن.');
-        }
-
-        return $constraint;
+        return $source;
     }
-
     public function prepareInvoiceViewData(int $id): array
     {
         $invoice = Invoice::with([

@@ -11,14 +11,20 @@ class LegacyInvoiceConstraintLinker
 {
     public function inspect(Invoice $invoice, ?\Illuminate\Support\Collection $candidates = null): array
     {
-        if (!$invoice->legacy_invoice_number) {
-            return ['status' => 'not_legacy'];
+        if (!$invoice->legacy_invoice_number && !$invoice->contract_id) {
+            return ['status' => 'unsupported_invoice'];
         }
         if ($invoice->contract_id && !$invoice->isRecruitmentRevenue()) {
             return ['status' => 'not_recruitment_revenue'];
         }
         $candidates ??= DB::table('fn_constraints')->whereNull('deleted_at')
             ->where(function ($query) use ($invoice) {
+                if (!$invoice->legacy_invoice_number) {
+                    // Match both identifiers with delimiters, never the amount alone.
+                    $query->where('statement', 'like', 'قيد فاتورة طلب استقدام للعقد #'
+                        . (int) $invoice->contract_id . ' / الفاتورة #' . (int) $invoice->id . ' / مساند %');
+                    return;
+                }
                 $query->where('legacy_invoice_number', $invoice->legacy_invoice_number)
                     ->orWhere('statement', 'فاتورة: ' . $invoice->legacy_invoice_number)
                     ->orWhere('statement', 'فاتورة رقم: ' . $invoice->legacy_invoice_number);
@@ -113,7 +119,7 @@ class LegacyInvoiceConstraintLinker
                         . '، القيد ' . ($values['constraint'] ?? 'غير محدد');
                 }
                 throw \Illuminate\Validation\ValidationException::withMessages([
-                    'credit_note' => 'تعذر إنشاء إشعار دائن للفاتورة المنقولة #' . $invoice->legacy_invoice_number
+                    'credit_note' => 'تعذر إنشاء إشعار دائن للفاتورة #' . ($invoice->legacy_invoice_number ?: $invoice->id)
                         . (isset($result['constraint_id']) ? ' مع القيد #' . $result['constraint_id'] : '')
                         . '. ' . ($details ? 'توجد اختلافات في البيانات: ' . implode('؛ ', $details) . '. ' : 'تعذر مطابقة القيد الأصلي (' . $result['status'] . '). ')
                         . 'راجع الفاتورة والقيد الأصلي وصحّح البيانات غير المطابقة قبل إعادة المحاولة.',
