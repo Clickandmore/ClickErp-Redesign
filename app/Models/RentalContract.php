@@ -17,7 +17,12 @@ use App\Models\Concerns\BranchScoped;
 
 class RentalContract extends Model
 {
-    use AssignsBranch, HasFactory, LogsActivity, BranchScoped;
+    use AssignsBranch, HasFactory, LogsActivity, BranchScoped, \App\Models\Concerns\Archivable;
+
+    public static function archiveContractType(): string
+    {
+        return 'rental';
+    }
 
     protected $fillable = [
         'user_id',

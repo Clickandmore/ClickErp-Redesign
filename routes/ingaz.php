@@ -511,6 +511,16 @@ Route::group(
                 return redirect()->route('RecruitmentContract.index', $request->query());
             });
 
+            // أرشيف العقود (استقدام / إيجار) — مسار مستقل لكل نوع حتى تُربط صلاحيته في المصفوفة.
+            foreach (\App\Services\ContractArchiveService::types() as $archiveType) {
+                Route::get("contracts-archive/{$archiveType}", [\App\Http\Controllers\ingaz\ContractArchiveController::class, 'index'])
+                    ->defaults('type', $archiveType)->name("contracts-archive.{$archiveType}.index");
+                Route::post("contracts-archive/{$archiveType}/archive", [\App\Http\Controllers\ingaz\ContractArchiveController::class, 'archive'])
+                    ->defaults('type', $archiveType)->name("contracts-archive.{$archiveType}.archive");
+                Route::post("contracts-archive/{$archiveType}/restore", [\App\Http\Controllers\ingaz\ContractArchiveController::class, 'restore'])
+                    ->defaults('type', $archiveType)->name("contracts-archive.{$archiveType}.restore");
+            }
+
             // RecruitmentContract specific routes - MUST come before resource route
             Route::controller(\App\Http\Controllers\ingaz\RecruitmentDeportationController::class)->group(function () {
                 Route::post('RecruitmentContract/{id}/deportation/start', 'startDeportation')->name('RecruitmentContract.deportation.start');

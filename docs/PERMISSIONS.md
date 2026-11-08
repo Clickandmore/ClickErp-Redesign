@@ -25,6 +25,14 @@
 
 عند النشر شغّل الترحيلات ثم أمر `permissions:prepare-server` المعتمد أدناه حتى تظهر الصلاحية في شاشة الأدوار.
 
+## صلاحيات أرشيف العقود
+
+أربع صلاحيات لأرشفة عقود الاستقدام والإيجار (التفاصيل في [CONTRACT_ARCHIVE.md](CONTRACT_ARCHIVE.md)):
+`rec_contracts_archive_view` و `rent_contract_archive_view` لفتح شاشة الأرشيف، و `rec_contracts_archive`
+و `rent_contract_archive` للأرشفة والاسترجاع. صلاحيتا `rec_contracts_manage` و `rent_contract_control`
+تمنحان الأرشفة أيضاً. ترحيل `2026_11_08_000006_add_contract_archive_permissions` ينشئها دون منحها لأي دور،
+ثم يمنحها أمر `permissions:prepare-server` للدور الرئيسي.
+
 ## صلاحية حذف تحويلات مساند
 
 الصلاحية المستقلة `musaned_transfers_delete` تُظهر زر حذف تحويل مساند وتسمح بتنفيذ الحذف.

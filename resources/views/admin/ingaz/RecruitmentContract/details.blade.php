@@ -1045,6 +1045,8 @@
                     </a>
                 </div>
 
+                @include('admin.ingaz.contract-archive._contract-banner', ['archiveType' => 'recruitment', 'contract' => $contract])
+
                 <!-- رأس العقد -->
                 <div class="contract-header">
                     <div class="contract-header-copy">

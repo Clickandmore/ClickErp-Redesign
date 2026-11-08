@@ -2011,6 +2011,8 @@ class RentContractController extends Controller
 
     private function applyRentalContractIndexFilters($query, Request $request, bool $includeStatus = true): void
     {
+        // العقود المؤرشفة تُخفى من القائمة والإحصائيات والتصدير، وتُعرض من شاشة الأرشيف.
+        $query->applyArchiveFilter($request->input('archived'));
         $query->quickSearch((string) $request->input('quick_search', ''));
 
         if ($request->filled('payment_status')) {

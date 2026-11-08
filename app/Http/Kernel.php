@@ -46,6 +46,8 @@ class Kernel extends HttpKernel
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
             \App\Http\Middleware\PreventBackHistory::class,
             \App\Http\Middleware\TranslateHardcodedOutput::class,
+            // العقد المؤرشف للقراءة فقط (يتجاهل كل مسار لا يخص عقد استقدام أو تأجير).
+            \App\Http\Middleware\EnsureContractNotArchived::class,
 //            EnsureCorrectLocaleUrl::class
         ],
 
