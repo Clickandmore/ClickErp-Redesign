@@ -759,6 +759,12 @@
                 {{ helperTrans('ingaz.All Rent contracts') }}
             </h3>
             <div>
+                @if (\App\Http\Controllers\ingaz\ContractArchiveController::canView('rental'))
+                    <a href="{{ route('contracts-archive.rental.index') }}" class="btn btn-light border me-2">
+                        <i class="fas fa-box-archive me-2"></i>
+                        أرشيف العقود
+                    </a>
+                @endif
                 @if (@AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_CREATE))
                     <a href="{{ route('RentContract.create') }}" class="btn btn-primary">
                         <i class="fas fa-plus me-2"></i>

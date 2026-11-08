@@ -106,6 +106,8 @@ class NewPermKeys
     const REC_CONTRACTS_EXPORT = 'rec_contracts_export';
     const REC_CONTRACTS_PRINT = 'rec_contracts_print';
     const REC_CONTRACTS_VIEW_SHELTER = 'rec_contracts_view_shelter';
+    const REC_CONTRACTS_ARCHIVE_VIEW = 'rec_contracts_archive_view';
+    const REC_CONTRACTS_ARCHIVE = 'rec_contracts_archive';
     const REC_CONTRACTS_REMOVE_MAID = 'rec_contracts_remove_maid';
     const REC_CONTRACTS_LATE_FINANCE = 'rec_contracts_late_finance';
 

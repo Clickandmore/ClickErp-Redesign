@@ -559,6 +559,9 @@ class AdminRoutePermissionMatrix
             'clients.restore' => [PermKeys::CLIENTS_DELETE],
             'clients.forceDelete' => [PermKeys::CLIENTS_DELETE],
             'RecruitmentContract.index' => [NewPermKeys::REC_CONTRACTS_VIEW, NewPermKeys::REC_CONTRACTS_MANAGE],
+            'contracts-archive.recruitment.index' => [PermKeys::REC_CONTRACTS_ARCHIVE_VIEW, PermKeys::REC_CONTRACTS_ARCHIVE, NewPermKeys::REC_CONTRACTS_MANAGE],
+            'contracts-archive.recruitment.archive' => [PermKeys::REC_CONTRACTS_ARCHIVE, NewPermKeys::REC_CONTRACTS_MANAGE],
+            'contracts-archive.recruitment.restore' => [PermKeys::REC_CONTRACTS_ARCHIVE, NewPermKeys::REC_CONTRACTS_MANAGE],
             'post-arrival-refunds.index' => [PermKeys::POST_ARRIVAL_REFUND_VIEW],
             'post-arrival-refunds.show' => [PermKeys::POST_ARRIVAL_REFUND_VIEW],
             'post-arrival-refunds.create' => [PermKeys::POST_ARRIVAL_REFUND_CREATE],
@@ -749,6 +752,9 @@ class AdminRoutePermissionMatrix
     {
         return [
             'RentContract.index' => [PermKeys::RENT_CONTRACT_VIEW, PermKeys::RENT_CONTRACT_CONTROL],
+            'contracts-archive.rental.index' => [PermKeys::RENT_CONTRACT_ARCHIVE_VIEW, PermKeys::RENT_CONTRACT_ARCHIVE, PermKeys::RENT_CONTRACT_CONTROL],
+            'contracts-archive.rental.archive' => [PermKeys::RENT_CONTRACT_ARCHIVE, PermKeys::RENT_CONTRACT_CONTROL],
+            'contracts-archive.rental.restore' => [PermKeys::RENT_CONTRACT_ARCHIVE, PermKeys::RENT_CONTRACT_CONTROL],
             'RentContract.create' => [PermKeys::RENT_CONTRACT_CREATE, PermKeys::RENT_CONTRACT_CONTROL],
             'RentContract.export.excel' => [PermKeys::RENT_CONTRACT_VIEW, PermKeys::RENT_CONTRACT_CONTROL],
             'RentContract.sendExpiryReminder' => [PermKeys::RENT_CONTRACT_CONTROL],

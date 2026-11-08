@@ -845,6 +845,12 @@
                 </nav>
 
                 <div class="contracts-header-actions">
+                    @if (\App\Http\Controllers\ingaz\ContractArchiveController::canView('recruitment'))
+                        <a href="{{ route('contracts-archive.recruitment.index') }}" class="btn btn-light">
+                            <i class="fas fa-box-archive"></i>
+                            أرشيف العقود
+                        </a>
+                    @endif
                     <a href="{{ route('RecruitmentContract.externalOfficeDispatch.index') }}" class="btn btn-light">
                         <i class="fas fa-paper-plane"></i>
                         فواتير الموردين

@@ -79,6 +79,9 @@ class AppServiceProvider extends ServiceProvider
         \App\Models\Contract::observe(\App\Observers\ShelterStayObserver::class);
         \App\Models\ContractInfo::observe(\App\Observers\ShelterStayObserver::class);
 
+        // العقد المؤرشف لا يُنشأ عليه مستند مالي جديد من شاشات الإدارة.
+        \App\Support\ArchivedContractFinanceGuard::register();
+
         // إعدادات إشعارات Firebase المحفوظة من لوحة التحكم تعلو قيم .env، فتستفيد
         // منها خدمات الإرسال عبر config('firebase.*') دون تعديل فيها.
         \App\Support\FirebaseSettings::applyToConfig();

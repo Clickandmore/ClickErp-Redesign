@@ -261,7 +261,7 @@ class DashboardController extends Controller
                 ->count(),
         ];
 
-        $rentalAggregateQuery = RentalContract::query();
+        $rentalAggregateQuery = RentalContract::query()->notArchived();
         $this->applyDashboardBranchFilter($rentalAggregateQuery, $activeDashboardBranchId, 'rental_contracts.branch_id', 'rental_contracts');
         $rentalAggregate = $rentalAggregateQuery
             ->selectRaw('COUNT(*) as total')
@@ -509,6 +509,11 @@ class DashboardController extends Controller
                 COALESCE(c.required_maid_job_title_id, mjt.job_title_id) as contract_profession_id
             ')
             ->whereIn('c.type', self::RECRUITMENT_CONTRACT_TYPES);
+
+        // لوحة المتابعة اليومية لا تعدّ العقود المؤرشفة.
+        if (Contract::archiveColumnExists()) {
+            $contractAnalyticsBaseSource->whereNull('c.archived_at');
+        }
 
         $this->applyDashboardBranchFilter($contractAnalyticsBaseSource, $activeDashboardBranchId, 'c.branch_id', 'contracts');
 
@@ -1127,7 +1132,7 @@ class DashboardController extends Controller
         }
 
         // أحدث الأنشطة التشغيلية والمالية مرتبة حسب وقت الحدث
-        $recentContractsQuery = Contract::with('user');
+        $recentContractsQuery = Contract::with('user')->notArchived();
         $this->applyDashboardBranchFilter($recentContractsQuery, $activeDashboardBranchId, 'contracts.branch_id', 'contracts');
         $recentContracts = $recentContractsQuery
             ->latest('updated_at')
