@@ -71,6 +71,13 @@ class CrossBranchTransferService
                     ->whereNotIn('reserved.status', ['failed', 'rejected', 'cancelled', 'transferred', 'completed'])
                     ->whereColumn('reserved_source.maid_id', 'contracts.maid_id');
             });
+        if (\Illuminate\Support\Facades\Schema::hasTable('rental_sponsorship_returns')) {
+            $query->whereNotExists(function ($busy) {
+                $busy->selectRaw('1')->from('rental_sponsorship_returns')
+                    ->whereColumn('rental_sponsorship_returns.maid_id', 'contracts.maid_id')
+                    ->whereNotIn('rental_sponsorship_returns.status', ['transferred', 'cancelled']);
+            });
+        }
         $access = app(BranchAccessService::class);
         $branchId = $access->selectedBranchId(request());
         if ($branchId) {

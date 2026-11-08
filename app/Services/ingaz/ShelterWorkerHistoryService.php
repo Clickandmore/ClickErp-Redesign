@@ -34,6 +34,15 @@ class ShelterWorkerHistoryService
             $events->push(compact('date', 'title', 'details', 'actor'));
         };
         $add($contract->maid?->created_at, 'تسجيل العاملة في النظام');
+        if (\Illuminate\Support\Facades\Schema::hasTable('rental_sponsorship_returns')) {
+            $returns = \App\Models\RentalSponsorshipReturn::whereIn('contract_id', $contracts->modelKeys())->get();
+            foreach ($returns as $return) {
+                foreach ($return->history as $event) {
+                    $add($event['at'], 'إعادة الكفالة للشركة: ' . (\App\Models\RentalSponsorshipReturn::LABELS[$event['status']] ?? $event['status']),
+                        'طلب #' . $return->id . ' — ' . ($event['reason'] ?? ''), 'موظف #' . $event['admin_id']);
+                }
+            }
+        }
         foreach ($contracts as $record) {
             $reference = 'عقد #' . $record->id;
             $add($record->created_at, 'إنشاء عقد للعاملة', $reference . ' — ' . ($record->user?->name ?: 'بدون كفيل مسجل'));
