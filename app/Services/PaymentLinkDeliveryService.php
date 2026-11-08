@@ -89,7 +89,7 @@ class PaymentLinkDeliveryService
             'customer_name' => $contract->user?->name ?? 'عميلنا العزيز',
             'contract_number' => $contract->contract_number ?: $contract->id,
             'amount' => PaymentMessageTemplates::amount($link['amount']),
-        ], ['contract_id' => $contract->id, 'recipient_id' => $contract->user_id]);
+        ], ContractMessageHistoryService::context($contract) + ['recipient_id' => $contract->user_id]);
     }
 
     public function deliverTransfer(SponsorshipTransfer $transfer, string $channel = 'sms', ?string $phone = null): array
@@ -149,10 +149,11 @@ class PaymentLinkDeliveryService
 
         $message = PaymentMessageTemplates::render($type, $variables + ['payment_link' => $url]);
         $response = null;
+        $context = ['source' => $type . '_payment_link', 'meta' => $meta] + $meta;
         try {
             $response = $channel === 'whatsapp'
-                ? app(UltraMsgWhatsAppService::class)->sendChatMessage($phone, $message, ['source' => $type . '_payment_link', 'meta' => $meta])
-                : SmsGateway::send(formatSaudiPhone($phone), $message);
+                ? app(UltraMsgWhatsAppService::class)->sendChatMessage($phone, $message, $context)
+                : SmsGateway::send(formatSaudiPhone($phone), $message, null, null, $context);
         } catch (\Throwable $exception) {
             Log::error('Moyasar: payment link delivery exception', $meta + ['channel' => $channel, 'message' => $exception->getMessage()]);
         }

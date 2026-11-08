@@ -28,6 +28,7 @@ return [
             'dashboard.old',
             'dashboard.employees.show',
             'maids.*',
+            'maid-cv-shares.*',
             'noneAvailableMaids',
             'orders.*',
             'return_requests.*',

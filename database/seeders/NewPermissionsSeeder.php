@@ -471,6 +471,12 @@ class NewPermissionsSeeder extends Seeder
                 'guard_name' => 'admin',
             ],
             [
+                'name' => NewPermKeys::MAIDS_SHARE_WHATSAPP,
+                'group_name' => 'maids',
+                'section_name' => 'cv_management',
+                'guard_name' => 'admin',
+            ],
+            [
                 'name' => NewPermKeys::MAIDS_IMPORT,
                 'group_name' => 'maids',
                 'section_name' => 'contract_management',

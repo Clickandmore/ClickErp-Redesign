@@ -84,6 +84,9 @@ class MaidController extends Controller
     public function index(Request $request, objAction $Action, RecruitmentOfficeAction $officeAct)
     {
         $query = objModel::query()
+            ->withGlobalScope('reservation_status', fn ($query) => $query->withExists([
+                'reservationOrders as active_order_reservation' => fn ($orders) => $orders->whereIn('status', $this->activeOrderStatuses()),
+            ]))
             ->with(['nationality', 'religion', 'jobTypes', 'contracts', 'orders', 'office', 'creatorActivity.causer', 'addedBy'])
             ->select([
                 'id',
@@ -130,6 +133,8 @@ class MaidController extends Controller
         $cvGenerationAvailable = MaidCvTemplateSettings::enabled();
         $cvOutputType = MaidCvTemplateSettings::outputType();
         $canSelectForCvActions = @AdminGuardHasPerm(\App\PermKeys::MAIDS_EDIT)
+            || @AdminGuardHasPerm(\App\PermKeys::MAIDS_SHARE_WHATSAPP)
+            || @AdminGuardHasPerm(\App\PermKeys::MAIDS_EXPORT)
             || @AdminGuardHasPerm(\App\PermKeys::MAIDS_EXPORT_PDF);
 
         if ($request->ajax()) {
@@ -288,7 +293,7 @@ class MaidController extends Controller
                     $hasActiveRecruitmentContract = $row->contracts
                         ->whereIn('status', $this->recruitmentContractStatuses())
                         ->isNotEmpty();
-                    $hasActiveOrder = $row->orders->whereIn('status', $this->activeOrderStatuses())->isNotEmpty();
+                    $hasActiveOrder = $row->hasActiveOrderReservation();
 
                     if ($row->maid_accommodation_type == 2) {
                         $statusMeta = ['class' => 'bg-info-subtle text-info', 'icon' => 'fa-warehouse', 'label' => $labelAccommodation];
@@ -522,15 +527,11 @@ class MaidController extends Controller
 
                     if (@AdminGuardHasAnyPerm([\App\PermKeys::MAIDS_EXPORT, \App\PermKeys::MAIDS_EXPORT_PDF])
                         && ($downloadableCvPath = $this->maidDownloadableCvPath($row))) {
-                        $shareUrl = URL::temporarySignedRoute(
-                            'maids.generated-cv.shared',
-                            now()->addDays(7),
-                            ['maid' => $row->id]
-                        );
-                        $whatsAppUrl = 'https://wa.me/?text=' . rawurlencode('نموذج السيرة الذاتية - ' . ($row->name ?: $row->cv_code ?: $row->id) . "\n" . $shareUrl);
                         $menuItems .= '<li><a class="dropdown-item" href="' . route('maids.generated-cv.download', $row->id) . '">'
                             . '<i class="fas fa-file-pdf text-danger me-2"></i>تنزيل النموذج PDF</a></li>';
-                        $menuItems .= '<li><a class="dropdown-item" href="' . e($whatsAppUrl) . '" target="_blank" rel="noopener">'
+                    }
+                    if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_SHARE_WHATSAPP)) {
+                        $menuItems .= '<li><a class="dropdown-item" href="' . e(route('maid-cv-shares.create', ['maid_ids' => [$row->id]])) . '">'
                             . '<i class="fab fa-whatsapp text-success me-2"></i>مشاركة PDF عبر واتساب</a></li>';
                     }
 
@@ -665,6 +666,9 @@ class MaidController extends Controller
             }
 
             $rows = objModel::query()
+            ->withGlobalScope('reservation_status', fn ($query) => $query->withExists([
+                'reservationOrders as active_order_reservation' => fn ($orders) => $orders->whereIn('status', $this->activeOrderStatuses()),
+            ]))
                 ->with($relations)
                 ->select([
                     'id',
@@ -910,16 +914,12 @@ class MaidController extends Controller
 
                     if (@AdminGuardHasAnyPerm([\App\PermKeys::MAIDS_EXPORT, \App\PermKeys::MAIDS_EXPORT_PDF])
                         && ($downloadableCvPath = $this->maidDownloadableCvPath($row))) {
-                        $shareUrl = URL::temporarySignedRoute(
-                            'maids.generated-cv.shared',
-                            now()->addDays(7),
-                            ['maid' => $row->id]
-                        );
-                        $whatsAppUrl = 'https://wa.me/?text=' . rawurlencode('نموذج السيرة الذاتية - ' . ($row->name ?: $row->cv_code ?: $row->id) . "\n" . $shareUrl);
                         $menuItems[] = '<li><a class="dropdown-item" href="' . route('maids.generated-cv.download', $row->id) . '">
                             <i class="fas fa-file-pdf text-danger me-2"></i>تنزيل النموذج PDF
                         </a></li>';
-                        $menuItems[] = '<li><a class="dropdown-item" href="' . e($whatsAppUrl) . '" target="_blank" rel="noopener">
+                    }
+                    if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_SHARE_WHATSAPP)) {
+                        $menuItems[] = '<li><a class="dropdown-item" href="' . e(route('maid-cv-shares.create', ['maid_ids' => [$row->id]])) . '">
                             <i class="fab fa-whatsapp text-success me-2"></i>مشاركة PDF عبر واتساب
                         </a></li>';
                     }
@@ -1079,6 +1079,9 @@ class MaidController extends Controller
     public function noneAvailableMaids(Request $request, objAction $Action)
     {
         $rows = objModel::latest()
+            ->withGlobalScope('reservation_status', fn ($query) => $query->withExists([
+                'reservationOrders as active_order_reservation' => fn ($orders) => $orders->whereIn('status', $this->activeOrderStatuses()),
+            ]))
             ->with(['nationality', 'religion', 'jobTypes', 'contracts', 'orders', 'unavailableRecords'])
             ->select(['id', 'name', 'cv_code', 'image', 'cv_file', 'cv_preview', 'nationality_id', 'religion_id', 'passport_num', 'price', 'salary', 'age', 'is_show', 'available', 'available_at', 'created_at', 'is_pinned', 'status', 'back_out_reason'])
             ->where('status', 'backout')
@@ -1145,7 +1148,7 @@ class MaidController extends Controller
                     } else {
                         // التحقق من وجود عقود أو طلبات نشطة
                         $hasActiveContracts = $row->contracts()->whereIn('status', $this->recruitmentContractStatuses())->exists();
-                        $hasActiveOrders = $row->orders()->whereIn('status', ['new', 'under_process', 'contracted', 'contracted_without_contract'])->exists();
+                        $hasActiveOrders = $row->hasActiveOrderReservation();
 
                         if ($hasActiveContracts || $hasActiveOrders) {
                             return '<span class="badge bg-warning">' . helperTrans('ingaz.maid_status_reserved') . '</span>';
@@ -1560,7 +1563,7 @@ class MaidController extends Controller
         } elseif ($maid->status !== 'backout' && $stats['contracts_active'] > 0) {
             $effectiveStatus = 'contracted';
             $effectiveAvailable = false;
-        } elseif ($maid->status !== 'backout' && ($stats['orders_active'] > 0 || !$maid->available)) {
+        } elseif ($maid->status !== 'backout' && ($maid->hasActiveOrderReservation() || !$maid->available)) {
             $effectiveStatus = 'reserved';
             $effectiveAvailable = false;
         }
@@ -3526,6 +3529,9 @@ class MaidController extends Controller
     private function buildMaidExportQuery(Request $request)
     {
         $maidsQuery = objModel::query()
+            ->withGlobalScope('reservation_status', fn ($query) => $query->withExists([
+                'reservationOrders as active_order_reservation' => fn ($orders) => $orders->whereIn('status', $this->activeOrderStatuses()),
+            ]))
             ->with([
                 'nationality',
                 'religion',
@@ -3740,9 +3746,7 @@ class MaidController extends Controller
             return false;
         }
 
-        $hasActiveOrders = $maid->relationLoaded('orders')
-            ? $maid->orders->whereIn('status', $this->activeOrderStatuses())->isNotEmpty()
-            : $maid->orders()->whereIn('status', $this->activeOrderStatuses())->exists();
+        $hasActiveOrders = $maid->hasActiveOrderReservation();
 
         return !$hasActiveOrders;
     }
@@ -3950,7 +3954,7 @@ class MaidController extends Controller
             ->whereDoesntHave('contracts', function ($contractQuery) {
                 $contractQuery->whereIn('status', $this->recruitmentContractStatuses());
             })
-            ->whereDoesntHave('orders', function ($orderQuery) {
+            ->whereDoesntHave('reservationOrders', function ($orderQuery) {
                 $orderQuery->whereIn('status', $this->activeOrderStatuses());
             })
             ->whereDoesntHave('rentalContracts', function ($rentalQuery) {
@@ -3973,7 +3977,7 @@ class MaidController extends Controller
                     ->orWhereHas('contracts', function ($contractQuery) {
                         $contractQuery->whereIn('status', $this->recruitmentContractStatuses());
                     })
-                    ->orWhereHas('orders', function ($orderQuery) {
+                    ->orWhereHas('reservationOrders', function ($orderQuery) {
                         $orderQuery->whereIn('status', $this->activeOrderStatuses());
                     })
                     ->orWhereHas('rentalContracts', function ($rentalQuery) {
@@ -4014,9 +4018,7 @@ class MaidController extends Controller
         $hasActiveRecruitmentContracts = $maid->contracts
             ->whereIn('status', $this->recruitmentContractStatuses())
             ->isNotEmpty();
-        $hasActiveOrders = $maid->orders
-            ->whereIn('status', $this->activeOrderStatuses())
-            ->isNotEmpty();
+        $hasActiveOrders = $maid->hasActiveOrderReservation();
 
         if (
             !$maid->available
@@ -4130,7 +4132,7 @@ class MaidController extends Controller
         }
 
         $hasActiveRecruitmentContracts = $maid->contracts->whereIn('status', $this->recruitmentContractStatuses())->isNotEmpty();
-        $hasActiveOrders = $maid->orders->whereIn('status', $this->activeOrderStatuses())->isNotEmpty();
+        $hasActiveOrders = $maid->hasActiveOrderReservation();
         $hasActiveRentalContracts = $maid->rentalContracts->whereIn('status', $this->rentalActiveContractStatuses())->reject(fn ($contract) => $contract->requiresMaidOnResume())->isNotEmpty();
         $hasActiveSponsorshipTransfer = (bool) $this->resolveActiveSponsorshipTransfer($maid);
 
@@ -4242,7 +4244,7 @@ class MaidController extends Controller
                     ->whereDoesntHave('contracts', function ($contractQuery) use ($recruitmentContractStatuses) {
                         $contractQuery->whereIn('status', $recruitmentContractStatuses);
                     })
-                    ->whereDoesntHave('orders', function ($orderQuery) use ($activeOrderStatuses) {
+                    ->whereDoesntHave('reservationOrders', function ($orderQuery) use ($activeOrderStatuses) {
                         $orderQuery->whereIn('status', $activeOrderStatuses);
                     });
                 break;
@@ -4258,7 +4260,7 @@ class MaidController extends Controller
                                 $availableReservedQuery->where('status', 'available')
                                     ->where(function ($availabilityQuery) use ($activeOrderStatuses) {
                                         $availabilityQuery->where('available', false)
-                                            ->orWhereHas('orders', function ($orderQuery) use ($activeOrderStatuses) {
+                                            ->orWhereHas('reservationOrders', function ($orderQuery) use ($activeOrderStatuses) {
                                                 $orderQuery->whereIn('status', $activeOrderStatuses);
                                             });
                                     });
@@ -4510,7 +4512,7 @@ class MaidController extends Controller
                         ->whereDoesntHave('contracts', function ($q) {
                             $q->whereIn('status', $this->recruitmentContractStatuses());
                         })
-                        ->whereDoesntHave('orders', function ($q) {
+                        ->whereDoesntHave('reservationOrders', function ($q) {
                             $q->whereIn('status', $this->activeOrderStatuses());
                         });
                 }
@@ -4524,7 +4526,7 @@ class MaidController extends Controller
                             ->orWhereHas('contracts', function ($subQ) {
                                 $subQ->whereIn('status', $this->recruitmentContractStatuses());
                             })
-                            ->orWhereHas('orders', function ($subQ) {
+                            ->orWhereHas('reservationOrders', function ($subQ) {
                                 $subQ->whereIn('status', $this->activeOrderStatuses());
                             });
                     });

@@ -16,6 +16,12 @@ class MaidSidebarPermissionsSeeder extends Seeder
 
         $permissions = [
             [
+                'name' => PermKeys::MAIDS_SHARE_WHATSAPP,
+                'display_name' => 'مشاركة السير عبر واتساب',
+                'description' => 'مشاركة السير المولدة مع العملاء عبر واتساب وعرض سجل المشاركات.',
+                'group_name' => 'maids', 'section_name' => 'cv_management',
+            ],
+            [
                 'name' => PermKeys::MAIDS_VIEW,
                 'display_name' => 'عرض السير الذاتية',
                 'description' => 'إمكانية عرض قائمة السير الذاتية',

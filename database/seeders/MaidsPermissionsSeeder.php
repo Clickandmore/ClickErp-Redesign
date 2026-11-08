@@ -17,6 +17,12 @@ class MaidsPermissionsSeeder extends Seeder
         // الصلاحيات الأساسية للسير الذاتية
         $permissions = [
             [
+                'name' => \App\PermKeys::MAIDS_SHARE_WHATSAPP,
+                'display_name' => 'مشاركة السير عبر واتساب',
+                'description' => 'مشاركة السير المولدة مع العملاء عبر واتساب وعرض سجل المشاركات.',
+                'guard_name' => 'admin',
+            ],
+            [
                 'name' => 'maids_view',
                 'display_name' => 'عرض السير الذاتية',
                 'description' => 'إمكانية عرض قائمة السير الذاتية',

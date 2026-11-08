@@ -51,6 +51,7 @@ final class PermissionLabelDictionary
 
     /** مسميات كاملة لصلاحيات بعينها، تتجاوز أي تركيب آلي. */
     private const EXACT = [
+        'maids_share_whatsapp' => 'مشاركة السير عبر واتساب',
         'data_import_upload' => 'رفع وفحص بيانات الاستيراد',
         'data_import_review' => 'عرض ومراجعة ملفات الاستيراد',
         'data_import_approve' => 'اعتماد استيراد البيانات',

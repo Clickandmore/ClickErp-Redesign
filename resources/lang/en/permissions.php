@@ -77,6 +77,7 @@ return [
     'maids_show' => 'Show CV Details',
     'maids_toggle_status' => 'Toggle Visibility Status',
     'maids_bulk_visibility' => 'Bulk Show / Hide CVs',
+    'maids_share_whatsapp' => 'Share CVs via WhatsApp',
     'maids_toggle_pin' => 'Toggle Pin Status',
     'maids_control' => 'Control CVs',
     'maids_rental_view' => 'View Rental Maids CVs',

@@ -2925,6 +2925,7 @@
         </div>
     @endif
 
+    @include('admin.ingaz.partials.contract-message-history')
     @else
         @include('components.no_permissions')
     @endif

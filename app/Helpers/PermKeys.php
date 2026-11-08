@@ -76,6 +76,7 @@ const PARTENR_CONTROL = 'partenr_control';
     const MAIDS_TRANSACTION_EDIT_OVERRIDE = 'maids_transaction_edit_override';
     const MAIDS_DELETE = 'maids_delete';
     const MAIDS_EXPORT = 'maids_export';
+    const MAIDS_SHARE_WHATSAPP = 'maids_share_whatsapp';
     const MAIDS_EXPORT_PDF = 'maids_export_pdf';
     const MAIDS_EXPORT_EXCEL = 'maids_export_excel';
     const MAIDS_SHOW = 'maids_show';

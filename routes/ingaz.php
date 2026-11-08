@@ -396,6 +396,14 @@ Route::group(
             Route::get('maids/{maid}/video', [MaidController::class, 'openVideo'])
                 ->whereNumber('maid')
                 ->name('maids.video.open');
+            Route::get('maid-cv-shares', [\App\Http\Controllers\ingaz\MaidCvShareController::class, 'index'])->name('maid-cv-shares.index');
+            Route::get('maid-cv-shares/create', [\App\Http\Controllers\ingaz\MaidCvShareController::class, 'create'])->name('maid-cv-shares.create');
+            Route::get('maid-cv-shares/clients', [\App\Http\Controllers\ingaz\MaidCvShareController::class, 'clients'])->name('maid-cv-shares.clients');
+            Route::post('maid-cv-shares', [\App\Http\Controllers\ingaz\MaidCvShareController::class, 'store'])->name('maid-cv-shares.store');
+            Route::get('maid-cv-shares/{share}', [\App\Http\Controllers\ingaz\MaidCvShareController::class, 'show'])->whereNumber('share')->name('maid-cv-shares.show');
+            Route::post('maid-cv-shares/{share}/confirm', [\App\Http\Controllers\ingaz\MaidCvShareController::class, 'confirm'])->whereNumber('share')->name('maid-cv-shares.confirm');
+            Route::post('maid-cv-shares/{share}/retry', [\App\Http\Controllers\ingaz\MaidCvShareController::class, 'retry'])->whereNumber('share')->name('maid-cv-shares.retry');
+            Route::get('maid-cv-share-messages/{message}/download', [\App\Http\Controllers\ingaz\MaidCvShareController::class, 'download'])->whereNumber('message')->name('maid-cv-shares.download');
             Route::resource('maids', MaidController::class)->whereNumber('maid');
             Route::get('maids/create_rapid_cv', [MaidController::class, 'create_rapid_cv'])->name('maids.create_rapid_cv');
             Route::post('maids/store_rapid_cv', [MaidController::class, 'store_rapid_cv'])->name('maids.store_rapid_cv');

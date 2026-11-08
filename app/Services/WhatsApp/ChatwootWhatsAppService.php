@@ -60,7 +60,7 @@ class ChatwootWhatsAppService
             fn ($key) => !config('services.whatsapp.chatwoot.'.$key)));
     }
 
-    private function request(string $method, string $path, array $data = []): array
+    private function request(string $method, string $path, array $data = [], ?array $attachment = null): array
     {
         $base = rtrim((string) config('services.whatsapp.chatwoot.base_url'), '/');
         $parts = parse_url($base);
@@ -73,12 +73,17 @@ class ChatwootWhatsAppService
             throw new RuntimeException('أكمل معرف الحساب ورمز الوصول أولاً.');
         }
         // Never retry POST automatically: a timeout may occur after the provider accepted it.
-        $response = Http::acceptJson()->asJson()->withoutRedirecting()
+        $request = Http::acceptJson()->withoutRedirecting()
             ->withHeaders(['api_access_token' => config('services.whatsapp.chatwoot.access_token')])
-            ->timeout(max(5, (int) config('services.whatsapp.timeout', 15)))
-            ->send($method, "$base/api/v1/accounts/$account/$path", [
+            ->timeout(max(5, (int) config('services.whatsapp.timeout', 15)));
+        if ($attachment) {
+            $response = $request->attach('attachments[]', $attachment['contents'], $attachment['filename'], ['Content-Type' => 'application/pdf'])
+                ->post("$base/api/v1/accounts/$account/$path", $data);
+        } else {
+            $response = $request->asJson()->send($method, "$base/api/v1/accounts/$account/$path", [
                 $method === 'GET' ? 'query' : 'json' => $data,
             ]);
+        }
         if (!$response->successful()) {
             throw new RuntimeException('رفضت المنصة الطلب (HTTP '.$response->status().').', $response->status());
         }
@@ -184,7 +189,14 @@ class ChatwootWhatsAppService
                 if (!empty($context['template_params'])) {
                     $payload['template_params'] = $context['template_params'];
                 }
-                $result = $this->request('POST', 'conversations/'.(int) $conversation['id'].'/messages', $payload);
+                $attachment = null;
+                if (!empty($context['attachment_filename'])) {
+                    // Read the private snapshot locally; do not fetch an arbitrary remote URL.
+                    $contents = \Illuminate\Support\Facades\Storage::disk('local')->get($context['attachment_path']);
+                    $attachment = ['contents' => $contents, 'filename' => $context['attachment_filename']];
+                    $payload['private'] = 'false';
+                }
+                $result = $this->request('POST', 'conversations/'.(int) $conversation['id'].'/messages', $payload, $attachment);
                 if (empty($result['id']) || ($result['status'] ?? '') === 'failed') {
                     throw new RuntimeException('لم تقبل المنصة الرسالة.');
                 }
@@ -209,6 +221,6 @@ class ChatwootWhatsAppService
         // Transport exception text may contain credentials or remote response bodies.
         $message = get_class($e) === RuntimeException::class
             ? $e->getMessage() : 'تعذر إكمال الاتصال. تحقق من المنصة قبل إعادة الإرسال لتجنب التكرار.';
-        return ['success' => false, 'error' => 'chatwoot_error', 'response' => ['message' => $message]];
+        return ['success' => false, 'error' => 'chatwoot_error', 'status_code' => $e->getCode() ?: null, 'response' => ['message' => $message]];
     }
 }

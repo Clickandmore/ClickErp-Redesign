@@ -2491,6 +2491,7 @@ class InvoiceController extends Controller
             $client->update([
                 'is_company' => $user->isCompanyClient() ? 1 : 0,
                 'tax_number' => $user->documentNumber() ?? $client->tax_number,
+                'city' => filled($user->city) ? trim((string) $user->city) : $client->city,
             ]);
 
             return $client;

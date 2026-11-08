@@ -20,6 +20,9 @@ class OutboundMessageLog extends Model
     public static function sourceLabel(?string $source): string
     {
         $labels = [
+            'rental_contract_overdue_sms' => 'تذكير بتأخر عقد الإيجار',
+            'rental_payment_link' => 'رابط دفع عقد الإيجار',
+            'maid_cv_share' => 'مشاركة السير الذاتية',
             'rental_contract_expiry_reminder' => 'تنبيه انتهاء عقد التأجير',
             'rental-contracts:send-expiry-reminders' => 'التنبيهات المجدولة لانتهاء عقود التأجير',
             'notifications:run-configured-alerts' => 'التنبيهات المجدولة',

@@ -68,6 +68,9 @@ use Mcamara\LaravelLocalization\Facades\LaravelLocalization;
 //});
 
 /** NEW ROUTES */
+Route::get('/shared/maid-cv-share-messages/{message}/file', [\App\Http\Controllers\ingaz\MaidCvShareController::class, 'file'])
+    ->whereNumber('message')->middleware(['signed', 'throttle:120,1'])->name('maid-cv-shares.file');
+
 Route::get('/shared/maids/{maid}/cv.pdf', [IngazMaidController::class, 'sharedGeneratedCvPdf'])
     ->whereNumber('maid')
     ->middleware(['signed', 'throttle:60,1'])

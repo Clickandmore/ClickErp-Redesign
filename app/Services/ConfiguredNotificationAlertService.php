@@ -377,7 +377,12 @@ class ConfiguredNotificationAlertService
         }
 
         try {
-            $this->send($channel, $recipient['type'], $model, $title, $message, $candidate['link'], $key);
+            \App\Support\OutboundMessageRecorder::withContext(
+                ContractMessageHistoryService::context($candidate['subject']) + [
+                    'source' => 'configured_alert', 'alert_key' => $key, 'recipient_name' => $model->name,
+                ],
+                fn () => $this->send($channel, $recipient['type'], $model, $title, $message, $candidate['link'], $key)
+            );
             $delivery->update(['status' => 'sent', 'sent_at' => now(), 'error' => null]);
 
             return 'sent';

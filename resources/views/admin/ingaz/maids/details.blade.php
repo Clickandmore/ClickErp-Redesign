@@ -234,6 +234,9 @@
 @endsection
 
 @section('content')
+    @if (@AdminGuardHasPerm($maid->isRentalCv() ? \App\PermKeys::MAIDS_RENTAL_VIEW : \App\PermKeys::MAIDS_VIEW) && @AdminGuardHasPerm(\App\PermKeys::MAIDS_SHARE_WHATSAPP))
+        <div class="container-fluid pt-3"><a class="btn btn-outline-success" href="{{ route('maid-cv-shares.index', ['maid_id' => $maid->id]) }}">تاريخ مشاركة السيرة عبر واتساب</a></div>
+    @endif
     @if (\Illuminate\Support\Facades\Schema::hasTable('rental_escape_reports'))
         @php
             $rentalEscape = \App\Models\RentalEscapeReport::where('maid_id', $maid->id)->latest('id')->first();
@@ -462,7 +465,9 @@
                             <a href="{{ route('maids.generated-cv.download', $maid->id) }}" class="btn btn-danger">
                                 <i class="fas fa-file-pdf me-1"></i>تنزيل النموذج PDF
                             </a>
-                            <a href="{{ $generatedCvWhatsAppUrl }}" target="_blank" rel="noopener"
+                        @endif
+                        @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_SHARE_WHATSAPP))
+                            <a href="{{ route('maid-cv-shares.create', ['maid_ids' => [$maid->id]]) }}"
                                 class="btn btn-success">
                                 <i class="fab fa-whatsapp me-1"></i>مشاركة عبر واتساب
                             </a>
@@ -1097,10 +1102,12 @@
                                                 class="btn btn-danger btn-sm">
                                                 <i class="fas fa-file-pdf me-1"></i>تنزيل PDF
                                             </a>
-                                            <a href="{{ $generatedCvWhatsAppUrl }}" target="_blank" rel="noopener"
+                                            @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_SHARE_WHATSAPP))
+                                            <a href="{{ route('maid-cv-shares.create', ['maid_ids' => [$maid->id]]) }}"
                                                 class="btn btn-success btn-sm">
                                                 <i class="fab fa-whatsapp me-1"></i>واتساب
                                             </a>
+                                            @endif
                                         </div>
                                     </div>
                                 </div>

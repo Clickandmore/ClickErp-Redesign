@@ -417,6 +417,8 @@ class AdminRoutePermissionMatrix
             // نفس صلاحيات middleware في MaidController::__construct؛ هنا حتى تبقى المصفوفة مصدر الحماية
             // الكامل (وتعرفها شاشة الصلاحيات وأدوات المساعد) لو تغيّر الكنترولر يوماً.
             'maids.store' => [PermKeys::MAIDS_CREATE],
+            // The controller also enforces access to the selected CV type and branch.
+            'maid-cv-shares.*' => [PermKeys::MAIDS_SHARE_WHATSAPP],
             'maids.create_rapid_cv' => [PermKeys::MAIDS_CREATE],
             'maids.store_rapid_cv' => [PermKeys::MAIDS_CREATE],
             'maids.extract-cv-data' => [PermKeys::MAIDS_CREATE],

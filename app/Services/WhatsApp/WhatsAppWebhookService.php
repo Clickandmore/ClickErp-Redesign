@@ -98,6 +98,9 @@ class WhatsAppWebhookService
 
         // Also update sends made outside the inbox (OTP, reminders, campaigns).
         \App\Support\OutboundMessageRecorder::whatsAppStatus($messageId, $state, $status);
+        if (Schema::hasTable('maid_cv_share_messages')) {
+            \App\Services\ingaz\MaidCvShareStatusService::update($messageId, $state, $status);
+        }
 
         $message = WhatsAppMessage::query()->where('meta_message_id', $messageId)->first();
         if (!$message) {
