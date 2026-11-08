@@ -467,7 +467,7 @@
                             </a>
                         @endif
                         @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_SHARE_WHATSAPP))
-                            <a href="{{ route('maid-cv-shares.create', ['maid_ids' => [$maid->id]]) }}"
+                            <a href="{{ route('maid-cv-shares.create', ['maid_ids' => [$maid->id]]) }}" data-maid-cv-share="{{ $maid->id }}"
                                 class="btn btn-success">
                                 <i class="fab fa-whatsapp me-1"></i>مشاركة عبر واتساب
                             </a>
@@ -1103,7 +1103,7 @@
                                                 <i class="fas fa-file-pdf me-1"></i>تنزيل PDF
                                             </a>
                                             @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_SHARE_WHATSAPP))
-                                            <a href="{{ route('maid-cv-shares.create', ['maid_ids' => [$maid->id]]) }}"
+                                            <a href="{{ route('maid-cv-shares.create', ['maid_ids' => [$maid->id]]) }}" data-maid-cv-share="{{ $maid->id }}"
                                                 class="btn btn-success btn-sm">
                                                 <i class="fab fa-whatsapp me-1"></i>واتساب
                                             </a>
@@ -1518,5 +1518,9 @@
                 });
             })();
         </script>
+    @endif
+
+    @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_SHARE_WHATSAPP))
+        @include('admin.ingaz.maid-cv-shares.partials.share-modal')
     @endif
 @endsection

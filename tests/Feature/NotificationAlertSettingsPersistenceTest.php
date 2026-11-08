@@ -17,6 +17,11 @@ class NotificationAlertSettingsPersistenceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // Rendering the admin layout must not pull the unrelated system-updates feed.
+        \Illuminate\Support\Facades\Cache::put('superadmin.system_updates', [
+            'banner_enabled' => false, 'banner_days' => 30, 'sync_enabled' => false,
+            'source_url' => '', 'has_source_key' => false, 'sync_interval_minutes' => 1,
+        ]);
         Http::fake();
         $actor = Admin::factory()->global()->create();
         $actor->givePermissionTo(Permission::firstOrCreate(['name' => \App\PermKeys::NOTIFICATIONS_CONTROL, 'guard_name' => 'admin']));
@@ -33,6 +38,38 @@ class NotificationAlertSettingsPersistenceTest extends TestCase
             'lead_time_value' => 5, 'lead_time_unit' => 'days', 'template_id' => null,
         ]);
         return ['section' => 'alerts', 'alerts' => $rules, 'custom_alerts' => []] + AutomationSettings::all();
+    }
+
+    public function test_renewal_link_cannot_be_enabled_without_payment_methods(): void
+    {
+        $payload = $this->payload();
+        $payload['alerts']['rent_contract_expiry']['include_renewal_link'] = 1;
+        $payload['alerts']['rent_contract_expiry']['renewal_payment_methods'] = [];
+        $this->post(route('notifications.settings.update'), $payload)
+            ->assertSessionHasErrors('alerts.rent_contract_expiry.renewal_payment_methods');
+    }
+
+    public function test_unknown_renewal_payment_method_is_rejected(): void
+    {
+        $payload = $this->payload();
+        $payload['alerts']['rent_contract_expiry']['renewal_payment_methods'] = ['forged'];
+        $this->post(route('notifications.settings.update'), $payload)
+            ->assertSessionHasErrors('alerts.rent_contract_expiry.renewal_payment_methods.0');
+    }
+
+    public function test_customer_renewal_link_switch_is_saved_and_can_be_disabled(): void
+    {
+        $payload = $this->payload();
+        $payload['alerts']['rent_contract_expiry']['include_renewal_link'] = 1;
+        $payload['alerts']['rent_contract_expiry']['renewal_payment_methods'] = ['bank_transfer', 'cash'];
+        $this->post(route('notifications.settings.update'), $payload)->assertSessionHasNoErrors();
+        $this->assertTrue(NotificationAlertSettings::rule('rent_contract_expiry')['include_renewal_link']);
+        $this->assertSame(['bank_transfer', 'cash'], NotificationAlertSettings::rule('rent_contract_expiry')['renewal_payment_methods']);
+        $this->get(route('notifications.settings.alerts'))->assertOk()->assertSee('إرفاق رابط التمديد / طلب تسليم العاملة');
+        $payload['alerts']['rent_contract_expiry']['include_renewal_link'] = 0;
+        $this->post(route('notifications.settings.update'), $payload)->assertSessionHasNoErrors();
+        $this->assertFalse(NotificationAlertSettings::rule('rent_contract_expiry')['include_renewal_link']);
+        Http::assertNothingSent();
     }
 
     public function test_rental_reminder_with_default_message_survives_save_and_reload(): void

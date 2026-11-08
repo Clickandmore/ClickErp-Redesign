@@ -527,6 +527,10 @@
     @else
         @include('components.no_permissions')
     @endif
+
+    @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_SHARE_WHATSAPP))
+        @include('admin.ingaz.maid-cv-shares.partials.share-modal')
+    @endif
 @endsection
 
 @section('js')
@@ -561,11 +565,7 @@
                 updateRentalCvSelection();
             });
             $('#clearRentalCvSelection').on('click', () => { selectedRentalCvIds.clear(); updateRentalCvSelection(); });
-            $('#shareRentalCvs').on('click', () => {
-                const params = new URLSearchParams();
-                selectedRentalCvIds.forEach(id => params.append('maid_ids[]', id));
-                window.location.href = @json(route('maid-cv-shares.create')) + '?' + params.toString();
-            });
+            $('#shareRentalCvs').on('click', () => window.openMaidCvShareModal([...selectedRentalCvIds]));
             @if ($branchesEnabled ?? false)
                 const branchOptions = @json(($branchSelector['branches'] ?? collect())->mapWithKeys(fn($branch) => [$branch->id => $branch->name]));
             @endif

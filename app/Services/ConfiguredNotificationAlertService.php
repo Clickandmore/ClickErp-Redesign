@@ -265,6 +265,14 @@ class ConfiguredNotificationAlertService
                     (string) $variables['event_date'],
                     $candidate['event_at']->copy()->startOfDay()->lt(now()->startOfDay())
                 );
+                if ($recipient['type'] === 'client' && !empty($rule['include_renewal_link'])) {
+                    $expired = $candidate['event_at']->copy()->startOfDay()->lt(now()->startOfDay());
+                    $url = app(RentalContractExpiryReminderService::class)->customerResponseUrl($candidate['subject'], $expired);
+                    $recipientMessage = \App\Support\RentalExpiryMessage::customer(
+                        (string) ($variables['client_name'] ?? ''), (string) ($variables['contract_number'] ?: $variables['contract_id']),
+                        (string) $variables['event_date'], $expired, $url
+                    );
+                }
             }
             foreach ((array) ($rule['channels'] ?? []) as $channel) {
                 if (

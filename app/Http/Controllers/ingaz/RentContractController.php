@@ -939,6 +939,8 @@ class RentContractController extends Controller
         $this->assertCanAccessBranchModel($contract, 'rental_contracts');
 
         $contractMessages = app(\App\Services\ContractMessageHistoryService::class)->forContract($contract);
+        $customerExpiryResponses = \App\Models\RentalContractExpiryReminder::where('rental_contract_id', $contract->id)
+            ->whereNotNull('responded_at')->orderByDesc('responded_at')->limit(20)->get();
 
         $marketers = AdminGuardHasPerm(PermKeys::RENT_CONTRACT_CHANGE_MARKETER)
             ? Admin::query()->activeForOperations()->orderBy('name')->get(['id', 'name'])
@@ -1055,6 +1057,7 @@ class RentContractController extends Controller
 
         return view($this->folderPath . '.show', compact(
             'contractMessages',
+            'customerExpiryResponses',
             'contract',
             'availableReplacementMaids',
             'marketers',

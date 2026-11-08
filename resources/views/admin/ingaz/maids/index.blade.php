@@ -613,20 +613,7 @@
     @include('admin.ingaz.maids.partials.bulk-visibility-modal')
 
     @if ($canShareCvs)
-        <div class="modal fade" id="maidCvShareModal" tabindex="-1" aria-labelledby="maidCvShareModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
-                <div class="modal-content border-0 shadow">
-                    <div class="modal-header text-white" style="background:#128C7E">
-                        <h5 class="modal-title" id="maidCvShareModalLabel">
-                            <i class="fab fa-whatsapp me-2"></i>إرسال السير عبر واتساب
-                        </h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="إغلاق"></button>
-                    </div>
-                    <div class="modal-body" id="maidCvShareModalBody"></div>
-                </div>
-            </div>
-        </div>
-        @include('admin.ingaz.maid-cv-shares.partials.form-script')
+        @include('admin.ingaz.maid-cv-shares.partials.share-modal')
     @endif
 
     <div class="modal fade" id="maidCvPreviewModal" tabindex="-1" aria-hidden="true">
@@ -667,31 +654,7 @@
         $(function() {
             const statNumberFormat = new Intl.NumberFormat();
             const selectedMaidCvIds = new Set();
-            $('#shareMaidCvsButton').on('click', async function () {
-                const query = new URLSearchParams();
-                selectedMaidCvIds.forEach(id => query.append('maid_ids[]', id));
-                const body = document.getElementById('maidCvShareModalBody');
-                body.innerHTML = '<div class="text-center py-5 text-muted"><div class="spinner-border text-success mb-2"></div><div>جارٍ التحميل…</div></div>';
-                bootstrap.Modal.getOrCreateInstance(document.getElementById('maidCvShareModal')).show();
-                try {
-                    const response = await fetch(@json(route('maid-cv-shares.create')) + '?' + query.toString(),
-                        {headers: {'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest'}});
-                    const data = await response.json().catch(() => ({}));
-                    if (!response.ok || !data.html) {
-                        const message = data.errors ? Object.values(data.errors).flat().join(' ') : (data.message || 'تعذر تحميل نموذج المشاركة.');
-                        body.innerHTML = '<div class="alert alert-danger m-0"></div>';
-                        body.firstChild.textContent = message;
-                        return;
-                    }
-                    body.innerHTML = data.html;
-                    const form = body.querySelector('.cv-share-form');
-                    form.querySelector('.cv-share-cancel')?.classList.remove('d-none');
-                    window.initMaidCvShareForm(form);
-                    form.querySelector('.cv-client-search')?.focus();
-                } catch (_) {
-                    body.innerHTML = '<div class="alert alert-danger m-0">تعذر الاتصال بالخادم.</div>';
-                }
-            });
+            $('#shareMaidCvsButton').on('click', () => window.openMaidCvShareModal([...selectedMaidCvIds]));
             const updateStats = (stats) => {
                 if (!stats) {
                     return;

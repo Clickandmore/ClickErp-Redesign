@@ -270,10 +270,25 @@ class NotificationAlertSettings
                 'repeat_every_value' => max(0, min(3650, (int) ($rule['repeat_every_value'] ?? 0))),
                 'repeat_every_unit' => $repeatEveryUnit,
                 'template_id' => $templateId > 0 ? $templateId : null,
+                'include_renewal_link' => $key === 'rent_contract_expiry'
+                    && !empty(array_intersect(array_keys(self::renewalPaymentMethodOptions()), (array) ($rule['renewal_payment_methods'] ?? [])))
+                    && filter_var($rule['include_renewal_link'] ?? false, FILTER_VALIDATE_BOOLEAN),
+                'renewal_payment_methods' => $key === 'rent_contract_expiry'
+                    ? array_values(array_intersect(array_keys(self::renewalPaymentMethodOptions()), (array) ($rule['renewal_payment_methods'] ?? []))) : [],
             ];
         }
 
         return $normalized;
+    }
+
+    public static function renewalPaymentMethodOptions(): array
+    {
+        return ['moyasar' => 'دفع إلكتروني (ميسر)', 'bank_transfer' => 'تحويل بنكي', 'cash' => 'نقدًا'];
+    }
+
+    public static function renewalPaymentMethods(): array
+    {
+        return array_intersect_key(self::renewalPaymentMethodOptions(), array_flip(self::rule('rent_contract_expiry')['renewal_payment_methods'] ?? []));
     }
 
     private static function normalizeCustom(array $payload): array

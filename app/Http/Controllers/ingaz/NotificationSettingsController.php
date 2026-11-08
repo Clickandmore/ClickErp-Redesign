@@ -251,6 +251,9 @@ class NotificationSettingsController extends Controller
             'section' => 'required|in:alerts',
             'alerts' => 'required|array',
             'alerts.*.enabled' => 'nullable|boolean',
+            'alerts.rent_contract_expiry.include_renewal_link' => 'nullable|boolean',
+            'alerts.rent_contract_expiry.renewal_payment_methods' => 'required_if:alerts.rent_contract_expiry.include_renewal_link,1|array',
+            'alerts.rent_contract_expiry.renewal_payment_methods.*' => 'required|distinct|in:' . implode(',', array_keys(NotificationAlertSettings::renewalPaymentMethodOptions())),
             'alerts.*.channels' => 'nullable|array',
             'alerts.*.channels.*' => 'required|in:' . implode(',', $channelKeys),
             'alerts.*.recipient' => 'required|in:' . implode(',', $recipientKeys),
@@ -261,6 +264,7 @@ class NotificationSettingsController extends Controller
             'alerts.*.template_id' => 'nullable|integer|exists:sms_templates,id',
         ], [
             'alerts.*.template_id.exists' => 'قالب الرسالة المحدد غير موجود.',
+            'alerts.rent_contract_expiry.renewal_payment_methods.required_if' => 'اختر طريقة دفع واحدة على الأقل قبل تفعيل رابط التمديد.',
         ]);
 
         $alerts = $validated['alerts'];

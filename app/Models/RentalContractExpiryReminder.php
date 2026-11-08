@@ -17,6 +17,10 @@ class RentalContractExpiryReminder extends Model
         'notification_type',
         'status',
         'response',
+        'renewal_quote',
+        'customer_payment_method',
+        'preferred_return_date',
+        'response_notes',
         'expires_on',
         'sent_at',
         'responded_at',
@@ -36,6 +40,8 @@ class RentalContractExpiryReminder extends Model
     ];
 
     protected $casts = [
+        'renewal_quote' => 'array',
+        'preferred_return_date' => 'date',
         'expires_on' => 'date',
         'sent_at' => 'datetime',
         'responded_at' => 'datetime',
@@ -49,5 +55,11 @@ class RentalContractExpiryReminder extends Model
     public function rentalContract()
     {
         return $this->belongsTo(RentalContract::class, 'rental_contract_id');
+    }
+
+    protected function resolveBranchIdForCreate(): ?int
+    {
+        return $this->resolveBranchIdFromTable('rental_contracts', (int) $this->rental_contract_id)
+            ?? $this->resolveBranchIdFromCurrentAdmin();
     }
 }

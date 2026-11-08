@@ -85,8 +85,8 @@ Route::get('/getMaidDetails/{maidId}', [IngazMaidController::class, 'getMaidDeta
 Route::get('/maidsLoopContractsAndSetAvailableWhenDoneCronJob', [AdminContractController::class, 'maidsLoopContractsAndSetAvailableWhenDoneCronJob'])->name('maidsLoopContractsAndSetAvailableWhenDoneCronJob');
 Route::get('/check-tazker-contracts', [AdminContractController::class, 'checkTazkerContracts'])->name('check.tazker.contracts');
 Route::get('/check-warranty-contracts', [AdminContractController::class, 'checkWarrantyContracts'])->name('check.warranty.contracts');
-Route::get('/rental-contract-reminders/{token}', [RentalContractExpiryReminderController::class, 'show'])->name('rental-contract-reminders.show');
-Route::post('/rental-contract-reminders/{token}', [RentalContractExpiryReminderController::class, 'respond'])->name('rental-contract-reminders.respond');
+Route::get('/rental-contract-reminders/{token}', [RentalContractExpiryReminderController::class, 'show'])->middleware('throttle:60,1')->name('rental-contract-reminders.show');
+Route::post('/rental-contract-reminders/{token}', [RentalContractExpiryReminderController::class, 'respond'])->middleware('throttle:20,1')->name('rental-contract-reminders.respond');
 
 Route::prefix('visitor-chat')->middleware('throttle:120,1')->name('visitor-chat.')->group(function () {
     Route::post('/heartbeat', [VisitorChatController::class, 'heartbeat'])->name('heartbeat');

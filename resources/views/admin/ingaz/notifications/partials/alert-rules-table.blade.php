@@ -76,6 +76,41 @@
             </div>
 
             <div class="rule-card__body">
+                @if ($alertKey === 'rent_contract_expiry')
+                    <div class="rule-field rule-field--full" data-renewal-payments>
+                        <span class="rule-field__label">طرق الدفع المتاحة للعميل في التمديد</span>
+                        <div class="channel-pills">
+                            @foreach (\App\Support\NotificationAlertSettings::renewalPaymentMethodOptions() as $method => $label)
+                                <input class="btn-check js-renewal-payment" type="checkbox" id="{{ $fieldId }}Payment{{ $method }}"
+                                    name="{{ $inputPrefix }}[{{ $alertKey }}][renewal_payment_methods][]" value="{{ $method }}"
+                                    @checked(in_array($method, (array) data_get($rule, 'renewal_payment_methods', []), true))>
+                                <label class="btn" for="{{ $fieldId }}Payment{{ $method }}">{{ $label }}</label>
+                            @endforeach
+                        </div>
+                        <small class="text-muted">اختر طريقة واحدة على الأقل لتفعيل إرفاق الرابط. التحويل البنكي والنقدي يتطلبان تأكيد الموظف للسداد وتنفيذ التمديد.</small>
+                        @error("{$inputPrefix}.{$alertKey}.renewal_payment_methods")
+                            <div class="text-danger small">{{ $message }}</div>
+                        @enderror
+                    </div>
+                    <div class="rule-field rule-field--full">
+                        <input type="hidden" name="{{ $inputPrefix }}[{{ $alertKey }}][include_renewal_link]" value="0">
+                        <label class="rule-option" for="{{ $fieldId }}RenewalLink">
+                            <span class="rule-option__icon"><i class="fa-solid fa-link"></i></span>
+                            <span class="rule-option__text">
+                                <span class="rule-option__title">إرفاق رابط التمديد / طلب تسليم العاملة</span>
+                                <span class="rule-option__desc">
+                                    يُضاف للعميل رابط صفحة يختار منها تمديد العقد وطريقة الدفع، أو طلب تسليم العاملة.
+                                    <br>يسجل اختيار التسليم طلبًا للموظف، ولا يطبق التمديد إلا بعد تأكيد الدفع.
+                                </span>
+                            </span>
+                            <span class="form-check form-switch alerts-switch m-0 rule-option__switch">
+                                <input type="checkbox" class="form-check-input js-renewal-link" id="{{ $fieldId }}RenewalLink" role="switch"
+                                    @disabled(empty(data_get($rule, 'renewal_payment_methods', [])))
+                                    name="{{ $inputPrefix }}[{{ $alertKey }}][include_renewal_link]" value="1" @checked(data_get($rule, 'include_renewal_link', false))>
+                            </span>
+                        </label>
+                    </div>
+                @endif
                 <div class="rule-field rule-field--channels">
                     <span class="rule-field__label"><i class="fa-solid fa-paper-plane"></i> قنوات الإرسال</span>
                     <div class="channel-pills">
@@ -159,3 +194,20 @@
         </div>
     @endforeach
 </div>
+@once
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('[data-rule-card="rent_contract_expiry"]').forEach(function (card) {
+        const toggle = card.querySelector('.js-renewal-link');
+        const methods = card.querySelectorAll('.js-renewal-payment');
+        if (!toggle) return;
+        function sync() {
+            toggle.disabled = !Array.from(methods).some(method => method.checked);
+            if (toggle.disabled) toggle.checked = false;
+        }
+        methods.forEach(method => method.addEventListener('change', sync));
+        sync();
+    });
+});
+</script>
+@endonce
