@@ -274,6 +274,21 @@ class PostArrivalRefundService
             $item = CommissionBatchItem::query()->with('batch')
                 ->where('source_type', CommissionOperationService::SOURCE_RECRUITMENT_CONTRACT)
                 ->where('source_id', $contract->id)->lockForUpdate()->first();
+            // Already reversed in full from the commissions screen: link that reversal
+            // instead of failing the whole document or reversing twice.
+            $reversedAmount = $item?->commission_reversal_transaction_id
+                ? (float) \App\Models\commissions\CommissionBalanceTransaction::query()
+                    ->whereKey($item->commission_reversal_transaction_id)->value('amount')
+                : 0.0;
+            if ($reversedAmount > 0 && abs($reversedAmount - (float) $line->approved_amount) <= 0.009) {
+                $line->update(['status' => 'posted', 'metadata' => [
+                    'commission_item_id' => $item->id,
+                    'commission_reversal_transaction_id' => $item->commission_reversal_transaction_id,
+                    'commission_reversal_constraint_id' => $item->commission_reversal_constraint_id,
+                    'already_reversed' => true,
+                ]]);
+                return;
+            }
             if (! $item || $item->batch?->status !== CommissionBatch::STATUS_APPROVED || (float) $item->commission_amount <= 0) {
                 throw new \RuntimeException('لا توجد عمولة مسوق معتمدة قابلة للاسترجاع لهذا العقد.');
             }

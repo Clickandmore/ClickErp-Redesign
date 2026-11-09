@@ -198,6 +198,64 @@ class PostArrivalRefundTest extends TestCase
         $this->assertNotNull($item->fresh()->commission_reversal_transaction_id);
     }
 
+    public function test_commission_already_reversed_from_commissions_screen_is_linked_not_reversed_twice(): void
+    {
+        $contract = $this->contractWithArrivalInvoice();
+        $contract->update(['status' => 'back']);
+        $batch = CommissionBatch::query()->create([
+            'marketer_id' => $this->admin->id,
+            'total_requests' => 1,
+            'total_base_amount' => 3980.75,
+            'total_commission' => 100,
+            'status' => CommissionBatch::STATUS_APPROVED,
+            'approved_at' => now(),
+        ]);
+        $item = CommissionBatchItem::query()->create([
+            'batch_id' => $batch->id,
+            'source_type' => CommissionOperationService::SOURCE_RECRUITMENT_CONTRACT,
+            'source_id' => $contract->id,
+            'contract_id' => $contract->id,
+            'service_type' => 'recruitment',
+            'base_amount' => 3980.75,
+            'method' => 'fixed',
+            'rate_or_amount' => 100,
+            'commission_amount' => 100,
+        ]);
+        $reversal = CommissionBalanceTransaction::query()->create([
+            'marketer_id' => $this->admin->id,
+            'type' => CommissionBalanceTransaction::TYPE_DEBIT,
+            'amount' => 100,
+            'reference_type' => 'commission_reversal',
+            'reference_id' => $item->id,
+            'balance_after' => 0,
+        ]);
+        $item->update(['commission_reversal_transaction_id' => $reversal->id, 'commission_reversed_at' => now()]);
+        $reason = ReturnReasonCode::query()->firstOrCreate(
+            ['code' => 'shelter-commission-refund'],
+            ['name' => 'اختبار عمولة الإيواء']
+        );
+        $settlement = app(PostArrivalRefundService::class)->createDraft($contract->fresh(), [
+            'settlement_date' => now()->toDateString(),
+            'return_reason_code_id' => $reason->id,
+            'reason' => 'اختبار عمولة معكوسة مسبقاً',
+            'lines' => [[
+                'enabled' => true,
+                'type' => 'marketer_commission',
+                'approved_amount' => 100,
+                'reason' => 'سبق عكسها من شاشة العمولات',
+            ]],
+        ]);
+
+        $posted = app(PostArrivalRefundService::class)->post($settlement);
+
+        $line = $posted->lines->first();
+        $this->assertSame('posted', $line->status);
+        $this->assertSame($reversal->id, $line->metadata['commission_reversal_transaction_id']);
+        $this->assertTrue($line->metadata['already_reversed']);
+        $this->assertSame(1, CommissionBalanceTransaction::query()
+            ->where('reference_type', 'commission_reversal')->where('reference_id', $item->id)->count());
+    }
+
     public function test_draft_requires_leaf_credit_account_for_client_deduction(): void
     {
         $contract = $this->contractWithArrivalInvoice();

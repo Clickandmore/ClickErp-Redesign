@@ -17,6 +17,7 @@ class LegacyInvoiceConstraintLinker
         if ($invoice->contract_id && !$invoice->isRecruitmentRevenue()) {
             return ['status' => 'not_recruitment_revenue'];
         }
+        $lookupCandidates = $candidates === null;
         $candidates ??= DB::table('fn_constraints')->whereNull('deleted_at')
             ->where(function ($query) use ($invoice) {
                 if (!$invoice->legacy_invoice_number) {
@@ -29,6 +30,9 @@ class LegacyInvoiceConstraintLinker
                     ->orWhere('statement', 'فاتورة: ' . $invoice->legacy_invoice_number)
                     ->orWhere('statement', 'فاتورة رقم: ' . $invoice->legacy_invoice_number);
             })->get();
+        if ($lookupCandidates && $candidates->isEmpty() && !$invoice->legacy_invoice_number) {
+            $candidates = $this->reissuedInvoiceCandidates($invoice);
+        }
         if ($candidates->count() !== 1) {
             return ['status' => $candidates->isEmpty() ? 'missing' : 'ambiguous'];
         }
@@ -90,6 +94,32 @@ class LegacyInvoiceConstraintLinker
                 ? 'link_conflict' : ((int) $invoice->invoice_constraint_id === (int) $source->id ? 'linked' : 'ready'),
             'mode' => $mode,
         ];
+    }
+
+    /**
+     * The native journal statement embeds the invoice id it was posted for. When the
+     * invoice was later re-issued under a new id, the journal keeps the old one.
+     * Accept such a journal only when this is the contract's sole invoice and the old
+     * id no longer exists; inspect() still verifies amount, customer and lines.
+     */
+    private function reissuedInvoiceCandidates(Invoice $invoice): \Illuminate\Support\Collection
+    {
+        $contractId = (int) $invoice->contract_id;
+        if (DB::table('invoices')->where('contract_id', $contractId)->where('id', '!=', $invoice->id)->exists()) {
+            return collect();
+        }
+        $prefix = 'قيد فاتورة طلب استقدام للعقد #' . $contractId . ' / الفاتورة #';
+
+        return DB::table('fn_constraints')->whereNull('deleted_at')
+            ->where('statement', 'like', $prefix . '%')
+            ->get()
+            ->filter(function ($constraint) use ($prefix) {
+                if (!preg_match('/^(\d+) \/ /u', mb_substr((string) $constraint->statement, mb_strlen($prefix)), $match)) {
+                    return false;
+                }
+                return !DB::table('invoices')->where('id', (int) $match[1])->exists();
+            })
+            ->values();
     }
 
     private function branchesMatch(?int $sourceBranchId, ?int $invoiceBranchId): bool
