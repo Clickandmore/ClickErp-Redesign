@@ -84,6 +84,9 @@ class WhatsAppWebhookService
                 'provider_payload' => $payload,
                 'occurred_at' => $occurredAt,
             ]);
+            if (($message['type'] ?? '') === 'text') {
+                app(WhatsAppOptOutService::class)->handleInbound($phone, $this->messageBody($message), 'meta');
+            }
         });
     }
 

@@ -92,7 +92,7 @@ class OutboundMessageRecorder
                 'source' => Str::limit($source, 255, ''), 'purpose' => $sensitive ? 'verification' : 'message',
                 'message' => $sensitive ? '[محتوى التحقق / استعادة الحساب محجوب]' : self::clean($message),
                 'context' => self::clean(array_intersect_key($context, array_flip([
-                    'source', 'contract_id', 'contract_type', 'order_id', 'reminder_id', 'conversation_id', 'user_id', 'admin_id', 'branch_id', 'alert_key', 'template_name', 'language', 'sender_key', 'sender', 'batch_id', 'notification_id',
+                    'source', 'contract_id', 'contract_type', 'order_id', 'reminder_id', 'conversation_id', 'user_id', 'admin_id', 'branch_id', 'alert_key', 'template_name', 'language', 'sender_key', 'sender', 'batch_id', 'notification_id', 'resend_of', 'reference',
                 ])) + ['command' => app(\App\Support\Audit\ExecutionContext::class)->command()]),
             ]);
         } catch (\Throwable $e) {
@@ -136,7 +136,9 @@ class OutboundMessageRecorder
         $log = self::begin($channel, $to, $message, $provider, $context);
         try {
             $result = $send();
-            self::finish($log, !empty($result['success']) ? 'accepted' : (($result['error'] ?? '') === 'not_configured' ? 'skipped' : 'failed'), $result);
+            self::finish($log, !empty($result['success']) ? 'accepted' : (in_array($result['error'] ?? '', ['not_configured', 'opted_out'], true) ? 'skipped' : 'failed'), $result);
+            // Lets a caller update this row later (for example when a retry succeeds).
+            if (is_array($result) && $log) $result['audit_log_id'] = $log->id;
             return $result;
         } catch (\Throwable $e) {
             self::finish($log, 'failed', ['error_message' => $e->getMessage()]);
@@ -159,20 +161,19 @@ class OutboundMessageRecorder
         return in_array((int) ($data['statusCode'] ?? 0), [200, 201, 202], true);
     }
 
-    public static function whatsAppStatus(string $messageId, string $state, array $payload): void
+    public static function whatsAppStatus(string $messageId, string $state, array $payload, string $provider = 'meta'): void
     {
         try {
             if (!Schema::hasTable('outbound_message_logs')) return;
             $ranks = ['pending' => 0, 'accepted' => 1, 'sent' => 2, 'delivered' => 3, 'read' => 4, 'failed' => 5];
-            foreach (OutboundMessageLog::withoutBranchScope()->where('channel', 'whatsapp')->where('provider', 'meta')->where('provider_message_id', $messageId)->get() as $log) {
-                if ($state !== 'failed' && ($ranks[$state] ?? 0) <= ($ranks[$log->status] ?? 0)) continue;
-                $at = isset($payload['timestamp']) && is_numeric($payload['timestamp']) ? \Carbon\Carbon::createFromTimestamp((int) $payload['timestamp']) : now();
+            foreach (OutboundMessageLog::withoutBranchScope()->where('channel', 'whatsapp')->where('provider', $provider)->where('provider_message_id', $messageId)->get() as $log) {
+                if ($state !== 'failed' && ($ranks[$state] ?? 0) <= ($ranks[$log->status] ?? 0)) continue;                $at = isset($payload['timestamp']) && is_numeric($payload['timestamp']) ? \Carbon\Carbon::createFromTimestamp((int) $payload['timestamp']) : now();
                 $updates = ['status' => $state];
                 if ($state === 'delivered' || $state === 'read') $updates['delivered_at'] = $log->delivered_at ?: $at;
                 if ($state === 'read') $updates['read_at'] = $at;
                 if ($state === 'failed') {
                     $updates['failed_at'] = $at;
-                    $updates['error'] = $log->purpose === 'verification' ? 'فشل التسليم لدى المزوّد.' : self::clean((string) (data_get($payload, 'errors.0.error_data.details') ?: data_get($payload, 'errors.0.message', 'فشل التسليم لدى المزوّد.')));
+                    $updates['error'] = $log->purpose === 'verification' ? 'فشل التسليم لدى المزوّد.' : self::clean((string) (data_get($payload, 'errors.0.error_data.details') ?: data_get($payload, 'errors.0.message') ?: data_get($payload, 'error') ?: 'فشل التسليم لدى المزوّد.'));
                     $updates['provider_response'] = $log->purpose === 'verification' ? ['error_code' => data_get($payload, 'errors.0.code')] : self::clean(['errors' => $payload['errors'] ?? []]);
                 }
                 $log->update($updates);

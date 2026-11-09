@@ -188,6 +188,14 @@ class Kernel extends ConsoleKernel
             ->withoutOverlapping()
             ->appendOutputTo(storage_path('logs/configured-notification-alerts.log'));
 
+        // Click Live Chat: catch WhatsApp statuses whose webhook was lost (no-op for other providers).
+        $schedule->command('whatsapp:clickchat-sync-statuses')
+            ->everyFifteenMinutes()
+            ->withoutOverlapping();
+        $schedule->command('whatsapp:clickchat-retry')
+            ->everyMinute()
+            ->withoutOverlapping();
+
         // سحب تحديثات النظام من المصدر المضبوط في Super Admin (افتراضيًا كل دقيقة، والمدة من هناك)
         if (SystemUpdatesSettings::syncConfigured()) {
             $schedule->command('system-updates:sync')

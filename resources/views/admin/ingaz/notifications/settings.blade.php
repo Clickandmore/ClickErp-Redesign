@@ -588,6 +588,7 @@
                             <option value="chatwoot" {{ data_get($whatsappData, 'driver') === 'chatwoot' ? 'selected' : '' }}>Widers / Chatwoot</option>
                             <option value="meta" {{ data_get($whatsappData, 'driver') === 'meta' ? 'selected' : '' }}>Meta API</option>
                             <option value="ultramsg" {{ data_get($whatsappData, 'driver') === 'ultramsg' ? 'selected' : '' }}>UltraMsg</option>
+                            <option value="clickchat" {{ data_get($whatsappData, 'driver') === 'clickchat' ? 'selected' : '' }}>Click Live Chat</option>
                         </select>
                     </div>
                     <div class="col-md-2">
@@ -629,6 +630,32 @@
                                 </label>
                             </div>
                             <div class="form-text">يُستخدم للرسائل الدعائية خارج نافذة خدمة واتساب.</div>
+                        </div>
+                    </div>
+
+                    <div class="col-12">
+                        <div class="ns-toggle">
+                            <div class="form-check">
+                                <input type="hidden" name="whatsapp[opt_out][enabled]" value="0">
+                                <input class="form-check-input" type="checkbox" name="whatsapp[opt_out][enabled]" id="whatsappOptOut" value="1"
+                                    {{ data_get($whatsappData, 'opt_out.enabled') ? 'checked' : '' }}>
+                                <label class="form-check-label" for="whatsappOptOut">
+                                    إيقاف الرسائل الآلية لمن يطلب ذلك
+                                </label>
+                            </div>
+                            <div class="form-text">إذا رد العميل بإحدى كلمات الإيقاف (الرسالة كاملة)، لا تصله رسائل واتساب الآلية بعدها. رموز التحقق وردود الموظفين من صندوق الوارد تصله دائمًا. تعمل مع Click Live Chat و Meta.</div>
+                            <div class="row g-2 mt-1">
+                                <div class="col-md-6">
+                                    <label class="form-label small">كلمات الإيقاف (مفصولة بفاصلة)</label>
+                                    <input type="text" class="form-control" name="whatsapp[opt_out][stop_keywords]"
+                                        value="{{ data_get($whatsappData, 'opt_out.stop_keywords') }}">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small">كلمات إعادة التفعيل</label>
+                                    <input type="text" class="form-control" name="whatsapp[opt_out][start_keywords]"
+                                        value="{{ data_get($whatsappData, 'opt_out.start_keywords') }}">
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -675,6 +702,163 @@
 
                                 <div class="alert alert-light border small mt-3 mb-0">
                                     هذا الربط للإرسال. إدارة الردود تتم في Widers. الرسائل خارج نافذة خدمة واتساب قد تتطلب قالبًا معتمدًا.
+                                </div>
+                            </div>
+                        </div>
+                        @php
+                            $clickChatSaved = data_get($currentSettings, 'whatsapp.clickchat', []);
+                            $clickChatChannels = session('clickchat_channels')
+                                ?? (data_get($whatsappData, 'driver') === 'clickchat'
+                                    ? app(\App\Services\WhatsApp\ClickChatWhatsAppService::class)->channels()
+                                    : []);
+                            $clickChatDefault = (string) data_get($whatsappData, 'clickchat.default_channel_account_id', '');
+                        @endphp
+                        <div id="clickChatSettingsBox" class="{{ data_get($whatsappData, 'driver') === 'clickchat' ? '' : 'd-none' }}">
+                            <div class="ns-subcard">
+                                <div class="ns-subcard-head">
+                                    <div>
+                                        <h6>ربط Click Live Chat</h6>
+                                        <div class="text-muted small">احفظ رابط المنصة ومفتاح API أولًا، ثم اختبر الاتصال لجلب أرقام واتساب المربوطة (ميتا أو QR) واختيار الرقم المرسِل.</div>
+                                    </div>
+                                    <button type="submit" form="chatwootConnectionTest" class="btn btn-outline-primary btn-sm">
+                                        <i class="fa fa-plug me-1"></i>
+                                        اختبار الاتصال وجلب الأرقام
+                                    </button>
+                                </div>
+
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">رابط المنصة</label>
+                                        <input class="form-control" name="whatsapp[clickchat][base_url]" dir="ltr"
+                                            placeholder="https://chat.example.com"
+                                            value="{{ data_get($whatsappData, 'clickchat.base_url') }}">
+                                        <div class="form-text">بدون / في النهاية.</div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">الرقم المرسِل الافتراضي</label>
+                                        @if (!empty($clickChatChannels))
+                                            <select name="whatsapp[clickchat][default_channel_account_id]" class="form-control">
+                                                <option value="">أول رقم نشط (ميتا ثم QR)</option>
+                                                @foreach ($clickChatChannels as $channel)
+                                                    <option value="{{ $channel['id'] }}" @selected($clickChatDefault === (string) $channel['id'])>
+                                                        {{ $channel['name'] }} — {{ $channel['type'] === 'whatsapp_qr' ? 'QR' : 'ميتا' }}
+                                                        {{ $channel['status'] !== 'active' ? '(غير نشط)' : '' }}
+                                                    </option>
+                                                @endforeach
+                                            </select>
+                                        @else
+                                            <input type="number" min="1" class="form-control" name="whatsapp[clickchat][default_channel_account_id]"
+                                                value="{{ $clickChatDefault }}" placeholder="channel_account_id">
+                                            <div class="form-text">اختبر الاتصال لعرض الأرقام كقائمة. اتركه فارغًا لاستخدام أول رقم نشط.</div>
+                                        @endif
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">مفتاح API</label>
+                                        <input type="password" autocomplete="new-password" class="form-control" name="whatsapp[clickchat][api_token]" value="" dir="ltr">
+                                        <div class="form-text">
+                                            {{ !empty($clickChatSaved['api_token']) ? 'محفوظ. ' : '' }}اتركه فارغًا للاحتفاظ بالمفتاح المحفوظ.
+                                            الصلاحيات المطلوبة: messages:write و conversations:read.
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">المفتاح السري للـ Webhook</label>
+                                        <input type="password" autocomplete="new-password" class="form-control" name="whatsapp[clickchat][webhook_secret]" value="" dir="ltr" placeholder="whsec_...">
+                                        <div class="form-text">{{ !empty($clickChatSaved['webhook_secret']) ? 'محفوظ. ' : '' }}اتركه فارغًا للاحتفاظ بالمفتاح المحفوظ.</div>
+                                    </div>
+                                </div>
+
+                                @if (session()->has('clickchat_channels'))
+                                    <div class="table-responsive mt-3">
+                                        <table class="table mb-0">
+                                            <thead><tr><th>المعرف</th><th>الرقم</th><th>النوع</th><th>الحالة</th></tr></thead>
+                                            <tbody>
+                                                @forelse (session('clickchat_channels', []) as $channel)
+                                                    <tr>
+                                                        <td>{{ $channel['id'] }}</td>
+                                                        <td dir="ltr">{{ $channel['name'] }}</td>
+                                                        <td>{{ $channel['type'] === 'whatsapp_qr' ? 'QR' : 'ميتا الرسمي' }}</td>
+                                                        <td>{{ $channel['status'] === 'active' ? 'نشط' : $channel['status'] }}</td>
+                                                    </tr>
+                                                @empty
+                                                    <tr><td colspan="4" class="text-muted">لا توجد أرقام واتساب مربوطة في المنصة.</td></tr>
+                                                @endforelse
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                @endif
+
+                                <div class="row g-3 mt-1">
+                                    <div class="col-md-6">
+                                        <label class="form-label">عند تعذر الإرسال عبر المنصة</label>
+                                        <select name="whatsapp[clickchat][fallback]" class="form-control">
+                                            @foreach (['none' => 'لا شيء — تُسجَّل كفاشلة', 'ultramsg' => 'أرسل عبر رقم UltraMsg', 'sms' => 'أرسل عبر SMS'] as $value => $label)
+                                                <option value="{{ $value }}" @selected(data_get($whatsappData, 'clickchat.fallback', 'none') === $value)>{{ $label }}</option>
+                                            @endforeach
+                                        </select>
+                                        <div class="form-text">يُستخدم عند رفض المفتاح، أو انتهاء نافذة الـ 24 ساعة، أو فصل الرقم، أو بعد فشل إعادة المحاولة. لا يُستخدم للقوالب ولا لردود صندوق الوارد. UltraMsg يحتاج رقمًا مفعّلًا في إعداداته.</div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="ns-toggle">
+                                            <div class="form-check">
+                                                <input type="hidden" name="whatsapp[clickchat][auto_retry]" value="0">
+                                                <input class="form-check-input" type="checkbox" name="whatsapp[clickchat][auto_retry]" id="clickChatAutoRetry" value="1"
+                                                    {{ data_get($whatsappData, 'clickchat.auto_retry', true) ? 'checked' : '' }}>
+                                                <label class="form-check-label" for="clickChatAutoRetry">إعادة المحاولة تلقائيًا</label>
+                                            </div>
+                                            <div class="form-text">عند ضغط المنصة (أكثر من 60 رسالة في الدقيقة) أو تعطلها المؤقت: إعادة بعد 1 ثم 5 ثم 15 دقيقة. رموز التحقق لا يُعاد إرسالها.</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label">من يصله تنبيه عند توقف الإرسال</label>
+                                        <input type="hidden" name="whatsapp[clickchat][alert_admin_ids][]" value="">
+                                        @php $alertAdmins = array_map('intval', (array) data_get($whatsappData, 'clickchat.alert_admin_ids', [])); @endphp
+                                        <select name="whatsapp[clickchat][alert_admin_ids][]" class="form-control" multiple size="4">
+                                            @foreach (\App\Models\auth\Admin::query()->activeForOperations()->orderBy('name')->get(['id', 'name']) as $alertAdmin)
+                                                <option value="{{ $alertAdmin->id }}" @selected(in_array($alertAdmin->id, $alertAdmins, true))>{{ $alertAdmin->name }}</option>
+                                            @endforeach
+                                        </select>
+                                        <div class="form-text">إشعار داخل النظام (مرة كل 6 ساعات لكل مشكلة) عند رفض مفتاح API، أو تعذر الوصول للمنصة، أو فصل رقم مرسِل. اضغط Ctrl لاختيار أكثر من موظف.</div>
+                                    </div>
+                                    @php $branchList = \App\Models\Branch::query()->orderBy('id')->get(); @endphp
+                                    @if ($branchList->count() > 1)
+                                        <div class="col-12">
+                                            <label class="form-label">رقم الإرسال لكل فرع</label>
+                                            <div class="table-responsive">
+                                                <table class="table table-sm mb-0">
+                                                    <thead><tr><th>الفرع</th><th>الرقم المرسِل</th></tr></thead>
+                                                    <tbody>
+                                                        @foreach ($branchList as $branch)
+                                                            @php $branchSender = (string) data_get($whatsappData, 'clickchat.branch_senders.' . $branch->id, ''); @endphp
+                                                            <tr>
+                                                                <td>{{ $branch->name }}</td>
+                                                                <td>
+                                                                    @if (!empty($clickChatChannels))
+                                                                        <select name="whatsapp[clickchat][branch_senders][{{ $branch->id }}]" class="form-control form-control-sm">
+                                                                            <option value="">الرقم الافتراضي</option>
+                                                                            @foreach ($clickChatChannels as $channel)
+                                                                                <option value="{{ $channel['id'] }}" @selected($branchSender === (string) $channel['id'])>{{ $channel['name'] }} — {{ $channel['type'] === 'whatsapp_qr' ? 'QR' : 'ميتا' }}</option>
+                                                                            @endforeach
+                                                                        </select>
+                                                                    @else
+                                                                        <input type="number" min="1" class="form-control form-control-sm" name="whatsapp[clickchat][branch_senders][{{ $branch->id }}]"
+                                                                            value="{{ $branchSender }}" placeholder="الافتراضي">
+                                                                    @endif
+                                                                </td>
+                                                            </tr>
+                                                        @endforeach
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                            <div class="form-text">رسائل الفرع تخرج من رقمه، إلا إذا اختار الموظف رقمًا آخر عند الإرسال.</div>
+                                        </div>
+                                    @endif
+                                </div>
+
+                                <div class="alert alert-light border small mt-3 mb-0">
+                                    سجّل هذا الرابط في المنصة (المطورون ← Webhooks) مع الأحداث
+                                    <code>message.received</code> و <code>message.sent</code> و <code>message.status</code>:
+                                    <div class="mt-1"><code dir="ltr">{{ route('api.webhooks.clickchat') }}</code></div>
+                                    <div class="mt-1 text-muted">الرسائل والردود تظهر في صندوق وارد واتساب هنا. أرقام ميتا تحتاج قالبًا معتمدًا بعد مرور 24 ساعة على آخر رسالة من العميل.</div>
                                 </div>
                             </div>
                         </div>
@@ -947,6 +1131,7 @@
     function toggleWhatsAppDriverSettings() {
         const driver = $('#whatsappDriver').val();
         $('#chatwootSettingsBox').toggleClass('d-none', driver !== 'chatwoot');
+        $('#clickChatSettingsBox').toggleClass('d-none', driver !== 'clickchat');
         $('#metaSettingsBox').toggleClass('d-none', driver !== 'meta');
         $('#ultraMsgSettingsBox').toggleClass('d-none', driver !== 'ultramsg');
     }

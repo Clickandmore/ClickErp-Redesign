@@ -31,7 +31,7 @@
                 <label class="form-label small text-muted"><i class="fab fa-whatsapp text-success"></i> رقم واتساب</label>
                 <select name="phone" class="form-select mb-3 cv-phone" required></select>
 
-                @if ($whatsapp->driver() === 'ultramsg')
+                @if (in_array($whatsapp->driver(), ['ultramsg', 'clickchat'], true) && $whatsapp->availableSenders() !== [])
                     <label class="form-label small text-muted">رقم الإرسال</label>
                     <select name="sender_key" class="form-select" required>
                         @foreach ($whatsapp->availableSenders() as $sender)

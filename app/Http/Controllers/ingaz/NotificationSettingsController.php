@@ -129,6 +129,16 @@ class NotificationSettingsController extends Controller
             abort(403, __('admin.no_permissions'));
         }
 
+        if (config('services.whatsapp.driver') === 'clickchat') {
+            $result = app(\App\Services\WhatsApp\ClickChatWhatsAppService::class)->connectionStatus();
+            $channels = $result['channels'] ?? [];
+
+            return redirect()->to(route('notifications.settings').'#whatsapp-settings')
+                ->with(($result['success'] ?? false) ? 'success' : 'error', ($result['success'] ?? false)
+                    ? 'تم الاتصال بمنصة Click Live Chat. عدد الأرقام المربوطة: '.count($channels).'. اختر الرقم المرسِل الافتراضي ثم احفظ.'
+                    : 'فشل اختبار الاتصال: '.data_get($result, 'response.message', 'تعذر التحقق من الاتصال.'))
+                ->with('clickchat_channels', $channels);
+        }
         if (config('services.whatsapp.driver') === 'chatwoot') {
             $result = app(\App\Services\WhatsApp\ChatwootWhatsAppService::class)->connectionStatus();
             return redirect()->to(route('notifications.settings').'#whatsapp-settings')
@@ -409,7 +419,7 @@ class NotificationSettingsController extends Controller
         $validated = $request->validate([
             'section' => 'required|in:whatsapp',
             'whatsapp' => 'required|array',
-            'whatsapp.driver' => 'required|in:meta,ultramsg,chatwoot',
+            'whatsapp.driver' => 'required|in:meta,ultramsg,chatwoot,clickchat',
             'whatsapp.default_country_code' => 'required|string|max:10',
             'whatsapp.timeout' => 'required|integer|min:5|max:120',
             'whatsapp.bulk_send_limit' => 'required|integer|min:1|max:10000',
@@ -422,6 +432,21 @@ class NotificationSettingsController extends Controller
             'whatsapp.chatwoot.account_id' => 'nullable|integer|min:1',
             'whatsapp.chatwoot.inbox_id' => 'nullable|integer|min:1',
             'whatsapp.chatwoot.access_token' => 'nullable|string|max:5000',
+            'whatsapp.clickchat' => 'nullable|array',
+            'whatsapp.clickchat.base_url' => 'nullable|url|max:500',
+            'whatsapp.clickchat.api_token' => 'nullable|string|max:1000',
+            'whatsapp.clickchat.webhook_secret' => 'nullable|string|max:255',
+            'whatsapp.clickchat.default_channel_account_id' => 'nullable|integer|min:1',
+            'whatsapp.clickchat.fallback' => 'nullable|in:none,ultramsg,sms',
+            'whatsapp.clickchat.auto_retry' => 'nullable|boolean',
+            'whatsapp.clickchat.alert_admin_ids' => 'nullable|array|max:50',
+            'whatsapp.clickchat.alert_admin_ids.*' => 'nullable|integer|exists:admins,id',
+            'whatsapp.clickchat.branch_senders' => 'nullable|array',
+            'whatsapp.clickchat.branch_senders.*' => 'nullable|integer|min:1',
+            'whatsapp.opt_out' => 'nullable|array',
+            'whatsapp.opt_out.enabled' => 'nullable|boolean',
+            'whatsapp.opt_out.stop_keywords' => 'nullable|string|max:500',
+            'whatsapp.opt_out.start_keywords' => 'nullable|string|max:500',
             'whatsapp.meta' => 'required|array',
             'whatsapp.meta.graph_version' => 'nullable|string|max:20',
             'whatsapp.meta.phone_number_id' => 'nullable|string|max:255',

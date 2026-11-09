@@ -133,6 +133,8 @@ class CommunicationSettings
 
                 'services.whatsapp.driver' => $settings['whatsapp']['driver'],
                 'services.whatsapp.chatwoot' => $settings['whatsapp']['chatwoot'],
+                'services.whatsapp.clickchat' => $settings['whatsapp']['clickchat'],
+                'services.whatsapp.opt_out' => $settings['whatsapp']['opt_out'],
                 'services.whatsapp.graph_version' => $settings['whatsapp']['meta']['graph_version'],
                 'services.whatsapp.phone_number_id' => $settings['whatsapp']['meta']['phone_number_id'],
                 'services.whatsapp.business_account_id' => $settings['whatsapp']['meta']['business_account_id'],
@@ -290,7 +292,7 @@ class CommunicationSettings
             $preserveSecrets
         );
 
-        $data['whatsapp']['driver'] = in_array((string) ($data['whatsapp']['driver'] ?? ''), ['meta', 'ultramsg', 'chatwoot'], true)
+        $data['whatsapp']['driver'] = in_array((string) ($data['whatsapp']['driver'] ?? ''), ['meta', 'ultramsg', 'chatwoot', 'clickchat'], true)
             ? (string) $data['whatsapp']['driver']
             : $defaults['whatsapp']['driver'];
         $data['whatsapp']['default_country_code'] = self::digitsOnly($data['whatsapp']['default_country_code'] ?? $defaults['whatsapp']['default_country_code']);
@@ -317,6 +319,35 @@ class CommunicationSettings
             $data['whatsapp']['chatwoot']['access_token'] ?? '',
             $current['whatsapp']['chatwoot']['access_token'] ?? '', $preserveSecrets
         );
+        $data['whatsapp']['clickchat']['base_url'] = rtrim(self::trimString($data['whatsapp']['clickchat']['base_url'] ?? ''), '/');
+        $data['whatsapp']['clickchat']['default_channel_account_id'] = self::trimString(
+            $data['whatsapp']['clickchat']['default_channel_account_id'] ?? ''
+        );
+        foreach (['api_token', 'webhook_secret'] as $secretKey) {
+            $data['whatsapp']['clickchat'][$secretKey] = self::preserveSecret(
+                $data['whatsapp']['clickchat'][$secretKey] ?? '',
+                $current['whatsapp']['clickchat'][$secretKey] ?? '', $preserveSecrets
+            );
+        }
+        $data['whatsapp']['clickchat']['fallback'] = in_array((string) ($data['whatsapp']['clickchat']['fallback'] ?? ''), ['none', 'ultramsg', 'sms'], true)
+            ? (string) $data['whatsapp']['clickchat']['fallback'] : 'none';
+        $data['whatsapp']['clickchat']['auto_retry'] = filter_var($data['whatsapp']['clickchat']['auto_retry'] ?? true, FILTER_VALIDATE_BOOLEAN);
+        // Lists are taken as sent: a recursive merge would keep removed entries.
+        $sentClickChat = (array) data_get($payload, 'whatsapp.clickchat', []);
+        $adminIds = array_key_exists('alert_admin_ids', $sentClickChat)
+            ? (array) $sentClickChat['alert_admin_ids'] : (array) ($current['whatsapp']['clickchat']['alert_admin_ids'] ?? []);
+        $data['whatsapp']['clickchat']['alert_admin_ids'] = array_values(array_unique(array_filter(array_map('intval', $adminIds))));
+        $branchSenders = array_key_exists('branch_senders', $sentClickChat)
+            ? (array) $sentClickChat['branch_senders'] : (array) ($current['whatsapp']['clickchat']['branch_senders'] ?? []);
+        $data['whatsapp']['clickchat']['branch_senders'] = collect($branchSenders)
+            ->mapWithKeys(fn ($channel, $branch) => [(string) (int) $branch => (string) (int) $channel])
+            ->filter(fn ($channel, $branch) => (int) $branch > 0 && (int) $channel > 0)
+            ->all();
+        $data['whatsapp']['opt_out']['enabled'] = filter_var($data['whatsapp']['opt_out']['enabled'] ?? false, FILTER_VALIDATE_BOOLEAN);
+        foreach (['stop_keywords', 'start_keywords'] as $keywordsKey) {
+            $data['whatsapp']['opt_out'][$keywordsKey] = self::trimString($data['whatsapp']['opt_out'][$keywordsKey] ?? '')
+                ?: $defaults['whatsapp']['opt_out'][$keywordsKey];
+        }
         $data['whatsapp']['meta']['graph_version'] = self::trimString($data['whatsapp']['meta']['graph_version'] ?? '')
             ?: $defaults['whatsapp']['meta']['graph_version'];
         $data['whatsapp']['meta']['phone_number_id'] = self::trimString($data['whatsapp']['meta']['phone_number_id'] ?? '');
@@ -442,6 +473,26 @@ class CommunicationSettings
                 $errors['whatsapp.chatwoot.access_token'] = 'رمز الوصول مطلوب.';
             }
         }
+        if (in_array('whatsapp', $validatedSections, true) && $payload['whatsapp']['driver'] === 'clickchat') {
+            $cc = $payload['whatsapp']['clickchat'];
+            $url = parse_url($cc['base_url']);
+            // Plain HTTP is accepted only for a local development platform.
+            $local = in_array($url['host'] ?? '', ['localhost', '127.0.0.1'], true);
+            if (!in_array($url['scheme'] ?? '', $local ? ['http', 'https'] : ['https'], true) || empty($url['host'])
+                || isset($url['user']) || isset($url['pass']) || isset($url['query']) || isset($url['fragment'])) {
+                $errors['whatsapp.clickchat.base_url'] = 'أدخل عنوان HTTPS صالحًا لمنصة Click Live Chat.';
+            }
+            if ($cc['api_token'] === '') {
+                $errors['whatsapp.clickchat.api_token'] = 'مفتاح API مطلوب.';
+            }
+            if ($cc['webhook_secret'] !== '' && !str_starts_with($cc['webhook_secret'], 'whsec_')) {
+                $errors['whatsapp.clickchat.webhook_secret'] = 'المفتاح السري للـ Webhook يبدأ بـ whsec_.';
+            }
+            if ($cc['default_channel_account_id'] !== ''
+                && (!ctype_digit($cc['default_channel_account_id']) || (int) $cc['default_channel_account_id'] <= 0)) {
+                $errors['whatsapp.clickchat.default_channel_account_id'] = 'الرقم المرسِل يجب أن يكون رقمًا موجبًا.';
+            }
+        }
         if (in_array('whatsapp', $validatedSections, true) && $payload['whatsapp']['driver'] === 'meta') {
             $embeddedSignupReady = $payload['whatsapp']['meta']['app_id'] !== ''
                 && $payload['whatsapp']['meta']['configuration_id'] !== ''
@@ -537,6 +588,22 @@ class CommunicationSettings
                     'inbox_id' => (string) config('services.whatsapp.chatwoot.inbox_id', ''),
                     'access_token' => (string) config('services.whatsapp.chatwoot.access_token', ''),
                 ],
+                'clickchat' => [
+                    'base_url' => (string) config('services.whatsapp.clickchat.base_url', ''),
+                    'api_token' => (string) config('services.whatsapp.clickchat.api_token', ''),
+                    'webhook_secret' => (string) config('services.whatsapp.clickchat.webhook_secret', ''),
+                    'default_channel_account_id' => (string) config('services.whatsapp.clickchat.default_channel_account_id', ''),
+                    'branch_senders' => [],
+                    'fallback' => 'none',
+                    'auto_retry' => true,
+                    'alert_admin_ids' => [],
+                ],
+                'opt_out' => [
+                    'enabled' => false,
+                    // Whole-message matches only, so "إلغاء الطلب" is never read as a stop request.
+                    'stop_keywords' => 'إيقاف, ايقاف, الغاء الاشتراك, إلغاء الاشتراك, stop, unsubscribe',
+                    'start_keywords' => 'اشتراك, تفعيل, start',
+                ],
                 'meta' => [
                     'graph_version' => (string) config('services.whatsapp.graph_version', 'v23.0'),
                     'phone_number_id' => (string) config('services.whatsapp.phone_number_id', ''),
@@ -630,6 +697,8 @@ class CommunicationSettings
             'sms.api_key',
             'sms.taqnyat.bearer_token',
             'whatsapp.chatwoot.access_token',
+            'whatsapp.clickchat.api_token',
+            'whatsapp.clickchat.webhook_secret',
             'whatsapp.meta.access_token',
             'whatsapp.meta.webhook_verify_token',
             'whatsapp.meta.app_secret',
@@ -661,6 +730,8 @@ class CommunicationSettings
             'sms.api_key',
             'sms.taqnyat.bearer_token',
             'whatsapp.chatwoot.access_token',
+            'whatsapp.clickchat.api_token',
+            'whatsapp.clickchat.webhook_secret',
             'whatsapp.meta.access_token',
             'whatsapp.meta.webhook_verify_token',
             'whatsapp.meta.app_secret',

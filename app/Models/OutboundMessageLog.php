@@ -14,6 +14,22 @@ class OutboundMessageLog extends Model
     public const CHANNELS = ['sms' => 'SMS', 'whatsapp' => 'WhatsApp', 'email' => 'البريد الإلكتروني', 'notification' => 'داخل النظام', 'push' => 'إشعارات التطبيق'];
     public const STATUSES = ['pending' => 'قيد الإرسال', 'accepted' => 'قبله المزوّد', 'sent' => 'أرسله المزوّد', 'delivered' => 'تم التسليم', 'read' => 'تمت القراءة', 'failed' => 'فشل', 'skipped' => 'لم يُرسل', 'unknown' => 'سجل قديم — النتيجة غير مؤكدة'];
 
+    /**
+     * A failed WhatsApp/SMS message can be sent again once. Login codes are never
+     * resent, and neither are texts whose links were masked in the log.
+     */
+    public function canResend(): bool
+    {
+        $text = (string) $this->message;
+
+        return in_array($this->channel, ['whatsapp', 'sms'], true)
+            && in_array($this->status, ['failed', 'skipped', 'unknown'], true)
+            && $this->purpose !== 'verification'
+            && trim((string) $this->recipient) !== '' && trim($text) !== ''
+            && !str_contains($text, '[رابط محجوب]') && !str_contains($text, '[محجوب]') && !str_ends_with($text, '…')
+            && empty(($this->context ?? [])['resent_at']);
+    }
+
     public function actor() { return $this->belongsTo(\App\Models\auth\Admin::class, 'admin_id'); }
     public function branch() { return $this->belongsTo(Branch::class); }
 

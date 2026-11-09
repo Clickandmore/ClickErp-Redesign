@@ -43,6 +43,13 @@ class NotificationController extends Controller
         $whatsAppSettings = CommunicationSettings::whatsapp();
         $chatwootTemplates = [];
         $chatwootTemplateError = null;
+        if ($whatsAppService->driver() === 'clickchat') {
+            // Same shape as the Chatwoot list so the page's template picker works for both.
+            $chatwootTemplates = array_map(fn (array $template) => [
+                'name' => $template['name'], 'language' => $template['language'], 'category' => $template['category'],
+                'components' => [['type' => 'BODY', 'text' => $template['body']]],
+            ], app(\App\Services\WhatsApp\ClickChatWhatsAppService::class)->templates());
+        }
         if ($whatsAppService->driver() === 'chatwoot') {
             try {
                 $chatwootTemplates = app(\App\Services\WhatsApp\ChatwootWhatsAppService::class)->templates();
