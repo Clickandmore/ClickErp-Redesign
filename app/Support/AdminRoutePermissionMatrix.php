@@ -935,6 +935,7 @@ class AdminRoutePermissionMatrix
                 'storage.settings.update' => [PermKeys::SETTINGS_CONTROL],
                 'storage.settings.test' => [PermKeys::SETTINGS_CONTROL],
                 'messages.index' => [PermKeys::NOTIFICATIONS_CONTROL],
+                'messages.resend' => [PermKeys::NOTIFICATIONS_CONTROL],
                 'admin.zoho-salesiq.visitors' => [PermKeys::CRM_MODULE, PermKeys::NOTIFICATIONS_CONTROL, PermKeys::SETTINGS_VIEW],
                 'admin.zoho-salesiq.conversations.index' => [PermKeys::CRM_MODULE, PermKeys::NOTIFICATIONS_CONTROL, PermKeys::SETTINGS_VIEW],
                 'admin.zoho-salesiq.conversations.show' => [PermKeys::CRM_MODULE, PermKeys::NOTIFICATIONS_CONTROL, PermKeys::SETTINGS_VIEW],

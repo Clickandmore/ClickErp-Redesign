@@ -112,6 +112,17 @@ class NotificationAction extends MainAction
         $message = trim((string) $request->input('message_override', ''));
         $senderKey = trim((string) $request->input('whatsapp_sender_key', ''));
         $templateContext = [];
+        if ($this->whatsAppService->driver() === 'clickchat' && $request->filled('chatwoot_template')) {
+            try {
+                $prepared = app(\App\Services\WhatsApp\ClickChatWhatsAppService::class)->prepareTemplate(
+                    (string) $request->input('chatwoot_template'), (array) $request->input('chatwoot_variables', [])
+                );
+                $message = $prepared['message'];
+                $templateContext = ['clickchat_template' => $prepared['clickchat_template']];
+            } catch (\RuntimeException $e) {
+                throw ValidationException::withMessages(['chatwoot_template' => $e->getMessage()]);
+            }
+        }
         if ($this->whatsAppService->driver() === 'chatwoot' && $request->filled('chatwoot_template')) {
             try {
                 $prepared = app(\App\Services\WhatsApp\ChatwootWhatsAppService::class)->prepareTemplate(

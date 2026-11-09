@@ -403,6 +403,9 @@
                                 </td>
                                 <td>
                                     <span class="msg-status-pill st-{{ $log->status }}"><i class="{{ $statusIcons[$log->status] ?? 'fa fa-circle' }}"></i> {{ $isInternal && $log->status === 'delivered' ? 'متاح داخل النظام' : ($statuses[$log->status] ?? $log->status) }}</span>
+                                    @if ($channelKey === 'whatsapp')
+                                        @include('admin.ingaz.partials.whatsapp-ticks', ['status' => $log->status])
+                                    @endif
                                 </td>
                                 <td class="msg-source">
                                     {{ \App\Models\OutboundMessageLog::sourceLabel($log->source) }}
@@ -417,6 +420,15 @@
                                     <button class="msg-details-btn" type="button" data-detail="msgDetail{{ $log->id }}" aria-expanded="false" aria-controls="msgDetail{{ $log->id }}">
                                         <i class="fa fa-chevron-down"></i> التفاصيل
                                     </button>
+                                    @if ($log->canResend())
+                                        <form method="POST" action="{{ route('messages.resend', $log->id) }}" class="mt-1"
+                                            onsubmit="return confirm('إعادة إرسال هذه الرسالة إلى {{ e($log->recipient) }}؟');">
+                                            @csrf
+                                            <button type="submit" class="btn btn-sm btn-outline-primary"><i class="fa fa-redo"></i> إعادة الإرسال</button>
+                                        </form>
+                                    @elseif (!empty(($log->context ?? [])['resent_at']))
+                                        <small class="d-block text-muted mt-1">أُعيد إرسالها {{ ($log->context ?? [])['resent_at'] }}</small>
+                                    @endif
                                 </td>
                             </tr>
                             <tr class="msg-detail-row" id="msgDetail{{ $log->id }}">

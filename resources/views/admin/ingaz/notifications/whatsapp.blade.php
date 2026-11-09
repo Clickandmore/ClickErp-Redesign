@@ -43,6 +43,13 @@
                             <div><strong>Webhook Receive URL:</strong> <code>{{ $whatsappConfig['webhook_receive_url'] }}</code></div>
                             <div class="mt-1 text-muted">استخدم نفس المسارين على دومين عام (HTTPS) داخل Meta.</div>
                         </div>
+                    @elseif (($whatsappConfig['driver'] ?? '') === 'clickchat')
+                        <hr>
+                        <div class="small">
+                            <div><strong>المزود الحالي:</strong> Click Live Chat</div>
+                            <div><strong>الأرقام النشطة في المنصة:</strong> {{ count($whatsappConfig['senders']) }}</div>
+                            <div class="mt-1 text-muted">الأرقام تُدار من المنصة (ميتا أو QR)، ويمكن اختيار الرقم المرسل منه عند التنفيذ.</div>
+                        </div>
                     @else
                         <hr>
                         <div class="small">
@@ -86,13 +93,13 @@
                         </select>
                     </div>
 
-                    @if ($whatsappConfig['driver'] === 'ultramsg' && count($whatsappConfig['senders']) > 0)
+                    @if (in_array($whatsappConfig['driver'], ['ultramsg', 'clickchat'], true) && count($whatsappConfig['senders']) > 0)
                         <div class="col-md-4">
                             <label for="whatsapp_sender_key" class="form-label">الرقم المُرسل منه</label>
                             <select name="whatsapp_sender_key" id="whatsapp_sender_key" class="form-control">
                                 @foreach ($whatsappConfig['senders'] as $sender)
                                     <option value="{{ $sender['key'] }}" {{ $whatsappConfig['default_sender_key'] === $sender['key'] ? 'selected' : '' }}>
-                                        {{ $sender['name'] }}@if(!empty($sender['phone_number'])) - {{ $sender['phone_number'] }} @endif ({{ $sender['instance_id'] }})
+                                        {{ $sender['name'] }}@if(!empty($sender['phone_number'])) - {{ $sender['phone_number'] }} @endif @if(!empty($sender['instance_id']))({{ $sender['instance_id'] }})@endif
                                     </option>
                                 @endforeach
                             </select>
@@ -107,10 +114,10 @@
                     </div>
 
                     <div class="col-12">
-                        @if(($whatsappConfig['driver'] ?? '') === 'chatwoot')
-                            <label for="chatwootTemplate">قالب Widers المعتمد</label>
+                        @if(in_array($whatsappConfig['driver'] ?? '', ['chatwoot', 'clickchat'], true))
+                            <label for="chatwootTemplate">{{ ($whatsappConfig['driver'] ?? '') === 'clickchat' ? 'قالب واتساب المعتمد (أرقام ميتا)' : 'قالب Widers المعتمد' }}</label>
                             <select id="chatwootTemplate" name="chatwoot_template" class="form-control mb-3">
-                                <option value="">نص حر — يتطلب نافذة رد مفتوحة خلال 24 ساعة</option>
+                                <option value="">{{ ($whatsappConfig['driver'] ?? '') === 'clickchat' ? 'نص حر — أرقام ميتا تحتاج نافذة رد مفتوحة خلال 24 ساعة، وأرقام QR بلا قيد' : 'نص حر — يتطلب نافذة رد مفتوحة خلال 24 ساعة' }}</option>
                                 @foreach(($chatwootTemplates ?? []) as $template)
                                     <option value="{{ $template['name'].'|'.$template['language'] }}">{{ $template['name'] }} — {{ $template['language'] }} — {{ $template['category'] }}</option>
                                 @endforeach

@@ -56,4 +56,44 @@ class MessageController extends Controller
         $actors = \App\Models\auth\Admin::query()->whereIn('id', OutboundMessageLog::query()->select('admin_id')->whereNotNull('admin_id'))->get(['id','name']);
         return view('admin.ingaz.messages.index', compact('logs', 'counts', 'channelCounts', 'filters', 'providers', 'sources', 'branches', 'actors'));
     }
+
+    /** Send a failed WhatsApp/SMS message again through the current provider (once per message). */
+    public function resend(OutboundMessageLog $log)
+    {
+        abort_unless(@AdminGuardHasPerm(\App\PermKeys::NOTIFICATIONS_CONTROL), 403);
+
+        $lock = \Illuminate\Support\Facades\Cache::lock('message-resend:' . $log->id, 60);
+        if (!$lock->get()) {
+            return back()->with('error', 'جاري إعادة إرسال هذه الرسالة بالفعل.');
+        }
+
+        try {
+            $log->refresh();
+            if (!$log->canResend()) {
+                return back()->with('error', 'لا يمكن إعادة إرسال هذه الرسالة (أُعيد إرسالها من قبل، أو رسالة تحقق، أو نصها محجوب في السجل).');
+            }
+
+            $context = array_intersect_key((array) $log->context, array_flip(['contract_id', 'contract_type', 'order_id', 'user_id', 'branch_id', 'reference']))
+                + ['source' => $log->source ?: 'message_resend', 'resend_of' => $log->id,
+                    'admin_id' => auth('admin')->id(), 'recipient_name' => $log->recipient_name];
+
+            if ($log->channel === 'whatsapp') {
+                $result = app(\App\Services\WhatsApp\WhatsAppMessagingService::class)->sendText($log->recipient, (string) $log->message, $context);
+                $success = !empty($result['success']);
+                $reason = (string) data_get($result, 'response.message', $result['error'] ?? '');
+            } else {
+                $raw = \App\Support\SmsGateway::send($log->recipient, (string) $log->message, null, null, $context);
+                $success = $raw !== null && \App\Support\OutboundMessageRecorder::smsAccepted($raw, $log->recipient);
+                $reason = 'رفضت بوابة SMS الرسالة.';
+            }
+
+            $log->update(['context' => (array) $log->context + ['resent_at' => now()->toDateTimeString(), 'resent_by' => auth('admin')->id()]]);
+
+            return back()->with($success ? 'success' : 'error', $success
+                ? 'أُعيد إرسال الرسالة. تظهر المحاولة الجديدة في أعلى السجل.'
+                : 'فشلت إعادة الإرسال: ' . ($reason ?: 'سبب غير معروف.'));
+        } finally {
+            $lock->release();
+        }
+    }
 }
