@@ -17,7 +17,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use InvalidArgumentException;
-use Nami\Finance\Services\OperationalSummaryService;
+use Nami\Finance\Services\RentalReceivablesLedger;
 
 /**
  * أرشفة واسترجاع عقود الاستقدام والتأجير.
@@ -322,6 +322,9 @@ class ContractArchiveService
     /** @var array<int, float> أرصدة محسوبة مسبقاً لصفحة كاملة من العقود. */
     private array $rentalBalanceCache = [];
 
+    /** كشوف عقود التأجير محسوبة مرة واحدة لكل طلب. */
+    private ?\Illuminate\Support\Collection $rentalBalances = null;
+
     /**
      * حساب أرصدة مجموعة عقود إيجار باستعلام واحد بدل استعلام لكل عقد
      * (يُستدعى قبل فحص صفحة كاملة في شاشة الأرشيف).
@@ -335,34 +338,25 @@ class ContractArchiveService
             return;
         }
 
-        $balances = BranchQueryContext::withoutBranchScope(fn () => $this->rentalBalancesQuery()
-            ->whereIn('rental_contract_id', $ids)
-            ->groupBy('rental_contract_id')
-            ->selectRaw('rental_contract_id, SUM(remaining_amount) as remaining')
-            ->pluck('remaining', 'rental_contract_id'));
-
+        $balances = $this->rentalBalances();
         foreach ($ids as $id) {
-            $this->rentalBalanceCache[$id] = (float) ($balances[$id] ?? 0);
+            $this->rentalBalanceCache[$id] = max(0.0, (float) ($balances->get($id)->remaining ?? 0));
         }
     }
 
-    /** نفس رصيد شاشة مستحقات العملاء (يحتسب السداد والإشعارات الدائنة والتسويات). */
+    /** نفس رصيد شاشة المستحق على عملاء التأجير (كشف حركة العقد الفعلي). */
     protected function rentalRemainingBalance(RentalContract $contract): float
     {
         if (array_key_exists($contract->id, $this->rentalBalanceCache)) {
             return $this->rentalBalanceCache[$contract->id];
         }
 
-        return (float) $this->rentalBalancesQuery()
-            ->where('rental_contract_id', $contract->id)
-            ->sum('remaining_amount');
+        return max(0.0, (float) ($this->rentalBalances()->get($contract->id)->remaining ?? 0));
     }
 
-    private function rentalBalancesQuery()
+    private function rentalBalances()
     {
-        $documents = app(OperationalSummaryService::class)->rentalReceivableBillingQuery(now()->toDateString());
-
-        return DB::query()->fromSub($documents, 'documents');
+        return $this->rentalBalances ??= app(RentalReceivablesLedger::class)->contracts(now()->toDateString());
     }
 
     private function hasOpenFinancialRequest(int $contractId, string $contractType): bool

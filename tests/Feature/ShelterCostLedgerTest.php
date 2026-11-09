@@ -901,6 +901,52 @@ class ShelterCostLedgerTest extends TestCase
         $service->reverseLine($second->fresh()->lines->first(), 'After exit');
     }
 
+    public function test_draft_prepared_before_shelter_admission_is_aligned_to_the_shelter_account(): void
+    {
+        [$contract] = $this->arrivedContractWithInvoice(600);
+        $ledger = app(ShelterCostLedgerService::class);
+        $this->capitalize($ledger, $contract, 2250);
+        $contract->update(['status' => 'shelter']);
+        $settlement = $this->postArrivalOfficeRefund($contract, 2250);
+        $line = $settlement->lines->first();
+        $stale = \Nami\Finance\Models\Account::query()->whereDoesntHave('children')->whereKeyNot($this->asset->id)->firstOrFail();
+        // Draft saved while the worker was still with the customer: cost-returns account.
+        $receipt = ShelterCostEntry::where('contract_id', $contract->id)->where('kind', ShelterCostEntry::KIND_CAPITALIZE_OFFICE_COST)->firstOrFail();
+        $line->update(['credit_account_id' => $stale->id]);
+        $line->forceFill(['created_at' => $receipt->created_at->copy()->subHour()])->save();
+
+        $steps = collect(app(\App\Services\ingaz\PostArrivalRefundService::class)->readiness($settlement->fresh()))->keyBy('key');
+        $this->assertTrue($steps['office']['ok']);
+        $this->assertStringContainsString('سيُصحَّح تلقائياً', $steps['office']['detail']);
+
+        app(\App\Services\ingaz\PostArrivalRefundService::class)->post($settlement);
+
+        $line = $line->fresh();
+        $this->assertSame('posted', $line->status);
+        $this->assertSame($this->asset->id, (int) $line->credit_account_id);
+        $this->assertSame($stale->id, $line->metadata['credit_account_realigned_from']);
+        $this->assertSame(0.0, $ledger->balance($contract->maid_id));
+    }
+
+    public function test_account_chosen_after_shelter_admission_is_respected_and_keeps_the_shelter_balance(): void
+    {
+        [$contract] = $this->arrivedContractWithInvoice(600);
+        $ledger = app(ShelterCostLedgerService::class);
+        $this->capitalize($ledger, $contract, 2250);
+        $contract->update(['status' => 'shelter']);
+        $settlement = $this->postArrivalOfficeRefund($contract, 2250);
+        $line = $settlement->lines->first();
+        $chosen = \Nami\Finance\Models\Account::query()->whereDoesntHave('children')->whereKeyNot($this->asset->id)->firstOrFail();
+        $line->update(['credit_account_id' => $chosen->id]);
+
+        app(\App\Services\ingaz\PostArrivalRefundService::class)->post($settlement);
+
+        $line = $line->fresh();
+        $this->assertSame($chosen->id, (int) $line->credit_account_id);
+        $this->assertTrue($line->metadata['shelter_balance_kept']);
+        $this->assertSame(2250.0, $ledger->balance($contract->maid_id));
+    }
+
     private function postArrivalOfficeRefund(Contract $contract, float $amount): \App\Models\ContractReturnSettlement
     {
         $receipt = ShelterCostEntry::where('contract_id', $contract->id)->where('kind', ShelterCostEntry::KIND_CAPITALIZE_OFFICE_COST)->firstOrFail();

@@ -8,6 +8,8 @@
     @if($settlement->status === 'draft' && AdminGuardHasPerm(\App\PermKeys::POST_ARRIVAL_REFUND_EDIT))<a href="{{ route('post-arrival-refunds.edit', $settlement) }}" class="btn btn-primary mb-3">تعديل المسودة</a>@endif
     @if(session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
     @if($errors->any())<div class="alert alert-danger">{{ $errors->first() }}</div>@endif
+    @if(session('error'))<div class="alert alert-danger">{{ session('error') }}</div>@endif
+    @if($settlement->status === 'draft' && !empty($readiness))@include('admin.ingaz.post_arrival_refunds.partials.readiness')@endif
     <div class="row g-3 mb-3">
         <div class="col-md-3"><div class="card card-body"><small class="text-muted">الحالة</small><strong>{{ ['draft'=>'مسودة','posted'=>'معتمد','partially_paid'=>'مسدد جزئياً','closed'=>'مغلق'][$settlement->status] ?? $settlement->status }}</strong></div></div>
         <div class="col-md-3"><div class="card card-body"><small class="text-muted">مستحق العميل</small><strong>{{ number_format((float)$settlement->client_due_amount,2) }}</strong></div></div>
@@ -36,7 +38,7 @@
             <td>@if($line->status==='posted' && AdminGuardHasPerm(\App\PermKeys::POST_ARRIVAL_REFUND_REVERSE))<form method="post" action="{{ route('post-arrival-refunds.lines.reverse',[$settlement,$line]) }}" onsubmit="return confirm('عكس هذا البند فقط؟')">@csrf<div class="input-group input-group-sm"><input name="reason" class="form-control" required minlength="5" placeholder="سبب العكس"><button class="btn btn-outline-danger">عكس</button></div></form>@endif</td>
         </tr>@endforeach
     </tbody></table></div>
-    @if($settlement->status==='draft' && AdminGuardHasPerm(\App\PermKeys::POST_ARRIVAL_REFUND_POST))<div class="card-footer text-end"><form method="post" action="{{ route('post-arrival-refunds.post',$settlement) }}" onsubmit="return confirm('سيتم إنشاء المستندات المالية للبنود المختارة. هل تعتمد؟')">@csrf<button class="btn btn-success"><i class="fas fa-check me-1"></i>اعتماد ونشر البنود</button></form></div>@endif
+    @if($settlement->status==='draft' && AdminGuardHasPerm(\App\PermKeys::POST_ARRIVAL_REFUND_POST))@php($blocked = collect($readiness ?? [])->where('ok', false)->count())<div class="card-footer text-end">@if($blocked)<span class="text-danger small me-2">أكمل {{ $blocked }} {{ $blocked === 1 ? 'خطوة ناقصة' : 'خطوات ناقصة' }} في «خطوات الاعتماد» أولاً</span>@endif<form method="post" class="d-inline" action="{{ route('post-arrival-refunds.post',$settlement) }}" onsubmit="return confirm('سيتم إنشاء المستندات المالية للبنود المختارة. هل تعتمد؟')">@csrf<button class="btn btn-success" @disabled($blocked)><i class="fas fa-check me-1"></i>اعتماد ونشر البنود</button></form></div>@endif
     </div>
 </div>
 @endsection

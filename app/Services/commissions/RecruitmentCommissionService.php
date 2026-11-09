@@ -348,9 +348,12 @@ class RecruitmentCommissionService
         string $decision,
         int $adminId,
         ?string $notes = null,
-        ?float $amount = null
+        ?float $amount = null,
+        bool $returnConfirmed = false
     ): CommissionBatchItem {
-        return DB::transaction(function () use ($item, $decision, $adminId, $notes, $amount) {
+        // $returnConfirmed: the caller (post-arrival refund document) has already verified the
+        // return event (shelter/escape/deportation), which isReturned() does not count by itself.
+        return DB::transaction(function () use ($item, $decision, $adminId, $notes, $amount, $returnConfirmed) {
             \App\Models\auth\Admin::query()->whereKey($item->batch?->marketer_id)->lockForUpdate()->firstOrFail();
             $lockedItem = CommissionBatchItem::query()
                 ->with('batch')
@@ -366,7 +369,7 @@ class RecruitmentCommissionService
 
             if (
                 (!$isRental && $lockedItem->source_type !== CommissionOperationService::SOURCE_RECRUITMENT_CONTRACT)
-                || !$this->isReturned($contract)
+                || (!$returnConfirmed && !$this->isReturned($contract))
                 || $lockedItem->commission_reversal_transaction_id
                 || $this->isZeroed($lockedItem)
                 || (float) $lockedItem->commission_amount <= 0

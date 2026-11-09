@@ -1226,7 +1226,7 @@
                                         {{ $contractLedgerBalance > 0 ? 'مطلوب من العميل' : ($contractLedgerBalance < 0 ? 'رصيد دائن للعميل' : 'العقد مسوّى') }}
                                     </small>
                                     <small class="text-muted d-block">
-                                        {{ ($contractLedgerBalanceFromJournal ?? false) ? 'محسوب من قيود العقد في دفتر الأستاذ' : 'محسوب من مستندات العقد - لا توجد قيود مرحّلة لهذا العقد' }}
+                                        {{ ($contractLedgerBalanceFromJournal ?? false) ? 'من كشف حركة العقد في دفتر الأستاذ — نفس تقرير المستحق على عملاء التأجير' : 'محسوب من مستندات العقد - لا توجد قيود مرحّلة لهذا العقد' }}
                                         @if ($hasUnpostedReceivableAdjustments ?? false)
                                             <span class="text-warning d-block">يشمل إشعارات محفوظة بانتظار الترحيل المحاسبي</span>
                                         @endif

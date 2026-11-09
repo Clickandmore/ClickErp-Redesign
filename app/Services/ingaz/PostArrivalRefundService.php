@@ -55,7 +55,8 @@ class PostArrivalRefundService
             'credit_note' => $creditRemaining,
             'client_deduction' => $this->warrantyReturnService->calculateStayAmount($contract, $date, $net),
             'office_charge' => $officeSource['amount'],
-            'shelter_cost' => $officeCreditAccount['shelter_cleared'] ? 0.0 : $officeSource['amount'],
+            // Shelter admission already capitalized the office cost; proposing it again would double it.
+            'shelter_cost' => ($officeCreditAccount['shelter_cleared'] || $officeCreditAccount['receipt_entry_id']) ? 0.0 : $officeSource['amount'],
             'marketer_commission' => $this->commissionProposal($contract),
             'invoice_total' => $total,
             'previous_credit' => $credited,
@@ -66,7 +67,169 @@ class PostArrivalRefundService
             'office_charge_credit_account_name' => $officeCreditAccount['account_name'],
             'office_charge_account_source' => $officeCreditAccount['source'],
             'office_charge_receipt_entry_id' => $officeCreditAccount['receipt_entry_id'],
-        ];
+        ] + $this->clientDeductionAccount($contract);
+    }
+
+    /**
+     * The operational event that ends the placement after arrival. A completed
+     * contract is never returned "directly": the worker comes back through the
+     * shelter, escapes, or is deported from the customer. Legacy cancelled
+     * contracts and approved customer return requests remain accepted.
+     */
+    public function returnEvent(Contract $contract): ?array
+    {
+        if ($this->commissionService->isReturned($contract)) {
+            return ['type' => 'returned', 'label' => 'العقد مسجّل مرتجعاً (' . getContractStatus($contract->status) . ')'];
+        }
+        if ($contract->status === \App\Enums\ingaz\ContractStatusEnum::Shelter->value) {
+            return ['type' => 'shelter', 'label' => 'العاملة داخل الإيواء'];
+        }
+        $escape = $contract->escapeReports()->latest('id')->first();
+        if ($escape) {
+            return ['type' => 'escape', 'label' => 'بلاغ هروب #' . $escape->id . ' بتاريخ ' . optional($escape->escape_date)->format('Y-m-d')];
+        }
+        $deportation = \App\Models\DeportationProcedure::query()->where('contract_id', $contract->id)
+            ->where('status', '!=', 'cancelled')->latest('id')->first();
+        if ($deportation) {
+            return ['type' => 'deportation', 'label' => 'إجراءات ترحيل #' . $deportation->id . ' (' . $deportation->status . ')'];
+        }
+        return null;
+    }
+
+    /**
+     * Pre-flight checklist shown on the draft screen. Mirrors the blocking checks
+     * of post() so the user sees every missing step at once, with the fix,
+     * instead of discovering them one rejection at a time.
+     *
+     * @return array<int, array{key: string, title: string, ok: bool, detail: string, data?: array}>
+     */
+    public function readiness(ContractReturnSettlement $settlement): array
+    {
+        $settlement->loadMissing(['contract.invoice.recruitmentCreditNotes', 'contract.invoice.contract.user', 'contract.user',
+            'contract.returnRequests', 'contract.latestShelterLog', 'lines']);
+        $contract = $settlement->contract;
+        $draftLines = $settlement->lines->where('status', 'draft');
+        $steps = [];
+
+        // 1) Return event after arrival: shelter admission, escape report or deportation.
+        $event = $this->returnEvent($contract);
+        $pending = $contract->returnRequests->where('status', 'pending')->sortByDesc('id')->first();
+        $detail = $event
+            ? $event['label'] . '.'
+            : 'العقد في «' . getContractStatus($contract->status) . '» ولم يُسجَّل له حدث إرجاع بعد الوصول. '
+                . 'سجّل الحدث المناسب أولاً: إدخال العاملة الإيواء، أو بلاغ هروب، أو بدء إجراءات الترحيل من عند العميل.'
+                . ($pending ? ' (يوجد أيضاً طلب إرجاع من العميل #' . $pending->id . ' بانتظار الاعتماد.)' : '');
+        $steps[] = ['key' => 'returned', 'title' => 'حدث الإرجاع (إيواء / هروب / ترحيل)', 'ok' => (bool) $event, 'detail' => $detail,
+            'data' => ['pending_request_id' => $pending?->id, 'contract_status' => $contract->status]];
+
+        // 2) Financial year
+        $date = $settlement->settlement_date?->toDateString();
+        $yearOpen = $date && $this->yearService->checkDateRange($date);
+        $steps[] = ['key' => 'year', 'title' => 'السنة المالية لتاريخ المستند', 'ok' => (bool) $yearOpen,
+            'detail' => $yearOpen ? 'السنة المالية مفتوحة لتاريخ ' . $date . '.' : 'لا توجد سنة مالية مفتوحة لتاريخ ' . $date . '. عدّل تاريخ المسودة أو افتح السنة المالية.'];
+
+        // 3) Original invoice journal (needed by the credit note)
+        $creditLine = $draftLines->firstWhere('type', 'credit_note');
+        if ($creditLine) {
+            $invoice = $contract->invoice;
+            $linker = app(LegacyInvoiceConstraintLinker::class);
+            $data = ['invoice_id' => $invoice?->id];
+            if (!$invoice) {
+                [$ok, $detail] = [false, 'العقد لا يملك فاتورة إيراد استقدام؛ لا يمكن إصدار إشعار دائن. احذف بند الإشعار من المسودة.'];
+            } elseif ((int) $settlement->invoice_id !== (int) $invoice->id) {
+                [$ok, $detail] = [false, 'تغيّرت فاتورة العقد بعد تجهيز المسودة. افتح «تعديل المسودة» واحفظها لتحديث المبالغ.'];
+            } elseif ($invoice->invoice_constraint_id || $invoice->arrival_revenue_constraint_id) {
+                [$ok, $detail] = [true, 'الفاتورة #' . $invoice->id . ' مربوطة بقيدها الأصلي.'];
+            } else {
+                $result = $linker->inspect($invoice);
+                $ok = $result['status'] === 'ready';
+                $detail = $ok
+                    ? 'الفاتورة #' . $invoice->id . ' غير مربوطة بعد، وسيُربط قيدها الأصلي #' . $result['constraint_id'] . ' تلقائياً عند الاعتماد.'
+                    : $linker->describe($invoice, $result);
+                $data['needs_manual_link'] = !$ok;
+            }
+            if ($ok && $invoice) {
+                $remaining = max(0, round((float) $invoice->total_due - (float) $invoice->recruitmentCreditNotes->sum('total'), 2));
+                if (round((float) $creditLine->approved_amount, 2) > $remaining) {
+                    [$ok, $detail] = [false, 'مبلغ الإشعار ' . number_format((float) $creditLine->approved_amount, 2)
+                        . ' يتجاوز رصيد الفاتورة المتبقي ' . number_format($remaining, 2) . '. عدّل المسودة.'];
+                }
+            }
+            $steps[] = ['key' => 'invoice', 'title' => 'قيد الفاتورة الأصلي (للإشعار الدائن)', 'ok' => $ok, 'detail' => $detail, 'data' => $data];
+        }
+
+        // 4) Marketer commission
+        $commissionLine = $draftLines->firstWhere('type', 'marketer_commission');
+        if ($commissionLine) {
+            $item = CommissionBatchItem::query()->with('batch')
+                ->where('source_type', CommissionOperationService::SOURCE_RECRUITMENT_CONTRACT)
+                ->where('source_id', $contract->id)->first();
+            $reversed = $item?->commission_reversal_transaction_id
+                ? (float) \App\Models\commissions\CommissionBalanceTransaction::query()->whereKey($item->commission_reversal_transaction_id)->value('amount')
+                : 0.0;
+            $amount = (float) $commissionLine->approved_amount;
+            [$ok, $detail] = match (true) {
+                !$item || (float) $item->commission_amount <= 0 => [false, 'لا توجد عمولة مسوق لهذا العقد. احذف بند العمولة من المسودة.'],
+                $reversed > 0 && abs($reversed - $amount) <= 0.009 => [true, 'العمولة عُكست سابقاً من شاشة العمولات؛ سيُربط البند بذلك العكس دون تكرار.'],
+                $reversed > 0 => [false, 'العمولة عُكست سابقاً بمبلغ ' . number_format($reversed, 2) . ' ويختلف عن مبلغ البند ' . number_format($amount, 2) . '. عدّل البند أو احذفه.'],
+                $item->batch?->status !== CommissionBatch::STATUS_APPROVED => [false, 'دفعة العمولة #' . $item->batch_id . ' غير معتمدة بعد؛ لا يوجد ما يُسترجع. احذف البند أو اعتمد الدفعة أولاً.'],
+                abs((float) $item->commission_amount - $amount) > 0.009 => [false, 'الاسترجاع الجزئي غير مدعوم؛ يجب أن يساوي البند كامل العمولة ' . number_format((float) $item->commission_amount, 2) . '.'],
+                default => [true, 'عمولة معتمدة ' . number_format((float) $item->commission_amount, 2) . ' ستُسترجع عند الاعتماد.'],
+            };
+            $steps[] = ['key' => 'commission', 'title' => 'عمولة المسوق', 'ok' => $ok, 'detail' => $detail];
+        }
+
+        // 5) Office charge: which account will be credited, and is the shelter balance enough?
+        $officeLine = $draftLines->firstWhere('type', 'office_charge');
+        if ($officeLine) {
+            $account = fn ($id) => ($row = Account::query()->find($id)) ? $row->code . ' — ' . trim($row->name) : 'حساب #' . $id;
+            if (ShelterAgentCostRecovery::query()->where('contract_id', $contract->id)->whereNull('reversal_constraint_id')->exists()) {
+                [$ok, $detail] = [false, 'سبق استرداد تكلفة الوكيل لهذا العقد من شاشة الإيواء. احذف بند تحميل المكتب من المسودة حتى لا يُحمَّل مرتين.'];
+            } elseif ($officeLine->settlement_method === 'next_dispatch_deduction') {
+                [$ok, $detail] = [true, 'يُخصم من الإرسالية القادمة للمكتب؛ لا قيد الآن.'];
+            } else {
+                $source = $this->officeChargeCreditAccount($contract);
+                $current = (int) $officeLine->credit_account_id;
+                $forced = $this->expectedOfficeChargeAccount($contract, $current);
+                $keepsShelterBalance = $forced && $current > 0 && $forced !== $current
+                    && ! $this->officeLinePredatesShelterReceipt($officeLine, (int) $source['receipt_entry_id']);
+                $expected = $keepsShelterBalance ? $current : ($forced ?: $current);
+                $ok = $expected > 0;
+                $clearedAsset = ! $source['receipt_entry_id'] && $current > 0 && ShelterCostEntry::query()->where('contract_id', $contract->id)
+                    ->where('kind', ShelterCostEntry::KIND_CAPITALIZE_OFFICE_COST)->where('asset_account_id', $current)->exists();
+                $detail = ! $ok ? 'لا يوجد حساب دائن لبند تحميل المكتب. عدّل المسودة واختر الحساب.'
+                    : ($keepsShelterBalance
+                        ? 'سيُقيد دائناً على ' . $account($expected) . ' حسب اختيارك. رصيد الإيواء (حركة #' . $source['receipt_entry_id'] . ') يبقى كما هو ويُسوّى عند خروج العاملة. الحساب المقترح كان ' . $account($forced) . '.'
+                        : 'سيُقيد دائناً على ' . $account($expected) . ($source['receipt_entry_id'] ? ' (رصيد الإيواء، حركة #' . $source['receipt_entry_id'] . ')' : '') . '.');
+                if ($clearedAsset) {
+                    [$ok, $detail] = [false, 'رصيد الإيواء تمت تصفيته (خروج أو ترحيل)، والمسودة ما زالت على حساب أصل الإيواء ' . $account($current)
+                        . '. قرار محاسبي: افتح «تعديل المسودة» واختر حساب مردودات تكلفة الاستقدام' . ($source['account_id'] ? ' (المقترح: ' . $account($source['account_id']) . ')' : '')
+                        . '، أو احذف البند إن كانت التكلفة سُوّيت في الترحيل.'];
+                }
+                if ($ok && $expected !== $current) {
+                    $detail .= ' الحساب المحفوظ في المسودة (' . ($current ? $account($current) : 'غير محدد') . ') سيُصحَّح تلقائياً عند الاعتماد لأن حالة الإيواء تغيّرت بعد تجهيز المسودة.';
+                }
+                if ($ok && $source['receipt_entry_id'] && ! $keepsShelterBalance) {
+                    $summary = app(ShelterAgentCostRecoveryService::class)->summary($contract);
+                    $remaining = (float) ($summary['lots'][$source['receipt_entry_id']]['remaining'] ?? 0);
+                    if ($summary['issues']) {
+                        [$ok, $detail] = [false, 'اختلافات في دفتر الإيواء: ' . implode(' ', $summary['issues']) . ' اطلب من المحاسب مراجعتها.'];
+                    } elseif ((float) $officeLine->approved_amount > $remaining + 0.009) {
+                        [$ok, $detail] = [false, 'مبلغ التحميل ' . number_format((float) $officeLine->approved_amount, 2) . ' أكبر من رصيد الإيواء المتاح ' . number_format($remaining, 2) . '. عدّل المسودة.'];
+                    }
+                }
+            }
+            $steps[] = ['key' => 'office', 'title' => 'تحميل المكتب الخارجي', 'ok' => $ok, 'detail' => $detail];
+        }
+
+        // 6) Shelter cost line would capitalize the office cost a second time
+        if ($draftLines->firstWhere('type', 'shelter_cost') && ($existing = ShelterCostEntry::query()->where('contract_id', $contract->id)
+                ->where('kind', ShelterCostEntry::KIND_CAPITALIZE_OFFICE_COST)->latest('id')->first())) {
+            $steps[] = ['key' => 'shelter_cost', 'title' => 'تكلفة الإيواء', 'ok' => false,
+                'detail' => 'تكلفة المكتب نُقلت للإيواء مسبقاً (حركة #' . $existing->id . ' بمبلغ ' . number_format((float) $existing->amount, 2) . '). احذف بند «تكلفة الإيواء» من المسودة حتى لا تُنقل مرتين.'];
+        }
+
+        return $steps;
     }
 
     public function createDraft(Contract $contract, array $data): ContractReturnSettlement
@@ -122,9 +285,17 @@ class PostArrivalRefundService
                 }
                 if ($type === 'office_charge'
                     && ($line['settlement_method'] ?? 'claim') !== 'next_dispatch_deduction'
-                    && empty($line['credit_account_id'])
-                    && ! empty($proposal['office_charge_credit_account_id'])) {
+                    && ! empty($proposal['office_charge_credit_account_id'])
+                    && empty($line['credit_account_id'])) {
                     $line['credit_account_id'] = $proposal['office_charge_credit_account_id'];
+                }
+                if ($type === 'client_deduction' && empty($line['credit_account_id']) && ! empty($proposal['client_deduction_credit_account_id'])) {
+                    $line['credit_account_id'] = $proposal['client_deduction_credit_account_id'];
+                }
+                if ($type === 'shelter_cost' && ! empty($proposal['office_charge_receipt_entry_id'])) {
+                    throw ValidationException::withMessages([
+                        "lines.{$index}.approved_amount" => 'تكلفة المكتب نُقلت للإيواء تلقائياً عند دخول العاملة (حركة الإيواء #' . $proposal['office_charge_receipt_entry_id'] . '). ألغِ اختيار بند «تكلفة الإيواء» حتى لا تُنقل مرتين.',
+                    ]);
                 }
                 $needsCreditAccount = $type === 'client_deduction'
                     || ($type === 'office_charge' && ($line['settlement_method'] ?? 'claim') !== 'next_dispatch_deduction');
@@ -188,10 +359,10 @@ class PostArrivalRefundService
                     'invoice_id' => 'تغيرت فاتورة إيراد العقد أو كانت المسودة مرتبطة بفاتورة إغلاق. عدّل المسودة وراجع المبالغ قبل الاعتماد.',
                 ]);
             }
-            $eligibleOperationalState = $this->commissionService->isReturned($settlement->contract);
-            if (! $eligibleOperationalState) {
+            if (! $this->returnEvent($settlement->contract)) {
                 throw ValidationException::withMessages([
-                    'contract_id' => 'يمكن تجهيز المسودة الآن، لكن يجب اعتماد طلب الإرجاع أو إدخال العاملة إلى الإيواء قبل اعتماد المستند وإنشاء القيود.',
+                    'contract_id' => 'لا يمكن الاعتماد: العقد #' . $settlement->contract_id . ' (' . getContractStatus($settlement->contract->status) . ') '
+                        . 'لم يُسجَّل له حدث إرجاع بعد الوصول. أدخل العاملة الإيواء، أو سجّل بلاغ هروب، أو ابدأ إجراءات الترحيل، ثم أعد الاعتماد. راجع «خطوات الاعتماد» أعلى المستند.',
                 ]);
             }
             if (! $this->yearService->checkDateRange($settlement->settlement_date->toDateString())) {
@@ -256,6 +427,12 @@ class PostArrivalRefundService
         }
 
         if ($line->type === 'shelter_cost') {
+            $existing = ShelterCostEntry::query()->where('contract_id', $contract->id)
+                ->where('kind', ShelterCostEntry::KIND_CAPITALIZE_OFFICE_COST)->latest('id')->first();
+            if ($existing) {
+                throw ValidationException::withMessages(['shelter_cost' => 'تكلفة المكتب نُقلت للإيواء مسبقاً (حركة الإيواء #' . $existing->id
+                    . ' بمبلغ ' . number_format((float) $existing->amount, 2) . '). افتح «تعديل المسودة» وألغِ بند «تكلفة الإيواء» حتى لا تُنقل مرتين.']);
+            }
             $result = $this->shelterLedger->capitalizeOfficeCost(
                 $contract,
                 (float) $line->approved_amount,
@@ -295,7 +472,7 @@ class PostArrivalRefundService
             if (abs((float) $item->commission_amount - (float) $line->approved_amount) > 0.009) {
                 throw new \RuntimeException('استرجاع عمولة المسوق الجزئي غير مدعوم؛ يجب أن يساوي البند كامل العمولة المعتمدة.');
             }
-            $item = $this->commissionService->resolveSettlement($item, RecruitmentCommissionService::SETTLEMENT_DEDUCTED, (int) Auth::guard('admin')->id(), $line->reason ?: $statement);
+            $item = $this->commissionService->resolveSettlement($item, RecruitmentCommissionService::SETTLEMENT_DEDUCTED, (int) Auth::guard('admin')->id(), $line->reason ?: $statement, null, true);
             $line->update(['status' => 'posted', 'metadata' => ['commission_item_id' => $item->id, 'commission_reversal_transaction_id' => $item->commission_reversal_transaction_id]]);
             return;
         }
@@ -329,8 +506,24 @@ class PostArrivalRefundService
         if ($line->type === 'office_charge') {
             $source = $this->officeChargeCreditAccount($contract);
             $receiptId = $source['receipt_entry_id'];
+            // The draft may predate a shelter admission or exit. The correct credit account follows
+            // the shelter state at posting time, so align it instead of rejecting the document.
+            $expected = $this->expectedOfficeChargeAccount($contract, $creditAccountId);
+            if ($expected && $expected !== $creditAccountId) {
+                if ($this->officeLinePredatesShelterReceipt($line, (int) $receiptId)) {
+                    $line->update([
+                        'credit_account_id' => $expected,
+                        'metadata' => array_replace($line->metadata ?? [], ['credit_account_realigned_from' => $creditAccountId, 'credit_account_source' => $source['source']]),
+                    ]);
+                    $creditAccountId = $expected;
+                } else {
+                    // Accountant chose another account after admission: the shelter balance is not
+                    // reduced here (no ledger entry) and is settled later at the worker's exit.
+                    $line->update(['metadata' => array_replace($line->metadata ?? [], ['shelter_receipt_entry_id' => null, 'shelter_balance_kept' => true])]);
+                    $receiptId = null;
+                }
+            }
             if (! $receiptId) {
-                // An edited draft may still carry the reference from before departure.
                 $line->update(['metadata' => array_replace($line->metadata ?? [], ['shelter_receipt_entry_id' => null])]);
                 if (ShelterCostEntry::query()->where('contract_id', $contract->id)
                     ->where('kind', ShelterCostEntry::KIND_CAPITALIZE_OFFICE_COST)
@@ -339,9 +532,6 @@ class PostArrivalRefundService
                 }
             }
             if ($receiptId) {
-                if ((int) $source['account_id'] !== $creditAccountId) {
-                    throw ValidationException::withMessages(['office_charge' => 'تعذر اعتماد تحميل المكتب الخارجي: الحساب المحدد في المسودة لا يطابق حساب رصيد الإيواء الحالي. افتح «تعديل المسودة»، واختر الحساب المقترح لبند تحميل المكتب الخارجي، ثم احفظ وأعد الاعتماد.']);
-                }
                 $summary = app(ShelterAgentCostRecoveryService::class)->summary($contract);
                 $remaining = $summary['lots'][$receiptId]['remaining'] ?? 0;
                 if ($summary['issues'] || (float) $line->approved_amount > $remaining || $remaining <= 0) {
@@ -512,6 +702,38 @@ class PostArrivalRefundService
     }
 
     /** الحساب المقابل لتحميل المكتب: أصل الإيواء المثبت أولاً، وإلا مردودات تكلفة الجنسية. */
+    /**
+     * While the worker has an open shelter balance the office charge can only reduce
+     * that balance, so its credit account is forced. Returns null otherwise: after the
+     * balance is cleared the account is the accountant's decision (see post guards).
+     */
+    private function expectedOfficeChargeAccount(Contract $contract, int $currentAccountId): ?int
+    {
+        $source = $this->officeChargeCreditAccount($contract);
+        return $source['receipt_entry_id'] && $source['account_id'] ? (int) $source['account_id'] : null;
+    }
+
+    /** A draft line saved before the shelter admission still carries the pre-admission account. */
+    private function officeLinePredatesShelterReceipt(ContractReturnSettlementLine $line, int $receiptId): bool
+    {
+        $receipt = $receiptId ? ShelterCostEntry::query()->find($receiptId) : null;
+        return $receipt && $line->created_at && $receipt->created_at && $line->created_at->lt($receipt->created_at);
+    }
+
+    /** Suggested credit for the stay deduction: the nationality's cost of sales (company practice). */
+    private function clientDeductionAccount(Contract $contract): array
+    {
+        $nationality = $this->shelterLedger->nationalityOf($contract);
+        $name = trim((string) ($nationality?->sub_title ?: $nationality?->title ?: ''));
+        $id = $name !== '' ? app(RecruitmentTripAccountingService::class)->resolveCostOfSalesAccountId($name, $nationality?->id) : null;
+        $account = $id ? Account::query()->whereKey($id)->whereDoesntHave('children')->first() : null;
+        return [
+            'client_deduction_credit_account_id' => (int) ($account?->id ?: 0),
+            'client_deduction_credit_account_code' => $account?->code,
+            'client_deduction_credit_account_name' => $account?->name,
+        ];
+    }
+
     private function officeChargeCreditAccount(Contract $contract): array
     {
         $supplierConstraintId = (int) ($contract->invoice?->external_office_cost_constraint_id ?: 0);

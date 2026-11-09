@@ -243,7 +243,7 @@ class OperationalSummaryExportService
         foreach ($section['rows'] as $row) {
             $line = [
                 (string) ($row->contract_number ?: '—')
-                    . (isset($row->document_type) ? ' / ' . ($row->document_type === 'extension' ? 'تمديد' : 'فاتورة أساسية') . ' #' . $row->id : ''),
+                    . (isset($row->document_type) ? ' / ' . (\Nami\Finance\Services\RentalReceivablesLedger::TYPE_LABELS[$row->document_type] ?? 'فاتورة أساسية') . ' #' . $row->id : ''),
                 (string) ($row->client_name ?: '—'),
                 (string) ($row->client_phone ?: '—'),
                 (string) ($row->client_identity ?: '—'),
@@ -257,7 +257,7 @@ class OperationalSummaryExportService
             }
 
             $line[] = $row->remaining_amount;
-            $line[] = (string) ($row->payment_status ?? 'unpaid');
+            $line[] = \Nami\Finance\Services\RentalReceivablesLedger::paymentStatusLabel($row->payment_status ?? null);
             $rows[] = $line;
         }
 

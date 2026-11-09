@@ -11,6 +11,15 @@
         @endif
     </div>
     @if(session('success')) <div class="alert alert-success">{{ session('success') }}</div> @endif
+    @php($readyCount = $readiness->filter(fn ($missing) => empty($missing))->count())
+    @php($blockedCount = $readiness->count() - $readyCount)
+    @if($readiness->isNotEmpty())
+        <div class="alert alert-light border d-flex gap-3 flex-wrap">
+            <span><i class="fas fa-circle-check text-success"></i> مسودات جاهزة للاعتماد في هذه الصفحة: <strong>{{ $readyCount }}</strong></span>
+            <span><i class="fas fa-circle-xmark text-danger"></i> مسودات تنقصها خطوات: <strong>{{ $blockedCount }}</strong></span>
+            <a href="{{ request()->fullUrlWithQuery(['status' => 'draft']) }}">عرض المسودات فقط</a>
+        </div>
+    @endif
     <form method="get" class="card card-body mb-3">
         <div class="row g-2 align-items-end">
             <div class="col-md-4"><label class="form-label">بحث</label><input name="q" value="{{ request('q') }}" class="form-control" placeholder="رقم المستند أو العقد أو العميل أو العاملة"></div>
@@ -25,7 +34,12 @@
             <td>{{ $item->id }}</td><td>{{ optional($item->settlement_date)->format('Y-m-d') }}</td><td>#{{ $item->contract_id }}</td>
             <td>{{ $item->contract?->user?->name ?: '-' }}<br><small class="text-muted">{{ $item->contract?->maid?->name ?: '-' }}</small></td>
             <td>{{ $item->reasonCode?->name ?: $item->reason }}</td><td>{{ $item->lines_count }}</td><td>{{ number_format((float)$item->client_due_amount,2) }}</td>
-            <td><span class="badge bg-{{ $item->status==='draft'?'warning':'success' }}">{{ ['draft'=>'مسودة','posted'=>'معتمد','partially_paid'=>'مسدد جزئياً','closed'=>'مغلق'][$item->status] ?? $item->status }}</span></td>
+            <td><span class="badge bg-{{ $item->status==='draft'?'warning':'success' }}">{{ ['draft'=>'مسودة','posted'=>'معتمد','partially_paid'=>'مسدد جزئياً','closed'=>'مغلق'][$item->status] ?? $item->status }}</span>
+                @if($readiness->has($item->id))
+                    @if(empty($readiness[$item->id]))<br><small class="text-success"><i class="fas fa-circle-check"></i> جاهزة للاعتماد</small>
+                    @else<br><small class="text-danger"><i class="fas fa-circle-xmark"></i> ناقص: {{ implode('، ', $readiness[$item->id]) }}</small>@endif
+                @endif
+            </td>
             <td><a href="{{ route('post-arrival-refunds.show',$item) }}" class="btn btn-sm btn-outline-primary">عرض</a></td>
         </tr>@empty<tr><td colspan="9" class="text-center py-5 text-muted">لا توجد مستندات مسجلة.</td></tr>@endforelse</tbody>
     </table></div></div>

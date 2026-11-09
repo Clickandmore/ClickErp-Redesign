@@ -758,6 +758,7 @@ $permissions = ['printSettings.create', 'letters.index', 'officialVacations.inde
     {{ in_array(Route::currentRouteName(), [
         'finance.account-cost-centers.index',
         'finance.operational-summary.index',
+        'finance.client-receivables.index',
         'finance.cash-movements.index',
         'finance.daily-cash-reference-lines.index',
         'finance.account-statement.index',
@@ -782,6 +783,7 @@ $permissions = ['printSettings.create', 'letters.index', 'officialVacations.inde
                                      {{ in_array(Route::currentRouteName(), [
                                          'finance.account-cost-centers.index',
                                          'finance.operational-summary.index',
+                                         'finance.client-receivables.index',
                                          'finance.cash-movements.index',
                                          'finance.daily-cash-reference-lines.index',
                                          'finance.account-statement.index',
@@ -831,6 +833,13 @@ $permissions = ['printSettings.create', 'letters.index', 'officialVacations.inde
             </a>
         </li>
         {{--        @endif --}}
+        @if(app(\App\Http\Middleware\EnsurePackageRoutePermission::class)->allows(auth('admin')->user(), 'finance.client-receivables.index', 'finance'))
+        <li>
+            <a class="m-link {{ Route::currentRouteName() == 'finance.client-receivables.index' ? 'active' : '' }}" href="{{ route('finance.client-receivables.index') }}">
+                <span class="ms-2">المستحق على عملاء التأجير</span>
+            </a>
+        </li>
+        @endif
         {{--        @if (in_array('finance.account-cost-centers-read', $user_permission_list)) --}}
         <li>
             <a class="m-link {{ Route::currentRouteName() == 'finance.account-cost-centers.index' ? 'active' : '' }}"
@@ -902,7 +911,6 @@ $permissions = ['printSettings.create', 'letters.index', 'officialVacations.inde
         'finance.profit-loss.index',
         'finance.audit-budget-supplier.index',
         'finance.client-trial-balance.index',
-        'finance.client-receivables.index',
         'finance.trail-balance.index',
         'finance.audit-budget-monthly.index',
     ]) &&
@@ -922,8 +930,6 @@ $permissions = ['printSettings.create', 'letters.index', 'officialVacations.inde
                                          'finance.profit-loss.index',
                                          'finance.audit-budget-supplier.index',
                                          'finance.client-trial-balance.index',
-                                         'finance.client-receivables.index',
-        'finance.client-trial-balance.index',
                                          'finance.trail-balance.index',
                                          'finance.audit-budget-monthly.index',
                                      ]) &&
@@ -966,13 +972,6 @@ $permissions = ['printSettings.create', 'letters.index', 'officialVacations.inde
                 <span class="ms-2"> ميزان مراجعة العملاء </span>
             </a>
         </li>
-        @if(app(\App\Http\Middleware\EnsurePackageRoutePermission::class)->allows(auth('admin')->user(), 'finance.client-receivables.index', 'finance'))
-        <li>
-            <a class="m-link {{ Route::currentRouteName() == 'finance.client-receivables.index' ? 'active' : '' }}" href="{{ route('finance.client-receivables.index') }}">
-                <span class="ms-2">مستحقات العملاء وعقود الإيجار</span>
-            </a>
-        </li>
-        @endif
         {{--        @if (in_array('finance.audit-budget-supplier-read', $user_permission_list)) --}}
         <li>
             <a class="m-link {{ Route::currentRouteName() == 'finance.audit-budget-supplier.index' ? 'active' : '' }}"

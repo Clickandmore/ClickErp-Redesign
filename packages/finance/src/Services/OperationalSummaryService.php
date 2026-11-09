@@ -19,7 +19,10 @@ use Nami\Finance\Models\Constraint;
  * مصادر الأرقام مقصودة ومختلفة عن قائمة الدخل المحاسبية:
  *   - المبيعات   = قيمة الفواتير الصادرة فعلياً (تأجير + استقدام + تفاويض + تسويات التأجير).
  *     فواتير التفاويض مستثناة من عمود الاستقدام لأنها تُعرض في عمودها الخاص.
- *   - المحصّل    = paid_amount / is_paid على نفس الفواتير، لا سندات القبض.
+ *   - المحصّل    = للاستقدام is_paid على نفس الفواتير. للتأجير ما سُدِّد فعلاً من
+ *     فواتير الفترة بعد توزيع سندات القبض (RentalReceivablesLedger).
+ *   - ذمم التأجير = كشف حركة كل عقد من حساب العميل في الأستاذ، لا لقطة الفاتورة.
+ *     فواتير وإشعارات إنهاء التأجير القديمة تُحتسب تأجيراً لا استقداماً.
  *   - الاستحقاقات للمكاتب = رصيد حساب المكتب في الأستاذ (دائن - مدين)، لأن هذا
  *     هو الرقم الذي تُسدَّد عليه الحوالة فعلياً وليس تكلفة العقد المعلنة.
  */
@@ -27,6 +30,8 @@ class OperationalSummaryService extends MainService
 {
     /** Cache schema inspection for legacy rental invoice mirrors during this PHP process. */
     private static ?bool $rentalMirrorColumn = null;
+
+    private ?RentalReceivablesLedger $rentalLedger = null;
 
     /** حدود شرائح التقادم بالأيام. */
     private const AGING_BUCKETS = [30, 60, 90];
@@ -70,14 +75,7 @@ class OperationalSummaryService extends MainService
         $receivablesFrom = $scope === self::SCOPE_PERIOD ? $from : null;
 
         $sales = $this->sales($from, $to, $musanedStatus);
-        $rental = $this->receivableSection(
-            fn () => $this->rentalReceivableQuery($receivablesFrom, $to),
-            'rental_contract_invoices.created_at',
-            'rental_contract_invoices.remaining_amount',
-            $to,
-            (int) ($options['rental_page'] ?? 1),
-            $perPage
-        );
+        $rental = $this->rentalReceivableSection($receivablesFrom, $to, (int) ($options['rental_page'] ?? 1), $perPage);
         $recruitment = $this->receivableSection(
             fn () => $this->recruitmentReceivableQuery($receivablesFrom, $to, $musanedStatus),
             'invoices.created_at',
@@ -96,10 +94,7 @@ class OperationalSummaryService extends MainService
         $offices = $this->externalOffices($from, $to);
 
         if ($scope === self::SCOPE_PERIOD) {
-            $rental['outstanding_all'] = $this->receivableGrandTotal(
-                fn () => $this->rentalReceivableQuery(null, $to),
-                'rental_contract_invoices.remaining_amount'
-            );
+            $rental['outstanding_all'] = round((float) $this->rentalLedger()->openItems($to)->sum('remaining_amount'), 2);
             $recruitment['outstanding_all'] = $this->receivableGrandTotal(
                 fn () => $this->recruitmentReceivableQuery(null, $to, $musanedStatus),
                 'invoices.total_due'
@@ -161,8 +156,8 @@ class OperationalSummaryService extends MainService
         $rentalSales = $this->rentalBillingQuery()
             ->whereBetween(DB::raw('DATE(rental_contract_invoices.created_at)'), [$from, $to])
             ->selectRaw('COALESCE(SUM(total_due), 0) as invoiced')
-            ->selectRaw('COALESCE(SUM(paid_amount), 0) as collected')
             ->first();
+        $rentalSales->collected = round((float) $this->rentalLedger()->billedItems($from, $to)->sum('paid_amount'), 2);
 
         // التفاويض تبقى محتسبة هنا لأن هذا الرقم هو إجمالي المبيعات للوحة المالية.
         $recruitmentSales = $this->withoutRentalMirrors($this->scoped('invoices'))
@@ -171,12 +166,11 @@ class OperationalSummaryService extends MainService
             ->selectRaw('COALESCE(SUM(CASE WHEN is_paid = 1 THEN total_due ELSE 0 END), 0) as collected')
             ->first();
 
-        $rentalOutstanding = DB::query()->fromSub($this->rentalReceivableBillingQuery($to), 'rental_contract_invoices')
-            ->whereDate('rental_contract_invoices.created_at', '<=', $to)
-            ->where('remaining_amount', '>', 0)
-            ->selectRaw('COUNT(*) as documents')
-            ->selectRaw('COALESCE(SUM(remaining_amount), 0) as remaining')
-            ->first();
+        $rentalOpen = $this->rentalLedger()->openItems($to);
+        $rentalOutstanding = (object) [
+            'documents' => $rentalOpen->count(),
+            'remaining' => round((float) $rentalOpen->sum('remaining_amount'), 2),
+        ];
 
         $recruitmentOutstanding = $this->withoutRentalMirrors($this->scoped('invoices'))
             ->whereDate('invoices.created_at', '<=', $to)
@@ -326,44 +320,24 @@ class OperationalSummaryService extends MainService
         return DB::query()->fromSub($invoices->unionAll($extensions), 'rental_contract_invoices');
     }
 
-    /** Apply contract credits once, oldest outstanding document first, before period filtering. */
-    public function rentalReceivableBillingQuery(string $to): Builder
-    {
-        $credits = $this->scoped('rental_financial_adjustments')
-            ->whereIn('context', ['closure', 'manual_credit_note', 'closure_correction'])
-            ->whereDate(DB::raw('COALESCE(issue_date, created_at)'), '<=', $to)
-            ->select('rental_contract_id')
-            ->selectRaw("SUM(CASE WHEN type = 'expense' THEN amount WHEN type = 'income' THEN -amount ELSE 0 END) as credit")
-            ->groupBy('rental_contract_id');
-
-        $documents = $this->rentalBillingQuery()
-            ->whereDate('created_at', '<=', $to);
-        $ordered = DB::query()->fromSub($documents, 'documents')
-            ->select('documents.*')
-            ->selectRaw('COALESCE(SUM(remaining_amount) OVER (PARTITION BY rental_contract_id ORDER BY created_at, document_type, id ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING), 0) as earlier_remaining')
-            ->selectRaw('ROW_NUMBER() OVER (PARTITION BY rental_contract_id ORDER BY created_at, document_type, id) as document_position');
-        $allocated = DB::query()->fromSub($ordered, 'documents')
-            ->leftJoinSub($credits, 'credits', 'credits.rental_contract_id', '=', 'documents.rental_contract_id')
-            ->select('documents.*')
-            ->selectRaw('CASE WHEN COALESCE(credits.credit, 0) >= 0 THEN LEAST(documents.remaining_amount, GREATEST(COALESCE(credits.credit, 0) - documents.earlier_remaining, 0)) WHEN documents.document_position = 1 THEN credits.credit ELSE 0 END as adjustment_amount');
-
-        return DB::query()->fromSub($allocated, 'documents')->select([
-            'id', 'rental_contract_id', 'total_due', 'paid_amount',
-            'payment_type', 'created_at', 'document_type', 'adjustment_amount',
-        ])->selectRaw('ROUND(remaining_amount - adjustment_amount, 2) as remaining_amount')
-            ->selectRaw("CASE WHEN ROUND(remaining_amount - adjustment_amount, 2) <= 0 THEN 'paid' WHEN paid_amount > 0 THEN 'partial' ELSE payment_status END as payment_status");
-    }
-
+    /**
+     * المحصّل من فواتير الشهر = ما سُدِّد منها فعلاً بعد توزيع سندات القبض
+     * (ومنها ميسر) — لا حقل paid_amount المحفوظ الذي لا يتحدّث مع كل سند.
+     */
     private function monthlyRentalSales(string $from, string $to): Collection
     {
+        $collected = $this->rentalLedger()->billedItems($from, $to)
+            ->groupBy(fn ($item) => substr((string) $item->date, 0, 7))
+            ->map(fn ($items) => round((float) $items->sum('paid_amount'), 2));
+
         return $this->rentalBillingQuery()
             ->whereBetween(DB::raw('DATE(rental_contract_invoices.created_at)'), [$from, $to])
             ->selectRaw("DATE_FORMAT(rental_contract_invoices.created_at, '%Y-%m') as period")
             ->selectRaw('COUNT(*) as documents')
             ->selectRaw('COALESCE(SUM(total_due), 0) as invoiced')
-            ->selectRaw('COALESCE(SUM(paid_amount), 0) as collected')
             ->groupBy('period')
             ->get()
+            ->each(fn ($row) => $row->collected = $collected->get($row->period, 0.0))
             ->keyBy('period');
     }
 
@@ -420,7 +394,7 @@ class OperationalSummaryService extends MainService
      */
     private function monthlyRentalAdjustments(string $from, string $to): Collection
     {
-        return $this->scoped('rental_financial_adjustments')
+        $current = $this->scoped('rental_financial_adjustments')
             ->where('type', 'income')
             ->whereBetween(DB::raw('DATE(COALESCE(issue_date, rental_financial_adjustments.created_at))'), [$from, $to])
             ->selectRaw("DATE_FORMAT(COALESCE(issue_date, rental_financial_adjustments.created_at), '%Y-%m') as period")
@@ -430,30 +404,95 @@ class OperationalSummaryService extends MainService
             ->groupBy('period')
             ->get()
             ->keyBy('period');
+
+        // فواتير وإشعارات إنهاء التأجير المستوردة من النظام القديم: كانت تُحتسب
+        // مبيعات استقدام (والإشعار الدائن موجباً). هنا تُحتسب تسويات تأجير بإشارتها.
+        $sign = "CASE WHEN invoices.legacy_document_type = 'اشعار دائن' THEN -1 ELSE 1 END";
+        $legacy = $this->scoped('invoices')
+            ->whereIn('invoices.legacy_invoice_type', RentalReceivablesLedger::LEGACY_RENTAL_TYPES)
+            ->where(function ($query) {
+                $query->where('invoices.legacy_invoice_type', '!=', 'تأجير')
+                    ->orWhere('invoices.legacy_document_type', '!=', 'فاتورة');
+            })
+            ->whereNotExists(fn ($sub) => $sub->selectRaw('1')->from('rental_contract_invoices as rental_mirror')
+                ->whereColumn('rental_mirror.legacy_invoice_id', 'invoices.id'))
+            ->whereBetween(DB::raw('DATE(invoices.created_at)'), [$from, $to])
+            ->selectRaw("DATE_FORMAT(invoices.created_at, '%Y-%m') as period")
+            ->selectRaw('COUNT(*) as documents')
+            ->selectRaw("COALESCE(SUM({$sign} * total_due), 0) as invoiced")
+            ->selectRaw("COALESCE(SUM(CASE WHEN is_paid = 1 THEN {$sign} * total_due ELSE 0 END), 0) as collected")
+            ->groupBy('period')
+            ->get()
+            ->keyBy('period');
+
+        foreach ($legacy as $period => $row) {
+            $base = $current->get($period);
+            $current->put($period, (object) [
+                'period' => $period,
+                'documents' => (int) ($base->documents ?? 0) + (int) $row->documents,
+                'invoiced' => (float) ($base->invoiced ?? 0) + (float) $row->invoiced,
+                'collected' => (float) ($base->collected ?? 0) + (float) $row->collected,
+            ]);
+        }
+
+        return $current;
+    }
+
+    private function rentalLedger(): RentalReceivablesLedger
+    {
+        return $this->rentalLedger ??= app(RentalReceivablesLedger::class);
+    }
+
+    /**
+     * ذمم التأجير من كشف حركة كل عقد: ما بقي مفتوحاً من كل مطالبة بعد توزيع
+     * سندات القبض والإشعارات الدائنة وحركات حساب العميل.
+     */
+    private function rentalReceivableSection(?string $from, string $to, int $page, ?int $perPage): array
+    {
+        $rows = $this->rentalLedger()->openItems($to, $from)
+            ->map(function ($row) use ($to) {
+                $row->payment_status = RentalReceivablesLedger::statusOf($row);
+
+                return $this->decorateAge($row, $to);
+            })
+            // الأحدث أولاً، ثم الأعلى متبقياً لنفس التاريخ.
+            ->sort(fn ($a, $b) => [substr((string) $b->invoiced_at, 0, 10), $b->remaining_amount] <=> [substr((string) $a->invoiced_at, 0, 10), $a->remaining_amount])
+            ->values();
+
+        $aging = array_fill_keys(array_map(fn ($limit) => 'd' . $limit, self::AGING_BUCKETS), 0.0) + ['over' => 0.0, 'unknown' => 0.0];
+        foreach ($rows as $row) {
+            $aging[$row->aging_bucket] = round($aging[$row->aging_bucket] + $row->remaining_amount, 2);
+        }
+
+        $total = $rows->count();
+        $paginator = null;
+        $pageRows = $rows;
+        if ($perPage !== null) {
+            $perPage = max(1, $perPage);
+            $page = min(max(1, $page), max(1, (int) ceil($total / $perPage)));
+            $pageRows = $rows->forPage($page, $perPage)->values();
+            $paginator = new LengthAwarePaginator($pageRows, $total, $perPage, $page);
+        }
+
+        return [
+            'rows' => $pageRows,
+            'paginator' => $paginator,
+            'aging' => $aging,
+            'totals' => [
+                'documents' => $total,
+                'clients' => $rows->pluck('client_id')->filter()->unique()->count(),
+                'invoiced' => round((float) $rows->sum('total_due'), 2),
+                'paid' => round((float) $rows->sum('paid_amount'), 2),
+                'adjustments' => round((float) $rows->sum(fn ($row) => $row->adjustment_amount + $row->offset_amount), 2),
+                'remaining' => round((float) $rows->sum('remaining_amount'), 2),
+                'oldest_days' => (int) ($rows->max('age_days') ?? 0),
+            ],
+        ];
     }
 
     /* ------------------------------------------------------------------ */
     /* الذمم — عملاء مفوترون لم يسددوا                                     */
     /* ------------------------------------------------------------------ */
-
-    /**
-     * عملاء عقود التأجير الذين صدرت لهم فاتورة ولم تُسدَّد بالكامل حتى $to.
-     * تمرير $from يقصر النتيجة على الفواتير الصادرة داخل الفترة.
-     */
-    private function rentalReceivableQuery(?string $from, string $to): Builder
-    {
-        $query = DB::query()->fromSub($this->rentalReceivableBillingQuery($to), 'rental_contract_invoices')
-            ->join('rental_contracts', 'rental_contracts.id', '=', 'rental_contract_invoices.rental_contract_id')
-            ->leftJoin('users', 'users.id', '=', 'rental_contracts.user_id')
-            ->whereDate('rental_contract_invoices.created_at', '<=', $to)
-            ->where('rental_contract_invoices.remaining_amount', '>', 0);
-
-        if ($from !== null) {
-            $query->whereDate('rental_contract_invoices.created_at', '>=', $from);
-        }
-
-        return $query;
-    }
 
     /**
      * فواتير الاستقدام غير المحصّلة — لا يوجد سداد جزئي على هذا الجدول،
@@ -527,40 +566,19 @@ class OperationalSummaryService extends MainService
      */
     private function receivableColumns(string $dateColumn): array
     {
-        if ($dateColumn === 'invoices.created_at') {
-            return [
-                'invoices.id',
-                'invoices.contract_id',
-                'invoices.total_due',
-                DB::raw('COALESCE(sponsorship_transfers.paid_amount, 0) as paid_amount'),
-                DB::raw('GREATEST(invoices.total_due - COALESCE(sponsorship_transfers.paid_amount, 0), 0) as remaining_amount'),
-                'invoices.created_at as invoiced_at',
-                DB::raw('COALESCE(transfer_service_contracts.contract_number, contracts.arabia_order_number, invoices.legacy_invoice_number, invoices.id) as contract_number'),
-                'users.id as client_id',
-                'users.name as client_name',
-                'users.phone as client_phone',
-                'users.national_num as client_identity',
-                DB::raw("'unpaid' as payment_status"),
-            ];
-        }
-
         return [
-            'rental_contract_invoices.id',
-            'rental_contract_invoices.document_type',
-            'rental_contract_invoices.rental_contract_id',
-            'rental_contract_invoices.total_due',
-            'rental_contract_invoices.paid_amount',
-            'rental_contract_invoices.remaining_amount',
-            'rental_contract_invoices.adjustment_amount',
-            'rental_contract_invoices.payment_type',
-            'rental_contract_invoices.payment_status',
-            'rental_contract_invoices.created_at as invoiced_at',
-            'rental_contracts.contract_number',
+            'invoices.id',
+            'invoices.contract_id',
+            'invoices.total_due',
+            DB::raw('COALESCE(sponsorship_transfers.paid_amount, 0) as paid_amount'),
+            DB::raw('GREATEST(invoices.total_due - COALESCE(sponsorship_transfers.paid_amount, 0), 0) as remaining_amount'),
+            'invoices.created_at as invoiced_at',
+            DB::raw('COALESCE(transfer_service_contracts.contract_number, contracts.arabia_order_number, invoices.legacy_invoice_number, invoices.id) as contract_number'),
             'users.id as client_id',
-            'users.account_id as client_account_id',
             'users.name as client_name',
             'users.phone as client_phone',
             'users.national_num as client_identity',
+            DB::raw("'unpaid' as payment_status"),
         ];
     }
 
@@ -579,9 +597,7 @@ class OperationalSummaryService extends MainService
         int $page,
         ?int $perPage
     ): array {
-        $totalColumn = $dateColumn === 'invoices.created_at'
-            ? 'invoices.total_due'
-            : 'rental_contract_invoices.total_due';
+        $totalColumn = 'invoices.total_due';
 
         $totalsQuery = $query()
             ->selectRaw('COUNT(*) as documents')
@@ -590,13 +606,9 @@ class OperationalSummaryService extends MainService
             ->selectRaw("COALESCE(SUM({$totalColumn}), 0) as invoiced")
             ->selectRaw("COALESCE(MAX(DATEDIFF(?, DATE({$dateColumn}))), 0) as oldest_days", [$to]);
 
-        if ($dateColumn !== 'invoices.created_at') {
-            $totalsQuery->selectRaw('COALESCE(SUM(rental_contract_invoices.paid_amount), 0) as actual_paid')
-                ->selectRaw('COALESCE(SUM(rental_contract_invoices.adjustment_amount), 0) as adjustments');
-        }
         $totals = $totalsQuery->first();
 
-        $paid = isset($totals->actual_paid) ? (float) $totals->actual_paid : (float) $totals->invoiced - (float) $totals->remaining;
+        $paid = (float) $totals->invoiced - (float) $totals->remaining;
         $aging = $this->receivableAging($query, $dateColumn, $remainingColumn, $to);
 
         $rowsQuery = $query()->select($this->receivableColumns($dateColumn));
@@ -1128,6 +1140,13 @@ class OperationalSummaryService extends MainService
      */
     private function withoutRentalMirrors(Builder $query): Builder
     {
+        // فواتير وإشعارات التأجير المستوردة من النظام القديم (إنهاء مبكر/متأخر،
+        // إشعارات مدينة ودائنة) تخص التأجير لا الاستقدام.
+        $query->where(function ($types) {
+            $types->whereNull('invoices.legacy_invoice_type')
+                ->orWhereNotIn('invoices.legacy_invoice_type', RentalReceivablesLedger::LEGACY_RENTAL_TYPES);
+        });
+
         if (!$this->rentalMirrorColumnExists()) {
             return $query;
         }

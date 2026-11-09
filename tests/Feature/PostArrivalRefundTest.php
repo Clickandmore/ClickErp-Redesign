@@ -145,6 +145,39 @@ class PostArrivalRefundTest extends TestCase
         app(PostArrivalRefundService::class)->post($settlement);
     }
 
+    public function test_readiness_lists_the_missing_return_step_and_clears_after_the_contract_is_returned(): void
+    {
+        $contract = $this->contractWithArrivalInvoice();
+        $contract->update(['status' => 'arrival']);
+        $reason = ReturnReasonCode::query()->firstOrCreate(['code' => 'arrival-draft'], ['name' => 'اختبار مسودة الوصول']);
+        $settlement = app(PostArrivalRefundService::class)->createDraft($contract->fresh(), [
+            'settlement_date' => now()->toDateString(),
+            'return_reason_code_id' => $reason->id,
+            'reason' => 'اختبار خطوات الاعتماد',
+            'lines' => [['enabled' => true, 'type' => 'credit_note', 'approved_amount' => (float) $contract->invoice->total_due]],
+        ]);
+
+        $steps = collect(app(PostArrivalRefundService::class)->readiness($settlement->fresh()))->keyBy('key');
+        $this->assertFalse($steps['returned']['ok']);
+        $this->assertStringContainsString('إدخال العاملة الإيواء، أو بلاغ هروب، أو بدء إجراءات الترحيل', $steps['returned']['detail']);
+        $this->assertArrayHasKey('invoice', $steps->all());
+
+        $service = app(PostArrivalRefundService::class);
+        $contract->escapeReports()->create(['escape_date' => now()->toDateString(), 'process_status' => 'escape_reported']);
+        $this->assertSame('escape', $service->returnEvent($contract->fresh())['type']);
+        $contract->escapeReports()->delete();
+
+        \App\Models\DeportationProcedure::query()->create(['contract_id' => $contract->id, 'maid_id' => $contract->maid_id ?: 0, 'status' => 'pending']);
+        $this->assertSame('deportation', $service->returnEvent($contract->fresh())['type']);
+        \App\Models\DeportationProcedure::query()->where('contract_id', $contract->id)->update(['status' => 'cancelled']);
+        $this->assertNull($service->returnEvent($contract->fresh()));
+
+        $contract->update(['status' => 'shelter']);
+        $steps = collect($service->readiness($settlement->fresh()))->keyBy('key');
+        $this->assertTrue($steps['returned']['ok']);
+        $this->assertSame('shelter', $service->returnEvent($contract->fresh())['type']);
+    }
+
     public function test_shelter_refund_posts_approved_marketer_commission_reversal(): void
     {
         $contract = $this->contractWithArrivalInvoice();

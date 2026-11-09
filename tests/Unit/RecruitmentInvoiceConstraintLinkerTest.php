@@ -164,6 +164,11 @@ class RecruitmentInvoiceConstraintLinkerTest extends TestCase
         }
         $result = (new LegacyInvoiceConstraintLinker())->inspect($this->invoice(), collect([$this->source()]));
         $this->assertSame($status, $result['status']);
+        if ($status === 'lines_mismatch') {
+            $this->assertSame('client_account', $result['reason']);
+            $this->assertSame(90, $result['client_account_id']);
+            $this->assertSame([91], $result['debit_account_ids']);
+        }
     }
 
     public static function customerAccounts(): array

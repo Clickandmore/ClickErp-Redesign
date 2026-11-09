@@ -353,7 +353,7 @@ class OperationalSummaryReportTest extends TestCase
         $section = $this->report()['rental_receivables'];
         $numbers = $section['rows']->pluck('contract_number')->all();
 
-        $this->assertSame(['RC-31-PARTIAL', 'RC-31-LATER'], $numbers, 'الفاتورة المسددة بالكامل لا تظهر، والترتيب بالأعلى متبقياً.');
+        $this->assertSame(['RC-31-LATER', 'RC-31-PARTIAL'], $numbers, 'الفاتورة المسددة بالكامل لا تظهر، والترتيب من الأحدث.');
         $this->assertSame(9000.0, $section['totals']['remaining']);
         $this->assertSame(2, $section['totals']['documents']);
         $this->assertSame(1, $section['totals']['clients']);
@@ -647,7 +647,7 @@ class OperationalSummaryReportTest extends TestCase
 
         $this->assertSame(7, $first['paginator']->total());
         $this->assertSame(3, $first['paginator']->lastPage());
-        $this->assertSame(['RC-31-P7', 'RC-31-P6', 'RC-31-P5'], $first['rows']->pluck('contract_number')->all(), 'الترتيب بالأعلى متبقياً عبر الصفحات.');
+        $this->assertSame(['RC-31-P7', 'RC-31-P6', 'RC-31-P5'], $first['rows']->pluck('contract_number')->all(), 'الترتيب من الأحدث عبر الصفحات.');
         $this->assertSame(['RC-31-P4', 'RC-31-P3', 'RC-31-P2'], $second['rows']->pluck('contract_number')->all());
 
         $expected = 28000.0;
@@ -674,12 +674,12 @@ class OperationalSummaryReportTest extends TestCase
         $sheet = $book->getSheetByName('ذمم التأجير');
 
         $this->assertSame('رقم العقد', $sheet->getCell('A3')->getValue(), 'رأس الجدول في السطر الثالث بعد العنوان وسطر النطاق.');
-        $this->assertSame('RC-31-PARTIAL / فاتورة أساسية #' . $report['rental_receivables']['rows'][0]->id, $sheet->getCell('A4')->getValue());
-        $this->assertSame('RC-31-LATER / فاتورة أساسية #' . $report['rental_receivables']['rows'][1]->id, $sheet->getCell('A5')->getValue());
+        $this->assertSame('RC-31-LATER / فاتورة أساسية #' . $report['rental_receivables']['rows'][0]->id, $sheet->getCell('A4')->getValue());
+        $this->assertSame('RC-31-PARTIAL / فاتورة أساسية #' . $report['rental_receivables']['rows'][1]->id, $sheet->getCell('A5')->getValue());
         $this->assertSame('الإجمالي', $sheet->getCell('A6')->getValue(), 'سطر الإجمالي يلي آخر صف بيانات مباشرة.');
         $this->assertSame(9000.0, $sheet->getCell('I6')->getValue());
 
-        $this->assertSame('4,000.00', $sheet->getCell('I5')->getFormattedValue(), 'أعمدة المبالغ بفواصل آلاف وخانتين عشريتين.');
+        $this->assertSame('5,000.00', $sheet->getCell('I5')->getFormattedValue(), 'أعمدة المبالغ بفواصل آلاف وخانتين عشريتين.');
         $this->assertTrue($sheet->getStyle('A6')->getFont()->getBold());
         $this->assertSame('A3:J3', (string) $sheet->getAutoFilter()->getRange());
 
@@ -783,5 +783,23 @@ class OperationalSummaryReportTest extends TestCase
 
         $headline = app(OperationalSummaryService::class)->headline(self::FROM, self::TO);
         $this->assertSame(14000.0, $headline['receivables_total'], 'ولوحة المالية تقرأ نفس الرقم.');
+    }
+
+    public function test_legacy_rental_closure_documents_are_rental_settlements_not_recruitment_sales(): void
+    {
+        $this->recruitmentInvoice('2031-03-05', 12000, false);
+        foreach ([['انهاء تأجير متأخر', 'اشعار مدين', 1330, 0], ['إنهاء تأجير مبكر', 'فاتورة', 900, 1], ['إنهاء تأجير مبكر', 'اشعار دائن', 400, 1]] as [$type, $document, $amount, $paid]) {
+            DB::table('invoices')->insert([
+                'client_id' => $this->userId, 'total_due' => $amount, 'is_paid' => $paid,
+                'legacy_invoice_type' => $type, 'legacy_document_type' => $document,
+                'created_at' => '2031-02-15 10:00:00', 'updated_at' => '2031-02-15 10:00:00',
+            ]);
+        }
+
+        $report = $this->report();
+        $sales = $report['sales']['totals'];
+        $this->assertSame(12000.0, $sales['recruitment'], 'فواتير وإشعارات إنهاء التأجير القديمة ليست مبيعات استقدام.');
+        $this->assertSame(1830.0, $sales['adjustments'], '1330 + 900 − 400: الإشعار الدائن يُخصم لا يُضاف.');
+        $this->assertSame([12000.0], $report['recruitment_receivables']['rows']->pluck('remaining_amount')->all());
     }
 }

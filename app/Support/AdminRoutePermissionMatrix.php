@@ -571,6 +571,7 @@ class AdminRoutePermissionMatrix
             'post-arrival-refunds.proposal' => [PermKeys::POST_ARRIVAL_REFUND_CREATE, PermKeys::POST_ARRIVAL_REFUND_EDIT],
             'post-arrival-refunds.search-contracts' => [PermKeys::POST_ARRIVAL_REFUND_CREATE],
             'post-arrival-refunds.post' => [PermKeys::POST_ARRIVAL_REFUND_POST],
+            'post-arrival-refunds.link-invoice-source' => [PermKeys::POST_ARRIVAL_REFUND_POST],
             'post-arrival-refunds.payout' => [PermKeys::POST_ARRIVAL_REFUND_PAYOUT],
             'post-arrival-refunds.lines.reverse' => [PermKeys::POST_ARRIVAL_REFUND_REVERSE],
             'RecruitmentContract.escapeReports.index' => [PermKeys::REC_CONTRACTS_ESCAPE_REPORTS_VIEW],

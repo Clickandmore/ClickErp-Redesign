@@ -223,8 +223,10 @@ class RentContractController extends Controller
 
                         $startDate = optional($row->info->ingaz_from)->format('Y-m-d') ?: 'غير محدد';
                         $endDate = optional($row->info->ingaz_to)->format('Y-m-d') ?: 'غير محدد';
-                        $paymentStatusBadge = $this->getPaymentStatusBadge($row->info->payment_status ?? null);
-                        $balance = app(RentalContractLedgerService::class)->netBalanceForContract($row);
+                        // الرصيد وحالة الدفع من كشف حركة العقد — نفس تقرير المستحق على عملاء التأجير.
+                        $summary = $this->rentalReceivable($row);
+                        $balance = $summary ? (float) $summary->remaining : app(RentalContractLedgerService::class)->netBalanceForContract($row);
+                        $paymentStatusBadge = $this->getPaymentStatusBadge($this->effectivePaymentStatus($row, $summary));
                         $balanceLabel = $balance < 0 ? 'رصيد لصالح العميل' : 'المطلوب من العميل';
                         $balanceClass = $balance > 0 ? 'text-danger' : 'text-success';
 
@@ -1031,6 +1033,12 @@ class RentContractController extends Controller
 
         $contractLedgerBalance = app(RentalContractLedgerService::class)
             ->netBalanceForContract($contract, $contractLedgerBalance);
+        // الرقم المعروض يطابق تقرير المستحق على عملاء التأجير (يشمل فواتير الإنهاء
+        // القديمة وكل سند وقيد على العقد)، فلا يتناقض الرقمان.
+        if ($summary = $this->rentalReceivable($contract)) {
+            $contractLedgerBalance = (float) $summary->remaining;
+            $contractLedgerBalanceFromJournal = true;
+        }
         $clientAccountBalance = null;
         $clientAccountApprovedBalance = null;
 
@@ -1860,6 +1868,36 @@ class RentContractController extends Controller
         return $badges[$status] ?? '<span class="badge bg-secondary">' . $status . '</span>';
     }
 
+    /** كشف حركة عقود التأجير محسوب مرة واحدة لكل طلب. */
+    private ?\Illuminate\Support\Collection $rentalReceivables = null;
+
+    private function rentalReceivable(RentalContract $contract): ?object
+    {
+        try {
+            $this->rentalReceivables ??= app(\Nami\Finance\Services\RentalReceivablesLedger::class)
+                ->contracts(now()->toDateString());
+        } catch (\Throwable $exception) {
+            report($exception);
+            $this->rentalReceivables = collect();
+        }
+
+        return $this->rentalReceivables->get((int) $contract->id);
+    }
+
+    /** حالة الدفع من الرصيد الفعلي، لا من الحقل المخزَّن الذي لا يتحدّث مع كل سند. */
+    private function effectivePaymentStatus(RentalContract $contract, ?object $summary): ?string
+    {
+        $stored = $contract->info?->payment_status;
+        if (!$summary) {
+            return $stored;
+        }
+        if ($summary->remaining <= 0.005) {
+            return 'paid';
+        }
+
+        return $summary->paid > 0.005 ? 'partial' : (in_array($stored, ['pending', 'later', 'bank_pending'], true) ? $stored : 'unpaid');
+    }
+
     private function getPaymentStatusBadge(?string $status): string
     {
         $badges = [
@@ -1868,6 +1906,7 @@ class RentContractController extends Controller
             'pending' => ['label' => 'معلق', 'class' => 'bg-warning text-dark'],
             'later' => ['label' => 'الدفع لاحقاً', 'class' => 'bg-secondary'],
             'bank_pending' => ['label' => 'بانتظار التحويل', 'class' => 'bg-primary'],
+            'unpaid' => ['label' => 'غير مسدد', 'class' => 'bg-danger'],
         ];
 
         $badge = $badges[$status] ?? ['label' => 'غير محدد', 'class' => 'bg-light text-dark'];

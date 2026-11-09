@@ -376,7 +376,7 @@
 
     {{-- الذمم: التأجير ثم الاستقدام --}}
     @foreach([
-        ['section' => $report['rental_receivables'], 'title' => __('finance::finance.ops_rental_receivables'), 'hint' => __('finance::finance.ops_rental_receivables_hint'), 'show_paid' => true],
+        ['section' => $report['rental_receivables'], 'title' => __('finance::finance.ops_rental_receivables'), 'hint' => __('finance::finance.ops_rental_receivables_hint'), 'show_paid' => true, 'order_note' => 'الأحدث أولاً.'],
         ['section' => $report['recruitment_receivables'], 'title' => __('finance::finance.ops_recruitment_receivables'), 'hint' => __('finance::finance.ops_recruitment_receivables_hint'), 'show_paid' => false],
         ['section' => $report['sponsorship_receivables'], 'title' => __('finance::finance.ops_sponsorship_receivables'), 'hint' => __('finance::finance.ops_sponsorship_receivables_hint'), 'show_paid' => true],
     ] as $block)
@@ -385,7 +385,7 @@
             <div class="panel-head">
                 <div class="panel-headline">
                     <h5 class="panel-title">{{ $block['title'] }}</h5>
-                    <div class="panel-subtitle">{{ $block['hint'] }} — {{ __('finance::finance.ops_top_rows_note') }}</div>
+                    <div class="panel-subtitle">{{ $block['hint'] }} — {{ $block['order_note'] ?? __('finance::finance.ops_top_rows_note') }}</div>
                 </div>
                 <div class="panel-subtitle panel-meta">
                     {{ $section['totals']['documents'] }} {{ __('finance::finance.ops_documents') }} —
@@ -472,7 +472,12 @@
                                     <td>
                                         {{ $row->contract_number ?: '—' }}
                                         @if(isset($row->document_type))
-                                            <small class="d-block">{{ $row->document_type === 'extension' ? 'تمديد' : 'فاتورة أساسية' }} #{{ $row->id }}</small>
+                                            @if(in_array($row->document_type, ['unlinked', 'legacy', 'refund'], true))
+                                                <small class="d-block">{{ \Nami\Finance\Services\RentalReceivablesLedger::TYPE_LABELS[$row->document_type] }} (قيد #{{ $row->id }})</small>
+                                                <small class="d-block text-muted">{{ \Illuminate\Support\Str::limit((string) $row->label, 90) }}</small>
+                                            @else
+                                                <small class="d-block">{{ \Nami\Finance\Services\RentalReceivablesLedger::TYPE_LABELS[$row->document_type] ?? 'فاتورة أساسية' }} #{{ $row->id }}</small>
+                                            @endif
                                         @endif
                                     </td>
                                     <td>
@@ -490,11 +495,17 @@
                                     @if($block['show_paid'])<td class="num positive">{{ number_format($row->paid_amount, 2) }}</td>@endif
                                     <td class="num negative">
                                         <strong>{{ number_format($row->remaining_amount, 2) }}</strong>
-                                        @if(abs($row->adjustment_amount ?? 0) > 0.005)
-                                            <small class="d-block text-muted">{{ __('finance::finance.ops_adjustments') }}: {{ number_format($row->adjustment_amount, 2) }}</small>
+                                        @if(abs(($row->adjustment_amount ?? 0) + ($row->offset_amount ?? 0)) > 0.005)
+                                            <small class="d-block text-muted">{{ __('finance::finance.ops_adjustments') }}: {{ number_format(($row->adjustment_amount ?? 0) + ($row->offset_amount ?? 0), 2) }}</small>
                                         @endif
                                     </td>
-                                    <td>{{ $row->payment_status ?? '—' }}</td>
+                                    <td>
+                                        @php $statusText = \Nami\Finance\Services\RentalReceivablesLedger::paymentStatusLabel($row->payment_status ?? null); @endphp
+                                        <span class="pill {{ ($row->payment_status ?? '') === 'partial' ? '' : 'is-hot' }}">{{ $statusText }}</span>
+                                        @if(($row->paid_amount ?? 0) > 0.005 && $block['show_paid'])
+                                            <small class="d-block text-muted">سُدِّد {{ number_format($row->paid_amount, 2) }} من {{ number_format($row->total_due, 2) }}</small>
+                                        @endif
+                                    </td>
                                 </tr>
                             @endforeach
                         </tbody>

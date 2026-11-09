@@ -13,7 +13,9 @@ use RuntimeException;
 class RepairRecruitmentInvoiceLinks extends Command
 {
     protected $signature = 'finance:repair-recruitment-invoice-links
-        {--mode=links : links or duplicates}
+        {--mode=links : links, duplicates or manual}
+        {--invoice= : Manual mode: invoice ID}
+        {--source= : Manual mode: source journal ID or code, chosen by an accountant}
         {--contract=* : Limit to contract IDs; required for duplicates}
         {--apply : Commit verified corrections; otherwise preview only}
         {--skip-blocked : In links mode only, leave unmatched invoices unchanged}
@@ -30,7 +32,7 @@ class RepairRecruitmentInvoiceLinks extends Command
             $mode = $this->option('mode');
             $apply = (bool) $this->option('apply');
             $contracts = $this->option('contract');
-            if (!in_array($mode, ['links', 'duplicates'], true)) throw new RuntimeException('Invalid --mode.');
+            if (!in_array($mode, ['links', 'duplicates', 'manual'], true)) throw new RuntimeException('Invalid --mode.');
             foreach ($contracts as $id) {
                 if (!ctype_digit((string) $id) || (int) $id < 1) throw new RuntimeException('Invalid --contract.');
             }
@@ -47,6 +49,7 @@ class RepairRecruitmentInvoiceLinks extends Command
                 throw new RuntimeException('A valid --date=YYYY-MM-DD is required for reversals.');
             }
             if ($mode === 'duplicates' && !$years->checkDateRange($date)) throw new RuntimeException('No open financial year for reversal date.');
+            if ($mode === 'manual') return $this->manualLink($linker, $apply, (int) $admin);
             DB::transaction(function () use ($linker, $journals, $years, $mode, $apply, $contracts, $admin, $date) {
                 $query = Invoice::withoutGlobalScopes()->whereNotNull('contract_id');
                 if ($contracts) $query->whereIn('contract_id', $contracts);
@@ -205,6 +208,38 @@ class RepairRecruitmentInvoiceLinks extends Command
         $metadata['after'] = $invoice->getAttributes();
         $metadata['finalized_by'] = $admin;
         $log->update(['metadata' => json_encode($metadata, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR), 'updated_at' => now()]);
+    }
+
+    private function manualLink(LegacyInvoiceConstraintLinker $linker, bool $apply, int $admin): int
+    {
+        $invoiceId = (string) $this->option('invoice');
+        $sourceId = (string) $this->option('source');
+        if (!ctype_digit($invoiceId) || !ctype_digit($sourceId)) throw new RuntimeException('Manual mode needs --invoice=ID and --source=JOURNAL_ID_OR_CODE.');
+        DB::beginTransaction();
+        try {
+            $invoice = Invoice::withoutGlobalScopes()->lockForUpdate()->findOrFail((int) $invoiceId);
+            $before = $invoice->getAttributes();
+            try {
+                $source = $linker->linkToSource($invoice, (int) $sourceId);
+            } catch (\Illuminate\Validation\ValidationException $e) {
+                throw new RuntimeException(collect($e->errors())->flatten()->implode(' '));
+            }
+            $after = Invoice::withoutGlobalScopes()->findOrFail($invoice->id)->getAttributes();
+            $this->line(json_encode(['invoice' => $invoice->id, 'status' => 'verified', 'constraint_id' => $source->id,
+                'code' => $source->code, 'revenue_recognition_mode' => $after['revenue_recognition_mode']], JSON_UNESCAPED_UNICODE));
+            if (!$apply) {
+                DB::rollBack();
+                $this->info('Verified, nothing saved. Re-run with --apply --database=... --admin-id=... to save the link.');
+                return 0;
+            }
+            $this->audit($source->id, $admin, 'recruitment_manual_link_v1', ['before' => $before, 'after' => $after]);
+            DB::commit();
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            throw $e;
+        }
+        $this->info('Linked invoice #' . $invoiceId . ' to journal ' . ($source->code ?: $source->id) . '.');
+        return 0;
     }
 
     private function audit(int $journal, int $admin, string $action, array $metadata): void

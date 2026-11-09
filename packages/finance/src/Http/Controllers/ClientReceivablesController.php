@@ -4,7 +4,7 @@ namespace Nami\Finance\Http\Controllers;
 
 use App\Http\Controllers\admin\Controller;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Validation\Rule;
 use Nami\Finance\Services\ClientReceivablesService;
 
@@ -16,21 +16,34 @@ class ClientReceivablesController extends Controller
             'search' => ['nullable', 'string', 'max:150'],
             'client_id' => ['nullable', 'integer', 'min:1'],
             'state' => ['nullable', Rule::in(array_keys(ClientReceivablesService::STATES))],
-            'balance' => ['nullable', Rule::in(['due', 'all'])],
+            'balance' => ['nullable', Rule::in(array_keys(ClientReceivablesService::BALANCES))],
             'extended' => ['nullable', Rule::in(['0', '1'])],
             'per_page' => ['nullable', Rule::in([25, 50, 100])],
             'page' => ['nullable', 'integer', 'min:1'],
             'branch_id' => ['nullable', 'integer'],
+            'to' => ['nullable', 'date_format:Y-m-d'],
+            'sort' => ['nullable', Rule::in(array_keys(ClientReceivablesService::SORTS))],
         ]);
-        $filters = array_replace(['search' => '', 'state' => 'all', 'balance' => 'due', 'extended' => '', 'per_page' => 25], array_filter($filters, fn ($v) => $v !== null));
-        $query = $service->query($filters);
-        $totals = DB::query()->fromSub(clone $query, 'report')
-            ->selectRaw('COUNT(*) as contracts, COUNT(DISTINCT user_id) as clients, COALESCE(SUM(billed), 0) as billed, COALESCE(SUM(paid), 0) as paid, COALESCE(SUM(adjustments), 0) as adjustments, COALESCE(SUM(GREATEST(remaining, 0)), 0) as due')->first();
-        $rows = $query->orderByDesc('remaining')->orderBy('c.id')->paginate((int) $filters['per_page'])->withQueryString();
-        $ids = $rows->pluck('id')->all();
+        $filters = array_replace(
+            ['search' => '', 'state' => 'all', 'balance' => 'due', 'extended' => '', 'per_page' => 25, 'to' => now()->toDateString(), 'sort' => 'latest'],
+            array_filter($filters, fn ($v) => $v !== null)
+        );
+
+        $all = $service->rows($filters, $filters['to']);
+        $totals = $service->totals($all, $filters['to']);
+        // الترقيم على العملاء: كل عميل يظهر بكل عقوده المطابقة في صفحة واحدة.
+        $clients = $service->clients($all, $filters['to']);
+        $perPage = (int) $filters['per_page'];
+        $page = max(1, min((int) $request->query('page', 1), max(1, (int) ceil($clients->count() / $perPage))));
+        $rows = (new LengthAwarePaginator($clients->forPage($page, $perPage)->values(), $clients->count(), $perPage, $page, [
+            'path' => $request->url(),
+        ]))->withQueryString();
+        $ids = $rows->flatMap(fn ($client) => $client->contracts->pluck('id'))->all();
+
         return view('finance::finance.client_receivables.index', [
-            'bladeTitle' => 'مستحقات العملاء وعقود الإيجار', 'filters' => $filters, 'totals' => $totals,
-            'rows' => $rows, 'documents' => $service->documents($ids), 'extensions' => $service->extensions($ids),
+            'bladeTitle' => 'المستحق على عملاء التأجير', 'filters' => $filters, 'totals' => $totals,
+            'rows' => $rows, 'documents' => $service->documents($ids, $filters['to']),
+            'movements' => $service->movements($ids, $filters['to']), 'extensions' => $service->extensions($ids),
         ]);
     }
 }
