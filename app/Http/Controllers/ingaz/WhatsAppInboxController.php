@@ -268,7 +268,7 @@ class WhatsAppInboxController extends Controller
             return back()->withInput()->with('error', 'يسمح بحد أقصى 3 أزرار رد سريع، وطول كل زر 25 حرفًا.');
         }
 
-        $result = $templateService->create([
+        $result = ($this->usesClickChat() ? app(\App\Services\WhatsApp\ClickChatWhatsAppService::class) : $templateService)->create([
             'name' => $validated['name'],
             'language' => $validated['language'],
             'category' => $validated['category'],
@@ -380,7 +380,7 @@ class WhatsAppInboxController extends Controller
             return back()->with('error', 'رقم جوال العميل غير صالح للإرسال عبر واتساب.');
         }
 
-        $conversation = WhatsAppConversation::query()->firstOrCreate(
+        $conversation = WhatsAppConversation::withoutBranchScope()->firstOrCreate(
             ['phone' => $phone],
             [
                 'wa_id' => $phone,
@@ -413,6 +413,17 @@ class WhatsAppInboxController extends Controller
         MetaWhatsAppService $metaWhatsApp
     ) {
         if ($this->usesClickChat()) {
+            // Templates belong to one Meta account: check the one of the number
+            // this conversation will be sent from, not only the default number.
+            $channelId = $conversation->provider === 'clickchat' && $conversation->channel_account_id
+                ? (int) $conversation->channel_account_id : null;
+            if ($channelId && !app(\App\Services\WhatsApp\ClickChatTemplateSource::class)
+                    ->approvedTemplate($templateName, $templateLanguage, $channelId)) {
+                return redirect()
+                    ->route('whatsapp.inbox.index', $this->inboxTarget($conversation))
+                    ->with('error', 'هذا القالب غير معتمد على رقم واتساب الذي تتم عليه هذه المحادثة (أو أن الرقم QR لا يدعم القوالب).');
+            }
+
             // The service saves the outbound row itself, like a text reply.
             $result = app(\App\Services\WhatsApp\ClickChatWhatsAppService::class)->sendText(
                 $conversation->phone,
@@ -422,14 +433,14 @@ class WhatsAppInboxController extends Controller
                     'conversation_id' => $conversation->id,
                     'admin_id' => auth('admin')->id(),
                     'user_id' => $conversation->user_id,
-                    'channel_account_id' => $conversation->provider === 'clickchat' ? $conversation->channel_account_id : null,
+                    'channel_account_id' => $channelId,
                     'clickchat_template' => ['name' => $templateName, 'language' => $templateLanguage, 'vars' => $parameters],
                 ]
             );
             $success = (bool) ($result['success'] ?? false);
 
             return redirect()
-                ->route('whatsapp.inbox.index', ['conversation' => $conversation->id])
+                ->route('whatsapp.inbox.index', $this->inboxTarget($conversation))
                 ->with($success ? 'success' : 'error', $success
                     ? 'تم إرسال القالب إلى العميل.'
                     : 'تعذر إرسال القالب: ' . data_get($result, 'response.message', 'خطأ غير معروف.'));
@@ -470,11 +481,22 @@ class WhatsAppInboxController extends Controller
         ]);
 
         return redirect()
-            ->route('whatsapp.inbox.index', ['conversation' => $conversation->id])
+            ->route('whatsapp.inbox.index', $this->inboxTarget($conversation))
             ->with(
                 $success ? 'success' : 'error',
                 $success ? 'تم إرسال قالب Meta إلى العميل.' : 'تعذر إرسال القالب: ' . $message->error_message
             );
+    }
+
+    /**
+     * Open the conversation after a send only when this admin's branch can see it;
+     * a customer's thread may belong to another branch (or to none, when it
+     * started from the customer), and opening it would answer 404.
+     */
+    private function inboxTarget(WhatsAppConversation $conversation): array
+    {
+        return WhatsAppConversation::query()->whereKey($conversation->id)->exists()
+            ? ['conversation' => $conversation->id] : [];
     }
 
     private function usesClickChat(): bool

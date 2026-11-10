@@ -18,6 +18,8 @@ class ClickChatWhatsAppServiceTest extends TestCase
             'services.whatsapp.default_country_code' => '966',
             'services.whatsapp.clickchat' => ['base_url' => 'https://chat.example.test', 'api_token' => '12|secret-token',
                 'webhook_secret' => 'whsec_test', 'default_channel_account_id' => '3', 'auto_retry' => false]]);
+        $this->app->instance(\App\Services\WhatsApp\ClickChatTemplateBinding::class,
+            Mockery::mock(\App\Services\WhatsApp\ClickChatTemplateBinding::class)->shouldReceive('resolve')->andReturn(null)->getMock());
         // Saving is covered by the webhook feature test; here only the HTTP contract matters.
         $this->app->instance(ClickChatMessageStore::class, Mockery::mock(ClickChatMessageStore::class)->shouldIgnoreMissing());
     }
@@ -114,6 +116,80 @@ class ClickChatWhatsAppServiceTest extends TestCase
         $this->assertFalse($service->verifySignature($body, null));
     }
 
+    public function test_bound_contract_is_sent_as_a_template_for_the_selected_number(): void
+    {
+        $this->app->instance(\App\Services\WhatsApp\ClickChatTemplateBinding::class,
+            Mockery::mock(\App\Services\WhatsApp\ClickChatTemplateBinding::class)->shouldReceive('resolve')->once()
+                ->andReturn(['name' => 'contract_update', 'language' => 'ar', 'vars' => ['Ali', '42']])->getMock());
+        Http::fake([
+            '*/channels' => Http::response(['data' => [['id' => 3, 'type' => 'whatsapp_cloud', 'channel' => 'whatsapp']]]),
+            '*/templates*' => Http::response(['data' => [['name' => 'contract_update', 'language' => 'ar', 'category' => 'UTILITY', 'body' => 'Hi {{1}} {{2}}', 'variables' => 2]]]),
+            '*/messages/send' => Http::response(['message_id' => 42, 'status' => 'sent']),
+        ]);
+        $this->assertTrue(app(ClickChatWhatsAppService::class)->sendText('0500000000', 'contract update')['success']);
+        Http::assertSent(fn ($r) => str_contains($r->url(), '/templates?channel_account_id=3'));
+        Http::assertSent(fn ($r) => str_ends_with($r->url(), '/messages/send') && $r['template_name'] === 'contract_update'
+            && $r['template_vars'] === ['Ali', '42'] && !isset($r['body']));
+    }
+
+    public function test_pending_bound_template_blocks_the_message(): void
+    {
+        $this->app->instance(\App\Services\WhatsApp\ClickChatTemplateBinding::class,
+            Mockery::mock(\App\Services\WhatsApp\ClickChatTemplateBinding::class)->shouldReceive('resolve')
+                ->andReturn(['name' => 'pending_update', 'language' => 'ar', 'vars' => []])->getMock());
+        Http::fake(['*/channels' => Http::response(['data' => [['id' => 3, 'type' => 'whatsapp_cloud']]]),
+            '*/templates*' => Http::response(['data' => []])]);
+        $result = app(ClickChatWhatsAppService::class)->sendText('0500000000', 'update');
+        $this->assertFalse($result['success']);
+        $this->assertSame('template_binding_error', $result['error']);
+        Http::assertNotSent(fn ($r) => str_ends_with($r->url(), '/messages/send'));
+    }
+
+    public function test_creation_is_submitted_to_live_chat(): void
+    {
+        Http::fake(['*/templates' => Http::response(['data' => ['id' => 1, 'status' => 'PENDING']], 201)]);
+        $this->assertTrue(app(ClickChatWhatsAppService::class)->create([
+            'name' => 'contract_update', 'language' => 'ar', 'category' => 'UTILITY', 'body' => 'Updated {{1}}', 'examples' => ['42'],
+        ])['success']);
+        Http::assertSent(fn ($r) => $r->method() === 'POST' && $r->url() === 'https://chat.example.test/api/v1/templates'
+            && $r['channel_account_id'] === 3 && $r['examples'] === ['42']);
+    }
+
+    public function test_status_snapshot_reads_all_states_for_the_selected_number(): void
+    {
+        Http::fake(['*/templates*' => Http::response(['data' => [['name' => 'contract_update', 'language' => 'ar', 'status' => 'PENDING']],
+            'meta' => ['includes_all_statuses' => true]])]);
+        $result = app(ClickChatWhatsAppService::class)->templateStatusSnapshot();
+        $this->assertTrue($result['success']);
+        $this->assertSame('PENDING', $result['templates'][0]['status']);
+        Http::assertSent(fn ($r) => str_contains($r->url(), 'channel_account_id=3') && str_contains($r->url(), 'include_status=1'));
+    }
+
+    public function test_old_api_and_outage_cannot_be_mistaken_for_a_missing_template(): void
+    {
+        Http::fakeSequence()->push(['data' => []])->push(['message' => 'Unavailable'], 503);
+        $service = app(ClickChatWhatsAppService::class);
+        $this->assertSame('api_outdated', $service->templateStatusSnapshot()['error']);
+        $this->assertSame('unavailable', $service->templateStatusSnapshot()['error']);
+    }
+
+    public function test_status_snapshot_distinguishes_authentication_and_permissions(): void
+    {
+        Http::fakeSequence()->push([], 401)->push([], 403)->push([], 404)->push([], 422);
+        $service = app(ClickChatWhatsAppService::class);
+        foreach (['auth_error', 'forbidden', 'api_missing', 'invalid_sender'] as $error) {
+            $this->assertSame($error, $service->templateStatusSnapshot()['error']);
+        }
+    }
+
+    public function test_status_badges_do_not_contact_clickchat_for_another_provider(): void
+    {
+        config(['services.whatsapp.driver' => 'meta']);
+        Http::fake();
+        $this->assertSame('other_provider', app(\App\Services\WhatsApp\ClickChatTemplateStatus::class)->snapshot()['error']);
+        Http::assertNothingSent();
+    }
+
     public function test_not_configured_does_not_call_the_platform(): void
     {
         config(['services.whatsapp.clickchat.api_token' => '']);
@@ -122,5 +198,18 @@ class ClickChatWhatsAppServiceTest extends TestCase
         $this->assertFalse(app(WhatsAppMessagingService::class)->isConfigured());
         $this->assertSame('not_configured', app(ClickChatWhatsAppService::class)->sendText('0500000000', 'Hi')['error']);
         Http::assertNothingSent();
+    }
+
+    public function test_a_template_is_checked_against_the_number_that_will_send_it(): void
+    {
+        $row = ['name' => 'invoice_ready', 'language' => 'ar', 'category' => 'UTILITY', 'body' => 'فاتورة {{1}}',
+            'variables' => 1, 'sendable_by_api' => true];
+        Http::fake(fn ($request) => Http::response(['data' => str_contains($request->url(), 'channel_account_id=3') ? [$row] : []]));
+        $service = app(ClickChatWhatsAppService::class);
+
+        $this->assertSame('فاتورة 1001', $service->prepareTemplate('invoice_ready|ar', [1 => '1001'])['message']);
+
+        $this->expectException(\RuntimeException::class);
+        $service->prepareTemplate('invoice_ready|ar', [1 => '1001'], 8);
     }
 }

@@ -22,13 +22,15 @@ class SmsTemplate extends Model
         'sort_order',
         'message',
         'is_active',
-        'variables'
+        'variables',
+        'clickchat_binding'
     ];
 
     protected $casts = [
         'sort_order' => 'integer',
         'is_active' => 'boolean',
-        'variables' => 'array'
+        'variables' => 'array',
+        'clickchat_binding' => 'array'
     ];
 
     public static function channelOptions(): array

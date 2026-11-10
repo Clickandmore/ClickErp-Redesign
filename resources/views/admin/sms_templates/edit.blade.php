@@ -45,6 +45,7 @@
                             @csrf
                             @method('PUT')
 
+                            @include('admin.sms_templates._clickchat_binding')
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="mb-3">

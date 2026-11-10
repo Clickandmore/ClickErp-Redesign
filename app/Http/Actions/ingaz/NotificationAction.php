@@ -114,8 +114,10 @@ class NotificationAction extends MainAction
         $templateContext = [];
         if ($this->whatsAppService->driver() === 'clickchat' && $request->filled('chatwoot_template')) {
             try {
-                $prepared = app(\App\Services\WhatsApp\ClickChatWhatsAppService::class)->prepareTemplate(
-                    (string) $request->input('chatwoot_template'), (array) $request->input('chatwoot_variables', [])
+                $clickChat = app(\App\Services\WhatsApp\ClickChatWhatsAppService::class);
+                $prepared = $clickChat->prepareTemplate(
+                    (string) $request->input('chatwoot_template'), (array) $request->input('chatwoot_variables', []),
+                    $clickChat->channelAccountId(['sender_key' => $senderKey])
                 );
                 $message = $prepared['message'];
                 $templateContext = ['clickchat_template' => $prepared['clickchat_template']];
@@ -184,6 +186,11 @@ class NotificationAction extends MainAction
 
         $sentCount = 0;
         $failedCount = 0;
+        $scheduledCount = 0;
+        // Each send waits for the provider; a few hundred can outlast PHP's default limit.
+        if ($users->count() > 20) {
+            @set_time_limit(max(300, $users->count() * 3));
+        }
 
         foreach ($users as $user) {
             $response = $this->whatsAppService->sendText((string) $user->phone, $message, [
@@ -193,11 +200,18 @@ class NotificationAction extends MainAction
                 ...$templateContext,
             ]);
 
+            // Click Live Chat answers past 60 a minute are queued and resent within minutes:
+            // the customer still gets it, so it is neither "sent" nor "failed" yet.
+            if (!empty($response['retry_scheduled'])) {
+                $this->storeWhatsAppLog($user, $purpose, $message);
+                $scheduledCount++;
+                continue;
+            }
+
             if (!$this->isSuccessfulWhatsAppResponse($response)) {
                 $failedCount++;
-                if ($this->whatsAppService->driver() === 'chatwoot') {
-                    $failureReason = (string) data_get($response, 'response.message', 'تعذر إرسال الرسالة عبر Widers.');
-                }
+                $failureReason ??= (string) data_get($response, 'response.message',
+                    $this->whatsAppService->driver() === 'chatwoot' ? 'تعذر إرسال الرسالة عبر Widers.' : '');
                 continue;
             }
 
@@ -209,11 +223,12 @@ class NotificationAction extends MainAction
             'channel' => 'whatsapp',
             'purpose' => $purpose,
             'driver' => $this->whatsAppService->driver(),
-            'failure_reason' => $failureReason ?? null,
+            'failure_reason' => ($failureReason ?? '') !== '' ? $failureReason : null,
             'sender_key' => $senderKey !== '' ? $senderKey : null,
             'sender_name' => $resolvedSender['name'] ?? null,
             'total_count' => $users->count(),
             'sent_count' => $sentCount,
+            'scheduled_count' => $scheduledCount,
             'failed_count' => $failedCount,
         ];
     }

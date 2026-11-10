@@ -3567,9 +3567,20 @@ class DataImportExecutionService
         ]);
 
         $this->syncRecruitmentContractWarrantyFromArrivalDate($contract, $arrivalDate);
+        $this->reserveImportedRecruitmentMaid($contract, $maid);
         $this->syncImportedBondsForRecruitmentContract($contract, $row);
 
         return $created ? 'created' : 'updated';
+    }
+
+    private function reserveImportedRecruitmentMaid(Contract $contract, ?Maid $maid): void
+    {
+        if (!$maid || !in_array($maid->status, ['available', 'reserved'], true)
+            || in_array($contract->status, ['cancelled', 'canceled', 'refused', 'back', 'completed', 'closed', 'refunded', 'shelter'], true)) {
+            return;
+        }
+
+        $maid->update(['status' => 'reserved', 'available' => false]);
     }
 
     private function syncImportedBondsForRecruitmentContract(Contract $contract, array $row = []): void

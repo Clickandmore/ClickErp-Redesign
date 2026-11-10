@@ -53,6 +53,7 @@ class RecruitmentRequest extends Model
         parent::boot();
 
         static::creating(function ($model) {
+            $model->created_by_admin_id = auth('admin')->id();
             $model->order_code = static::generateUniqueCode();
             $model->payment_method = 'cash';
             $model->status = 'new';

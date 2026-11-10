@@ -103,6 +103,13 @@
 @endsection
 
 @section('content')
+    @php
+        $canViewDataImports = AdminGuardHasAnyPerm([
+            \App\PermKeys::DATA_IMPORT_UPLOAD,
+            \App\PermKeys::DATA_IMPORT_REVIEW,
+            \App\PermKeys::DATA_IMPORT_APPROVE,
+        ]);
+    @endphp
     <div class="page-body ck-reports-page">
         <div class="container-fluid">
             <div class="d-sm-flex align-items-center justify-content-between mb-4 reports-page-head">
@@ -119,12 +126,14 @@
                             <i class="fas fa-search"></i>
                             <input type="search" id="reportsCatalogSearch" placeholder="ابحث في {{ count($reports) }} تقريرًا..." autocomplete="off">
                         </label>
-                        <a href="{{ route('reports.import.index') }}" class="btn btn-primary mt-3 mt-sm-0">
-                            <i class="fas fa-file-import me-1"></i>
-                            استيراد البيانات
-                        </a>
+                        @if ($canViewDataImports)
+                            <a href="{{ route('reports.import.index') }}" class="btn btn-primary mt-3 mt-sm-0">
+                                <i class="fas fa-file-import me-1"></i>
+                                استيراد البيانات
+                            </a>
+                        @endif
                     </div>
-                @else
+                @elseif ($canViewDataImports)
                     <a href="{{ route('reports.import.index') }}" class="btn btn-primary mt-3 mt-sm-0">
                         <i class="fas fa-file-import me-1"></i>
                         استيراد البيانات
