@@ -149,12 +149,13 @@ class ClickChatWhatsAppService
      * Approved templates that can be filled from body variables only, cached for ten minutes.
      * Empty when the platform cannot be reached.
      */
-    public function templates(bool $fresh = false): array
+    public function templates(bool $fresh = false, ?int $channelId = null): array
     {
         if (!$this->isConfigured()) {
             return [];
         }
-        $key = $this->cacheKey(self::TEMPLATES_CACHE_KEY);
+        $channelId ??= $this->channelAccountId([]);
+        $key = $this->cacheKey(self::TEMPLATES_CACHE_KEY) . ':' . ($channelId ?? 'all');
         if ($fresh) {
             Cache::forget($key);
         }
@@ -164,7 +165,7 @@ class ClickChatWhatsAppService
         }
 
         try {
-            $response = $this->client()->get($this->url('templates'));
+            $response = $this->client()->get($this->url('templates'), array_filter(['channel_account_id' => $channelId]));
         } catch (Throwable) {
             return [];
         }
@@ -220,6 +221,26 @@ class ClickChatWhatsAppService
         }
 
         throw new RuntimeException('القالب غير متاح أو غير معتمد. حدّث الصفحة واختر قالبًا صالحًا.');
+    }
+
+    /** Submit a utility template through our platform; never through ERP Meta credentials. */
+    public function create(array $data): array
+    {
+        $sender = $this->channelAccountId([]);
+        if (!$sender) return ['success' => false, 'response' => ['message' => 'اختر رقم ميتا الافتراضي في إعدادات Click Live Chat.']];
+        if (!empty($data['header']) || !empty($data['footer']) || !empty($data['quick_replies']) || ($data['category'] ?? 'UTILITY') !== 'UTILITY') {
+            return ['success' => false, 'response' => ['message' => 'قوالب التحديث عبر اللايف شات تدعم نص الخدمة ومتغيراته فقط. أنشئ القوالب المتقدمة من اللايف شات.']];
+        }
+        try {
+            $response = $this->client()->asJson()->post($this->url('templates'), [
+                'channel_account_id' => $sender, 'name' => $data['name'], 'language' => $data['language'],
+                'body' => $data['body'], 'examples' => array_values($data['examples'] ?? []),
+            ]);
+            return ['success' => $response->successful(), 'response' => $response->successful()
+                ? $response->json('data', []) : ['message' => $response->json('message', 'تعذر تقديم القالب؛ راجع اللايف شات قبل إعادة المحاولة.')]];
+        } catch (Throwable) {
+            return ['success' => false, 'response' => ['message' => 'تعذر تأكيد تقديم القالب؛ راجع القوالب في اللايف شات قبل إعادة المحاولة.']];
+        }
     }
 
     /** Current state of one platform message, or null when it cannot be read. */
@@ -381,6 +402,27 @@ class ClickChatWhatsAppService
         RateLimiter::hit($this->rateKey(), 60);
 
         $template = (array) ($context['clickchat_template'] ?? []);
+        if (!$template && empty($context['attachment_url']) && empty($context['platform_conversation_id'])) {
+            $sender = $this->channelAccountId($context);
+            try {
+                $template = app(ClickChatTemplateBinding::class)->resolve($message, $context) ?? [];
+                if ($template) {
+                    $channel = collect($this->channels())->firstWhere('id', $sender);
+                    if (($channel['type'] ?? '') === 'whatsapp_qr') {
+                        $template = [];
+                    } else {
+                        if (!$sender) throw new RuntimeException('حدد رقم الإرسال لربط قالب اللايف شات.');
+                        $approved = collect($this->templates(false, $sender))->first(fn ($row) =>
+                            $row['name'] === $template['name'] && $row['language'] === $template['language']);
+                        if (!$approved || $approved['variables'] !== count($template['vars'])) {
+                            throw new RuntimeException('قالب اللايف شات غير معتمد لهذا الرقم أو عدد متغيراته غير صحيح.');
+                        }
+                    }
+                }
+            } catch (RuntimeException $e) {
+                return ['success' => false, 'error' => 'template_binding_error', 'response' => ['message' => $e->getMessage()]];
+            }
+        }
         $isTemplate = trim((string) ($template['name'] ?? '')) !== '';
         $attachment = $isTemplate ? null : $this->attachment($context);
         $name = trim((string) ($context['name'] ?? $context['recipient_name'] ?? ''));

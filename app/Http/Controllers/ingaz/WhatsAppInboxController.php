@@ -268,7 +268,7 @@ class WhatsAppInboxController extends Controller
             return back()->withInput()->with('error', 'يسمح بحد أقصى 3 أزرار رد سريع، وطول كل زر 25 حرفًا.');
         }
 
-        $result = $templateService->create([
+        $result = ($this->usesClickChat() ? app(\App\Services\WhatsApp\ClickChatWhatsAppService::class) : $templateService)->create([
             'name' => $validated['name'],
             'language' => $validated['language'],
             'category' => $validated['category'],
