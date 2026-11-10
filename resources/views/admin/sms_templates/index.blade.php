@@ -22,6 +22,7 @@
                 <div class="col-lg-8">
                     <span class="badge bg-light text-dark mb-3">Template Library</span>
                     <h2 class="mb-2">إدارة قوالب الرسائل</h2>
+                    <a class="btn btn-sm btn-outline-light mb-2" href="{{ request()->fullUrl() }}">تحديث حالة ميتا</a>
                     <p class="mb-0 text-white-50">المكتبة الموحدة لكل قوالب SMS وWhatsApp والإشعارات الداخلية، مع إمكانية تعديل النص وترتيب القوالب وتغيير قناة الإرسال لكل قالب.</p>
                 </div>
                 <div class="col-lg-4 text-lg-end">
@@ -156,6 +157,7 @@
                                     <td>
                                         <div class="fw-bold">{{ $template->title }}</div>
                                         <small class="text-muted d-block">{{ $template->name }}</small>
+                                        @include('admin.sms_templates._clickchat_status', ['statusTemplate' => $template])
                                         <span class="badge {{ $template->channel === 'sms' ? 'bg-info text-dark' : ($template->channel === 'whatsapp' ? 'bg-success' : 'bg-primary') }} mt-2">
                                             {{ $template->channel_label }}
                                         </span>

@@ -250,7 +250,8 @@
                 <div class="col-md-6 col-lg-4">
                     <label for="TextInput" class="form-label">{{ helperTrans('ingaz.arrival_date') }}</label>
                     <input type="date" name="arrival_date" id="arrival_date" class="form-control"
-                        data-validation="required" value="{{ old('arrival_date', optional($editingInfo)->arrival_date) }}">
+                        @if (!$isEditMode) readonly aria-readonly="true" @endif value="{{ old('arrival_date', optional($editingInfo)->arrival_date) }}">
+                    @if (!$isEditMode)<small class="form-text text-muted">يُعرض تاريخ الوصول المسجل تلقائياً، ولا يمكن تعديله من شاشة الإضافة للإيواء.</small>@endif
                 </div>
                 <div class="col-md-6 col-lg-4">
                     <label for="TextInput" class="form-label">مدة بقائها داخل المملكة</label>
@@ -1380,7 +1381,22 @@
                 error: function(errorObj, errorText, errorThrown) {
                     console.log(500)
                     console.log(errorObj)
-                    handleErrorResponce(errorObj);
+                    submitButton.html(buttonText);
+                    const response = errorObj.responseJSON || {};
+                    const messages = response.errors
+                        ? Object.values(response.errors).flat()
+                        : [response.message || 'تعذر حفظ بيانات الإيواء. حاول مرة أخرى، وإذا استمر الخطأ تواصل مع الدعم.'];
+                    let alert = $('.contractForm .shelter-form-errors');
+                    if (!alert.length) {
+                        alert = $('<div class="alert alert-danger shelter-form-errors" role="alert" tabindex="-1"></div>')
+                            .prependTo('.contractForm');
+                    }
+                    alert.empty();
+                    $('<strong>').text('تعذر حفظ بيانات الإيواء:').appendTo(alert);
+                    const list = $('<ul class="mb-0">').appendTo(alert);
+                    messages.forEach(message => $('<li>').text(message).appendTo(list));
+                    alert[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    alert.trigger('focus');
                 }
             });
         });

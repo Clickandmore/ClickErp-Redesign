@@ -26,6 +26,7 @@
                         </div>
                     </div>
                     <div class="card-body">
+                        @include('admin.sms_templates._clickchat_status', ['statusTemplate' => $smsTemplate, 'showStatusDetail' => true])
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-4">

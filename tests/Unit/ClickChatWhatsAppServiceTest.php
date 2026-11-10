@@ -155,6 +155,32 @@ class ClickChatWhatsAppServiceTest extends TestCase
             && $r['channel_account_id'] === 3 && $r['examples'] === ['42']);
     }
 
+    public function test_status_snapshot_reads_all_states_for_the_selected_number(): void
+    {
+        Http::fake(['*/templates*' => Http::response(['data' => [['name' => 'contract_update', 'language' => 'ar', 'status' => 'PENDING']],
+            'meta' => ['includes_all_statuses' => true]])]);
+        $result = app(ClickChatWhatsAppService::class)->templateStatusSnapshot();
+        $this->assertTrue($result['success']);
+        $this->assertSame('PENDING', $result['templates'][0]['status']);
+        Http::assertSent(fn ($r) => str_contains($r->url(), 'channel_account_id=3') && str_contains($r->url(), 'include_status=1'));
+    }
+
+    public function test_old_api_and_outage_cannot_be_mistaken_for_a_missing_template(): void
+    {
+        Http::fakeSequence()->push(['data' => []])->push(['message' => 'Unavailable'], 503);
+        $service = app(ClickChatWhatsAppService::class);
+        $this->assertSame('api_outdated', $service->templateStatusSnapshot()['error']);
+        $this->assertSame('unavailable', $service->templateStatusSnapshot()['error']);
+    }
+
+    public function test_status_badges_do_not_contact_clickchat_for_another_provider(): void
+    {
+        config(['services.whatsapp.driver' => 'meta']);
+        Http::fake();
+        $this->assertSame('other_provider', app(\App\Services\WhatsApp\ClickChatTemplateStatus::class)->snapshot()['error']);
+        Http::assertNothingSent();
+    }
+
     public function test_not_configured_does_not_call_the_platform(): void
     {
         config(['services.whatsapp.clickchat.api_token' => '']);

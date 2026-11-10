@@ -1,6 +1,13 @@
 <fieldset class="border rounded p-3 mb-3">
     <legend class="float-none w-auto fs-6">قالب ميتا عبر Click Live Chat (اختياري)</legend>
     <p class="text-muted">يُستخدم فقط عند اختيار مزود Click Live Chat ورقم ميتا رسمي، بما يشمل الإرسال خارج نافذة 24 ساعة. المزودون الآخرون وأرقام QR يستخدمون النص الحالي.</p>
+    @if (isset($smsTemplate))
+        @include('admin.sms_templates._clickchat_status', ['statusTemplate' => $smsTemplate, 'showStatusDetail' => true])
+    @endif
+    <div class="alert alert-info small mt-2">
+        حفظ هذا النموذج يحفظ قالب ERP والربط فقط، ولا يقدّم قالباً إلى ميتا أو ينشئه في ClickChat.
+        لإنشاء القالب وتقديمه افتح <a href="{{ route('whatsapp.inbox.index') }}">صندوق واتساب</a> ثم «إنشاء قالب جديد وإرساله إلى Meta للمراجعة» مع اختيار مزود Click Live Chat.
+    </div>
     @if (!empty($clickChatTemplates))
         <label class="form-label">القوالب المعتمدة للرقم الافتراضي (لنسخ الاسم واللغة وترتيب المتغيرات)</label>
         <ul class="small">
