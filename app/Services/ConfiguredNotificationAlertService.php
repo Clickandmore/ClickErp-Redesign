@@ -389,7 +389,7 @@ class ConfiguredNotificationAlertService
                 ContractMessageHistoryService::context($candidate['subject']) + [
                     'source' => 'configured_alert', 'alert_key' => $key, 'recipient_name' => $model->name,
                 ],
-                fn () => $this->send($channel, $recipient['type'], $model, $title, $message, $candidate['link'], $key)
+                fn () => $this->send($channel, $recipient['type'], $model, $title, $message, $candidate['link'], $key, $candidate['variables'])
             );
             $delivery->update(['status' => 'sent', 'sent_at' => now(), 'error' => null]);
 
@@ -413,7 +413,8 @@ class ConfiguredNotificationAlertService
         string $title,
         string $message,
         string $link,
-        string $key
+        string $key,
+        array $variables = []
     ): void {
         if ($channel === 'notification') {
             if ($recipientType === 'admin') {
@@ -455,7 +456,8 @@ class ConfiguredNotificationAlertService
             $phone = $recipientType === 'admin'
                 ? ($recipient->whatsapp_phone ?: $recipient->contact_phone)
                 : (string) $recipient->phone;
-            $result = $this->whatsApp->sendText($phone, $message, ['source' => 'configured_alert', 'alert_key' => $key]);
+            $result = $this->whatsApp->sendText($phone, $message, ['source' => 'configured_alert', 'alert_key' => $key,
+                'template_id' => NotificationAlertSettings::template($key)?->id, 'template_variables' => $variables]);
 
             if (!($result['success'] ?? false)) {
                 throw new \RuntimeException('تعذر إرسال رسالة واتساب.');

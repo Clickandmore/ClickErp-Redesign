@@ -50,7 +50,8 @@ class SmsTemplateController extends Controller
     public function create()
     {
         $channels = SmsTemplate::channelOptions();
-        return view('admin.sms_templates.create', compact('channels'));
+        $clickChatTemplates = $this->clickChatTemplates();
+        return view('admin.sms_templates.create', compact('channels', 'clickChatTemplates'));
     }
 
     /**
@@ -64,7 +65,10 @@ class SmsTemplateController extends Controller
             'channel' => ['required', Rule::in(array_keys(SmsTemplate::channelOptions()))],
             'sort_order' => 'nullable|integer|min:0',
             'message' => 'required|string',
-            'is_active' => 'boolean'
+            'is_active' => 'boolean',
+            'clickchat_name' => ['nullable', 'string', 'max:128', 'regex:/^[a-z0-9_]+$/'],
+            'clickchat_language' => 'nullable|string|max:8',
+            'clickchat_variables' => 'nullable|string|max:2000'
         ]);
 
         SmsTemplate::create([
@@ -74,7 +78,8 @@ class SmsTemplateController extends Controller
             'sort_order' => $request->filled('sort_order') ? (int) $request->input('sort_order') : $this->nextSortOrder(),
             'message' => $request->message,
             'is_active' => $request->boolean('is_active'),
-            'variables' => $this->extractVariables($request->message)
+            'variables' => $this->extractVariables($request->message),
+            'clickchat_binding' => $this->clickChatBinding($request)
         ]);
 
         return redirect()->route('admin.sms-templates.index')
@@ -106,7 +111,8 @@ class SmsTemplateController extends Controller
     {
         $smsTemplate = SmsTemplate::findOrFail($id);
         $channels = SmsTemplate::channelOptions();
-        return view('admin.sms_templates.edit', compact('smsTemplate', 'channels'));
+        $clickChatTemplates = $this->clickChatTemplates();
+        return view('admin.sms_templates.edit', compact('smsTemplate', 'channels', 'clickChatTemplates'));
     }
 
     /**
@@ -122,7 +128,10 @@ class SmsTemplateController extends Controller
             'channel' => ['required', Rule::in(array_keys(SmsTemplate::channelOptions()))],
             'sort_order' => 'nullable|integer|min:0',
             'message' => 'required|string',
-            'is_active' => 'boolean'
+            'is_active' => 'boolean',
+            'clickchat_name' => ['nullable', 'string', 'max:128', 'regex:/^[a-z0-9_]+$/'],
+            'clickchat_language' => 'nullable|string|max:8',
+            'clickchat_variables' => 'nullable|string|max:2000'
         ]);
 
         $smsTemplate->update([
@@ -132,11 +141,30 @@ class SmsTemplateController extends Controller
             'sort_order' => $request->filled('sort_order') ? (int) $request->input('sort_order') : (int) ($smsTemplate->sort_order ?? 0),
             'message' => $request->message,
             'is_active' => $request->boolean('is_active'),
-            'variables' => $this->extractVariables($request->message)
+            'variables' => $this->extractVariables($request->message),
+            'clickchat_binding' => $this->clickChatBinding($request)
         ]);
 
         return redirect('/admin/sms-templates')
             ->with('success', 'تم تحديث قالب الرسالة بنجاح');
+    }
+
+    private function clickChatTemplates(): array
+    {
+        return app(WhatsAppMessagingService::class)->driver() === 'clickchat'
+            ? app(\App\Services\WhatsApp\ClickChatWhatsAppService::class)->templates(true) : [];
+    }
+
+    private function clickChatBinding(Request $request): ?array
+    {
+        $name = trim((string) $request->input('clickchat_name'));
+        if ($name === '') return null;
+        $variables = preg_split('/[\s,،]+/u', trim((string) $request->input('clickchat_variables')), -1, PREG_SPLIT_NO_EMPTY);
+        preg_match_all('/\{([a-zA-Z_][a-zA-Z0-9_]*)\}/', $request->message, $available);
+        if (array_diff($variables, $available[1])) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['clickchat_variables' => 'استخدم أسماء متغيرات موجودة في نص الرسالة.']);
+        }
+        return ['name' => $name, 'language' => trim((string) $request->input('clickchat_language')) ?: 'ar', 'variables' => $variables];
     }
 
     public function bulkUpdate(Request $request)
