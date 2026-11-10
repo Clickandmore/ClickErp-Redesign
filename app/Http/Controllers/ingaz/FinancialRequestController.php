@@ -22,6 +22,8 @@ use Illuminate\Validation\Rule;
 use Nami\Finance\Enums\BondPaymentTypes;
 use Nami\Finance\Enums\BondTypes;
 use Nami\Finance\Models\Account;
+use Nami\Finance\Models\BankAccount;
+use Nami\Finance\Models\Box;
 use Nami\Finance\Services\BondService;
 use Nami\Finance\Services\YearService;
 
@@ -104,7 +106,8 @@ class FinancialRequestController extends Controller
     {
         abort_unless($this->canAccessRequest($financialRequest), 403);
 
-        $financialRequest->load(['attachments', 'branch', 'creator', 'updater', 'approver', 'statusLogs.performer', 'financeBond.debitAccount', 'financeBond.creditAccount']);
+        $financialRequest->load(['attachments', 'branch', 'client', 'creator', 'updater', 'approver', 'statusLogs.performer', 'financeBond.debitAccount', 'financeBond.creditAccount']);
+        $partyAccountId = $financialRequest->partyAccountId();
 
         $workflowHistory = collect([[
             'status' => FinancialRequest::STATUS_PREPARING,
@@ -139,6 +142,12 @@ class FinancialRequestController extends Controller
             'contractTypes' => FinancialRequest::contractTypes(),
             'bondTypes' => $this->bondTypes(),
             'paymentTypes' => $this->paymentTypes(),
+            'automaticJournalEntriesEnabled' => AutomaticJournalEntries::enabled(),
+            'requestAccountLabel' => FinancialRequest::accountLabel(data_get($financialRequest->payload, 'account_id')),
+            'partyAccount' => $partyAccountId ? ['id' => $partyAccountId, 'text' => FinancialRequest::accountLabel($partyAccountId)] : null,
+            'defaultPaymentType' => data_get($financialRequest->payload, 'payment_method') === 'cash'
+                ? BondPaymentTypes::Cash->value
+                : BondPaymentTypes::BankTransfer->value,
         ]);
     }
 
@@ -240,16 +249,24 @@ class FinancialRequestController extends Controller
 
     public function updateStatus(Request $request, FinancialRequest $financialRequest, BondService $bondService, YearService $yearService)
     {
+        $requiresFinanceBond = $request->input('status') === FinancialRequest::STATUS_CLOSED
+            && ! $financialRequest->finance_bond_id
+            && AutomaticJournalEntries::enabled();
+
         $data = $request->validate([
             'status' => ['required', Rule::in(array_keys(FinancialRequest::statuses()))],
             'priority' => ['nullable', Rule::in(array_keys(FinancialRequest::priorities()))],
-            'bond_type' => ['nullable', Rule::in([BondTypes::Qabd->value, BondTypes::Sarf->value])],
-            'debit_account_id' => ['nullable', 'exists:fn_accounts,id'],
-            'credit_account_id' => ['nullable', 'exists:fn_accounts,id'],
+            'bond_type' => [Rule::requiredIf($requiresFinanceBond), 'nullable', Rule::in([BondTypes::Qabd->value, BondTypes::Sarf->value])],
+            'debit_account_id' => [Rule::requiredIf($requiresFinanceBond), 'nullable', 'exists:fn_accounts,id'],
+            'credit_account_id' => [Rule::requiredIf($requiresFinanceBond), 'nullable', 'exists:fn_accounts,id'],
             'payment_type' => ['nullable', 'integer', Rule::in(array_map(fn (BondPaymentTypes $type) => $type->value, BondPaymentTypes::cases()))],
             'remarks' => ['nullable', 'string', 'max:2000'],
             'attachments' => ['nullable', 'array'],
             'attachments.*.*' => ['file', 'max:10240'],
+        ], [
+            'bond_type.required' => 'يجب تحديد نوع السند عند إقفال الطلب.',
+            'debit_account_id.required' => 'يجب تحديد الحساب المدين عند إقفال الطلب.',
+            'credit_account_id.required' => 'يجب تحديد الحساب الدائن عند إقفال الطلب.',
         ]);
 
         abort_unless($this->canAccessRequest($financialRequest) && $this->canUpdateStatus($financialRequest, $data), 403);
@@ -320,6 +337,7 @@ class FinancialRequestController extends Controller
         $term = trim((string) $request->input('q'));
 
         return User::query()
+            ->with('financeAccount:id,code,name')
             ->when($term !== '', function ($query) use ($term) {
                 $query->where(function ($nested) use ($term) {
                     $nested->where('name', 'like', "%{$term}%")
@@ -329,12 +347,15 @@ class FinancialRequestController extends Controller
                 });
             })
             ->limit(15)
-            ->get(['id', 'name', 'national_num', 'tax_number', 'phone'])
+            ->get(['id', 'name', 'national_num', 'tax_number', 'phone', 'account_id'])
             ->map(fn (User $user) => [
                 'id' => $user->id,
                 'text' => trim($user->name . ' - ' . ($user->national_num ?: $user->tax_number)),
                 'name' => $user->name,
                 'identity' => $user->national_num ?: $user->tax_number,
+                'account_id' => $user->financeAccount?->id,
+                'account_name' => $user->financeAccount?->name,
+                'account_text' => $user->financeAccount ? trim($user->financeAccount->code . ' - ' . $user->financeAccount->name) : null,
             ]);
     }
 
@@ -366,8 +387,19 @@ class FinancialRequestController extends Controller
 
         $term = trim((string) $request->input('q'));
 
+        // scope=treasury narrows the list to cash-box and bank accounts (the
+        // paying side of a bond). Falls back to every leaf account when none
+        // are configured so the user is never left with an empty list.
+        $treasuryIds = [];
+        if ($request->input('scope') === 'treasury') {
+            $treasuryIds = Box::query()->whereNotNull('account_id')->pluck('account_id')
+                ->merge(BankAccount::query()->whereNotNull('account_id')->pluck('account_id'))
+                ->filter()->unique()->values()->all();
+        }
+
         $accounts = Account::query()
             ->whereDoesntHave('children')
+            ->when($treasuryIds !== [], fn ($query) => $query->whereIn('id', $treasuryIds))
             ->when($term !== '', function ($query) use ($term) {
                 $query->where(function ($nested) use ($term) {
                     $nested->where('code', 'like', "%{$term}%")
@@ -434,6 +466,9 @@ class FinancialRequestController extends Controller
             'contract_salary' => $isRental ? ($info->monthly_salary ?? $maid?->salary) : ($maid?->salary),
             'client_id' => $client?->id,
             'client_name' => $client?->name,
+            'client_account_id' => $client?->financeAccount?->id,
+            'client_account_name' => $client?->financeAccount?->name,
+            'client_account_text' => $client?->financeAccount ? trim($client->financeAccount->code . ' - ' . $client->financeAccount->name) : null,
             'client_identity' => $client?->national_num ?: $client?->tax_number,
             'maid_id' => $maid?->id,
             'maid_name' => $maid?->name,
@@ -687,7 +722,7 @@ class FinancialRequestController extends Controller
 
         foreach (['bond_type', 'debit_account_id', 'credit_account_id'] as $required) {
             if (empty($data[$required])) {
-                throw new \RuntimeException('يجب تحديد نوع السند والحسابات عند تحويل الطلب إلى تم السداد.');
+                throw new \RuntimeException('يجب تحديد نوع السند والحسابات عند إقفال الطلب.');
             }
         }
 

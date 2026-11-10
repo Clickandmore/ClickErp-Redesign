@@ -78,10 +78,10 @@ class OperationalSummaryReportTest extends TestCase
 
     /* -------------------------------------------------------------- */
 
-    private function rentalInvoice(string $date, float $due, float $paid, string $number): void
+    private function rentalInvoice(string $date, float $due, float $paid, string $number, ?int $userId = null): void
     {
         $contractId = DB::table('rental_contracts')->insertGetId([
-            'user_id' => $this->userId,
+            'user_id' => $userId ?? $this->userId,
             'contract_number' => $number,
             'created_at' => $date . ' 09:00:00',
             'updated_at' => $date . ' 09:00:00',
@@ -334,7 +334,8 @@ class OperationalSummaryReportTest extends TestCase
         $this->assertSame(7200.0, $section['totals']['remaining']);
         $this->assertSame(7900.0, $section['outstanding_all']);
         $this->assertEquals(7200, array_sum($section['aging']));
-        $this->assertCount(1, $section['rows']);
+        $this->assertCount(3, $section['rows'], 'الفواتير كلها متاحة للتصدير.');
+        $this->assertCount(1, $section['clients'], 'الشاشة سطر لكل عميل.');
 
         $all = $this->report(['per_page' => null])['rental_receivables']['rows'];
         $this->assertCount(2, $all->where('document_type', 'extension'));
@@ -630,31 +631,66 @@ class OperationalSummaryReportTest extends TestCase
         $this->assertArrayNotHasKey('outstanding_all', $all, 'لا معنى لمقارنة إضافية حين يكون النطاق هو كل الرصيد أصلاً.');
     }
 
-    public function test_receivables_paginate_while_totals_and_aging_cover_the_whole_set(): void
+    public function test_receivables_paginate_by_client_while_totals_and_aging_cover_the_whole_set(): void
     {
         foreach (range(1, 7) as $i) {
-            $this->rentalInvoice('2031-02-' . str_pad((string) $i, 2, '0', STR_PAD_LEFT), 1000 * $i, 0, 'RC-31-P' . $i);
+            $this->rentalInvoice('2031-02-' . str_pad((string) $i, 2, '0', STR_PAD_LEFT), 1000 * $i, 0, 'RC-31-P' . $i, $this->extraClient($i));
         }
 
         $first = $this->report(['per_page' => 3, 'rental_page' => 1])['rental_receivables'];
         $second = $this->report(['per_page' => 3, 'rental_page' => 2])['rental_receivables'];
         $unpaged = $this->report(['per_page' => null])['rental_receivables'];
 
-        $this->assertCount(3, $first['rows']);
-        $this->assertCount(3, $second['rows']);
+        $this->assertCount(3, $first['clients']);
+        $this->assertCount(3, $second['clients']);
+        $this->assertCount(7, $unpaged['clients']);
         $this->assertCount(7, $unpaged['rows']);
         $this->assertNull($unpaged['paginator'], 'التصدير يطلب كل الصفوف بلا ترقيم.');
 
         $this->assertSame(7, $first['paginator']->total());
         $this->assertSame(3, $first['paginator']->lastPage());
-        $this->assertSame(['RC-31-P7', 'RC-31-P6', 'RC-31-P5'], $first['rows']->pluck('contract_number')->all(), 'الترتيب من الأحدث عبر الصفحات.');
-        $this->assertSame(['RC-31-P4', 'RC-31-P3', 'RC-31-P2'], $second['rows']->pluck('contract_number')->all());
+        $this->assertSame(['RC-31-P7', 'RC-31-P6', 'RC-31-P5'], $first['clients']->map(fn ($c) => $c->contracts->first())->all(), 'الترتيب من الأحدث عبر الصفحات.');
+        $this->assertSame(['RC-31-P4', 'RC-31-P3', 'RC-31-P2'], $second['clients']->map(fn ($c) => $c->contracts->first())->all());
 
         $expected = 28000.0;
         $this->assertSame($expected, $first['totals']['remaining'], 'المجاميع تُحسب على كل الصفوف لا على صفحة واحدة.');
         $this->assertSame($expected, $second['totals']['remaining']);
         $this->assertSame($expected, array_sum($first['aging']), 'التقادم كذلك يغطي كل الصفوف.');
         $this->assertSame(7, $first['totals']['documents']);
+    }
+
+    public function test_client_with_several_contracts_shows_one_total_line(): void
+    {
+        $this->rentalInvoice('2031-02-03', 2000, 500, 'RC-31-A');
+        $this->rentalInvoice('2031-02-10', 3000, 0, 'RC-31-B');
+        $this->recruitmentInvoice('2031-02-04', 12000, false);
+        $this->recruitmentInvoice('2031-02-05', 8000, false);
+
+        $report = $this->report();
+        $rental = $report['rental_receivables']['clients'];
+        $recruitment = $report['recruitment_receivables']['clients'];
+
+        $this->assertCount(1, $rental);
+        $this->assertSame(4500.0, $rental->first()->remaining_amount);
+        $this->assertSame(['RC-31-B', 'RC-31-A'], $rental->first()->contracts->sort()->reverse()->values()->all());
+        $this->assertSame(2, $rental->first()->documents_count);
+        $this->assertSame('partial', $rental->first()->payment_status);
+
+        $this->assertCount(1, $recruitment);
+        $this->assertSame(20000.0, $recruitment->first()->remaining_amount);
+        $this->assertSame(2, $recruitment->first()->documents_count);
+    }
+
+    private function extraClient(int $i): int
+    {
+        return DB::table('users')->insertGetId([
+            'name' => 'عميل ترقيم ' . $i,
+            'phone_code' => '966',
+            'phone' => '50000' . str_pad((string) $i, 4, '0', STR_PAD_LEFT),
+            'password' => 'x',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
     }
 
     public function test_export_writes_every_row_with_money_formatting_and_a_totals_line(): void

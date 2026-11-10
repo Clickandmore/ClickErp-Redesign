@@ -31,4 +31,12 @@ return [
     'statuses' => ['preparing'=>'Preparing','for_approval'=>'For Approval','approved'=>'Approved / Awaiting Payment','paid'=>'Paid','request_closing'=>'Request for Closing','receipt_attached'=>'Receipt Attached','rejected'=>'Incomplete','closed'=>'Closed'],
     'priorities' => ['normal'=>'Normal','important'=>'Important','critical'=>'Urgent'],
     'scopes' => ['all'=>'All Financial Requests','incomplete'=>'Incomplete','paid'=>'Paid / Closing in Progress','deleted'=>'Deleted Requests'],
+    'request_data' => 'Request Data', 'accounting_data' => 'Accounting Data',
+    'accounting_help' => 'The request is paid out to the beneficiary, so the default amount nature is "Credit". The accounting account is suggested from the client account and can be changed.',
+    'accounting_name_help' => 'Filled automatically with the client name or the selected account name; you can edit it.',
+    'account_help' => 'The party (client or beneficiary) account in the chart of accounts.',
+    'client_account_missing' => 'The selected client has no linked accounting account; choose one manually.',
+    'amount_nature' => 'Amount Nature', 'summary' => 'Request Summary', 'summary_party' => 'Party', 'summary_none' => 'Not set',
+    'currency' => 'SAR', 'validation_errors' => 'Please review the following fields:', 'type_details' => 'Request Type Details',
+    'select_type_first' => 'Choose a request type to show its fields.', 'auto_filled' => 'Auto-filled', 'clear' => 'Unlink',
 ];

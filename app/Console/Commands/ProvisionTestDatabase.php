@@ -41,6 +41,13 @@ class ProvisionTestDatabase extends Command
         'new_settings',
     ];
 
+    /**
+     * new_settings keys that point at live external services.
+     */
+    private const LIVE_SERVICE_SETTINGS = [
+        'r2_storage',
+    ];
+
     public function handle(): int
     {
         $source = $this->option('source') ?: config('database.connections.mysql.database');
@@ -84,6 +91,15 @@ class ProvisionTestDatabase extends Command
             $pdo->exec("INSERT INTO `{$target}`.`{$table}` SELECT * FROM `{$source}`.`{$table}`");
             $copied = $pdo->query("SELECT COUNT(*) FROM `{$target}`.`{$table}`")->fetchColumn();
             $this->line("  reference data: {$table} ({$copied} rows)");
+        }
+
+        // Settings that carry live credentials must not reach the test database, otherwise
+        // tests upload to the real R2 bucket instead of the faked local disk.
+        if (in_array('new_settings', $tables, true)) {
+            $placeholders = implode(',', array_fill(0, count(self::LIVE_SERVICE_SETTINGS), '?'));
+            $statement = $pdo->prepare("DELETE FROM `{$target}`.`new_settings` WHERE `key` IN ({$placeholders})");
+            $statement->execute(self::LIVE_SERVICE_SETTINGS);
+            $this->line('  stripped live-service settings: ' . implode(', ', self::LIVE_SERVICE_SETTINGS));
         }
 
         $pdo->exec('SET FOREIGN_KEY_CHECKS=1');

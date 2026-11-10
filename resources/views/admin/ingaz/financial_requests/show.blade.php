@@ -63,6 +63,16 @@
     </style>
 
     <div class="container-fluid financial-request-page">
+        @if ($errors->any())
+            <div class="alert alert-danger" role="alert">
+                <strong>تعذر تنفيذ الإجراء:</strong>
+                <ul class="mb-0 mt-1">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
         <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
             <div>
                 <div class="text-muted small mb-1">الطلبات المالية / تفاصيل الطلب</div>
@@ -107,7 +117,6 @@
                     <div class="card-header"><h5 class="section-title"><i class="fa fa-info-circle ms-2 text-muted"></i> البيانات الأساسية</h5></div>
                     <div class="card-body px-4">
                         <div class="row gx-4">
-                            <div class="col-md-6 detail-item"><div class="detail-label">المدفوع له</div><div class="detail-value">{{ data_get($requestItem->payload, 'paid_to', '-') ?: '-' }}</div></div>
                             <div class="col-md-6 detail-item"><div class="detail-label">الفرع</div><div class="detail-value">{{ $requestItem->branch?->name_ar ?: $requestItem->branch?->name_en ?: '-' }}</div></div>
                             <div class="col-md-6 detail-item"><div class="detail-label">تاريخ الطلب</div><div class="detail-value" dir="ltr">{{ $requestItem->request_date?->format('Y-m-d') ?: '-' }}</div></div>
                             <div class="col-md-6 detail-item">
@@ -148,21 +157,81 @@
                     </div>
                 </div>
 
+                @php
+                    $p = $requestItem->payload ?? [];
+                    $nature = data_get($p, 'debit_credit');
+                    $method = data_get($p, 'payment_method');
+                    $bankRows = array_filter([
+                        'اسم صاحب الحساب' => data_get($p, 'account_holder_name'),
+                        'اسم البنك' => data_get($p, 'bank_name'),
+                        'رقم الحساب' => data_get($p, 'account_number'),
+                        'رقم الآيبان' => data_get($p, 'iban'),
+                    ], fn ($v) => $v !== null && $v !== '');
+                @endphp
                 <div class="card section-card mt-3">
-                    <div class="card-header"><h5 class="section-title"><i class="fa fa-list-alt ms-2 text-muted"></i> تفاصيل الطلب الإضافية</h5></div>
+                    <div class="card-header"><h5 class="section-title"><i class="fa fa-book ms-2 text-muted"></i> البيانات المحاسبية</h5></div>
                     <div class="card-body px-4">
                         <div class="row gx-4">
-                        @forelse(collect($requestItem->payload ?? [])->filter(fn($value) => $value !== null && $value !== '') as $key => $value)
+                            <div class="col-md-6 detail-item"><div class="detail-label">المدفوع له</div><div class="detail-value">{{ data_get($p, 'paid_to') ?: '-' }}</div></div>
+                            <div class="col-md-6 detail-item"><div class="detail-label">الاسم المحاسبي</div><div class="detail-value">{{ data_get($p, 'accounting_name') ?: '-' }}</div></div>
+                            <div class="col-md-6 detail-item">
+                                <div class="detail-label">الحساب المحاسبي</div>
+                                <div class="detail-value" dir="auto">
+                                    @if($requestAccountLabel)
+                                        {{ $requestAccountLabel }}
+                                    @elseif($partyAccount)
+                                        {{ $partyAccount['text'] }} <small class="text-muted d-block">حساب العميل المربوط</small>
+                                    @else
+                                        <span class="text-warning">غير محدد</span>
+                                    @endif
+                                </div>
+                            </div>
+                            <div class="col-md-3 col-6 detail-item">
+                                <div class="detail-label">طبيعة المبلغ</div>
+                                <div class="detail-value">
+                                    @if($nature === 'debit')<span class="badge bg-danger">مدين</span>
+                                    @elseif($nature === 'credit')<span class="badge bg-success">دائن</span>
+                                    @else - @endif
+                                </div>
+                            </div>
+                            <div class="col-md-3 col-6 detail-item"><div class="detail-label">طريقة الدفع</div><div class="detail-value">{{ ['bank_transfer' => 'تحويل بنكي', 'cash' => 'نقدي'][$method] ?? ($method ?: '-') }}</div></div>
+                            @foreach($bankRows as $label => $value)
+                                <div class="col-md-6 detail-item"><div class="detail-label">{{ $label }}</div><div class="detail-value" dir="auto">{{ $value }}</div></div>
+                            @endforeach
+                            @if($requestItem->financeBond)
+                                <div class="col-12 detail-item">
+                                    <div class="detail-label">قيد السند</div>
+                                    <div class="detail-value">
+                                        <span class="badge bg-danger-subtle text-danger border">مدين</span> {{ $requestItem->financeBond->debitAccount ? $requestItem->financeBond->debitAccount->code . ' - ' . $requestItem->financeBond->debitAccount->name : '-' }}
+                                        <span class="mx-2 text-muted">|</span>
+                                        <span class="badge bg-success-subtle text-success border">دائن</span> {{ $requestItem->financeBond->creditAccount ? $requestItem->financeBond->creditAccount->code . ' - ' . $requestItem->financeBond->creditAccount->name : '-' }}
+                                    </div>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+
+                @php
+                    $typeDetails = collect($requestItem->payload ?? [])
+                        ->except(\App\Models\FinancialRequest::ACCOUNTING_PAYLOAD_KEYS)
+                        ->filter(fn ($value) => $value !== null && $value !== '');
+                @endphp
+                @if($typeDetails->isNotEmpty())
+                <div class="card section-card mt-3">
+                    <div class="card-header"><h5 class="section-title"><i class="fa fa-list-alt ms-2 text-muted"></i> تفاصيل نوع الطلب</h5></div>
+                    <div class="card-body px-4">
+                        <div class="row gx-4">
+                        @foreach($typeDetails as $key => $value)
                             <div class="col-md-6 detail-item">
                                 <div class="detail-label">{{ \App\Models\FinancialRequest::labelForPayloadField($requestItem->type, $key) }}</div>
                                 <div class="detail-value">{{ is_array($value) ? implode('، ', $value) : $value }}</div>
                             </div>
-                        @empty
-                            <div class="col-12 text-center text-muted py-3">لا توجد تفاصيل إضافية مسجلة.</div>
-                        @endforelse
+                        @endforeach
                         </div>
                     </div>
                 </div>
+                @endif
 
                 <div class="card section-card mt-3">
                     <div class="card-header d-flex justify-content-between align-items-center">
@@ -238,28 +307,45 @@
                                     <input type="hidden" name="attachment_labels[official_receipt]" value="الإيصال الرسمي">
                                     <input type="file" name="attachments[official_receipt][]" class="form-control mb-2" multiple>
                                 @endif
-                                @if(isset($actions['close']))
-                                <label class="form-label">نوع السند عند الإقفال</label>
-                                <select name="bond_type" class="form-select mb-2">
-                                    <option value="">بدون</option>
+                                @if(isset($actions['close']) && $automaticJournalEntriesEnabled && ! $requestItem->finance_bond_id)
+                                @php
+                                    $bondType = old('bond_type', \Nami\Finance\Enums\BondTypes::Sarf->value);
+                                    $isSarf = $bondType === \Nami\Finance\Enums\BondTypes::Sarf->value;
+                                    $oldDebit = old('debit_account_id');
+                                    $oldCredit = old('credit_account_id');
+                                    // سند صرف: العميل مدين والخزينة/البنك دائن. سند قبض: العكس.
+                                    $debitPreset = $oldDebit ? ['id' => $oldDebit, 'text' => \App\Models\FinancialRequest::accountLabel($oldDebit)] : ($isSarf ? $partyAccount : null);
+                                    $creditPreset = $oldCredit ? ['id' => $oldCredit, 'text' => \App\Models\FinancialRequest::accountLabel($oldCredit)] : ($isSarf ? null : $partyAccount);
+                                @endphp
+                                <div class="alert alert-info py-2 small mb-2">
+                                    سيتم إنشاء السند المحاسبي تلقائيًا عند الإقفال.
+                                    <span class="d-block mt-1" id="bondHint"></span>
+                                </div>
+                                <label class="form-label">نوع السند عند الإقفال <span class="text-danger">*</span></label>
+                                <select name="bond_type" id="bondType" class="form-select mb-2" required>
                                     @foreach($bondTypes as $key => $label)
-                                        <option value="{{ $key }}">{{ $label }}</option>
+                                        <option value="{{ $key }}" @selected($bondType === $key)>{{ $label }}</option>
                                     @endforeach
                                 </select>
                                 <label class="form-label">طريقة الدفع</label>
                                 <select name="payment_type" class="form-select mb-2">
                                     @foreach($paymentTypes as $key => $label)
-                                        <option value="{{ $key }}">{{ $label }}</option>
+                                        <option value="{{ $key }}" @selected((int) old('payment_type', $defaultPaymentType) === (int) $key)>{{ $label }}</option>
                                     @endforeach
                                 </select>
-                                <label class="form-label">الحساب المدين</label>
-                                <select name="debit_account_id" class="form-select js-account-select mb-2" data-placeholder="ابحث بالكود أو اسم الحساب">
+                                <label class="form-label">الحساب المدين <span class="text-danger">*</span> <small class="text-muted" id="debitRole"></small></label>
+                                <select name="debit_account_id" id="debitAccount" class="form-select js-account-select mb-2" data-placeholder="ابحث بالكود أو اسم الحساب" required>
                                     <option value=""></option>
+                                    @if($debitPreset && $debitPreset['text'])<option value="{{ $debitPreset['id'] }}" selected>{{ $debitPreset['text'] }}</option>@endif
                                 </select>
-                                <label class="form-label">الحساب الدائن</label>
-                                <select name="credit_account_id" class="form-select js-account-select mb-2" data-placeholder="ابحث بالكود أو اسم الحساب">
+                                <label class="form-label">الحساب الدائن <span class="text-danger">*</span> <small class="text-muted" id="creditRole"></small></label>
+                                <select name="credit_account_id" id="creditAccount" class="form-select js-account-select mb-2" data-placeholder="ابحث بالكود أو اسم الحساب" required>
                                     <option value=""></option>
+                                    @if($creditPreset && $creditPreset['text'])<option value="{{ $creditPreset['id'] }}" selected>{{ $creditPreset['text'] }}</option>@endif
                                 </select>
+                                @if(! $partyAccount)
+                                    <div class="small text-warning mb-2">لا يوجد حساب محاسبي للعميل/المستفيد في الطلب؛ اختر حسابه يدويًا.</div>
+                                @endif
                                 @endif
                                 <label class="form-label">الملاحظات</label>
                                 <textarea name="remarks" class="form-control mb-3" placeholder="إلزامية عند الرفض أو عدم الاكتمال"></textarea>
@@ -278,36 +364,80 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            const accountUrl = '{{ route('financial-requests.search-accounts') }}';
-            const selects = document.querySelectorAll('.js-account-select');
+            const accountUrl = @json(route('financial-requests.search-accounts'));
+            const sarf = @json(\Nami\Finance\Enums\BondTypes::Sarf->value);
+            const bondType = document.getElementById('bondType');
+            const debit = document.getElementById('debitAccount');
+            const credit = document.getElementById('creditAccount');
+            const jq = window.jQuery;
+            const hasSelect2 = !!(jq && jq.fn && jq.fn.select2);
 
-            if (window.jQuery && window.jQuery.fn && window.jQuery.fn.select2) {
-                window.jQuery('.js-account-select').select2({
+            // الطرف الخزيني (خزينة/بنك) يُبحث فيه من حسابات الصناديق والبنوك فقط.
+            function treasurySelect() {
+                if (!bondType) return null;
+                return bondType.value === sarf ? credit : debit;
+            }
+
+            function initSelect(select) {
+                if (!hasSelect2) return;
+                if (jq(select).data('select2')) jq(select).select2('destroy');
+                jq(select).select2({
                     width: '100%',
                     allowClear: true,
-                    placeholder: function () {
-                        return window.jQuery(this).data('placeholder') || 'اختر الحساب';
-                    },
+                    placeholder: jq(select).data('placeholder') || 'اختر الحساب',
                     ajax: {
                         url: accountUrl,
                         dataType: 'json',
                         delay: 250,
-                        data: params => ({q: params.term || ''}),
+                        data: params => ({q: params.term || '', scope: select === treasurySelect() ? 'treasury' : ''}),
                         processResults: data => data,
                     },
                 });
+            }
+
+            function refreshHints() {
+                if (!bondType) return;
+                const isSarf = bondType.value === sarf;
+                document.getElementById('debitRole').textContent = isSarf ? '(حساب العميل / المستفيد)' : '(الخزينة / البنك)';
+                document.getElementById('creditRole').textContent = isSarf ? '(الخزينة / البنك)' : '(حساب العميل / المستفيد)';
+                document.getElementById('bondHint').textContent = isSarf
+                    ? 'سند صرف: من حساب العميل (مدين) إلى الخزينة أو البنك (دائن).'
+                    : 'سند قبض: من الخزينة أو البنك (مدين) إلى حساب العميل (دائن).';
+            }
+
+            // تبديل نوع السند يقلب طرفي القيد.
+            function swapSides() {
+                const d = debit.selectedOptions[0], c = credit.selectedOptions[0];
+                const dVal = d && d.value ? [d.value, d.textContent] : null;
+                const cVal = c && c.value ? [c.value, c.textContent] : null;
+                [[debit, cVal], [credit, dVal]].forEach(([select, val]) => {
+                    select.innerHTML = '<option value=""></option>';
+                    if (val) select.appendChild(new Option(val[1], val[0], true, true));
+                });
+            }
+
+            if (bondType) {
+                bondType.addEventListener('change', () => {
+                    swapSides();
+                    refreshHints();
+                    initSelect(debit);
+                    initSelect(credit);
+                });
+                refreshHints();
+            }
+
+            if (hasSelect2) {
+                document.querySelectorAll('.js-account-select').forEach(initSelect);
                 return;
             }
 
             fetch(accountUrl, {headers: {'Accept': 'application/json'}})
                 .then(response => response.ok ? response.json() : {results: []})
                 .then(data => {
-                    selects.forEach(select => {
+                    document.querySelectorAll('.js-account-select').forEach(select => {
                         data.results.forEach(row => {
-                            const option = document.createElement('option');
-                            option.value = row.id;
-                            option.textContent = row.text;
-                            select.appendChild(option);
+                            if (Array.from(select.options).some(o => String(o.value) === String(row.id))) return;
+                            select.appendChild(new Option(row.text, row.id));
                         });
                     });
                 });
