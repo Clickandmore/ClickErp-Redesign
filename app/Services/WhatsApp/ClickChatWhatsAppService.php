@@ -231,7 +231,13 @@ class ClickChatWhatsAppService
         if (!$channelId) return ['success' => false, 'error' => 'sender_required'];
         try {
             $response = $this->client()->get($this->url('templates'), ['channel_account_id' => $channelId, 'include_status' => 1]);
-            if (!$response->successful()) return ['success' => false, 'error' => 'unavailable'];
+            if (!$response->successful()) {
+                $error = match ($response->status()) {
+                    401 => 'auth_error', 403 => 'forbidden', 404 => 'api_missing',
+                    422 => 'invalid_sender', 429 => 'rate_limited', default => 'unavailable',
+                };
+                return ['success' => false, 'error' => $error, 'http_status' => $response->status()];
+            }
             if ($response->json('meta.includes_all_statuses') !== true || !is_array($response->json('data'))) {
                 return ['success' => false, 'error' => 'api_outdated'];
             }

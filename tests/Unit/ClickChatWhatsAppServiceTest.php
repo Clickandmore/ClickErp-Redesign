@@ -173,6 +173,15 @@ class ClickChatWhatsAppServiceTest extends TestCase
         $this->assertSame('unavailable', $service->templateStatusSnapshot()['error']);
     }
 
+    public function test_status_snapshot_distinguishes_authentication_and_permissions(): void
+    {
+        Http::fakeSequence()->push([], 401)->push([], 403)->push([], 404)->push([], 422);
+        $service = app(ClickChatWhatsAppService::class);
+        foreach (['auth_error', 'forbidden', 'api_missing', 'invalid_sender'] as $error) {
+            $this->assertSame($error, $service->templateStatusSnapshot()['error']);
+        }
+    }
+
     public function test_status_badges_do_not_contact_clickchat_for_another_provider(): void
     {
         config(['services.whatsapp.driver' => 'meta']);
