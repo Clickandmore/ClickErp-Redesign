@@ -223,6 +223,24 @@ class ClickChatWhatsAppService
         throw new RuntimeException('القالب غير متاح أو غير معتمد. حدّث الصفحة واختر قالبًا صالحًا.');
     }
 
+    /** All local platform states for badges. Failures must not masquerade as missing templates. */
+    public function templateStatusSnapshot(?int $channelId = null): array
+    {
+        if (!$this->isConfigured()) return ['success' => false, 'error' => 'not_configured'];
+        $channelId ??= $this->channelAccountId([]);
+        if (!$channelId) return ['success' => false, 'error' => 'sender_required'];
+        try {
+            $response = $this->client()->get($this->url('templates'), ['channel_account_id' => $channelId, 'include_status' => 1]);
+            if (!$response->successful()) return ['success' => false, 'error' => 'unavailable'];
+            if ($response->json('meta.includes_all_statuses') !== true || !is_array($response->json('data'))) {
+                return ['success' => false, 'error' => 'api_outdated'];
+            }
+            return ['success' => true, 'channel_account_id' => $channelId, 'templates' => $response->json('data')];
+        } catch (Throwable) {
+            return ['success' => false, 'error' => 'unavailable'];
+        }
+    }
+
     /** Submit a utility template through our platform; never through ERP Meta credentials. */
     public function create(array $data): array
     {

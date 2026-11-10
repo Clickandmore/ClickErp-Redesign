@@ -1445,14 +1445,15 @@ class ShelterContractController extends Controller
     {
         $contract = Contract::with(['maid.nationality', 'user', 'info', 'travelHistory'])->find($request->contract_id);
 
-        if (
-            !$contract ||
-            !$this->contractCanBeAddedToShelter($contract)
-        ) {
-            return jsonError('لا يمكن إضافة هذا العقد للإيواء. الحالات المقبولة: وصول أو ضمان أو مكتمل أو مغلق أو مرتجع بعد إلغاء العميل، بشرط تسجيل تاريخ وصول فعلي للعاملة وألا يكون التاريخ مستقبليًا.', 422);
+        if (!$contract) {
+            return jsonError('العقد المحدد غير موجود. أعد اختيار العقد ثم حاول مرة أخرى.', 422);
         }
 
         $this->assertCanAccessBranchModel($contract, 'contracts');
+
+        if ($details = $this->shelterIneligibilityDetails($contract)) {
+            return jsonError($details['message'], 422);
+        }
 
         $wantsToWork = $request->input('wants_to_work') ?: 'unknown';
         $displayOnSite = $wantsToWork === 'yes'
@@ -1471,7 +1472,6 @@ class ShelterContractController extends Controller
             'duration_from_enter' => $request->duration_from_enter,
             'wants_to_work' => $wantsToWork,
             'back_reasons' => $request->back_reasons,
-            'arrival_date' => $request->arrival_date,
             'is_available_for_instant' => $displayOnSite,
             'shelter_attachments' => $attachments,
             'workers_have_residency' => $request->workers_have_residency,
@@ -1493,9 +1493,9 @@ class ShelterContractController extends Controller
 
         DB::transaction(function () use ($contract, $infoPayload, $request) {
             $lockedContract = Contract::query()->lockForUpdate()->findOrFail($contract->id);
-            if (!$this->contractCanBeAddedToShelter($lockedContract)) {
+            if ($details = $this->shelterIneligibilityDetails($lockedContract)) {
                 throw \Illuminate\Validation\ValidationException::withMessages([
-                    'contract_id' => 'تغيرت حالة العقد؛ لا يمكن إضافته للإيواء مرة أخرى.',
+                    'contract_id' => $details['message'],
                 ]);
             }
             $previousStatus = $lockedContract->status;

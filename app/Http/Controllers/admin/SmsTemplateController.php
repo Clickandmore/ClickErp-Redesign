@@ -41,7 +41,8 @@ class SmsTemplateController extends Controller
 
         $channels = SmsTemplate::channelOptions();
 
-        return view('admin.sms_templates.index', compact('templates', 'stats', 'channels'));
+        $clickChatStatus = $this->clickChatStatus();
+        return view('admin.sms_templates.index', compact('templates', 'stats', 'channels', 'clickChatStatus'));
     }
 
     /**
@@ -101,7 +102,8 @@ class SmsTemplateController extends Controller
             ]);
         }
 
-        return view('admin.sms_templates.show', compact('smsTemplate'));
+        $clickChatStatus = $this->clickChatStatus();
+        return view('admin.sms_templates.show', compact('smsTemplate', 'clickChatStatus'));
     }
 
     /**
@@ -112,7 +114,8 @@ class SmsTemplateController extends Controller
         $smsTemplate = SmsTemplate::findOrFail($id);
         $channels = SmsTemplate::channelOptions();
         $clickChatTemplates = $this->clickChatTemplates();
-        return view('admin.sms_templates.edit', compact('smsTemplate', 'channels', 'clickChatTemplates'));
+        $clickChatStatus = $this->clickChatStatus();
+        return view('admin.sms_templates.edit', compact('smsTemplate', 'channels', 'clickChatTemplates', 'clickChatStatus'));
     }
 
     /**
@@ -147,6 +150,11 @@ class SmsTemplateController extends Controller
 
         return redirect('/admin/sms-templates')
             ->with('success', 'تم تحديث قالب الرسالة بنجاح');
+    }
+
+    private function clickChatStatus(): array
+    {
+        return app(\App\Services\WhatsApp\ClickChatTemplateStatus::class)->snapshot();
     }
 
     private function clickChatTemplates(): array
