@@ -190,12 +190,14 @@ class ClickChatWhatsAppService
 
     /**
      * Fill a template chosen as "name|language" with values keyed by variable number.
+     * Checked against the templates of the number that will send it: templates
+     * belong to one Meta business account, and QR numbers have none.
      *
      * @return array{message: string, clickchat_template: array}
      */
-    public function prepareTemplate(string $key, array $values): array
+    public function prepareTemplate(string $key, array $values, ?int $channelId = null): array
     {
-        foreach ($this->templates() as $template) {
+        foreach ($this->templates(false, $channelId) as $template) {
             if ($template['name'] . '|' . $template['language'] !== $key) {
                 continue;
             }
@@ -220,7 +222,7 @@ class ClickChatWhatsAppService
             ]];
         }
 
-        throw new RuntimeException('القالب غير متاح أو غير معتمد. حدّث الصفحة واختر قالبًا صالحًا.');
+        throw new RuntimeException('القالب غير متاح أو غير معتمد على الرقم المرسِل المختار. أرقام QR لا تدعم قوالب ميتا؛ اختر رقم ميتا الذي يملك القالب.');
     }
 
     /** All local platform states for badges. Failures must not masquerade as missing templates. */

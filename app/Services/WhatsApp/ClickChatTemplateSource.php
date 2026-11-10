@@ -12,7 +12,8 @@ class ClickChatTemplateSource
     {
     }
 
-    public function listTemplates(bool $fresh = false): array
+    /** $channelId: the number that will send; null = branch number or default number. */
+    public function listTemplates(bool $fresh = false, ?int $channelId = null): array
     {
         $templates = array_map(fn (array $template) => [
             'name' => $template['name'],
@@ -20,14 +21,14 @@ class ClickChatTemplateSource
             'category' => $template['category'],
             'status' => 'APPROVED',
             'components' => [['type' => 'BODY', 'text' => $template['body']]],
-        ], $this->clickChat->templates($fresh));
+        ], $this->clickChat->templates($fresh, $channelId));
 
         return ['success' => $this->clickChat->isConfigured(), 'templates' => $templates, 'response' => []];
     }
 
-    public function approvedTemplate(string $name, string $language): ?array
+    public function approvedTemplate(string $name, string $language, ?int $channelId = null): ?array
     {
-        return collect($this->listTemplates()['templates'])
+        return collect($this->listTemplates(false, $channelId)['templates'])
             ->first(fn (array $template) => $template['name'] === $name && $template['language'] === $language);
     }
 

@@ -116,11 +116,15 @@ class NotificationController extends Controller
                 if (!empty($result['failure_reason'])) {
                     $message .= ' السبب: ' . $result['failure_reason'];
                 }
-                if ((int) ($result['sent_count'] ?? 0) === 0) {
-                    return jsonError($message, 422);
-                }
             } elseif (isset($result['sent_count'])) {
                 $message = "تم إرسال {$result['sent_count']} رسالة واتساب بنجاح.";
+            }
+            $scheduled = (int) ($result['scheduled_count'] ?? 0);
+            if ($scheduled > 0) {
+                $message .= " وجُدولت {$scheduled} رسالة لتُرسل تلقائيًا خلال دقائق (حد المنصة 60 رسالة في الدقيقة).";
+            }
+            if (($result['failed_count'] ?? 0) > 0 && (int) ($result['sent_count'] ?? 0) === 0 && $scheduled === 0) {
+                return jsonError($message, 422);
             }
 
             return jsonSuccess($result, $message, 201);
