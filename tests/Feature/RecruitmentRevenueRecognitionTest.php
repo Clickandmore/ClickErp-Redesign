@@ -477,8 +477,8 @@ class RecruitmentRevenueRecognitionTest extends TestCase
             $this->fail('Header mismatch must prevent linking.');
         } catch (\Illuminate\Validation\ValidationException $exception) {
             $message = $exception->errors()['credit_note'][0];
-            $this->assertStringContainsString('المبلغ: الفاتورة', $message);
-            $this->assertStringContainsString('القيد 5000', $message);
+            $this->assertStringContainsString('المبلغ في الفاتورة 3,980.75 وفي القيد 5,000.00', $message);
+            $this->assertStringContainsString('header_mismatch', $message);
             $this->assertNull($invoice->fresh()->invoice_constraint_id);
         }
         $source->update(['value' => 3980.75]);

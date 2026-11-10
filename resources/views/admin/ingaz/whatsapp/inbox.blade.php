@@ -113,6 +113,9 @@
                             <div class="bg-white border-bottom px-3 py-2 d-flex justify-content-between align-items-center">
                                 <div>
                                     <strong>{{ $selectedConversation->display_name }}</strong>
+                                    @if(app(\App\Services\WhatsApp\WhatsAppOptOutService::class)->isOptedOut($selectedConversation->phone))
+                                        <span class="badge bg-warning text-dark ms-1" title="لا تصله الرسائل الآلية؛ ردودك من هنا تصله">أوقف الرسائل الآلية</span>
+                                    @endif
                                     <div class="small text-muted" dir="ltr">{{ $selectedConversation->phone }}</div>
                                 </div>
                                 <div class="text-end">
@@ -133,6 +136,9 @@
                                     <div class="wa-message {{ $message->direction }}" data-message-id="{{ $message->id }}">
                                         <div class="wa-bubble">
                                             <div>{{ $message->body ?: 'رسالة بدون نص' }}</div>
+                                            @if($message->media_url && preg_match('~^https?://~i', $message->media_url))
+                                                <a href="{{ $message->media_url }}" target="_blank" rel="noopener noreferrer" class="small">فتح المرفق</a>
+                                            @endif
                                             <div class="wa-meta">
                                                 @if($message->sentBy?->name)<span>{{ $message->sentBy->name }}</span>@endif
                                                 <span>{{ optional($message->occurred_at ?: $message->created_at)->format('d/m/Y H:i') }}</span>
@@ -433,6 +439,7 @@
                 <div class="wa-message ${message.direction}" data-message-id="${message.id}">
                     <div class="wa-bubble">
                         <div>${escapeHtml(message.body || 'رسالة بدون نص')}</div>
+                        ${/^https?:\/\//i.test(message.media_url || '') ? `<a href="${escapeHtml(message.media_url)}" target="_blank" rel="noopener noreferrer" class="small">فتح المرفق</a>` : ''}
                         <div class="wa-meta">${sender}<span>${escapeHtml(message.occurred_at)}</span>${status}</div>
                         ${error}
                     </div>

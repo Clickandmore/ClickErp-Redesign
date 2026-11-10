@@ -50,7 +50,44 @@ class RecruitmentInvoiceConstraintLinkerTest extends TestCase
             return true;
         }))->once()->andReturnSelf();
         $query->shouldReceive('get')->once()->andReturn(collect());
+        // Another invoice exists for the contract, so the re-issued fallback is skipped.
+        $invoices = Mockery::mock();
+        $invoices->shouldReceive('where')->with('contract_id', 546)->once()->andReturnSelf();
+        $invoices->shouldReceive('where')->with('id', '!=', 480)->once()->andReturnSelf();
+        $invoices->shouldReceive('exists')->once()->andReturn(true);
+        DB::shouldReceive('table')->with('invoices')->once()->andReturn($invoices);
         $this->assertSame('missing', (new LegacyInvoiceConstraintLinker())->inspect($this->invoice())['status']);
+    }
+
+    /** @dataProvider reissuedInvoices */
+    public function test_journal_of_a_reissued_invoice_is_considered_only_when_the_old_invoice_is_gone(bool $oldInvoiceExists, string $status): void
+    {
+        $exact = Mockery::mock();
+        $exact->shouldReceive('whereNull')->andReturnSelf();
+        $exact->shouldReceive('where')->andReturnSelf();
+        $exact->shouldReceive('get')->andReturn(collect());
+        $fallback = Mockery::mock();
+        $fallback->shouldReceive('whereNull')->andReturnSelf();
+        $fallback->shouldReceive('where')->once()
+            ->with('statement', 'like', 'قيد فاتورة طلب استقدام للعقد #546 / الفاتورة #%')->andReturnSelf();
+        $fallback->shouldReceive('get')->andReturn(collect([(object) [
+            'id' => 2810, 'legacy_invoice_number' => null, 'branch_id' => 1, 'value' => 4000,
+            'statement' => 'قيد فاتورة طلب استقدام للعقد #546 / الفاتورة #482 / مساند 77',
+        ]]));
+        DB::shouldReceive('table')->with('fn_constraints')->andReturn($exact, $fallback);
+        $invoices = Mockery::mock();
+        $invoices->shouldReceive('where')->andReturnSelf();
+        // sibling invoice on contract, old invoice id, source already linked
+        $invoices->shouldReceive('exists')->andReturn(false, $oldInvoiceExists, false);
+        DB::shouldReceive('table')->with('invoices')->andReturn($invoices);
+
+        // value 4000 ≠ 3999 stops at the header check, proving the journal was picked up.
+        $this->assertSame($status, (new LegacyInvoiceConstraintLinker())->inspect($this->invoice())['status']);
+    }
+
+    public static function reissuedInvoices(): array
+    {
+        return [[false, 'header_mismatch'], [true, 'missing']];
     }
 
     protected function setUp(): void
@@ -127,6 +164,11 @@ class RecruitmentInvoiceConstraintLinkerTest extends TestCase
         }
         $result = (new LegacyInvoiceConstraintLinker())->inspect($this->invoice(), collect([$this->source()]));
         $this->assertSame($status, $result['status']);
+        if ($status === 'lines_mismatch') {
+            $this->assertSame('client_account', $result['reason']);
+            $this->assertSame(90, $result['client_account_id']);
+            $this->assertSame([91], $result['debit_account_ids']);
+        }
     }
 
     public static function customerAccounts(): array

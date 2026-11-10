@@ -9,6 +9,8 @@ use App\Models\ContractReturnSettlementLine;
 use App\Models\ReturnReasonCode;
 use App\Services\ingaz\PostArrivalRefundService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Nami\Finance\Models\Account;
@@ -28,7 +30,12 @@ class PostArrivalRefundController extends Controller
                     ->orWhereHas('contract.maid', fn ($x) => $x->where('name', 'like', "%{$term}%"));
             });
         }
-        return view('admin.ingaz.post_arrival_refunds.index', ['settlements' => $query->paginate(20)->withQueryString()]);
+        $settlements = $query->paginate(20)->withQueryString();
+        // Follow-up: what each draft on this page still needs before it can be approved.
+        $service = app(PostArrivalRefundService::class);
+        $readiness = $settlements->getCollection()->where('status', 'draft')
+            ->mapWithKeys(fn ($item) => [$item->id => collect($service->readiness($item))->where('ok', false)->pluck('title')->values()->all()]);
+        return view('admin.ingaz.post_arrival_refunds.index', ['settlements' => $settlements, 'readiness' => $readiness]);
     }
 
     public function create(Request $request, PostArrivalRefundService $service, ?ContractReturnSettlement $draft = null)
@@ -54,12 +61,21 @@ class PostArrivalRefundController extends Controller
             if ($selected) $contracts->prepend($selected);
         }
         $proposal = $selected ? $service->proposal($selected, $draft?->settlement_date->toDateString() ?? now()->toDateString()) : null;
+        // A draft saved before the shelter admission still shows the old office account;
+        // display the current suggestion so saving it unchanged does not keep a stale choice.
+        $officeLine = $draft?->lines->firstWhere('type', 'office_charge');
+        $receipt = ($proposal['office_charge_receipt_entry_id'] ?? null) ? \App\Models\ShelterCostEntry::query()->find($proposal['office_charge_receipt_entry_id']) : null;
+        if ($officeLine && $receipt && $officeLine->created_at && $officeLine->created_at->lt($receipt->created_at)
+            && (int) $officeLine->credit_account_id !== (int) $proposal['office_charge_credit_account_id']) {
+            $officeLine->setAttribute('credit_account_id', (int) $proposal['office_charge_credit_account_id']);
+        }
         $accountsQuery = Account::query()->whereDoesntHave('children');
         $accounts = $accountsQuery->orderBy('code')->orderBy('id')->get(['id', 'code', 'name']);
-        $suggestedAccountId = (int) ($proposal['office_charge_credit_account_id'] ?? 0);
-        if ($suggestedAccountId > 0 && ! $accounts->contains('id', $suggestedAccountId)) {
-            $suggestedAccount = Account::query()->whereKey($suggestedAccountId)->whereDoesntHave('children')->first(['id', 'code', 'name']);
-            if ($suggestedAccount) $accounts->push($suggestedAccount);
+        foreach ([(int) ($proposal['office_charge_credit_account_id'] ?? 0), (int) ($proposal['client_deduction_credit_account_id'] ?? 0)] as $suggestedAccountId) {
+            if ($suggestedAccountId > 0 && ! $accounts->contains('id', $suggestedAccountId)) {
+                $suggestedAccount = Account::query()->whereKey($suggestedAccountId)->whereDoesntHave('children')->first(['id', 'code', 'name']);
+                if ($suggestedAccount) $accounts->push($suggestedAccount);
+            }
         }
         $accounts = $accounts
             ->sort(fn ($left, $right) => strnatcasecmp((string) $left->code, (string) $right->code) ?: strnatcasecmp((string) $left->name, (string) $right->name))
@@ -71,7 +87,7 @@ class PostArrivalRefundController extends Controller
                 $query->where('is_active', true);
                 if ($draft) $query->orWhere('id', $draft->return_reason_code_id);
             })->orderBy('sort_order')->get(),
-            'accounts' => $accounts, 'draft' => $draft?->load('lines'),
+            'accounts' => $accounts, 'draft' => $draft?->loadMissing('lines'),
         ]);
     }
 
@@ -154,15 +170,39 @@ class PostArrivalRefundController extends Controller
         return $data;
     }
 
-    public function show(ContractReturnSettlement $postArrivalRefund)
+    public function show(ContractReturnSettlement $postArrivalRefund, PostArrivalRefundService $service)
     {
         $postArrivalRefund->load(['contract.user', 'contract.maid.office', 'invoice', 'reasonCode', 'createdBy', 'approvedBy', 'lines.debitAccount', 'lines.creditAccount', 'lines.constraint', 'lines.reversalConstraint', 'lines.creditNote', 'lines.financialRequest']);
-        return view('admin.ingaz.post_arrival_refunds.show', ['settlement' => $postArrivalRefund]);
+        $readiness = $postArrivalRefund->status === 'draft' ? $service->readiness($postArrivalRefund) : [];
+        return view('admin.ingaz.post_arrival_refunds.show', ['settlement' => $postArrivalRefund, 'readiness' => $readiness]);
+    }
+
+    /** Manual alternative: link the invoice to a journal the accountant identified; fully re-verified. */
+    public function linkInvoiceSource(Request $request, ContractReturnSettlement $postArrivalRefund)
+    {
+        $data = $request->validate(['source' => 'required|integer|min:1']);
+        abort_unless($postArrivalRefund->status === 'draft', 422);
+        $invoice = $postArrivalRefund->contract?->invoice;
+        abort_unless($invoice && (int) $invoice->id === (int) $postArrivalRefund->invoice_id, 422);
+        $before = $invoice->getAttributes();
+        $source = DB::transaction(function () use ($invoice, $data, $before) {
+            $source = app(\App\Services\ingaz\LegacyInvoiceConstraintLinker::class)->linkToSource($invoice, (int) $data['source']);
+            DB::table('fn_constraint_logs')->insert(['constraint_id' => $source->id, 'admin_id' => Auth::guard('admin')->id(),
+                'branch_id' => $source->branch_id, 'action' => 'recruitment_manual_link_v1', 'description' => 'ربط يدوي مدقق لقيد فاتورة استقدام من مستند الاسترداد بعد الوصول',
+                'metadata' => json_encode(['before' => $before, 'after' => $invoice->fresh()->getAttributes()], JSON_UNESCAPED_UNICODE),
+                'created_at' => now(), 'updated_at' => now()]);
+            return $source;
+        });
+        return back()->with('success', 'تم التحقق من القيد رقم ' . ($source->code ?: $source->id) . ' وربطه بالفاتورة #' . $invoice->id . '.');
     }
 
     public function post(ContractReturnSettlement $postArrivalRefund, PostArrivalRefundService $service)
     {
-        $service->post($postArrivalRefund);
+        try {
+            $service->post($postArrivalRefund);
+        } catch (\RuntimeException $e) {
+            return back()->with('error', 'لم يُعتمد المستند ولم يُنشأ أي قيد: ' . $e->getMessage());
+        }
         return back()->with('success', 'تم اعتماد البنود المختارة وإنشاء مستنداتها المالية.');
     }
 

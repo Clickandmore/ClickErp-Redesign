@@ -145,6 +145,39 @@ class PostArrivalRefundTest extends TestCase
         app(PostArrivalRefundService::class)->post($settlement);
     }
 
+    public function test_readiness_lists_the_missing_return_step_and_clears_after_the_contract_is_returned(): void
+    {
+        $contract = $this->contractWithArrivalInvoice();
+        $contract->update(['status' => 'arrival']);
+        $reason = ReturnReasonCode::query()->firstOrCreate(['code' => 'arrival-draft'], ['name' => 'اختبار مسودة الوصول']);
+        $settlement = app(PostArrivalRefundService::class)->createDraft($contract->fresh(), [
+            'settlement_date' => now()->toDateString(),
+            'return_reason_code_id' => $reason->id,
+            'reason' => 'اختبار خطوات الاعتماد',
+            'lines' => [['enabled' => true, 'type' => 'credit_note', 'approved_amount' => (float) $contract->invoice->total_due]],
+        ]);
+
+        $steps = collect(app(PostArrivalRefundService::class)->readiness($settlement->fresh()))->keyBy('key');
+        $this->assertFalse($steps['returned']['ok']);
+        $this->assertStringContainsString('إدخال العاملة الإيواء، أو بلاغ هروب، أو بدء إجراءات الترحيل', $steps['returned']['detail']);
+        $this->assertArrayHasKey('invoice', $steps->all());
+
+        $service = app(PostArrivalRefundService::class);
+        $contract->escapeReports()->create(['escape_date' => now()->toDateString(), 'process_status' => 'escape_reported']);
+        $this->assertSame('escape', $service->returnEvent($contract->fresh())['type']);
+        $contract->escapeReports()->delete();
+
+        \App\Models\DeportationProcedure::query()->create(['contract_id' => $contract->id, 'maid_id' => $contract->maid_id ?: 0, 'status' => 'pending']);
+        $this->assertSame('deportation', $service->returnEvent($contract->fresh())['type']);
+        \App\Models\DeportationProcedure::query()->where('contract_id', $contract->id)->update(['status' => 'cancelled']);
+        $this->assertNull($service->returnEvent($contract->fresh()));
+
+        $contract->update(['status' => 'shelter']);
+        $steps = collect($service->readiness($settlement->fresh()))->keyBy('key');
+        $this->assertTrue($steps['returned']['ok']);
+        $this->assertSame('shelter', $service->returnEvent($contract->fresh())['type']);
+    }
+
     public function test_shelter_refund_posts_approved_marketer_commission_reversal(): void
     {
         $contract = $this->contractWithArrivalInvoice();
@@ -196,6 +229,64 @@ class PostArrivalRefundTest extends TestCase
         $this->assertSame('posted', $posted->status);
         $this->assertSame('posted', $posted->lines->first()->status);
         $this->assertNotNull($item->fresh()->commission_reversal_transaction_id);
+    }
+
+    public function test_commission_already_reversed_from_commissions_screen_is_linked_not_reversed_twice(): void
+    {
+        $contract = $this->contractWithArrivalInvoice();
+        $contract->update(['status' => 'back']);
+        $batch = CommissionBatch::query()->create([
+            'marketer_id' => $this->admin->id,
+            'total_requests' => 1,
+            'total_base_amount' => 3980.75,
+            'total_commission' => 100,
+            'status' => CommissionBatch::STATUS_APPROVED,
+            'approved_at' => now(),
+        ]);
+        $item = CommissionBatchItem::query()->create([
+            'batch_id' => $batch->id,
+            'source_type' => CommissionOperationService::SOURCE_RECRUITMENT_CONTRACT,
+            'source_id' => $contract->id,
+            'contract_id' => $contract->id,
+            'service_type' => 'recruitment',
+            'base_amount' => 3980.75,
+            'method' => 'fixed',
+            'rate_or_amount' => 100,
+            'commission_amount' => 100,
+        ]);
+        $reversal = CommissionBalanceTransaction::query()->create([
+            'marketer_id' => $this->admin->id,
+            'type' => CommissionBalanceTransaction::TYPE_DEBIT,
+            'amount' => 100,
+            'reference_type' => 'commission_reversal',
+            'reference_id' => $item->id,
+            'balance_after' => 0,
+        ]);
+        $item->update(['commission_reversal_transaction_id' => $reversal->id, 'commission_reversed_at' => now()]);
+        $reason = ReturnReasonCode::query()->firstOrCreate(
+            ['code' => 'shelter-commission-refund'],
+            ['name' => 'اختبار عمولة الإيواء']
+        );
+        $settlement = app(PostArrivalRefundService::class)->createDraft($contract->fresh(), [
+            'settlement_date' => now()->toDateString(),
+            'return_reason_code_id' => $reason->id,
+            'reason' => 'اختبار عمولة معكوسة مسبقاً',
+            'lines' => [[
+                'enabled' => true,
+                'type' => 'marketer_commission',
+                'approved_amount' => 100,
+                'reason' => 'سبق عكسها من شاشة العمولات',
+            ]],
+        ]);
+
+        $posted = app(PostArrivalRefundService::class)->post($settlement);
+
+        $line = $posted->lines->first();
+        $this->assertSame('posted', $line->status);
+        $this->assertSame($reversal->id, $line->metadata['commission_reversal_transaction_id']);
+        $this->assertTrue($line->metadata['already_reversed']);
+        $this->assertSame(1, CommissionBalanceTransaction::query()
+            ->where('reference_type', 'commission_reversal')->where('reference_id', $item->id)->count());
     }
 
     public function test_draft_requires_leaf_credit_account_for_client_deduction(): void

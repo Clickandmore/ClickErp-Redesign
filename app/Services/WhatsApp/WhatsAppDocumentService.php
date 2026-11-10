@@ -11,6 +11,14 @@ class WhatsAppDocumentService
 
     public function send(string $to, string $url, string $filename, array $context = []): array
     {
+        if ($this->messaging->driver() === 'clickchat') {
+            // A local file goes as a real attachment; without one, a download link is shared.
+            $hasFile = !empty($context['attachment_path'])
+                && \Illuminate\Support\Facades\Storage::disk('local')->exists((string) $context['attachment_path']);
+
+            return app(ClickChatWhatsAppService::class)->sendText($to, $hasFile ? $filename : $filename . "\n" . $url,
+                $hasFile ? $context + ['attachment_filename' => $filename, 'attachment_url' => $url] : $context);
+        }
         if ($this->messaging->driver() === 'chatwoot') {
             return app(ChatwootWhatsAppService::class)->sendText($to, $filename, $context + [
                 'attachment_url' => $url, 'attachment_filename' => $filename,

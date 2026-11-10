@@ -498,6 +498,7 @@ Route::group(
             Route::get('post-arrival-refunds/search-contracts', [PostArrivalRefundController::class, 'searchContracts'])->name('post-arrival-refunds.search-contracts');
             Route::post('post-arrival-refunds/{postArrivalRefund}/post', [PostArrivalRefundController::class, 'post'])->name('post-arrival-refunds.post');
             Route::post('post-arrival-refunds/{postArrivalRefund}/payout', [PostArrivalRefundController::class, 'payout'])->name('post-arrival-refunds.payout');
+            Route::post('post-arrival-refunds/{postArrivalRefund}/link-invoice-source', [PostArrivalRefundController::class, 'linkInvoiceSource'])->name('post-arrival-refunds.link-invoice-source');
             Route::post('post-arrival-refunds/{postArrivalRefund}/lines/{line}/reverse', [PostArrivalRefundController::class, 'reverse'])->name('post-arrival-refunds.lines.reverse');
             Route::resource('post-arrival-refunds', PostArrivalRefundController::class)
                 ->only(['index', 'create', 'store', 'show', 'edit', 'update'])
@@ -505,6 +506,8 @@ Route::group(
 
             // Messages
             Route::get('messages', [\App\Http\Controllers\ingaz\MessageController::class, 'index'])->name('messages.index');
+            Route::post('messages/{log}/resend', [\App\Http\Controllers\ingaz\MessageController::class, 'resend'])
+                ->whereNumber('log')->middleware('throttle:30,1')->name('messages.resend');
 
             // Backward-compatible redirect for old contracts URL.
             Route::get('contracts', function (\Illuminate\Http\Request $request) {

@@ -61,6 +61,8 @@ class TemplateMessageService
         }
 
         $context = $this->buildProviderContext($payload, $recipient, $options);
+        $context['template_id'] = $payload['template_id'];
+        $context['template_variables'] = $variables;
 
         $result = match ($payload['channel']) {
             SmsTemplate::CHANNEL_WHATSAPP => $this->whatsAppService->sendChatMessage($recipient['phone'] ?? null, $payload['message'], $context),

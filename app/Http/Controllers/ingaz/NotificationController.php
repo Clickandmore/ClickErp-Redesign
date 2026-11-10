@@ -43,6 +43,17 @@ class NotificationController extends Controller
         $whatsAppSettings = CommunicationSettings::whatsapp();
         $chatwootTemplates = [];
         $chatwootTemplateError = null;
+        if ($whatsAppService->driver() === 'clickchat') {
+            $clickChat = app(\App\Services\WhatsApp\ClickChatWhatsAppService::class);
+            // Same shape as the Chatwoot list so the page's template picker works for both.
+            $chatwootTemplates = array_map(fn (array $template) => [
+                'name' => $template['name'], 'language' => $template['language'], 'category' => $template['category'],
+                'components' => [['type' => 'BODY', 'text' => $template['body']]],
+            ], $clickChat->templates());
+            $chatwootTemplateError = \App\Services\WhatsApp\ClickChatTemplateStatus::pickerNotice(
+                $clickChat->templateStatusSnapshot(), $chatwootTemplates
+            );
+        }
         if ($whatsAppService->driver() === 'chatwoot') {
             try {
                 $chatwootTemplates = app(\App\Services\WhatsApp\ChatwootWhatsAppService::class)->templates();
@@ -105,11 +116,15 @@ class NotificationController extends Controller
                 if (!empty($result['failure_reason'])) {
                     $message .= ' السبب: ' . $result['failure_reason'];
                 }
-                if ((int) ($result['sent_count'] ?? 0) === 0) {
-                    return jsonError($message, 422);
-                }
             } elseif (isset($result['sent_count'])) {
                 $message = "تم إرسال {$result['sent_count']} رسالة واتساب بنجاح.";
+            }
+            $scheduled = (int) ($result['scheduled_count'] ?? 0);
+            if ($scheduled > 0) {
+                $message .= " وجُدولت {$scheduled} رسالة لتُرسل تلقائيًا خلال دقائق (حد المنصة 60 رسالة في الدقيقة).";
+            }
+            if (($result['failed_count'] ?? 0) > 0 && (int) ($result['sent_count'] ?? 0) === 0 && $scheduled === 0) {
+                return jsonError($message, 422);
             }
 
             return jsonSuccess($result, $message, 201);

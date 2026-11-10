@@ -319,6 +319,7 @@
                                                     الإرسالية التالية</option>
                                             </select>
                                             @php
+                                                $officeShelterBalance = ($initialProposal['office_charge_account_source'] ?? null) === 'shelter_receipt' && $initialOfficeCreditId;
                                                 $officeCreditId = (int) $formValue(
                                                     "lines.$loop->index.credit_account_id",
                                                     $initialOfficeCreditId,
@@ -341,8 +342,11 @@
                                                 list="refundLeafAccounts" value="{{ $officeCreditQuery }}"
                                                 placeholder="ابحث برقم الحساب أو الاسم ثم اختر النتيجة" autocomplete="off"
                                                 spellcheck="false" onfocus="this.select()">
-                                            <small class="form-text text-muted">اختيار النتيجة يثبت رقم الحساب تلقائياً عند
-                                                الحفظ.</small>
+                                            <small class="form-text text-muted office-account-hint">اختيار النتيجة يثبت رقم الحساب تلقائياً عند الحفظ.
+                                                @if ($officeShelterBalance)
+                                                    العاملة في الإيواء: الحساب المقترح يُخفّض رصيد إيوائها. إن اخترت حساباً آخر يبقى رصيد الإيواء كما هو ويُسوّى عند خروجها.
+                                                @endif
+                                            </small>
                                             <small
                                                 class="form-text {{ $initialOfficeCreditId ? 'text-success' : 'text-muted' }} office-account-source">
                                                 @if ($initialOfficeCreditId)
@@ -354,7 +358,8 @@
                                             </small>
                                         @elseif($type === 'client_deduction')
                                             @php
-                                                $clientCreditId = (int) $formValue("lines.$loop->index.credit_account_id");
+                                                $suggestedClientCreditId = (int) ($initialProposal['client_deduction_credit_account_id'] ?? 0);
+                                                $clientCreditId = (int) $formValue("lines.$loop->index.credit_account_id", $suggestedClientCreditId) ?: $suggestedClientCreditId;
                                                 $clientCreditAccount = $accounts->firstWhere('id', $clientCreditId);
                                                 $clientCreditQuery = $formValue(
                                                     "lines.$loop->index.credit_account_query",
@@ -373,8 +378,13 @@
                                                 list="refundLeafAccounts" value="{{ $clientCreditQuery }}"
                                                 placeholder="ابحث برقم الحساب أو الاسم ثم اختر النتيجة" autocomplete="off"
                                                 spellcheck="false" onfocus="this.select()">
-                                            <small class="form-text text-muted">اختيار النتيجة يثبت رقم الحساب تلقائياً عند
-                                                الحفظ.</small>
+                                            <small class="form-text {{ $suggestedClientCreditId ? 'text-success' : 'text-muted' }} client-account-source">
+                                                @if ($suggestedClientCreditId)
+                                                    الحساب المقترح: {{ $initialProposal['client_deduction_credit_account_code'] }} — {{ $initialProposal['client_deduction_credit_account_name'] }} (تكلفة مبيعات جنسية العاملة). يمكنك تغييره.
+                                                @else
+                                                    لا يوجد حساب «تكلفة مبيعات» مربوط بجنسية العاملة؛ اختر الحساب يدوياً.
+                                                @endif
+                                            </small>
                                         @elseif($type === 'client_payout')
                                             <select class="form-select line-value"
                                                 name="lines[{{ $loop->index }}][settlement_method]">
@@ -470,6 +480,18 @@
                             const officeRow = document.querySelector('[data-line="office_charge"]'),
                                 officeAccount = officeRow?.querySelector('.account-query'),
                                 officeSource = officeRow?.querySelector('.office-account-source');
+                            const clientRow = document.querySelector('[data-line="client_deduction"]'),
+                                clientAccount = clientRow?.querySelector('.account-query'),
+                                clientSource = clientRow?.querySelector('.client-account-source');
+                            if (clientAccount && p.client_deduction_credit_account_id && !clientAccount.value) {
+                                clientAccount.value = `${p.client_deduction_credit_account_code||''} — ${p.client_deduction_credit_account_name||''} [#${p.client_deduction_credit_account_id}]`;
+                            }
+                            if (clientSource) {
+                                clientSource.textContent = p.client_deduction_credit_account_id
+                                    ? `الحساب المقترح: ${p.client_deduction_credit_account_code||''} — ${p.client_deduction_credit_account_name||''} (تكلفة مبيعات جنسية العاملة). يمكنك تغييره.`
+                                    : 'لا يوجد حساب «تكلفة مبيعات» مربوط بجنسية العاملة؛ اختر الحساب يدوياً.';
+                                clientSource.className = 'form-text ' + (p.client_deduction_credit_account_id ? 'text-success' : 'text-muted') + ' client-account-source';
+                            }
                             if (officeAccount && p.office_charge_credit_account_id && !officeAccount.value) {
                                 officeAccount.value =
                                     `${p.office_charge_credit_account_code||''} — ${p.office_charge_credit_account_name||''} [#${p.office_charge_credit_account_id}]`;
@@ -478,7 +500,7 @@
                                 officeSource.textContent = p.office_charge_credit_account_id
                                     ? `الحساب المقترح حالياً: ${officeCreditLabel}. مصدره: ${p.office_charge_account_source === 'shelter_receipt' ? 'مرجع استلام تكلفة الإيواء #' + p.office_charge_receipt_entry_id : 'حساب مردودات تكلفة الجنسية'}. إذا اختلف الحساب المحدد عنه، اختر الحساب المقترح ثم احفظ المسودة.`
                                     : 'تعذر إثبات الحساب من المرجع؛ اختر حساباً طرفياً يدوياً.';
-                                officeSource.className = 'form-text ' + (p.office_charge_credit_account_id ? 'text-success' : 'text-warning');
+                                officeSource.className = 'form-text office-account-source ' + (p.office_charge_credit_account_id ? 'text-success' : 'text-warning');
                             }
             if (!@json((bool) $draft)) applyReason();
             } catch(error) { facts.className='alert alert-danger'; facts.textContent='تعذر تحديث الاقتراحات: '+error.message; }

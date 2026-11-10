@@ -1848,7 +1848,7 @@ return array (
   'ops_month' => 'Month',
   'ops_count' => 'Count',
   'ops_rental_receivables' => 'Rental contract customers — invoiced, not paid',
-  'ops_rental_receivables_hint' => 'Rental contract invoices with a balance remaining at the end of the period.',
+  'ops_rental_receivables_hint' => 'Open rental invoices, extensions and settlements at period end, after every receipt, credit note and client-account movement — same figures as the rental receivables report.',
   'ops_recruitment_receivables' => 'Uncollected recruitment invoices',
   'ops_recruitment_receivables_hint' => 'Only unpaid recruitment invoices with an outstanding balance; contracts without invoices and paid invoices are excluded.',
   'ops_sponsorship_receivables' => 'Uncollected sponsorship transfer invoices',

@@ -58,6 +58,9 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 
 Route::get('webhooks/whatsapp', [WhatsAppWebhookController::class, 'verify'])->name('api.webhooks.whatsapp.verify');
 Route::post('webhooks/whatsapp', [WhatsAppWebhookController::class, 'receive'])->name('api.webhooks.whatsapp.receive');
+Route::post('webhooks/clickchat', [\App\Http\Controllers\Webhook\ClickChatWebhookController::class, 'receive'])
+    ->middleware('throttle:600,1')
+    ->name('api.webhooks.clickchat');
 
 // تحديثات النظام: نسخ العملاء تسحب من هنا بمفتاح يُنشأ في لوحة Super Admin
 Route::get('system-updates/feed', [\App\Http\Controllers\Api\SystemUpdatesFeedController::class, '__invoke'])

@@ -71,7 +71,7 @@ class WhatsAppInboxController extends Controller
             }
         }
 
-        $templateResult = $templateService->listTemplates($request->boolean('refresh_templates'));
+        $templateResult = $this->templates($templateService)->listTemplates($request->boolean('refresh_templates'));
         $templates = collect($templateResult['templates'] ?? [])->sortBy([
             ['status', 'asc'],
             ['name', 'asc'],
@@ -110,6 +110,10 @@ class WhatsAppInboxController extends Controller
             'message.required' => 'اكتب نص الرسالة أولًا.',
             'message.max' => 'الحد الأقصى لرسالة واتساب هو 4096 حرفًا.',
         ]);
+
+        if (app(\App\Services\WhatsApp\WhatsAppMessagingService::class)->driver() === 'clickchat') {
+            return $this->sendViaClickChat($conversation, $validated['message']);
+        }
 
         if (!$conversation->customerServiceWindowIsOpen()) {
             return redirect()
@@ -152,6 +156,31 @@ class WhatsAppInboxController extends Controller
                 : 'تعذر إرسال الرسالة: ' . $message->error_message);
     }
 
+    /**
+     * The platform knows the number type: QR numbers have no 24-hour window and
+     * Meta numbers answer window_closed, so no local window check here.
+     * The service saves the outbound row itself.
+     */
+    private function sendViaClickChat(WhatsAppConversation $conversation, string $text)
+    {
+        $result = app(\App\Services\WhatsApp\ClickChatWhatsAppService::class)->sendText($conversation->phone, $text, [
+            'source' => 'whatsapp_inbox',
+            'conversation_id' => $conversation->id,
+            'platform_conversation_id' => $conversation->provider === 'clickchat' ? $conversation->platform_conversation_id : null,
+            'channel_account_id' => $conversation->provider === 'clickchat' ? $conversation->channel_account_id : null,
+            'admin_id' => auth('admin')->id(),
+            'user_id' => $conversation->user_id,
+        ]);
+
+        $success = (bool) ($result['success'] ?? false);
+
+        return redirect()
+            ->route('whatsapp.inbox.index', ['conversation' => $conversation->id])
+            ->with($success ? 'success' : 'error', $success
+                ? 'تم إرسال الرسالة عبر واتساب.'
+                : 'تعذر إرسال الرسالة: ' . data_get($result, 'response.message', 'خطأ غير معروف.'));
+    }
+
     public function messages(Request $request, WhatsAppConversation $conversation)
     {
         $this->authorizeNotifications();
@@ -168,6 +197,7 @@ class WhatsAppInboxController extends Controller
                 'direction' => $message->direction,
                 'type' => $message->type,
                 'body' => $message->body,
+                'media_url' => $message->media_url,
                 'status' => $message->status,
                 'error_message' => $message->error_message,
                 'sent_by' => $message->sentBy?->name,
@@ -238,7 +268,7 @@ class WhatsAppInboxController extends Controller
             return back()->withInput()->with('error', 'يسمح بحد أقصى 3 أزرار رد سريع، وطول كل زر 25 حرفًا.');
         }
 
-        $result = $templateService->create([
+        $result = ($this->usesClickChat() ? app(\App\Services\WhatsApp\ClickChatWhatsAppService::class) : $templateService)->create([
             'name' => $validated['name'],
             'language' => $validated['language'],
             'category' => $validated['category'],
@@ -275,7 +305,7 @@ class WhatsAppInboxController extends Controller
             'confirm_marketing_opt_in' => ['nullable', 'boolean'],
         ]);
 
-        $template = $templateService->approvedTemplate(
+        $template = $this->templates($templateService)->approvedTemplate(
             $validated['template_name'],
             $validated['template_language']
         );
@@ -289,7 +319,7 @@ class WhatsAppInboxController extends Controller
         }
 
         $parameters = $this->lines($validated['parameters_text'] ?? '');
-        $requiredParameters = $templateService->bodyVariableCount($template);
+        $requiredParameters = $this->templates($templateService)->bodyVariableCount($template);
         if (count($parameters) !== $requiredParameters) {
             return back()->with(
                 'error',
@@ -322,7 +352,7 @@ class WhatsAppInboxController extends Controller
             'confirm_marketing_opt_in' => ['nullable', 'boolean'],
         ]);
 
-        $template = $templateService->approvedTemplate(
+        $template = $this->templates($templateService)->approvedTemplate(
             $validated['template_name'],
             $validated['template_language']
         );
@@ -336,7 +366,7 @@ class WhatsAppInboxController extends Controller
         }
 
         $parameters = $this->lines($validated['parameters_text'] ?? '');
-        $requiredParameters = $templateService->bodyVariableCount($template);
+        $requiredParameters = $this->templates($templateService)->bodyVariableCount($template);
         if (count($parameters) !== $requiredParameters) {
             return back()->with(
                 'error',
@@ -350,7 +380,7 @@ class WhatsAppInboxController extends Controller
             return back()->with('error', 'رقم جوال العميل غير صالح للإرسال عبر واتساب.');
         }
 
-        $conversation = WhatsAppConversation::query()->firstOrCreate(
+        $conversation = WhatsAppConversation::withoutBranchScope()->firstOrCreate(
             ['phone' => $phone],
             [
                 'wa_id' => $phone,
@@ -382,6 +412,40 @@ class WhatsAppInboxController extends Controller
         array $parameters,
         MetaWhatsAppService $metaWhatsApp
     ) {
+        if ($this->usesClickChat()) {
+            // Templates belong to one Meta account: check the one of the number
+            // this conversation will be sent from, not only the default number.
+            $channelId = $conversation->provider === 'clickchat' && $conversation->channel_account_id
+                ? (int) $conversation->channel_account_id : null;
+            if ($channelId && !app(\App\Services\WhatsApp\ClickChatTemplateSource::class)
+                    ->approvedTemplate($templateName, $templateLanguage, $channelId)) {
+                return redirect()
+                    ->route('whatsapp.inbox.index', $this->inboxTarget($conversation))
+                    ->with('error', 'هذا القالب غير معتمد على رقم واتساب الذي تتم عليه هذه المحادثة (أو أن الرقم QR لا يدعم القوالب).');
+            }
+
+            // The service saves the outbound row itself, like a text reply.
+            $result = app(\App\Services\WhatsApp\ClickChatWhatsAppService::class)->sendText(
+                $conversation->phone,
+                $this->renderTemplateBody($template, $parameters),
+                [
+                    'source' => 'whatsapp_inbox_template',
+                    'conversation_id' => $conversation->id,
+                    'admin_id' => auth('admin')->id(),
+                    'user_id' => $conversation->user_id,
+                    'channel_account_id' => $channelId,
+                    'clickchat_template' => ['name' => $templateName, 'language' => $templateLanguage, 'vars' => $parameters],
+                ]
+            );
+            $success = (bool) ($result['success'] ?? false);
+
+            return redirect()
+                ->route('whatsapp.inbox.index', $this->inboxTarget($conversation))
+                ->with($success ? 'success' : 'error', $success
+                    ? 'تم إرسال القالب إلى العميل.'
+                    : 'تعذر إرسال القالب: ' . data_get($result, 'response.message', 'خطأ غير معروف.'));
+        }
+
         $result = $metaWhatsApp->sendTemplate(
             $conversation->phone,
             $templateName,
@@ -417,11 +481,33 @@ class WhatsAppInboxController extends Controller
         ]);
 
         return redirect()
-            ->route('whatsapp.inbox.index', ['conversation' => $conversation->id])
+            ->route('whatsapp.inbox.index', $this->inboxTarget($conversation))
             ->with(
                 $success ? 'success' : 'error',
                 $success ? 'تم إرسال قالب Meta إلى العميل.' : 'تعذر إرسال القالب: ' . $message->error_message
             );
+    }
+
+    /**
+     * Open the conversation after a send only when this admin's branch can see it;
+     * a customer's thread may belong to another branch (or to none, when it
+     * started from the customer), and opening it would answer 404.
+     */
+    private function inboxTarget(WhatsAppConversation $conversation): array
+    {
+        return WhatsAppConversation::query()->whereKey($conversation->id)->exists()
+            ? ['conversation' => $conversation->id] : [];
+    }
+
+    private function usesClickChat(): bool
+    {
+        return app(\App\Services\WhatsApp\WhatsAppMessagingService::class)->driver() === 'clickchat';
+    }
+
+    /** Templates come from the platform when Click Live Chat is the provider, otherwise from Meta. */
+    private function templates(MetaWhatsAppTemplateService $meta): MetaWhatsAppTemplateService|\App\Services\WhatsApp\ClickChatTemplateSource
+    {
+        return $this->usesClickChat() ? app(\App\Services\WhatsApp\ClickChatTemplateSource::class) : $meta;
     }
 
     private function authorizeNotifications(): void
