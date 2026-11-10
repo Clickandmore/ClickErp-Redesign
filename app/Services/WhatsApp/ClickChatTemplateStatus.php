@@ -70,11 +70,15 @@ class ClickChatTemplateStatus
             'DISABLED' => ['معطّل لدى ميتا', 'danger'],
             'IN_APPEAL' => ['قيد الاستئناف', 'warning text-dark'],
             'PENDING_DELETION' => ['قيد الحذف', 'secondary'],
+            'DELETED' => ['محذوف من ميتا', 'danger'],
         ];
         [$label, $color] = $labels[$status] ?? ['حالة ميتا غير معروفة', 'secondary'];
         $reason = $template['rejection_reason'] ?? null;
-        $detail = $status === 'REJECTED' && is_string($reason) && $reason !== '' ? $reason
-            : 'الحالة المسجلة في ClickChat للرقم المستخدم في هذا الفرع. تتحدث بعد وصول إشعار ميتا أو مزامنة القوالب.';
+        $detail = match (true) {
+            $status === 'REJECTED' && is_string($reason) && $reason !== '' => $reason,
+            $status === 'DELETED' => 'القالب لم يعد موجودًا في ميتا ولن يُرسل. قدّمه من جديد بنفس الاسم أو اربط هذا القالب بقالب معتمد آخر.',
+            default => 'الحالة المسجلة في ClickChat للرقم المستخدم في هذا الفرع. تتحدث بعد وصول إشعار ميتا أو مزامنة القوالب.',
+        };
         return $result($status ?: 'unknown', $label, $color, $detail);
     }
 }

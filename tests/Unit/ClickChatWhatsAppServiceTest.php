@@ -199,4 +199,17 @@ class ClickChatWhatsAppServiceTest extends TestCase
         $this->assertSame('not_configured', app(ClickChatWhatsAppService::class)->sendText('0500000000', 'Hi')['error']);
         Http::assertNothingSent();
     }
+
+    public function test_a_template_is_checked_against_the_number_that_will_send_it(): void
+    {
+        $row = ['name' => 'invoice_ready', 'language' => 'ar', 'category' => 'UTILITY', 'body' => 'فاتورة {{1}}',
+            'variables' => 1, 'sendable_by_api' => true];
+        Http::fake(fn ($request) => Http::response(['data' => str_contains($request->url(), 'channel_account_id=3') ? [$row] : []]));
+        $service = app(ClickChatWhatsAppService::class);
+
+        $this->assertSame('فاتورة 1001', $service->prepareTemplate('invoice_ready|ar', [1 => '1001'])['message']);
+
+        $this->expectException(\RuntimeException::class);
+        $service->prepareTemplate('invoice_ready|ar', [1 => '1001'], 8);
+    }
 }
