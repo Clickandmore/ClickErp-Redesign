@@ -160,7 +160,7 @@ class MaidCvShareServiceTest extends TestCase
         $maid->setRawAttributes(['id' => 1, 'name' => 'PAULINE CHARO', 'cv_code' => 'KE-00123', 'age' => 37, 'salary' => 1000]);
         $maid->setRelation('jobTypes', collect());
         $maid->setRelation('nationality', null);
-        $this->generator->shouldReceive('renderPdfContents')->once()->andReturn('%PDF-snapshot');
+        $this->generator->shouldReceive('shareablePdfContents')->once()->andReturn('%PDF-snapshot');
         $client = new User();
         $client->setRawAttributes(['id' => 9, 'name' => 'Client', 'branch_id' => 2]);
         $share = $this->service->prepare((object) ['id' => 7, 'name' => 'Employee'], $client, collect([$maid]), '0501234567', null);
@@ -183,8 +183,8 @@ class MaidCvShareServiceTest extends TestCase
         $maid->setRelation('nationality', null);
         $second = clone $maid;
         $second->id = 2;
-        $this->generator->shouldReceive('renderPdfContents')->once()->with($maid)->andReturn('%PDF-test');
-        $this->generator->shouldReceive('renderPdfContents')->once()->with($second)->andThrow(new \RuntimeException('generation failed'));
+        $this->generator->shouldReceive('shareablePdfContents')->once()->with($maid)->andReturn('%PDF-test');
+        $this->generator->shouldReceive('shareablePdfContents')->once()->with($second)->andThrow(new \RuntimeException('generation failed'));
         $client = new User();
         $client->setRawAttributes(['id' => 9, 'name' => 'Client']);
         try {
@@ -194,5 +194,58 @@ class MaidCvShareServiceTest extends TestCase
             $this->assertSame(0, MaidCvShare::count());
             $this->assertSame([], Storage::disk('local')->allFiles());
         }
+    }
+
+    public function test_message_respects_selected_fields_intro_outro_and_hides_empty_values(): void
+    {
+        $snapshot = ['name' => 'ANA', 'reference' => 'PH-1', 'nationality' => null, 'age' => '0',
+            'cv_type' => 'recruitment', 'salary' => '1500', 'job' => 'عاملة منزلية', 'note' => 'متاحة فورًا'];
+        $message = $this->service->message([$snapshot], ['fields' => ['reference', 'nationality', 'age', 'salary'],
+            'intro' => 'مرحبًا', 'outro' => 'شكرًا لك']);
+        $this->assertStringStartsWith("مرحبًا\n\nالسيرة الذاتية للعاملة ANA", $message);
+        $this->assertStringContainsString('الرقم المرجعي: PH-1', $message);
+        $this->assertStringContainsString('الراتب: 1,500 ريال', $message);
+        $this->assertStringContainsString('متاحة فورًا', $message);
+        $this->assertStringEndsWith('شكرًا لك', $message);
+        $this->assertStringNotContainsString('الجنسية', $message);
+        $this->assertStringNotContainsString('العمر', $message);
+        $this->assertStringNotContainsString('المهنة', $message);
+        $this->assertStringNotContainsString('نوع السيرة', $message);
+    }
+
+    public function test_draft_edits_update_values_and_exclude_cvs(): void
+    {
+        $share = $this->share('draft');
+        $share->update(['confirmed_at' => null]);
+        [$first, $second] = $share->messages()->whereNotNull('maid_id')->get()->all();
+        $first->update(['snapshot' => ['name' => 'Old', 'reference' => '1', 'cv_type' => 'recruitment', 'salary' => 1000]]);
+        $this->service->updateDraft($share, ['fields' => ['reference', 'salary'], 'intro' => 'أهلًا',
+            'items' => [$first->id => ['include' => '1', 'name' => 'New name', 'salary' => '2000', 'secret' => 'x'],
+                $second->id => ['include' => '0']]]);
+        $share->refresh();
+        $this->assertSame("أهلًا\n\nالسيرة الذاتية للعاملة New name\nالرقم المرجعي: 1\nالراتب: 2,000 ريال", $share->message);
+        $this->assertSame('New name', $first->fresh()->snapshot['name']);
+        $this->assertArrayNotHasKey('secret', $first->fresh()->snapshot);
+        $this->assertNull($second->fresh());
+        $this->assertFalse(Storage::disk('local')->exists('maid-cv-shares/2.pdf'));
+        $this->assertSame(['reference', 'salary'], $share->messages()->whereNull('maid_id')->first()->snapshot['fields']);
+
+        $this->service->updateDraft($share, ['custom' => '1', 'message' => 'نص يدوي']);
+        $this->assertSame('نص يدوي', $share->fresh()->message);
+    }
+
+    public function test_draft_edits_require_one_cv_and_a_draft_status(): void
+    {
+        $share = $this->share('draft');
+        $items = $share->messages()->whereNotNull('maid_id')->pluck('id');
+        try {
+            $this->service->updateDraft($share, ['items' => $items->mapWithKeys(fn ($id) => [$id => ['include' => '0']])->all()]);
+            $this->fail('Expected validation error');
+        } catch (ValidationException $e) {
+            $this->assertSame(2, $share->messages()->whereNotNull('maid_id')->count());
+        }
+        $share->update(['status' => 'queued']);
+        $this->expectException(ValidationException::class);
+        $this->service->updateDraft($share, ['intro' => 'x']);
     }
 }

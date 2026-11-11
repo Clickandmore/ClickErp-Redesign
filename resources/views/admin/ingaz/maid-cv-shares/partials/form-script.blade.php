@@ -39,6 +39,13 @@ window.initMaidCvShareForm = window.initMaidCvShareForm || function (form) {
         if (event.key === 'Enter') { event.preventDefault(); button.click(); }
     });
 
+    // بحث تلقائي أثناء الكتابة
+    let timer;
+    search.addEventListener('input', () => {
+        clearTimeout(timer);
+        if (search.value.trim().length >= 2) timer = setTimeout(() => button.click(), 450);
+    });
+
     client.addEventListener('change', () => {
         phone.replaceChildren();
         (results.find(row => String(row.id) === client.value)?.phones || []).forEach(value => phone.add(new Option(value, value)));

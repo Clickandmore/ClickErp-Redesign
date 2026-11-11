@@ -165,6 +165,68 @@ class MaidCvPdfGenerator
         }
     }
 
+    /**
+     * نسخة PDF تُرسل للعميل (مشاركة واتساب).
+     *
+     * الترتيب: السيرة المرفوعة (إن اختير عرضها) ← السيرة المولّدة المخزنة ← توليد جديد
+     * بالمتصفح ← mPDF أخيرًا. mPDF لا يدعم تنسيقات القالب (التموضع والأشكال والصور
+     * المدمجة) فيُخرج صفحات مشوّهة متعددة، لذلك لا يُستخدم إلا عند تعذر غيره.
+     */
+    public function shareablePdfContents(Maid $maid): string
+    {
+        $storedPaths = array_filter([
+            $maid->uploadedClientCvPath(),
+            $this->isGeneratedPath($maid->getRawOriginal('cv_preview')) ? $maid->getRawOriginal('cv_preview') : null,
+        ]);
+
+        foreach ($storedPaths as $path) {
+            if ($contents = $this->storedFileAsPdfContents((string) $path, $maid)) {
+                return $contents;
+            }
+        }
+
+        if (MaidCvTemplateSettings::enabled()) {
+            try {
+                if ($contents = $this->storedFileAsPdfContents($this->generate($maid), $maid)) {
+                    return $contents;
+                }
+            } catch (\Throwable $exception) {
+                report($exception);
+            }
+        }
+
+        return $this->renderPdfContents($maid);
+    }
+
+    /** يحوّل ملفًا مخزنًا (PDF أو صورة) إلى محتوى PDF، أو null إن لم يكن صالحًا. */
+    private function storedFileAsPdfContents(string $path, Maid $maid): ?string
+    {
+        $storage = app(ManagedFileStorage::class);
+        if ($path === '' || !$storage->exists($path)) {
+            return null;
+        }
+
+        $extension = strtolower(pathinfo((string) (parse_url($path, PHP_URL_PATH) ?: $path), PATHINFO_EXTENSION));
+
+        try {
+            if ($extension === 'pdf') {
+                $contents = $storage->contents($path);
+
+                return Str::startsWith($contents, '%PDF') ? $contents : null;
+            }
+
+            if (in_array($extension, ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp', 'svg'], true)) {
+                $contents = $this->renderStoredImageAsPdfContents($path, $maid);
+
+                return Str::startsWith($contents, '%PDF') ? $contents : null;
+            }
+        } catch (\Throwable $exception) {
+            report($exception);
+        }
+
+        return null;
+    }
+
     /** Render a PDF copy without changing the stored CV preview. */
     public function renderPdfContents(Maid $maid): string
     {
