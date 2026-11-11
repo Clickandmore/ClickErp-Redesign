@@ -1,8 +1,12 @@
 <?php
 namespace App\Models\Hourly;
+use App\Models\Concerns\AssignsBranch;
+use App\Models\Concerns\BranchScoped;
 use Illuminate\Database\Eloquent\Model;
 class HourlyVisit extends Model
 {
+    use AssignsBranch, BranchScoped;
+
     protected $guarded = [];
 
     /** Actual execution includes an individual worker arriving before the rest of the team. */
@@ -56,6 +60,13 @@ class HourlyVisit extends Model
     }
     protected $casts = ['scheduled_date'=>'date','scheduled_start_at'=>'datetime','scheduled_end_at'=>'datetime','delivery_at'=>'datetime','pickup_at'=>'datetime','is_free'=>'boolean'];
     public function order() { return $this->belongsTo(HourlyRentalOrder::class, 'hourly_rental_order_id'); }
+
+    protected function resolveBranchIdForCreate(): ?int
+    {
+        return $this->resolveBranchIdFromTable('hourly_rental_orders', $this->hourly_rental_order_id ?? null)
+            ?: $this->resolveBranchIdFromCurrentAdmin()
+            ?: $this->resolveMainBranchId();
+    }
     public function workers() { return $this->belongsToMany(\App\Models\ingaz\Maid::class,'hourly_visit_workers','hourly_visit_id','maid_id')->withPivot('id')->withTimestamps(); }
     public function deliveryDriver() { return $this->belongsTo(HourlyDriver::class,'delivery_driver_id'); }
     public function pickupDriver() { return $this->belongsTo(HourlyDriver::class,'pickup_driver_id'); }

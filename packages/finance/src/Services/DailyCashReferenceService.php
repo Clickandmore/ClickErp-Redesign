@@ -2,6 +2,7 @@
 
 namespace Nami\Finance\Services;
 
+use App\Support\BranchReportFilter;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -13,7 +14,8 @@ class DailyCashReferenceService
     {
         $accounts = DB::table('fn_accounts')->select('id','parent_id','code','name')->get()->keyBy('id');
         $mapping = $this->definitions($accounts);
-        $query = DB::table('fn_constraint_details as d')->join('fn_constraints as c','c.id','=','d.constraint_id')
+        $query = BranchReportFilter::apply(DB::table('fn_constraint_details as d'), 'd')
+            ->join('fn_constraints as c','c.id','=','d.constraint_id')
             ->whereNull('d.deleted_at')->whereNull('c.deleted_at')
             ->where('d.date','<',Carbon::parse($to)->addDay()->toDateString());
         if ($from) $query->where('d.date','>=',$from);

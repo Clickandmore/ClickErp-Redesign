@@ -443,11 +443,55 @@
                 }
             }
 
+            function headerBranchId() {
+                if (branchSelect) {
+                    return branchSelect.value || '';
+                }
+
+                const hidden = form.querySelector('input[name="branch_id"]');
+                return hidden ? (hidden.value || '') : '';
+            }
+
+            // السطر الذي لم يغيّر المستخدم فرعه يتبع فرع رأس القيد.
+            function rowFollowsHeader(row) {
+                const select = row.querySelector('.js-line-branch');
+                return !select || select.dataset.touched !== '1';
+            }
+
+            function setRowOptions(row, accountsHtml, costCentersHtml) {
+                $(row).find('.select-account').html(accountsHtml).val('').trigger('change.select2');
+                $(row).find('select[name="cost_center_id[]"]').html(costCentersHtml).val('').trigger('change.select2');
+            }
+
+            const branchOptionsCache = {};
+
+            function loadBranchOptions(branchId) {
+                if (branchOptionsCache[branchId]) {
+                    return $.Deferred().resolve(branchOptionsCache[branchId]).promise();
+                }
+
+                const optionsUrl = new URL(branchOptionsRoute, window.location.origin);
+                optionsUrl.searchParams.set('branch_id', branchId);
+
+                return $.ajax({
+                    url: optionsUrl.toString(),
+                    type: 'GET'
+                }).then(function(result) {
+                    branchOptionsCache[branchId] = {
+                        accounts: optionHtml(result.accounts, 'text', 'لا يوجد حسابات لهذا الفرع'),
+                        costCenters: optionHtml(result.cost_centers, 'title', 'لا يوجد مراكز تكلفة لهذا الفرع')
+                    };
+
+                    return branchOptionsCache[branchId];
+                });
+            }
+
             function createRow(type) {
                 const template = document.getElementById('constraint-row-template-' + type);
                 const row = template.content.firstElementChild.cloneNode(true);
                 $(row).find('.select-account').html(accountOptionsHtml);
                 $(row).find('select[name="cost_center_id[]"]').html(costCenterOptionsHtml);
+                $(row).find('.js-line-branch').val(headerBranchId());
                 return row;
             }
 
@@ -533,16 +577,51 @@
             }
 
             function replaceLineOptions() {
-                $('.select-account').each(function() {
-                    $(this).html(accountOptionsHtml).val('').trigger('change.select2');
-                });
+                const branchId = headerBranchId();
 
-                $('select[name="cost_center_id[]"]').each(function() {
-                    $(this).html(costCenterOptionsHtml).val('').trigger('change.select2');
+                tableBody.querySelectorAll('tr').forEach(function(row) {
+                    if (!rowFollowsHeader(row)) {
+                        return;
+                    }
+
+                    $(row).find('.js-line-branch').val(branchId);
+                    setRowOptions(row, accountOptionsHtml, costCenterOptionsHtml);
                 });
 
                 disableSelectedAccounts();
             }
+
+            $(tableBody).on('change', '.js-line-branch', function() {
+                const row = this.closest('tr');
+                const branchId = this.value;
+
+                if (!branchId || branchId === headerBranchId()) {
+                    this.dataset.touched = '';
+                    $(this).val(headerBranchId());
+                    setRowOptions(row, accountOptionsHtml, costCenterOptionsHtml);
+                    return;
+                }
+
+                this.dataset.touched = '1';
+
+                if (!branchOptionsRoute) {
+                    return;
+                }
+
+                const select = this;
+                $(select).prop('disabled', true);
+                loadBranchOptions(branchId)
+                    .done(function(options) {
+                        setRowOptions(row, options.accounts, options.costCenters);
+                        disableSelectedAccounts();
+                    })
+                    .fail(function(errorObj) {
+                        handleErrorResponce(errorObj);
+                    })
+                    .always(function() {
+                        $(select).prop('disabled', false);
+                    });
+            });
 
             if (branchSelect && branchOptionsRoute) {
                 $(branchSelect).on('change', function() {

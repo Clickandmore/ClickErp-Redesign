@@ -27,6 +27,24 @@
         });
     }
 
+    function setNewConstraintLineBranch(row) {
+        var select = row.find('.js-line-branch');
+        var headerBranch = String($('.constraint-edit-table').data('header-branch') || '');
+        var headerOption = select.find('option[value="' + headerBranch + '"]');
+        var branchId = headerOption.data('branch-allowed') == 1
+            ? headerBranch
+            : String(select.find('option[data-branch-allowed="1"]').first().val() || '');
+        select.val(branchId);
+    }
+
+    function constraintLineOptions(items, labelKey, emptyText) {
+        var options = $('<select>').append($('<option>', { value: '', text: emptyText }));
+        (items || []).forEach(function(item) {
+            options.append($('<option>', { value: item.id, text: item[labelKey] || item.text || item.name }));
+        });
+        return options.html();
+    }
+
     initConstraintSelect2(document);
     $(document).on('click', '.add_debtor', function(e) {
         e.preventDefault();
@@ -35,6 +53,8 @@
         HtmlDebtorAppend.removeAttr('id');
         HtmlDebtorAppend.find('.js-constraint-amount, textarea').val('');
         HtmlDebtorAppend.find('select').val('');
+        // يبدأ من فرع الرأس إن كان مسموحاً، وإلا أول فرع مسموح للموظف.
+        setNewConstraintLineBranch(HtmlDebtorAppend);
         HtmlDebtorAppend.find('.delete-row-btn').addClass('delete-row');
         HtmlDebtorAppend.find('.constraint-old-id').remove();
         HtmlDebtorAppend.appendTo('.table-body');
@@ -48,6 +68,8 @@
         HtmlCreditorAppend.removeAttr('id');
         HtmlCreditorAppend.find('.js-constraint-amount, textarea').val('');
         HtmlCreditorAppend.find('select').val('');
+        // يبدأ من فرع الرأس إن كان مسموحاً، وإلا أول فرع مسموح للموظف.
+        setNewConstraintLineBranch(HtmlCreditorAppend);
         HtmlCreditorAppend.find('.delete-row-btn').addClass('delete-row');
         HtmlCreditorAppend.find('.constraint-old-id').remove();
         HtmlCreditorAppend.appendTo('.table-body');
@@ -137,6 +159,35 @@
         parentTr.remove();
         updateConstraintTotals();
     })
+
+    $(document).on('change', '.constraint-edit-table .js-line-branch', function() {
+        var branchSelect = $(this);
+        var selectedOption = branchSelect.find('option:selected');
+        if (selectedOption.data('branch-allowed') != 1) {
+            return;
+        }
+
+        var row = branchSelect.closest('tr');
+        var url = new URL(@json(route('finance.add-constraint.branch-options')), window.location.origin);
+        url.searchParams.set('branch_id', branchSelect.val());
+        branchSelect.prop('disabled', true);
+
+        $.get(url.toString())
+            .done(function(result) {
+                row.find('.select-account')
+                    .html(constraintLineOptions(result.accounts, 'text', 'اختر الحساب'))
+                    .val('').trigger('change.select2');
+                row.find('select[name="cost_center_id[]"]')
+                    .html(constraintLineOptions(result.cost_centers, 'title', 'بدون مركز تكلفة'))
+                    .val('').trigger('change.select2');
+            })
+            .fail(function(errorObj) {
+                handleErrorResponce(errorObj);
+            })
+            .always(function() {
+                branchSelect.prop('disabled', false);
+            });
+    });
 
     updateConstraintTotals();
 </script>

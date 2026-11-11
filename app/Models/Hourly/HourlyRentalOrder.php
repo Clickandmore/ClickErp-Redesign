@@ -1,8 +1,12 @@
 <?php
 namespace App\Models\Hourly;
+use App\Models\Concerns\AssignsBranch;
+use App\Models\Concerns\BranchScoped;
 use Illuminate\Database\Eloquent\Model;
 class HourlyRentalOrder extends Model
 {
+    use AssignsBranch, BranchScoped;
+
     protected $guarded = [];
     protected $hidden = ['booking_metadata'];
     protected $casts = ['booking_metadata'=>'array','package_snapshot'=>'array','schedule_pattern'=>'array','starts_at'=>'datetime','expires_at'=>'datetime'];
@@ -20,6 +24,15 @@ class HourlyRentalOrder extends Model
     public function renewals() { return $this->hasMany(self::class, 'renewed_from_order_id'); }
     /** التجديد الساري (آخر تجديد غير ملغى)؛ الطلب «مجدَّد» عند وجوده. */
     public function renewedBy() { return $this->hasOne(self::class, 'renewed_from_order_id')->where('status', '!=', 'cancelled')->orderByDesc('id'); }
+
+    protected function resolveBranchIdForCreate(): ?int
+    {
+        return $this->resolveBranchIdFromTable('hourly_rental_orders', $this->renewed_from_order_id ?? null)
+            ?: $this->resolveBranchIdFromCurrentAdmin()
+            ?: $this->resolveBranchIdFromAdmin($this->created_by_admin_id ?? null)
+            ?: $this->resolveBranchIdFromUser($this->user_id ?? null)
+            ?: $this->resolveMainBranchId();
+    }
     /** أقرب زيارة قادمة أو جارية (لم تنتهِ ولم تُلغَ)؛ null إن لم يبقَ موعد محدد. */
     public function nextVisit(): ?HourlyVisit
     {

@@ -253,7 +253,16 @@ class EmployeeController extends Controller
     {
         $dataInsert = $request->only($this->postData);
         if (Schema::hasColumn('hr_employee', 'admin_id') && $request->filled('admin_id')) {
-            $dataInsert['admin_id'] = (int) $request->input('admin_id');
+            $admin = Admin::query()->whereNull('deleted_at')->findOrFail((int) $request->input('admin_id'));
+            app(\App\Services\AdminManagementGuard::class)->assertCanManage($admin, null, true);
+
+            abort_if(
+                objModel::query()->where('admin_id', $admin->id)->exists(),
+                422,
+                'حساب المستخدم مرتبط بموظف آخر.'
+            );
+
+            $dataInsert['admin_id'] = $admin->id;
         }
         $data = $action->storeEmployee($dataInsert, $request);
         return jsonSuccess($data, null, 201);

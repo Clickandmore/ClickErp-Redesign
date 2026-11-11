@@ -30,6 +30,7 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use App\Mail\ResetPasswordMail;
 use App\Models\Role;
+use App\Services\AdminManagementGuard;
 use Nami\Hr\Models\Employee as HrEmployee;
 use Nami\Hr\Models\EmployeeShift;
 use Nami\Hr\Services\EmployeeService;
@@ -472,6 +473,7 @@ class AdminController extends Controller
     public function toggleStatus($id, Request $request)
     {
         $admin = ObjModel::findOrFail($id);
+        app(AdminManagementGuard::class)->assertCanManage($admin);
         $newStatus = $admin->status === 'suspended' ? 'active' : 'suspended';
 
         $validator = Validator::make($request->all(), [
@@ -574,6 +576,15 @@ class AdminController extends Controller
 
         $data = DB::transaction(function () use ($request, $action) {
             $dataInsert = $request->only($this->postData);
+            $guard = app(AdminManagementGuard::class);
+            $role = Role::query()->where('guard_name', 'admin')->find($dataInsert['role_id'] ?? null);
+            $guard->assertCanUseRole($role);
+
+            $actorBranchId = (int) (Auth::guard('admin')->user()?->branch_id ?? 0);
+            if (SystemModuleManager::isEnabled('branches') && $actorBranchId > 0) {
+                $dataInsert['branch_id'] = $actorBranchId;
+            }
+            $guard->assertBranchAssignmentAllowed(isset($dataInsert['branch_id']) ? (int) $dataInsert['branch_id'] : null);
             $admin = $action->storeAdmin($dataInsert, $request);
 
             if ($request->boolean('create_employee')) {
@@ -626,6 +637,7 @@ class AdminController extends Controller
     public function edit($id, Request $request, ObjAction $action)
     {
         $obj = $action->find($id);
+        app(AdminManagementGuard::class)->assertCanManage($obj);
         $roles = $this->adminRolesQuery()->pluck('name', 'id')->all();
         $branchesEnabled = SystemModuleManager::isEnabled('branches');
         $branches = $branchesEnabled
@@ -646,7 +658,18 @@ class AdminController extends Controller
 
     public function update(UpdateRequest $request, $id, ObjAction $action)
     {
+        $target = ObjModel::findOrFail($id);
+        $guard = app(AdminManagementGuard::class);
+        $guard->assertCanManage($target);
         $dataInsert = $request->only($this->postData);
+        $role = Role::query()->where('guard_name', 'admin')->find($dataInsert['role_id'] ?? null);
+        $guard->assertCanUseRole($role);
+
+        $actorBranchId = (int) (Auth::guard('admin')->user()?->branch_id ?? 0);
+        if (SystemModuleManager::isEnabled('branches') && $actorBranchId > 0) {
+            $dataInsert['branch_id'] = $actorBranchId;
+        }
+        $guard->assertBranchAssignmentAllowed(isset($dataInsert['branch_id']) ? (int) $dataInsert['branch_id'] : null);
         $data = $action->updateAdmin($id, $dataInsert, $request);
         return jsonSuccess($data);
     }
@@ -655,6 +678,7 @@ class AdminController extends Controller
     public function destroy($id, Request $request, ObjAction $action)
     {
         $admin = ObjModel::findOrFail($id);
+        app(AdminManagementGuard::class)->assertCanManage($admin);
 
         if ((int) $admin->id === (int) Auth::guard('admin')->id()) {
             return response()->json([
@@ -714,6 +738,7 @@ class AdminController extends Controller
     public function forceDelete($id, Request $request)
     {
         $admin = ObjModel::withTrashed()->findOrFail($id);
+        app(AdminManagementGuard::class)->assertCanManage($admin);
 
         if ((int) $admin->id === (int) Auth::guard('admin')->id()) {
             return response()->json([
@@ -787,6 +812,7 @@ class AdminController extends Controller
     public function restore($id)
     {
         $admin = ObjModel::withTrashed()->findOrFail($id);
+        app(AdminManagementGuard::class)->assertCanManage($admin);
         if (!$admin->trashed()) {
             $message = __('admin.employee_not_deleted');
             return response()->json([
@@ -869,6 +895,7 @@ class AdminController extends Controller
         $this->authorize(PermKeys::USERS_EDIT);
 
         $admin = ObjModel::findOrFail($id);
+        app(AdminManagementGuard::class)->assertCanManage($admin);
 
         $validated = $request->validate([
             'password' => ['required', 'string', 'min:6', 'confirmed'],
@@ -889,7 +916,9 @@ class AdminController extends Controller
 
     public function sendResetLink($id)
     {
+        $this->authorize(PermKeys::USERS_EDIT);
         $admin = ObjModel::findOrFail($id);
+        app(AdminManagementGuard::class)->assertCanManage($admin);
 
         if (empty($admin->email)) {
             return response()->json(['message' => __('admin.employee_email_missing')], 422);
@@ -919,6 +948,7 @@ class AdminController extends Controller
     public function terminateSession($id)
     {
         $admin = ObjModel::findOrFail($id);
+        app(AdminManagementGuard::class)->assertCanManage($admin);
 
         $admin->forceFill([
             'remember_token' => null,
@@ -936,6 +966,7 @@ class AdminController extends Controller
         $this->authorize(PermKeys::USERS_EDIT);
 
         $admin = ObjModel::findOrFail($id);
+        app(AdminManagementGuard::class)->assertCanManage($admin);
 
         if ((int) $admin->id === (int) Auth::guard('admin')->id()) {
             return response()->json(['message' => __('admin.already_logged_in_as_user')], 422);
@@ -1233,6 +1264,8 @@ class AdminController extends Controller
     {
         $this->authorize('users_edit');
         $admin = ObjModel::findOrFail($id);
+        $guard = app(AdminManagementGuard::class);
+        $guard->assertCanManage($admin);
 
         $validator = Validator::make($request->all(), [
             'role_id' => [
@@ -1247,6 +1280,7 @@ class AdminController extends Controller
 
         $roleId = $request->filled('role_id') ? (int) $validator->validated()['role_id'] : null;
         $role = $roleId ? Role::query()->where('guard_name', 'admin')->findOrFail($roleId) : null;
+        $guard->assertCanUseRole($role);
 
         DB::transaction(function () use ($admin, $role) {
             // Spatie treats integers as role names in syncRoles(), so pass the
@@ -1294,6 +1328,8 @@ class AdminController extends Controller
     {
         $this->authorize('users_edit');
         $admin = ObjModel::findOrFail($id);
+        $guard = app(AdminManagementGuard::class);
+        $guard->assertCanManage($admin);
 
         $validator = Validator::make($request->all(), [
             'branch_id' => ['nullable', 'integer', 'exists:branches,id'],
@@ -1302,7 +1338,9 @@ class AdminController extends Controller
             return response()->json(['message' => $validator->errors()->first()], 422);
         }
 
-        $admin->update(['branch_id' => $request->filled('branch_id') ? $request->branch_id : null]);
+        $branchId = $request->filled('branch_id') ? (int) $request->branch_id : null;
+        $guard->assertBranchAssignmentAllowed($branchId);
+        $admin->update(['branch_id' => $branchId]);
 
         return jsonSuccess(null, __('admin.updated_successfully'));
     }

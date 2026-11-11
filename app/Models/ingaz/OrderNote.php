@@ -25,6 +25,12 @@ class OrderNote extends Model
         return $this->belongsTo(Order::class);
     }
 
+    protected function resolveBranchIdForCreate(): ?int
+    {
+        return $this->resolveBranchIdFromOrder($this->order_id ?? null)
+            ?: $this->resolveBranchIdFromCurrentAdmin();
+    }
+
     public function admin()
     {
         return $this->belongsTo(Admin::class);

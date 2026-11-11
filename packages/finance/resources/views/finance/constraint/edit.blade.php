@@ -1,5 +1,7 @@
 @php
     $constraintFormClass = $constraintFormClass ?? 'from-submit-update-global';
+    $lineBranches = $lineBranches ?? collect();
+    $lineBranchEnabled = $lineBranches->isNotEmpty();
     $inlineConstraintEdit = $inlineConstraintEdit ?? false;
     $debtorTotal = (float) $obj->constraintDetails->sum('debtor_value');
     $creditorTotal = (float) $obj->constraintDetails->sum('creditor_value');
@@ -97,13 +99,17 @@
             </div>
 
             <div class="table-responsive mt-3 constraint-edit-table-wrap">
-                <table id="myDataTable_no_filter" class="table constraint-table align-middle constraint-edit-table">
+                <table id="myDataTable_no_filter" class="table constraint-table align-middle constraint-edit-table"
+                    data-header-branch="{{ $obj->branch_id }}">
                     <thead>
                         <tr>
                             <th>{{ __('finance::finance.debtor') }}</th>
                             <th>{{ __('finance::finance.creditor') }}</th>
                             <th>{{ __('finance::finance.Account Name') }} <span class="text-danger">*</span></th>
                             <th>{{ __('finance::finance.fn-cost-centers') }}</th>
+                            @if ($lineBranchEnabled)
+                                <th>الفرع</th>
+                            @endif
                             <th>{{ __('finance::finance.Account Statement') }}</th>
                             <th class="text-center">{{ __('finance::finance.Delete') }}</th>
                         </tr>
@@ -143,6 +149,9 @@
                                             {!! showSelectElement($cost_centers, 'title', $constraintDetails->cost_center_id) !!}
                                         </select>
                                     </td>
+                                    @if ($lineBranchEnabled)
+                                        @include('finance::finance.constraint.partials.line-branch-cell', ['selectedLineBranchId' => $constraintDetails->branch_id ?? $obj->branch_id])
+                                    @endif
                                     <td>
                                         <textarea name="statement_account[]" class="form-control statement-account-field" rows="2"
                                             placeholder="{{ __('finance::finance.statement') }}">{{ $constraintDetails->statement }}</textarea>
@@ -189,6 +198,9 @@
                                             {!! showSelectElement($cost_centers, 'title', $constraintDetails->cost_center_id) !!}
                                         </select>
                                     </td>
+                                    @if ($lineBranchEnabled)
+                                        @include('finance::finance.constraint.partials.line-branch-cell', ['selectedLineBranchId' => $constraintDetails->branch_id ?? $obj->branch_id])
+                                    @endif
                                     <td>
                                         <textarea name="statement_account[]" class="form-control statement-account-field" rows="2"
                                             placeholder="{{ __('finance::finance.statement') }}">{{ $constraintDetails->statement }}</textarea>
@@ -210,7 +222,7 @@
                             <td><input id="creditor_footer_value" class="form-control"
                                     value="{{ number_format($creditorTotal, 2, '.', ',') }}" disabled></td>
                             <td>{{ __('finance::finance.Total') }}</td>
-                            <td colspan="3">{{ __('finance::finance.cost_center_optional_hint') }}</td>
+                            <td colspan="{{ $lineBranchEnabled ? 4 : 3 }}">{{ __('finance::finance.cost_center_optional_hint') }}</td>
                         </tr>
                     </tfoot>
                 </table>

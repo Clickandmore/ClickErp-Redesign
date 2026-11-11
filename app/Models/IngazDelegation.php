@@ -222,9 +222,9 @@ class IngazDelegation extends Model
 
     protected function resolveBranchIdForCreate(): ?int
     {
-        return $this->resolveBranchIdFromUser($this->user_id)
+        return $this->resolveBranchIdFromCurrentAdmin()
+            ?? $this->resolveBranchIdFromUser($this->user_id)
             ?? $this->resolveBranchIdFromMaid($this->maid_id)
-            ?? $this->resolveBranchIdFromAdmin($this->marketer_id)
-            ?? $this->resolveBranchIdFromCurrentAdmin();
+            ?? $this->resolveBranchIdFromAdmin($this->marketer_id);
     }
 }

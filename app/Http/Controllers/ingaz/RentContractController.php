@@ -1626,13 +1626,14 @@ class RentContractController extends Controller
     private function generateContractNumber()
     {
         $year = date('Y');
-        $lastContract = RentalContract::whereYear('created_at', $year)
-                                    ->orderBy('id', 'desc')
-                                    ->first();
+        $prefix = 'RC-' . $year . '-';
+        $number = ((int) RentalContract::query()
+            ->acrossBranches()
+            ->where('contract_number', 'like', $prefix . '%')
+            ->selectRaw('MAX(CAST(RIGHT(contract_number, 4) AS UNSIGNED)) AS sequence_number')
+            ->value('sequence_number')) + 1;
 
-        $number = $lastContract ? (intval(substr($lastContract->contract_number, -4)) + 1) : 1;
-
-        return 'RC-' . $year . '-' . str_pad($number, 4, '0', STR_PAD_LEFT);
+        return $prefix . str_pad((string) $number, 4, '0', STR_PAD_LEFT);
     }
 
     public function completeContract(

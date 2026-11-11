@@ -372,7 +372,7 @@ class DashboardController extends Controller
             ->whereNull('latest_travel_histories.deleted_at')
             ->groupBy('latest_travel_histories.order_id');
 
-        $officeStats = Cache::remember('admin_dashboard.office_stats.v3', now()->addMinutes(10), function () use ($latestContractPerMaid, $latestTravelHistoryPerContract) {
+        $officeStats = Cache::remember('admin_dashboard.office_stats.v4.branch.' . ($activeDashboardBranchId ?? 'all'), now()->addMinutes(10), function () use ($latestContractPerMaid, $latestTravelHistoryPerContract) {
             return RecruitmentOffices::query()
                 ->with('nationality')
                 ->withCount([

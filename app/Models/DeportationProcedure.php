@@ -67,6 +67,13 @@ class DeportationProcedure extends Model
         return $this->belongsTo(Contract::class);
     }
 
+    protected function resolveBranchIdForCreate(): ?int
+    {
+        return $this->resolveBranchIdFromContract($this->contract_id ?? null)
+            ?: $this->resolveBranchIdFromMaid($this->maid_id ?? null)
+            ?: $this->resolveBranchIdFromCurrentAdmin();
+    }
+
     public function maid()
     {
         return $this->belongsTo(Maid::class);

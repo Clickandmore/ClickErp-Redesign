@@ -218,13 +218,14 @@ class TransferServiceContract extends Model
     {
         $prefix = 'TSC'; // Transfer Service Contract
         $year = now()->year;
-        $lastContract = static::whereYear('created_at', $year)
-            ->orderBy('id', 'desc')
-            ->first();
+        $fullPrefix = $prefix . $year;
+        $number = ((int) static::query()
+            ->acrossBranches()
+            ->where('contract_number', 'like', $fullPrefix . '%')
+            ->selectRaw('MAX(CAST(RIGHT(contract_number, 4) AS UNSIGNED)) AS sequence_number')
+            ->value('sequence_number')) + 1;
 
-        $number = $lastContract ? (intval(substr($lastContract->contract_number, -4)) + 1) : 1;
-
-        return $prefix . $year . str_pad($number, 4, '0', STR_PAD_LEFT);
+        return $fullPrefix . str_pad((string) $number, 4, '0', STR_PAD_LEFT);
     }
 
     public function canBeSent()

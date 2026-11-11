@@ -107,19 +107,60 @@ class ConstraintService extends MainService
         return $this->constraintNumberService->previewNextCode();
     }
 
+    /**
+     * فرع كل سطر في القيد اليدوي.
+     *
+     * السطر الذي لم يُختر له فرع يأخذ فرع رأس القيد ($fallbackBranchId). عند
+     * التعديل يُمرَّر null فيبقى السطر القديم على فرعه ويأخذ السطر الجديد فرع
+     * القيد من الموديل. وحين تختلف فروع الأسطر يُعلَّم القيد is_multi_branch
+     * ليظهر لكل فرع له فيه سطر (نفس آلية قيود مساند).
+     *
+     * الفروع معطلة ⇒ يُتجاهل detail_branch_id كلياً ويبقى السلوك القديم.
+     */
+    public function applyLineBranches(array $data, ?int $fallbackBranchId): array
+    {
+        if (! app(\App\Services\BranchAccessService::class)->enabled()) {
+            unset($data['detail_branch_id']);
+
+            return $data;
+        }
+
+        $lineBranches = [];
+        foreach (array_keys($data['account_id'] ?? []) as $key) {
+            $branchId = (int) ($data['detail_branch_id'][$key] ?? 0);
+            $lineBranches[$key] = $branchId > 0 ? $branchId : $fallbackBranchId;
+        }
+        $data['detail_branch_id'] = $lineBranches;
+
+        return $data;
+    }
+
+    /**
+     * يرفع is_multi_branch إذا صار للقيد أسطر في أكثر من فرع.
+     * لا يُنزله أبداً: قيود مساند متعددة الفروع رأسها بلا فرع، وإنزال العلامة
+     * عنها يخفيها عن فروعها.
+     */
+    public function syncMultiBranchFlag(Model $constraint): void
+    {
+        if ($constraint->is_multi_branch
+            || ! \Illuminate\Support\Facades\Schema::hasColumn($constraint->getTable(), 'is_multi_branch')) {
+            return;
+        }
+
+        $branchCount = $constraint->constraintDetails()
+            ->withoutBranchScope()
+            ->whereNotNull('branch_id')
+            ->distinct()
+            ->count('branch_id');
+
+        if ($branchCount > 1) {
+            $constraint->forceFill(['is_multi_branch' => true])->saveQuietly();
+        }
+    }
+
     public function storeConstraint($data,$getActiveYear,$type = ConstraintTypiesEnum::DailyEntry)
     {
-        $this->assertAccountsAssignableToBranch($data['account_id'] ?? [], $data['branch_id'] ?? null);
-        $accountsByBranch = [];
-        foreach ($data['account_id'] ?? [] as $key => $accountId) {
-            $branchId = $data['detail_branch_id'][$key] ?? null;
-            if ($branchId !== null) {
-                $accountsByBranch[(int) $branchId][] = $accountId;
-            }
-        }
-        foreach ($accountsByBranch as $branchId => $accountIds) {
-            $this->assertAccountsAssignableToBranch($accountIds, $branchId);
-        }
+        $this->assertLineAccountsAssignable($data, $data['branch_id'] ?? null);
 
         $year = $getActiveYear;
         $data['year_id'] = $year->id;
@@ -127,6 +168,22 @@ class ConstraintService extends MainService
         $data['statement'] = $data['statement'] ?? '-';
         $data['created_by_id'] = $data['created_by_id'] ?? auth('admin')->id();
         return $this->store($data);
+    }
+
+    /** كل سطر يُفحص حسابه مقابل فرع السطر، وإلا فرع رأس القيد. */
+    private function assertLineAccountsAssignable(array $data, $fallbackBranchId): void
+    {
+        $accountsByBranch = [];
+        foreach ($data['account_id'] ?? [] as $key => $accountId) {
+            $branchId = (int) ($data['detail_branch_id'][$key] ?? 0) ?: (int) ($fallbackBranchId ?? 0);
+            if ($branchId > 0) {
+                $accountsByBranch[$branchId][] = $accountId;
+            }
+        }
+
+        foreach ($accountsByBranch as $branchId => $accountIds) {
+            $this->assertAccountsAssignableToBranch($accountIds, $branchId);
+        }
     }
 
     private function assertAccountsAssignableToBranch(array $accountIds, ?int $branchId): void
@@ -191,7 +248,7 @@ class ConstraintService extends MainService
         $data['year_id'] = $year->id;
         $constraint = $this->find($id);
         $data['branch_id'] = $constraint->branch_id;
-        $this->assertAccountsAssignableToBranch($data['account_id'] ?? [], $constraint->branch_id);
+        $this->assertLineAccountsAssignable($data, $constraint->branch_id);
         $data['type'] = $data['type'] ?? $constraint->getRawOriginal('type') ?? ConstraintTypiesEnum::DailyEntry->value;
         $constraint->update($data);
         return $constraint;
@@ -206,7 +263,11 @@ class ConstraintService extends MainService
             ->values()
             ->all();
 
-        $this->constraintDetailsService->model
+        // الوصول للقيد نفسه فُحص في updateConstraint؛ أسطره تُعامل كاملة حتى
+        // لا تُحذف أو تُترك أسطر فرع آخر في قيد متعدد الفروع.
+        $detailsQuery = fn () => $this->constraintDetailsService->model->newQuery()->withoutBranchScope();
+
+        $detailsQuery()
             ->where('constraint_id', $constraintId)
             ->when(!empty($submittedOldIds), function ($query) use ($submittedOldIds) {
                 $query->whereNotIn('id', $submittedOldIds);
@@ -226,8 +287,16 @@ class ConstraintService extends MainService
                 "date" => $request['date'] ?? $this->model->find($constraintId)->date,
             ];
 
+            $lineBranchId = (int) ($request['detail_branch_id'][$key] ?? 0);
+            if ($lineBranchId > 0) {
+                $data['branch_id'] = $lineBranchId;
+            }
+
             if (isset($request['old_id'][$key]) && $request['old_id'][$key]) {
-                $this->constraintDetailsService->updateConstraintDetails($request['old_id'][$key], $data);
+                $detailsQuery()
+                    ->where('constraint_id', $constraintId)
+                    ->findOrFail($request['old_id'][$key])
+                    ->update($data);
             } else {
                 $this->constraintDetailsService->storeConstraintDetails($data);
             }

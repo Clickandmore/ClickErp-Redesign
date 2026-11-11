@@ -26,6 +26,12 @@ class ContractInfo extends Model
         return $this->belongsTo(Contract::class);
     }
 
+    protected function resolveBranchIdForCreate(): ?int
+    {
+        return $this->resolveBranchIdFromContract($this->contract_id ?? null)
+            ?: $this->resolveBranchIdFromCurrentAdmin();
+    }
+
     public function prevSponsorship()
     {
         return $this->belongsTo(RecruitmentOffices::class, 'previous_sponsorship');

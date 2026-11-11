@@ -347,13 +347,8 @@ class EmployeeService extends MainService
         $employeeShift->employee_id = $employee->id;
         $employeeShift->shift_id = $request->shift_id;
         $employeeShift->save();
-        if($employee->admin){
-            $adminData['email'] = $request->email;
-            $adminData['password'] = $request->password ? Hash::make($request->password) : $employee->admin->password;
-            $adminData['identity_number'] = $employee->national_num;
-            $adminData['identity_expiry_date'] = $employee->identity_expiry_date;
-            $employee->admin->update($adminData);
-        }
+        // بيانات تسجيل الدخول تُدار حصراً من شاشة المستخدمين. تعديل ملف الموارد
+        // البشرية لا يغيّر بريد الحساب أو كلمة مروره أو بيانات هويته.
         if ($request->create_admin_account) {
             $adminData['name'] = $employee->name;
             $adminData['phone'] = $employee->phone;

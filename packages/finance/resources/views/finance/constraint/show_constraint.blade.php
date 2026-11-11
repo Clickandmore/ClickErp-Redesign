@@ -594,6 +594,7 @@
                 'other_account' => 'yes',
             ]);
         };
+        $showLineBranch = app(\App\Services\BranchAccessService::class)->enabled();
         $buildCostCenterStatementUrl = function ($costCenterId) {
             return route('finance.account-cost-centers.index', [
                 'cost_center_id' => $costCenterId,
@@ -705,6 +706,9 @@
                             <th>{{ __('finance::finance.debtor') }}</th>
                             <th>{{ __('finance::finance.creditor') }}</th>
                             <th>{{ __('finance::finance.fn-cost-centers') }}</th>
+                            @if ($showLineBranch)
+                                <th>الفرع</th>
+                            @endif
                             <th>{{ __('finance::finance.Account Statement') }}</th>
                         </tr>
                     </thead>
@@ -737,6 +741,9 @@
                                         {{ __('finance::finance.without') }}
                                     @endif
                                 </td>
+                                @if ($showLineBranch)
+                                    <td>{{ optional($detail->branch)->name_ar ?: (optional($detail->branch)->name_en ?: '-') }}</td>
+                                @endif
                                 <td>{{ $detail->statement ?: '-' }}</td>
                             </tr>
                         @endforeach
@@ -746,7 +753,7 @@
                             <td colspan="2">{{ __('finance::finance.Total') }}</td>
                             <td class="amount">{{ number_format((float) $obj->value, 2, '.', ',') }}</td>
                             <td class="amount">{{ number_format((float) $obj->value, 2, '.', ',') }}</td>
-                            <td colspan="2"></td>
+                            <td colspan="{{ $showLineBranch ? 3 : 2 }}"></td>
                         </tr>
                     </tfoot>
                 </table>

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\admin;
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
 use App\Services\BranchDataSharingService;
+use App\Services\AdminManagementGuard;
 use App\Support\BranchSharingSettings;
 use App\Support\SystemModuleManager;
 use App\Support\ZohoSalesIqSettings;
@@ -191,6 +192,7 @@ class BranchController extends Controller
 
     public function assignManager(Request $request, Branch $branch)
     {
+        app(AdminManagementGuard::class)->assertGeneralAdministration();
         $request->validate([
             'admin_id' => ['nullable', 'integer', 'exists:admins,id'],
         ]);
@@ -216,6 +218,7 @@ class BranchController extends Controller
 
     public function branchAdmins(Branch $branch)
     {
+        app(AdminManagementGuard::class)->assertGeneralAdministration();
         // Return ALL real admins so user can pick any one as responsible
         $currentManagerId = \App\Models\auth\Admin::query()
             ->where('branch_id', $branch->id)
@@ -239,6 +242,7 @@ class BranchController extends Controller
 
     public function availableAdmins(Branch $branch)
     {
+        app(AdminManagementGuard::class)->assertGeneralAdministration();
         // All real admins NOT already in this branch
         $admins = \App\Models\auth\Admin::query()
             ->activeForOperations()
@@ -260,6 +264,7 @@ class BranchController extends Controller
 
     public function assignAdmin(Request $request, Branch $branch)
     {
+        app(AdminManagementGuard::class)->assertGeneralAdministration();
         $request->validate([
             'admin_id' => ['required', 'integer', 'exists:admins,id'],
         ]);
@@ -274,6 +279,7 @@ class BranchController extends Controller
 
     public function removeAdmin(Request $request, Branch $branch)
     {
+        app(AdminManagementGuard::class)->assertGeneralAdministration();
         $request->validate([
             'admin_id' => ['required', 'integer', 'exists:admins,id'],
         ]);
@@ -288,6 +294,20 @@ class BranchController extends Controller
 
     public function destroy(Request $request, Branch $branch)
     {
+        app(AdminManagementGuard::class)->assertGeneralAdministration();
+
+        if ($branch->is_main || $this->branchHasRows($branch->id)) {
+            $message = $branch->is_main
+                ? 'لا يمكن حذف الفرع الرئيسي.'
+                : 'لا يمكن حذف فرع مرتبط بموظفين أو بيانات. أوقف الفرع بدلًا من حذفه.';
+
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => $message], 422);
+            }
+
+            return redirect()->route('branches.index')->withErrors(['branch' => $message]);
+        }
+
         $branch->delete();
 
         if ($request->expectsJson()) {
@@ -309,6 +329,23 @@ class BranchController extends Controller
         }
 
         return (int) DB::table($table)->where('branch_id', $branchId)->count();
+    }
+
+    private function branchHasRows(int $branchId): bool
+    {
+        $tables = collect(DB::select(
+            'SELECT table_name AS name FROM information_schema.columns '
+            . 'WHERE table_schema = ? AND column_name = ? AND table_name != ?',
+            [DB::getDatabaseName(), 'branch_id', 'branches']
+        ));
+
+        foreach ($tables as $table) {
+            if (DB::table((string) $table->name)->where('branch_id', $branchId)->exists()) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function sumBranchRows(string $table, int $branchId, array $candidateColumns): float

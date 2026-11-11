@@ -365,8 +365,11 @@ class AdminRoutePermissionMatrix
             'dash.activity.log.export-pdf' => [PermKeys::ACTIVITY_EXPORT],
             'admins.impersonate' => [PermKeys::USERS_EDIT],
             'admins.reset-password' => [PermKeys::USERS_EDIT],
+            'admins.send-reset-link' => [PermKeys::USERS_EDIT],
             'admins.terminate-session' => [PermKeys::USERS_EDIT],
             'admins.toggle-status' => [PermKeys::USERS_EDIT],
+            'admins.quick-assign-role' => [PermKeys::USERS_EDIT],
+            'admins.quick-assign-branch' => [PermKeys::USERS_EDIT],
             // الموظفون المحذوفون: العرض والاستعادة والحذف النهائي صلاحيات مستقلة عن users_delete
             'admins.trashed' => [PermKeys::USERS_TRASHED_VIEW, PermKeys::USERS_CONTROL],
             'admins.restore' => [PermKeys::USERS_RESTORE, PermKeys::USERS_CONTROL],
@@ -1277,6 +1280,11 @@ class AdminRoutePermissionMatrix
                 'branches.store' => [PermKeys::BRANCHES_CREATE, PermKeys::BRANCHES_CONTROL],
                 'branches.edit' => [PermKeys::BRANCHES_EDIT, PermKeys::BRANCHES_CONTROL],
                 'branches.update' => [PermKeys::BRANCHES_EDIT, PermKeys::BRANCHES_CONTROL],
+                'branches.assign-manager' => [PermKeys::BRANCHES_EDIT, PermKeys::BRANCHES_CONTROL],
+                'branches.admins' => [PermKeys::BRANCHES_VIEW, PermKeys::BRANCHES_CONTROL],
+                'branches.available-admins' => [PermKeys::BRANCHES_EDIT, PermKeys::BRANCHES_CONTROL],
+                'branches.assign-admin' => [PermKeys::BRANCHES_EDIT, PermKeys::BRANCHES_CONTROL],
+                'branches.remove-admin' => [PermKeys::BRANCHES_EDIT, PermKeys::BRANCHES_CONTROL],
                 'branches.destroy' => [PermKeys::BRANCHES_DELETE, PermKeys::BRANCHES_CONTROL],
             ]
         );

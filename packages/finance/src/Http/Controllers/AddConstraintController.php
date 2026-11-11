@@ -92,12 +92,15 @@ class AddConstraintController extends Controller
             // فرعه، وصاحب رؤية الجميع لا يُقبل منه إلا فرع موجود اختاره صراحة.
             $data['branch_id'] = $branchAccess->selectedBranchId($request);
         }
+        // كل سطر بلا فرع يأخذ فرع رأس القيد.
+        $data = $service->applyLineBranches($data, $data['branch_id'] ?? null);
         if (!$yearService->checkDateRange($data['date'])) {
             return jsonValid(['error' => [__("finance.the year is not exist")]], '');
         }
         $getActiveYear = $yearService->getActiveYear();
         $storeConstraint = $service->storeConstraint($data, $getActiveYear);
         $service->storeConstraintDetails($data['account_id'], $storeConstraint->id, $data);
+        $service->syncMultiBranchFlag($storeConstraint);
         $service->storeFiles($storeConstraint, $data);
         return jsonSuccess([
             "id" => $storeConstraint->id,
@@ -117,8 +120,7 @@ class AddConstraintController extends Controller
         }
 
         $constraint = $service->find($id)->load([
-            'constraintDetails.account',
-            'constraintDetails.costCenter',
+            ...$this->detailRelations(),
             'files',
             'logs.admin',
         ]);
@@ -139,13 +141,15 @@ class AddConstraintController extends Controller
     public function edit($id, Request $request, ObjService $service)
     {
         $constraint = $service->find($id)->load([
-            'constraintDetails.account',
-            'constraintDetails.costCenter',
+            ...$this->detailRelations(),
             'files',
         ]);
 
         return view($this->folderPath . ".edit_constraint")->with([
             "obj" => $constraint,
+            "lineBranches" => $this->lineBranchOptions($constraint),
+            "lineBranchAllowedIds" => app(BranchAccessService::class)->selectorBranches()
+                ->pluck('id')->map(fn ($id) => (int) $id)->all(),
             'accounts' => $service->getAccountsForConstraint($constraint),
             "bladeTitle" => __("buttons.edit") . " " . __("finance::finance.constraint_details_page") . " #{$constraint->code}",
             "cost_centers" => $service->getCostCenters(),
@@ -162,6 +166,8 @@ class AddConstraintController extends Controller
     public function update(ObjRequest $request, $id, ObjService $service, YearService $yearService)
     {
         $data = $request->validated();
+        // عند التعديل لا يُفرض فرع افتراضي: السطر القديم يبقى على فرعه.
+        $data = $service->applyLineBranches($data, null);
         if (!$yearService->checkDateRange($data['date'])) {
             return jsonValid(['error' => [__("finance.the year is not exist")]], '');
         }
@@ -171,6 +177,7 @@ class AddConstraintController extends Controller
 
         $updateConstraint = $service->updateConstraint($id, $data, $request, $getActiveYear);
         $service->updateConstraintDetails($updateConstraint->id, $data['account_id'], $data);
+        $service->syncMultiBranchFlag($updateConstraint);
         $service->storeFiles($updateConstraint, $data);
         $service->logConstraintActivity($updateConstraint->refresh(), 'updated', __('finance::finance.constraint_updated_log_description'), [
             'before' => $before,
@@ -198,6 +205,39 @@ class AddConstraintController extends Controller
         }
 
         return jsonSuccess();
+    }
+
+    /**
+     * أسطر القيد كاملة. الوصول للقيد نفسه فُحص بالـ scope عند find()، فلا
+     * يُخفى عن موظف فرع ب سطرُ فرع أ في قيد متعدد الفروع (فيظهر القيد غير متوازن).
+     */
+    private function detailRelations(): array
+    {
+        return [
+            'constraintDetails' => fn ($query) => $query->withoutBranchScope(),
+            'constraintDetails.account',
+            'constraintDetails.costCenter',
+            'constraintDetails.branch',
+        ];
+    }
+
+    /** الفروع المعروضة: المسموح باختياره + فروع الأسطر القديمة لعرض قيمتها الحالية. */
+    private function lineBranchOptions($constraint)
+    {
+        $branchAccess = app(BranchAccessService::class);
+        if (! $branchAccess->enabled()) {
+            return collect();
+        }
+
+        $usedIds = $constraint->constraintDetails->pluck('branch_id')
+            ->push($constraint->branch_id)
+            ->filter()
+            ->unique();
+
+        return $branchAccess->selectorBranches()
+            ->concat(\App\Models\Branch::query()->whereIn('id', $usedIds)->get(['id', 'name_ar', 'name_en', 'code']))
+            ->unique('id')
+            ->values();
     }
 
     protected function perData($service, $id)

@@ -93,14 +93,14 @@ class CompletedRecruitmentMaidReleaseService
 
     private function hasOtherActiveContract(Contract $contract): bool
     {
-        return Contract::query()->where('maid_id', $contract->maid_id)->whereKeyNot($contract->id)
+        return Contract::query()->acrossBranches()->where('maid_id', $contract->maid_id)->whereKeyNot($contract->id)
             ->whereIn('status', ['pending_maid_selection', 'new', 'msaned', 'tafwed', 'taffez', 'tazker', 'arrival'])
             ->exists();
     }
 
     private function hasBlockingOrder(int $maidId): bool
     {
-        return Order::query()->where('maid_id', $maidId)
+        return Order::query()->acrossBranches()->where('maid_id', $maidId)
             ->whereNotIn('status', Order::nonBlockingMaidAssignmentStatuses())->exists();
     }
 }

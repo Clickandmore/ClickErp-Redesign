@@ -47,6 +47,8 @@ class ConstraintRequest extends MainRequest
 
         return [
             'branch_id' => [Rule::requiredIf($branchMustBeSelected), 'nullable', 'integer', 'exists:branches,id'],
+            'detail_branch_id' => 'nullable|array',
+            'detail_branch_id.*' => 'nullable|integer|exists:branches,id',
             'type' => 'nullable',
             'value' => 'required|numeric|gt:0',
             'date' => 'required|date_format:Y-m-d',
@@ -83,6 +85,8 @@ class ConstraintRequest extends MainRequest
             'debtor_value.*' => 'nullable|numeric|min:0',
             'old_id' => 'nullable|array',
             'old_id.*' => 'nullable|exists:fn_constraint_details,id',
+            'detail_branch_id' => 'nullable|array',
+            'detail_branch_id.*' => 'nullable|integer|exists:branches,id',
             'creditor_value' => 'required|array|min:1',
             'creditor_value.*' => 'nullable|numeric|min:0',
             'cost_center_required' => 'nullable',
@@ -130,14 +134,56 @@ class ConstraintRequest extends MainRequest
                 return;
             }
 
-            $branchId = $this->branchIdForAccountValidation($branchAccess);
-            if ($branchId === null) {
+            $headerBranchId = $this->branchIdForAccountValidation($branchAccess);
+            $lineBranchIds = (array) $this->input('detail_branch_id', []);
+
+            // فرع السطر: المستخدم يختار فقط من الفروع المسموح له بها. عند
+            // التعديل نسمح لفرع غير متاح بالبقاء على السطر القديم نفسه فقط؛
+            // ولا يصبح هذا الفرع خياراً لسطر آخر أو لسطر جديد.
+            $allowedBranchIds = $this->allowedLineBranchIds($branchAccess);
+            $existingLineBranches = $this->existingLineBranches();
+            $oldIds = (array) $this->input('old_id', []);
+            $effectiveLineBranches = [];
+            $rejected = collect((array) $this->input('account_id', []))->filter(function ($accountId, $key) use (
+                $allowedBranchIds,
+                $existingLineBranches,
+                $headerBranchId,
+                $lineBranchIds,
+                $oldIds,
+                &$effectiveLineBranches
+            ) {
+                $submittedBranchId = (int) ($lineBranchIds[$key] ?? 0);
+                $oldId = (int) ($oldIds[$key] ?? 0);
+                $branchId = $submittedBranchId > 0
+                    ? $submittedBranchId
+                    : ($existingLineBranches[$oldId] ?? (int) ($headerBranchId ?? 0));
+                $effectiveLineBranches[$key] = $branchId;
+
+                if ($branchId <= 0 || in_array($branchId, $allowedBranchIds, true)) {
+                    return false;
+                }
+
+                return $oldId <= 0
+                    || ($existingLineBranches[$oldId] ?? null) !== $branchId;
+            })->unique();
+            if ($rejected->isNotEmpty()) {
+                $validator->errors()->add('detail_branch_id', 'لا تملك صلاحية تسجيل أسطر على هذا الفرع.');
+            }
+
+            if (! BranchSharingSettings::accountsPerBranch()) {
                 return;
             }
 
-            $accountIds = collect($this->input('account_id', []))->filter()->map(fn ($id) => (int) $id);
+            // كل سطر يُفحص حسابه مقابل فرعه هو، وإلا فرع رأس القيد.
+            $accountsByBranch = [];
+            foreach ((array) $this->input('account_id', []) as $key => $accountId) {
+                $branchId = (int) ($effectiveLineBranches[$key] ?? 0);
+                if ($branchId > 0 && (int) $accountId > 0) {
+                    $accountsByBranch[$branchId][] = (int) $accountId;
+                }
+            }
 
-            if (BranchSharingSettings::accountsPerBranch()) {
+            foreach ($accountsByBranch as $branchId => $accountIds) {
                 $invalid = Account::query()
                     ->whereIn('id', $accountIds)
                     ->whereHas('branches')
@@ -147,13 +193,37 @@ class ConstraintRequest extends MainRequest
                 if ($invalid->isNotEmpty()) {
                     $validator->errors()->add(
                         'account_id',
-                        'حسابات غير متاحة لفرع القيد: ' . $invalid->implode(', ')
+                        'حسابات غير متاحة لفرع السطر: ' . $invalid->implode(', ')
                     );
                 }
-
-                return;
             }
         });
+    }
+
+    /** @return array<int, int> */
+    private function allowedLineBranchIds(BranchAccessService $branchAccess): array
+    {
+        return $branchAccess->selectorBranches(auth('admin')->user())
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+    }
+
+    /** @return array<int, int> [detail id => branch id] */
+    private function existingLineBranches(): array
+    {
+        $constraintId = in_array($this->method(), ['PUT', 'PATCH'], true) ? $this->routeConstraintId() : 0;
+        if ($constraintId <= 0) {
+            return [];
+        }
+
+        return DB::table('fn_constraint_details')
+            ->where('constraint_id', $constraintId)
+            ->whereNull('deleted_at')
+            ->whereNotNull('branch_id')
+            ->pluck('branch_id', 'id')
+            ->mapWithKeys(fn ($branchId, $id) => [(int) $id => (int) $branchId])
+            ->all();
     }
 
     private function branchIdForAccountValidation(BranchAccessService $branchAccess): ?int

@@ -109,6 +109,19 @@ class Admin extends Authenticatable
         return $query->notSuspended();
     }
 
+    public function scopeVisibleToActiveBranch(Builder $query, ?self $admin = null): Builder
+    {
+        $access = app(\App\Services\BranchAccessService::class);
+        $admin ??= auth('admin')->user();
+        $branchId = $access->adminBranchId($admin);
+
+        if (! $access->enabled() || ! $branchId || $access->canViewAllBranches($admin)) {
+            return $query;
+        }
+
+        return $query->where($this->getTable() . '.branch_id', $branchId);
+    }
+
     /**
      * Exclude only accounts managed exclusively as external-office agents.
      *

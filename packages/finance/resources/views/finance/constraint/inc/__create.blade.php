@@ -1,3 +1,7 @@
+@php
+    $lineBranchEnabled = (bool) ($branchSelector['enabled'] ?? false);
+    $lineBranches = $branchSelector['branches'] ?? collect();
+@endphp
 <input type="hidden" name="cost_center_required" value="off">
 <input type="hidden" name="value" id="constraint_total_value">
 
@@ -107,6 +111,9 @@
                         <th>{{ __('finance::finance.creditor') }}</th>
                         <th>{{ __('finance::finance.Account Name') }} <span class="text-danger">*</span></th>
                         <th>{{ __('finance::finance.fn-cost-centers') }}</th>
+                        @if ($lineBranchEnabled)
+                            <th>الفرع</th>
+                        @endif
                         <th>{{ __('finance::finance.Account Statement') }}</th>
                         <th class="text-center">{{ __('finance::finance.Delete') }}</th>
                     </tr>
@@ -134,6 +141,9 @@
                                 {!! showSelectElement($cost_centers, 'title') !!}
                             </select>
                         </td>
+                        @if ($lineBranchEnabled)
+                            @include('finance::finance.constraint.partials.line-branch-cell', ['selectedLineBranchId' => $selectedBranchId ?? null])
+                        @endif
                         <td>
                             <textarea name="statement_account[]" class="form-control" rows="2"
                                 placeholder="{{ __('finance::finance.statement') }}"></textarea>
@@ -166,6 +176,9 @@
                                 {!! showSelectElement($cost_centers, 'title') !!}
                             </select>
                         </td>
+                        @if ($lineBranchEnabled)
+                            @include('finance::finance.constraint.partials.line-branch-cell', ['selectedLineBranchId' => $selectedBranchId ?? null])
+                        @endif
                         <td>
                             <textarea name="statement_account[]" class="form-control" rows="2"
                                 placeholder="{{ __('finance::finance.statement') }}"></textarea>
@@ -185,7 +198,7 @@
                         <td><input id="debtor_footer_value" class="form-control" value="0.00" disabled></td>
                         <td><input id="creditor_footer_value" class="form-control" value="0.00" disabled></td>
                         <td>{{ __('finance::finance.Total') }}</td>
-                        <td colspan="3">{{ __('finance::finance.cost_center_optional_hint') }}</td>
+                        <td colspan="{{ $lineBranchEnabled ? 4 : 3 }}">{{ __('finance::finance.cost_center_optional_hint') }}</td>
                     </tr>
                 </tfoot>
             </table>
@@ -215,6 +228,9 @@
                 {!! showSelectElement($cost_centers, 'title') !!}
             </select>
         </td>
+                        @if ($lineBranchEnabled)
+                            @include('finance::finance.constraint.partials.line-branch-cell', ['selectedLineBranchId' => $selectedBranchId ?? null])
+                        @endif
         <td>
             <textarea name="statement_account[]" class="form-control" rows="2"
                 placeholder="{{ __('finance::finance.statement') }}"></textarea>
@@ -249,6 +265,9 @@
                 {!! showSelectElement($cost_centers, 'title') !!}
             </select>
         </td>
+                        @if ($lineBranchEnabled)
+                            @include('finance::finance.constraint.partials.line-branch-cell', ['selectedLineBranchId' => $selectedBranchId ?? null])
+                        @endif
         <td>
             <textarea name="statement_account[]" class="form-control" rows="2"
                 placeholder="{{ __('finance::finance.statement') }}"></textarea>

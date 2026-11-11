@@ -4302,11 +4302,22 @@ class RecruitmentContractController extends Controller
 
     public function getClientDetails($id)
     {
+        if (! $this->canCreateRecruitmentContracts()) {
+            abort(403);
+        }
+
         $client = User::with('nationality')->find($id);
         if (!$client) {
             return response()->json(['error' => 'Client not found'], 404);
         }
-        return response()->json($client);
+
+        app(\App\Services\BranchAccessService::class)->assertCanAccessModel($client);
+
+        return response()->json($client->only([
+            'id', 'name', 'phone', 'phone_code', 'phone2', 'email', 'nationality_id',
+            'national_num', 'client_type', 'tax_number', 'license_number', 'birthdate',
+            'address', 'city', 'rooms_num', 'family_num', 'children', 'job', 'branch_id',
+        ]) + ['nationality' => $client->nationality]);
     }
 
     public function searchClients(Request $request)
@@ -5484,7 +5495,8 @@ class RecruitmentContractController extends Controller
         }
 
         // استخدام cache لتسريع التحميل
-        return \Cache::remember('recruitment_contract_filter_options.v3', 300, function () { // 5 دقائق
+        $branchCacheKey = \App\Support\BranchQueryContext::activeBranchId() ?? 'all';
+        return \Cache::remember('recruitment_contract_filter_options.v4.branch.' . $branchCacheKey . '.locale.' . app()->getLocale(), 300, function () { // 5 دقائق
             // جلب الجنسيات مع الترجمات وتحويلها للشكل المطلوب
             $nationalities = \App\Models\ingaz\Nationality::with('translations')->get()->map(function ($nationality) {
                 $translation = $nationality->translations->where('locale', app()->getLocale())->first();

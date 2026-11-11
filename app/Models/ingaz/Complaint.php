@@ -51,6 +51,12 @@ class Complaint extends Model
         static::created(function ($complaint) {
             $recipientIds = Admin::query()
                 ->activeForOperations()
+                ->where(function ($query) use ($complaint) {
+                    $query->whereNull('branch_id');
+                    if ($complaint->branch_id) {
+                        $query->orWhere('branch_id', $complaint->branch_id);
+                    }
+                })
                 ->get()
                 ->filter(fn (Admin $admin) => $admin->hasAnyPermission([
                     PermKeys::COMPLAINT_VIEW,

@@ -59,6 +59,7 @@ class User extends Authenticatable implements JWTSubject
 
     protected $table = 'users';
     protected $guarded = [];
+    protected $hidden = ['password', 'remember_token'];
 
     protected $casts = [
         'branch_id' => 'integer',

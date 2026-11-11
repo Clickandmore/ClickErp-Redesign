@@ -490,7 +490,12 @@
                 @foreach ($obj->constraintDetails as $detail)
                     <tr>
                         <td class="center">{{ $loop->iteration }}</td>
-                        <td>{{ optional($detail->account)->name ?: '-' }}</td>
+                        <td>
+                            {{ optional($detail->account)->name ?: '-' }}
+                            @if ($obj->is_multi_branch && $detail->branch)
+                                <br><small>الفرع: {{ $detail->branch->name_ar ?: $detail->branch->name_en }}</small>
+                            @endif
+                        </td>
                         <td class="amount">
                             {{ (float) $detail->debtor_value > 0 ? number_format((float) $detail->debtor_value, 2, '.', ',') : '-' }}
                         </td>

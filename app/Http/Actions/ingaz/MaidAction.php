@@ -80,7 +80,7 @@ class MaidAction extends MainAction
         $prefix = self::RENTAL_CV_CODE_PREFIX;
         $digitsFrom = strlen($prefix) + 1;
 
-        $lastNumber = (int) $this->model->newQuery()
+        $lastNumber = (int) $this->model->newQuery()->acrossBranches()
             ->where('cv_code', 'LIKE', $prefix . '%')
             ->selectRaw("MAX(CAST(SUBSTRING(cv_code, {$digitsFrom}) AS UNSIGNED)) as last_number")
             ->value('last_number');
@@ -89,7 +89,7 @@ class MaidAction extends MainAction
         do {
             $lastNumber++;
             $code = $prefix . str_pad((string) $lastNumber, 4, '0', STR_PAD_LEFT);
-        } while ($this->model->newQuery()->where('cv_code', $code)->exists());
+        } while ($this->model->newQuery()->acrossBranches()->where('cv_code', $code)->exists());
 
         return $code;
     }

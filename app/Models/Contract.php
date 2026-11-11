@@ -141,6 +141,11 @@ class Contract extends Model
 
     protected function resolveBranchIdForCreate(): ?int
     {
+        $actingBranchId = $this->resolveBranchIdFromCurrentAdmin();
+        if ($actingBranchId) {
+            return $actingBranchId;
+        }
+
         $marketerId = (int) ($this->marketer_id ?? 0);
         if ($marketerId > 0) {
             return $this->resolveBranchIdFromAdmin($marketerId)
@@ -154,8 +159,7 @@ class Contract extends Model
                 ?: $this->resolveMainBranchId();
         }
 
-        return $this->resolveBranchIdFromCurrentAdmin()
-            ?: $this->resolveMainBranchId();
+        return $this->resolveMainBranchId();
     }
 
     public function getDescAttribute()

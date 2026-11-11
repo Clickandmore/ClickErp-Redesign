@@ -39,7 +39,8 @@ class Invoice extends Model
 
     protected function resolveBranchIdForCreate(): ?int
     {
-        return $this->resolveBranchIdFromTable('rental_contracts', $this->rental_transfer_contract_id ?? null)
+        return $this->resolveBranchIdFromTable('ingaz_delegations', $this->ingaz_delegation_id ?? null)
+            ?: $this->resolveBranchIdFromTable('rental_contracts', $this->rental_transfer_contract_id ?? null)
             ?: $this->resolveBranchIdFromSponsorshipTransfer($this->sponsorship_transfer_id ?? null)
             ?: $this->resolveBranchIdFromContract($this->contract_id ?? null)
             ?: $this->resolveBranchIdFromCurrentAdmin();

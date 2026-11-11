@@ -2,6 +2,7 @@
 
 namespace Nami\Finance\Services;
 
+use App\Support\BranchReportFilter;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Nami\Finance\Models\Constraint;
@@ -36,7 +37,8 @@ class CashMovementReportService
 
     public function query()
     {
-        $query = DB::table('fn_constraint_details as d')->join('fn_constraints as c', 'c.id', '=', 'd.constraint_id')
+        $query = BranchReportFilter::apply(DB::table('fn_constraint_details as d'), 'd')
+            ->join('fn_constraints as c', 'c.id', '=', 'd.constraint_id')
             ->whereNull('d.deleted_at')->whereNull('c.deleted_at');
         if (Constraint::hasApprovalColumns()) $query->where('c.approval_status', Constraint::APPROVAL_APPROVED);
         return $query;
@@ -58,6 +60,7 @@ class CashMovementReportService
                 $q->selectRaw('1')->from('fn_constraint_details as pending_details')
                     ->whereColumn('pending_details.constraint_id', 'fn_constraints.id')
                     ->whereNull('pending_details.deleted_at')->whereIn('pending_details.account_id', $ids)->where('pending_details.date', '<', $end);
+                BranchReportFilter::apply($q, 'pending_details');
             })->count();
         $report['pages'] = max(1, (int) ceil(count($report['movements']) / 100));
         $report['page'] = min($page, $report['pages']);
@@ -65,7 +68,8 @@ class CashMovementReportService
         if (!$paginate) return $report + compact('from', 'to');
         $report['movements'] = array_slice($report['movements'], ($report['page'] - 1) * 100, 100);
         $constraintIds = array_unique(array_column($report['movements'], 'constraint_id'));
-        $counterparts = DB::table('fn_constraint_details as d')->leftJoin('fn_accounts as a', 'a.id', '=', 'd.account_id')
+        $counterparts = BranchReportFilter::apply(DB::table('fn_constraint_details as d'), 'd')
+            ->leftJoin('fn_accounts as a', 'a.id', '=', 'd.account_id')
             ->whereIn('d.constraint_id', $constraintIds)->whereNull('d.deleted_at')
             ->select('d.constraint_id', 'd.account_id', 'a.code', 'a.name')->distinct()->get()->groupBy('constraint_id');
         foreach ($report['movements'] as &$row) {
