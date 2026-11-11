@@ -1,12 +1,17 @@
 @if ($data->count() > 0)
     @php
-        $colspan = 6;
+        // عند اختيار مركز له فروع (مثل عقدة الدولة) يجمع الكشف حركات كل ما تحته، ويُظهر مركز كل حركة.
+        $showCenter = ($linkSummary['descendant_centers'] ?? 0) > 0;
+        $colspan = $showCenter ? 7 : 6;
     @endphp
     @if (($linkSummary['linked_constraints'] ?? 0) > 0)
         <div class="alert alert-info py-2 mb-3">
             <i class="fa fa-link"></i>
             هذا الكشف مرتبط مباشرة بـ {{ $linkSummary['linked_constraints'] }} قيد محاسبي
             عبر تفاصيل القيود، بإجمالي {{ $linkSummary['linked_details'] }} حركة.
+            @if ($showCenter)
+                ويشمل حركات {{ $linkSummary['descendant_centers'] }} مركز تكلفة فرعي تحته.
+            @endif
         </div>
     @endif
     <div class="table-responsive">
@@ -14,6 +19,9 @@
             <thead>
                 <tr class="header">
                     <th style="width: 4%" scope="col">#</th>
+                    @if ($showCenter)
+                        <th style="width: 12%" scope="col">{{ __('finance::finance.fn-cost-centers') }}</th>
+                    @endif
                     <th style="width: 13%" scope="col">{{ __('finance::finance.account') }}</th>
                     <th style="width: 9%" scope="col">{{ __('finance::finance.Transaction Date') }}</th>
                     <th style="width: 7%" scope="col">{{ __('finance::finance.Transaction Number') }}</th>
@@ -32,10 +40,7 @@
                 @endphp
                 @foreach ($data as $key => $row)
                     @php
-                        $balance +=
-                            $row->status == 'debtor'
-                                ? $row->debtor_value - $row->creditor_value
-                                : $row->creditor_value - $row->debtor_value;
+                        $balance += (float) $row->debtor_value - (float) $row->creditor_value;
                         $sumDebtorValue += $row->debtor_value;
                         $sumCreditorValue += $row->creditor_value;
                         $trClass =
@@ -43,6 +48,9 @@
                     @endphp
                     <tr class="{{ $trClass }}">
                         <td class="text-center">{{ ++$key }}</td>
+                        @if ($showCenter)
+                            <td class="account-cell">{{ $row->cost_center_title ?? '' }}</td>
+                        @endif
                         <td class="account-cell">{{ @$row->account_name }}</td>
                         <td class="text-center">{{ $row->date }}</td>
                         <td class="text-center">

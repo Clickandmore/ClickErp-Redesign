@@ -44,6 +44,11 @@ class AccountCostCenterController extends Controller
         }
         $data["accounts"] = $service->getAccounts();
         $data["cost_centers"] = $service->getCostCenters();
+        $data["nationalityNodes"] = \App\Support\RecruitmentCostCenters::nationalityNodes();
+        // مراكز عقود كل دولة، لتضييق قائمة مراكز التكلفة على الدولة المختارة.
+        $data["nationalityCenterIds"] = collect($data["nationalityNodes"])
+            ->mapWithKeys(fn ($node) => [$node['id'] => $service->costCenterWithDescendantIds($node['id'])])
+            ->all();
         $data["ajaxRoute"] = route($this->mainRoute . ".index");
         $data["bladeTitle"] = __("finance::finance.accounts-cost-centers");
         return view($this->folderPath . '.index', $data);
