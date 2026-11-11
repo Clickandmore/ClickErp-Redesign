@@ -167,10 +167,40 @@ class AccountCostCenterService extends MainService
     }
 
     /* ----------NEW------------ */
+    /**
+     * المركز وكل ما تحته (أبناء وأحفاد)، فكشف عقدة الدولة أو أي مركز أب يجمع حركات عقوده.
+     */
+    public function costCenterWithDescendantIds(?int $costCenterId): array
+    {
+        if (!$costCenterId) {
+            return [];
+        }
+
+        $ids = [$costCenterId];
+        $level = [$costCenterId];
+        while ($level) {
+            $level = DB::table('fn_cost_centers')
+                ->whereIn('parent_id', $level)
+                ->whereNotIn('id', $ids)
+                ->pluck('id')
+                ->map(fn ($id) => (int) $id)
+                ->all();
+            $ids = array_merge($ids, $level);
+        }
+
+        return $ids;
+    }
+
     public function filterAccount($dataSearch)
     {
+        $centerIds = $this->costCenterWithDescendantIds(
+            !empty($dataSearch['cost_center_id']) ? (int) $dataSearch['cost_center_id'] : null
+        );
+
         $accountStatment = BranchReportFilter::apply(DB::table('fn_constraint_details'), 'fn_constraint_details')
             ->select([
+                'fn_constraint_details.cost_center_id',
+                'fn_cost_centers.title as cost_center_title',
                 'fn_constraint_details.date',
                 'fn_constraint_details.statement',
                 'fn_constraint_details.debtor_value',
@@ -184,9 +214,10 @@ class AccountCostCenterService extends MainService
             ->join('fn_accounts', 'fn_accounts.id', '=', 'fn_constraint_details.account_id')
             ->join('fn_constraints', 'fn_constraints.id', '=', 'fn_constraint_details.constraint_id')
             ->leftJoin('admins', 'admins.id', '=', 'fn_constraints.created_by_id')
+            ->leftJoin('fn_cost_centers', 'fn_cost_centers.id', '=', 'fn_constraint_details.cost_center_id')
             ->whereNull('fn_constraint_details.deleted_at')
             ->whereNull('fn_constraints.deleted_at')
-            ->where('fn_constraint_details.cost_center_id', '=', $dataSearch['cost_center_id'])
+            ->whereIn('fn_constraint_details.cost_center_id', $centerIds ?: [0])
             ->when($dataSearch['account_id'] != '', function ($q) use ($dataSearch) {
                 return $q->where('fn_constraint_details.account_id', $dataSearch['account_id']);
             })
@@ -217,12 +248,14 @@ class AccountCostCenterService extends MainService
             return [];
         }
 
+        $centerIds = $this->costCenterWithDescendantIds($costCenterId);
         $linked = BranchReportFilter::apply(DB::table('fn_constraint_details'), 'fn_constraint_details')
             ->whereNull('deleted_at')
-            ->where('cost_center_id', $costCenterId);
+            ->whereIn('cost_center_id', $centerIds);
 
         return [
             'center' => $center,
+            'descendant_centers' => count($centerIds) - 1,
             'linked_details' => (clone $linked)->count(),
             'linked_constraints' => (clone $linked)->distinct()->count('constraint_id'),
             'all_constraints' => DB::table('fn_constraints')->whereNull('deleted_at')->count(),

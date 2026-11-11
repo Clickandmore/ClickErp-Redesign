@@ -289,14 +289,25 @@
             </div>
 
             <div class="row g-3 align-items-end">
-                <div class="col-lg-3 col-md-6">
+                @if (!empty($nationalityNodes))
+                    <div class="col-lg-2 col-md-6">
+                        <label for="nationality_filter" class="form-label">الجنسية</label>
+                        <select id="nationality_filter" class="form-control">
+                            <option value="">كل الجنسيات</option>
+                            @foreach ($nationalityNodes as $node)
+                                <option value="{{ $node['id'] }}">{{ $node['name'] }} ({{ $node['children'] }} عقد)</option>
+                            @endforeach
+                        </select>
+                    </div>
+                @endif
+                <div class="{{ !empty($nationalityNodes) ? 'col-lg-2' : 'col-lg-3' }} col-md-6">
                     <label for="cost_center_id" class="form-label"> {{ __('finance::finance.fn-cost-centers') }}</label>
                     <select name="cost_center_id" id="cost_center_id" class="form-control show-tick ms select2 search_keys">
                         {!! showSelectElement($cost_centers, 'title', $filters['cost_center_id'] ?? null) !!}
                     </select>
                 </div>
 
-                <div class="col-lg-3 col-md-6">
+                <div class="{{ !empty($nationalityNodes) ? 'col-lg-2' : 'col-lg-3' }} col-md-6">
                     <label for="account_id" class="form-label"> {{ __('finance::finance.account') }}</label>
                     <select name="account_id" id="account_id" class="form-control show-tick ms select2 search_keys">
                         {!! showSelectElement($accounts, 'name', $filters['account_id'] ?? null) !!}
@@ -392,6 +403,35 @@
             e.preventDefault()
             searchCostCenterStatement();
         });
+
+        // فلتر الجنسية: يختار عقدة الدولة في «مراكز التكلفة» (فيجمع الكشف كل عقودها)، ويضيّق القائمة
+        // على عقود الدولة لمن يريد عقداً بعينه. «كل الجنسيات» يرجع القائمة كاملة.
+        (function() {
+            const centersByNationality = @json($nationalityCenterIds ?? []);
+            const $nationality = $('#nationality_filter');
+            const $center = $('#cost_center_id');
+            if (!$nationality.length) {
+                return;
+            }
+            const $allOptions = $center.find('option').clone();
+
+            $nationality.on('change', function() {
+                const nodeId = $(this).val();
+                const keep = nodeId ? (centersByNationality[nodeId] || []).map(String) : null;
+
+                $center.empty().append($allOptions.clone().filter(function() {
+                    return !keep || this.value === '' || keep.includes(this.value);
+                }));
+                $center.val(nodeId || '').trigger('change');
+
+                if (nodeId) {
+                    searchCostCenterStatement();
+                } else {
+                    $("#account_list").empty();
+                    $('.print-and-excel-buttons').addClass('d-none');
+                }
+            });
+        })();
     </script>
     <script src="{{ asset('plugins') }}/exelJs/dist/tableToExcel.517b1af9.js"></script>
     <script>
