@@ -2855,7 +2855,8 @@ class DataImportExecutionService
         $normalized = $this->normalizeArabicText((string) $value);
 
         return match ($normalized) {
-            'قائمه دخل', 'قائمة دخل', 'دخل', 'income', 'income statement', 'income_statement' => 'income_statement',
+            // normalizeArabicText يحوّل «ئ» إلى «ي»، فتصل «قائمة دخل» بصيغة «قايمه دخل»
+            'قايمه دخل', 'قائمه دخل', 'قائمة دخل', 'دخل', 'income', 'income statement', 'income_statement' => 'income_statement',
             'ميزانيه', 'ميزانية', 'balance', 'balance sheet', 'balance_sheet' => 'balance_sheet',
             default => null,
         };
