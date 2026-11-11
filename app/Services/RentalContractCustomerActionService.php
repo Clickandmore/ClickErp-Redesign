@@ -42,20 +42,29 @@ class RentalContractCustomerActionService
         $contract->loadMissing(['maid', 'info', 'extensions']);
         $basis = $this->finance->currentPricingBasis($contract);
         $options = [];
-        if ((int) $basis['days'] > 0 && (float) $basis['gross_total'] > 0) {
+        // Offer only the package the customer is subscribed to, never other packages.
+        $package = $this->subscribedPackage($contract);
+        if ($package) {
+            $options[] = $this->quote($contract, 'package-' . $package->id, $package->title ?: 'باقتك الحالية', (int) $package->days_count, $package, $basis);
+        } elseif ((int) $basis['days'] > 0 && (float) $basis['gross_total'] > 0) {
             $options[] = $this->quote($contract, 'current', 'بنفس المدة والسعر الحالي للعقد', (int) $basis['days'], null, $basis);
-        }
-        $packages = Package::visible()->forNationality($contract->maid?->nationality_id)->ordered()->get();
-        foreach ($packages as $package) {
-            if ($package->rental_type === 'hourly' || $package->duration_unit === 'hour'
-                || (int) $package->days_count <= 0 || (float) $package->price_with_tax <= 0) continue;
-            $options[] = $this->quote($contract, 'package-' . $package->id, $package->title ?: 'باقة تمديد', (int) $package->days_count, $package, $basis);
         }
         return collect($options)->filter(fn ($quote) => $quote['amount'] > 0 && Carbon::parse($quote['end_date'])->gte(today()))
             ->map(function ($quote) use ($reminder) {
                 $quote['token'] = hash_hmac('sha256', $reminder->token . json_encode($quote, JSON_UNESCAPED_UNICODE), (string) config('app.key'));
                 return $quote;
             })->values()->all();
+    }
+
+    // The latest extension's package wins (the customer may have switched on renewal), else the contract's original package.
+    private function subscribedPackage(RentalContract $contract): ?Package
+    {
+        $packageId = $contract->extensions->whereNotNull('package_id')->sortByDesc('id')->first()?->package_id
+            ?: $contract->info?->package_id;
+        $package = $packageId ? Package::find($packageId) : null;
+        if (!$package || $package->rental_type === 'hourly' || $package->duration_unit === 'hour'
+            || (int) $package->days_count <= 0 || (float) $package->price_with_tax <= 0) return null;
+        return $package;
     }
 
     private function quote(RentalContract $contract, string $key, string $label, int $days, ?Package $package, array $basis): array
