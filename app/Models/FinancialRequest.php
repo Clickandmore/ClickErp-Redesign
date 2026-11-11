@@ -8,6 +8,7 @@ use App\Models\ingaz\Maid;
 use App\Models\ingaz\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Nami\Finance\Models\Account;
 use Nami\Finance\Models\Bond;
 
 use App\Models\Concerns\BranchScoped;
@@ -87,6 +88,40 @@ class FinancialRequest extends Model
     public static function labelForPayloadField(?string $type, string $field): string
     {
         return self::typeFieldLabels($type)[$field] ?? str_replace('_', ' ', $field);
+    }
+
+    /** Payload keys shown in the accounting section, not as type-specific details. */
+    public const ACCOUNTING_PAYLOAD_KEYS = [
+        'paid_to', 'accounting_name', 'debit_credit', 'payment_method', 'account_id',
+        'bank_name', 'account_holder_name', 'account_number', 'iban',
+    ];
+
+    /** "code - name" for an fn_accounts row, or null when it does not exist. */
+    public static function accountLabel($accountId): ?string
+    {
+        if (! $accountId) {
+            return null;
+        }
+
+        $account = Account::query()->find((int) $accountId, ['id', 'code', 'name']);
+
+        return $account ? trim($account->code . ' - ' . $account->name) : null;
+    }
+
+    /**
+     * The party (beneficiary) account: the one chosen on the request,
+     * otherwise the linked client's account.
+     */
+    public function partyAccountId(): ?int
+    {
+        $accountId = (int) data_get($this->payload, 'account_id');
+        if ($accountId > 0) {
+            return $accountId;
+        }
+
+        $clientAccountId = (int) ($this->client?->account_id ?? 0);
+
+        return $clientAccountId > 0 ? $clientAccountId : null;
     }
 
     public static function contractTypes(): array

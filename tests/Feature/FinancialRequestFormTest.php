@@ -334,6 +334,73 @@ class FinancialRequestFormTest extends TestCase
         $this->assertFalse($requestItem->attachments()->where('field_key', 'official_receipt')->exists());
     }
 
+    public function test_closing_requires_bond_details_when_automatic_journal_entries_are_enabled(): void
+    {
+        ConfirmSetting::query()->where('title', 'automatic_journal_entries')->delete();
+
+        $requestItem = FinancialRequest::query()->create([
+            'request_no' => 'FR-CLOSE-BOND-VALIDATION',
+            'type' => 'other_financial',
+            'priority' => FinancialRequest::PRIORITY_NORMAL,
+            'status' => FinancialRequest::STATUS_REQUEST_CLOSING,
+            'amount' => 100,
+            'request_date' => now()->toDateString(),
+            'branch_id' => auth('admin')->user()->branch_id,
+            'created_by_id' => auth('admin')->id(),
+        ]);
+
+        $this->from(route('financial-requests.show', $requestItem))
+            ->post(route('financial-requests.status', $requestItem), [
+                'status' => FinancialRequest::STATUS_CLOSED,
+                'priority' => FinancialRequest::PRIORITY_NORMAL,
+            ])
+            ->assertRedirect(route('financial-requests.show', $requestItem))
+            ->assertSessionHasErrors(['bond_type', 'debit_account_id', 'credit_account_id']);
+
+        $this->assertSame(FinancialRequest::STATUS_REQUEST_CLOSING, $requestItem->fresh()->status);
+        $this->assertNull($requestItem->fresh()->finance_bond_id);
+    }
+
+    public function test_show_displays_account_name_and_closing_defaults_to_sarf_with_party_as_debit(): void
+    {
+        ConfirmSetting::query()->where('title', 'automatic_journal_entries')->delete();
+        $accountId = \Illuminate\Support\Facades\DB::table('fn_accounts')->insertGetId([
+            'code' => '9' . random_int(10000000, 99999999), 'name' => 'حساب عميل اختباري', 'level' => 4,
+            'status' => 1, 'type' => 1, 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $account = Account::query()->findOrFail($accountId);
+
+        $requestItem = FinancialRequest::query()->create([
+            'request_no' => 'FR-ACCOUNT-DEFAULTS-' . uniqid(),
+            'type' => 'other_financial',
+            'priority' => FinancialRequest::PRIORITY_NORMAL,
+            'status' => FinancialRequest::STATUS_REQUEST_CLOSING,
+            'amount' => 100,
+            'request_date' => now()->toDateString(),
+            'branch_id' => auth('admin')->user()->branch_id,
+            'created_by_id' => auth('admin')->id(),
+            'payload' => ['paid_to' => 'عميل', 'accounting_name' => 'عميل', 'debit_credit' => 'credit', 'payment_method' => 'cash', 'account_id' => $account->id],
+        ]);
+
+        $label = trim($account->code . ' - ' . $account->name);
+        $response = $this->get(route('financial-requests.show', $requestItem))->assertOk();
+
+        $response->assertSee('البيانات المحاسبية');
+        $response->assertSee($label);
+        $response->assertDontSee('account id');
+        $response->assertSee('<option value="' . \Nami\Finance\Enums\BondTypes::Sarf->value . '" selected', false);
+        $response->assertSee('id="debitAccount" class="form-select js-account-select mb-2" data-placeholder="ابحث بالكود أو اسم الحساب" required>
+                                    <option value=""></option>
+                                    <option value="' . $account->id . '" selected>', false);
+    }
+
+    public function test_create_form_defaults_amount_nature_to_credit(): void
+    {
+        app()->setLocale('ar');
+        $this->get(route('financial-requests.create'))->assertOk()
+            ->assertSee('id="natureCredit" value="credit" checked', false);
+    }
+
     public static function paymentMethods(): array
     {
         return [

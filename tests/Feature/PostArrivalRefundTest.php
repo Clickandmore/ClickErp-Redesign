@@ -22,6 +22,7 @@ use App\PermKeys;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Nami\Finance\Enums\AccountTypesEnum;
 use Nami\Finance\Models\Account;
 use Nami\Finance\Models\Constraint;
 use Nami\Finance\Models\FnYear;
@@ -163,7 +164,7 @@ class PostArrivalRefundTest extends TestCase
         $this->assertArrayHasKey('invoice', $steps->all());
 
         $service = app(PostArrivalRefundService::class);
-        $contract->escapeReports()->create(['escape_date' => now()->toDateString(), 'process_status' => 'escape_reported']);
+        $contract->escapeReports()->create(['escape_date' => now()->toDateString(), 'process_status' => 'escape_reported', 'attachments' => []]);
         $this->assertSame('escape', $service->returnEvent($contract->fresh())['type']);
         $contract->escapeReports()->delete();
 
@@ -182,6 +183,21 @@ class PostArrivalRefundTest extends TestCase
     {
         $contract = $this->contractWithArrivalInvoice();
         $contract->update(['status' => 'shelter']);
+        // حسابات العمولة لا تُنسخ لقاعدة الاختبار: مصروف العمولات وحساب المسوق تحت «المسوقين».
+        Account::query()->firstOrCreate(['code' => 52149], [
+            'name' => 'مصروف عمولات الموظفين', 'status' => 'debtor', 'level' => 1,
+            'type' => AccountTypesEnum::MarketerExpenses->value,
+        ]);
+        $marketersParent = Account::query()->firstOrCreate(['code' => 144], [
+            'name' => 'المسوقين', 'status' => 'creditor', 'level' => 1,
+            'type' => AccountTypesEnum::Marketers->value,
+        ]);
+        $payable = Account::query()->create([
+            'name' => 'حساب اختبار عمولة الإيواء ' . $this->admin->id, 'status' => 'creditor', 'level' => 2,
+            'code' => 910000 + $this->admin->id, 'type' => AccountTypesEnum::Marketer->value,
+            'parent_id' => $marketersParent->id,
+        ]);
+        $this->admin->update(['commission_payable_account_id' => $payable->id]);
         $batch = CommissionBatch::query()->create([
             'marketer_id' => $this->admin->id,
             'total_requests' => 1,

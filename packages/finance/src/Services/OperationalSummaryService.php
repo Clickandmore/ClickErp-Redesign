@@ -465,17 +465,17 @@ class OperationalSummaryService extends MainService
         }
 
         $total = $rows->count();
-        $paginator = null;
-        $pageRows = $rows;
-        if ($perPage !== null) {
-            $perPage = max(1, $perPage);
-            $page = min(max(1, $page), max(1, (int) ceil($total / $perPage)));
-            $pageRows = $rows->forPage($page, $perPage)->values();
-            $paginator = new LengthAwarePaginator($pageRows, $total, $perPage, $page);
-        }
+        // العميل الأحدث فاتورةً أولاً، ثم الأعلى متبقياً.
+        [$clients, $paginator] = $this->paginateClients(
+            $this->groupByClient($rows),
+            fn ($a, $b) => [$b->latest_invoiced_at, $b->remaining_amount] <=> [$a->latest_invoiced_at, $a->remaining_amount],
+            $page,
+            $perPage
+        );
 
         return [
-            'rows' => $pageRows,
+            'rows' => $rows,
+            'clients' => $clients,
             'paginator' => $paginator,
             'aging' => $aging,
             'totals' => [
@@ -578,6 +578,7 @@ class OperationalSummaryService extends MainService
             'users.name as client_name',
             'users.phone as client_phone',
             'users.national_num as client_identity',
+            'users.account_id as client_account_id',
             DB::raw("'unpaid' as payment_status"),
         ];
     }
@@ -619,25 +620,20 @@ class OperationalSummaryService extends MainService
 
         $total = (int) $totals->documents;
 
-        if ($perPage === null) {
-            $rows = $rowsQuery->get();
-            $paginator = null;
-        } else {
-            $perPage = max(1, $perPage);
-            $lastPage = max(1, (int) ceil($total / $perPage));
-            $page = min(max(1, $page), $lastPage);
-            $rows = $rowsQuery->forPage($page, $perPage)->get();
-            $paginator = new LengthAwarePaginator($rows, $total, $perPage, $page);
-        }
+        // الترقيم على العملاء لا على الفواتير، فنجلب كل الفواتير المفتوحة ثم نجمّعها.
+        $rows = $rowsQuery->get()->map(fn ($row) => $this->decorateAge($row, $to));
 
-        $rows = $rows->map(fn ($row) => $this->decorateAge($row, $to));
-
-        if ($paginator) {
-            $paginator->setCollection($rows);
-        }
+        // الأعلى متبقياً أولاً.
+        [$clients, $paginator] = $this->paginateClients(
+            $this->groupByClient($rows),
+            fn ($a, $b) => [$b->remaining_amount, $a->oldest_invoiced_at] <=> [$a->remaining_amount, $b->oldest_invoiced_at],
+            $page,
+            $perPage
+        );
 
         return [
             'rows' => $rows,
+            'clients' => $clients,
             'paginator' => $paginator,
             'aging' => $aging,
             'totals' => [
@@ -757,6 +753,70 @@ class OperationalSummaryService extends MainService
             'excluded_documents' => max(0, $unfilteredDocuments - $filteredDocuments),
             'excluded_remaining' => round(max(0, $excludedRemaining), 2),
         ];
+    }
+
+    /**
+     * يجمع فواتير الذمم المفتوحة على العميل: سطر واحد بإجمالي ما عليه، ومعه
+     * العقود التي يتكوّن منها المتبقي. الفاتورة بلا عميل تبقى سطراً مستقلاً.
+     *
+     * @param  Collection<int, object>  $rows
+     * @return Collection<int, object>
+     */
+    private function groupByClient(Collection $rows): Collection
+    {
+        return $rows
+            ->groupBy(fn ($row) => $row->client_id ? 'c' . $row->client_id : 'd' . $row->id)
+            ->map(function (Collection $documents) {
+                $first = $documents->first();
+                $dates = $documents->pluck('invoiced_at')->filter()->map(fn ($date) => substr((string) $date, 0, 10));
+                $oldestAge = $documents->pluck('age_days')->filter(fn ($days) => $days !== null)->max();
+                $paid = round((float) $documents->sum('paid_amount'), 2);
+                $remaining = round((float) $documents->sum('remaining_amount'), 2);
+
+                return (object) [
+                    'client_id' => $first->client_id,
+                    'client_account_id' => $documents->pluck('client_account_id')->filter()->first(),
+                    'client_name' => $first->client_name,
+                    'client_phone' => $first->client_phone,
+                    'client_identity' => $first->client_identity,
+                    // فواتير العميل تحت سطره: الأحدث أولاً، ثم الأعلى متبقياً.
+                    'documents' => $documents
+                        ->sort(fn ($a, $b) => [substr((string) $b->invoiced_at, 0, 10), $b->remaining_amount] <=> [substr((string) $a->invoiced_at, 0, 10), $a->remaining_amount])
+                        ->values(),
+                    'documents_count' => $documents->count(),
+                    'contracts' => $documents->pluck('contract_number')->filter()->map(fn ($number) => (string) $number)->unique()->values(),
+                    'total_due' => round((float) $documents->sum('total_due'), 2),
+                    'paid_amount' => $paid,
+                    'adjustment_amount' => round((float) $documents->sum(fn ($row) => ($row->adjustment_amount ?? 0) + ($row->offset_amount ?? 0)), 2),
+                    'remaining_amount' => $remaining,
+                    'oldest_invoiced_at' => $dates->min(),
+                    'latest_invoiced_at' => $dates->max(),
+                    'age_days' => $oldestAge,
+                    'aging_bucket' => $this->agingBucket($oldestAge),
+                    'payment_status' => $paid > 0.005 ? 'partial' : 'unpaid',
+                ];
+            })
+            ->values();
+    }
+
+    /**
+     * @param  Collection<int, object>  $clients
+     * @return array{0: Collection<int, object>, 1: LengthAwarePaginator|null}
+     */
+    private function paginateClients(Collection $clients, callable $order, int $page, ?int $perPage): array
+    {
+        $clients = $clients->sort($order)->values();
+
+        if ($perPage === null) {
+            return [$clients, null];
+        }
+
+        $perPage = max(1, $perPage);
+        $total = $clients->count();
+        $page = min(max(1, $page), max(1, (int) ceil($total / $perPage)));
+        $pageClients = $clients->forPage($page, $perPage)->values();
+
+        return [$pageClients, new LengthAwarePaginator($pageClients, $total, $perPage, $page)];
     }
 
     /**

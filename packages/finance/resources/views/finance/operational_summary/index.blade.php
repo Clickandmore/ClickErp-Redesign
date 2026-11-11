@@ -87,6 +87,8 @@
     /* ——— الأرقام تُحاذى على حافة بداية الصفحة كي تتطابق مع عناوين الأعمدة ——— */
     .ops-summary .num { text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; }
     .ops-summary td.num { direction:ltr; }
+    .ops-summary tr.client-head td { background:#eaf2f4; border-top:2px solid #183b49; }
+    .ops-summary tr.client-head td.num strong { font-size:15px; }
     [dir="ltr"] .ops-summary .num { text-align:left; }
     [dir="ltr"] .ops-summary .kpi strong,
     [dir="ltr"] .ops-summary .aging-cell strong { text-align:left; }
@@ -376,9 +378,9 @@
 
     {{-- الذمم: التأجير ثم الاستقدام --}}
     @foreach([
-        ['section' => $report['rental_receivables'], 'title' => __('finance::finance.ops_rental_receivables'), 'hint' => __('finance::finance.ops_rental_receivables_hint'), 'show_paid' => true, 'order_note' => 'الأحدث أولاً.'],
-        ['section' => $report['recruitment_receivables'], 'title' => __('finance::finance.ops_recruitment_receivables'), 'hint' => __('finance::finance.ops_recruitment_receivables_hint'), 'show_paid' => false],
-        ['section' => $report['sponsorship_receivables'], 'title' => __('finance::finance.ops_sponsorship_receivables'), 'hint' => __('finance::finance.ops_sponsorship_receivables_hint'), 'show_paid' => true],
+        ['section' => $report['rental_receivables'], 'title' => __('finance::finance.ops_rental_receivables'), 'hint' => __('finance::finance.ops_rental_receivables_hint'), 'show_paid' => true, 'rental' => true, 'order_note' => 'كل عميل بإجمالي ما عليه وتحته فواتيره، الأحدث أولاً.'],
+        ['section' => $report['recruitment_receivables'], 'title' => __('finance::finance.ops_recruitment_receivables'), 'hint' => __('finance::finance.ops_recruitment_receivables_hint'), 'show_paid' => false, 'order_note' => 'كل عميل بإجمالي ما عليه وتحته فواتيره، الأعلى قيمة أولاً.'],
+        ['section' => $report['sponsorship_receivables'], 'title' => __('finance::finance.ops_sponsorship_receivables'), 'hint' => __('finance::finance.ops_sponsorship_receivables_hint'), 'show_paid' => true, 'order_note' => 'كل عميل بإجمالي ما عليه وتحته فواتيره، الأعلى قيمة أولاً.'],
     ] as $block)
         @php $section = $block['section']; @endphp
         <section class="ops-panel">
@@ -450,14 +452,22 @@
                     @endif
                 </div>
             @else
+                @php
+                    $countLabel = function (int $count, string $one, string $two, string $few, string $many) {
+                        return match (true) {
+                            $count === 1 => $one,
+                            $count === 2 => $two,
+                            $count <= 10 => $count . ' ' . $few,
+                            default => $count . ' ' . $many,
+                        };
+                    };
+                    $isRental = !empty($block['rental']);
+                @endphp
                 <div class="table-scroll">
                     <table>
                         <thead>
                             <tr>
                                 <th>{{ __('finance::finance.contract_number') }}</th>
-                                <th>{{ __('finance::finance.ops_client') }}</th>
-                                <th>{{ __('finance::finance.phone') }}</th>
-                                <th>{{ __('finance::finance.ops_identity') }}</th>
                                 <th>{{ __('finance::finance.ops_invoice_date') }}</th>
                                 <th class="num">{{ __('finance::finance.ops_age_days') }}</th>
                                 <th class="num">{{ __('finance::finance.ops_invoice_value') }}</th>
@@ -467,51 +477,70 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach($section['rows'] as $row)
-                                <tr>
-                                    <td>
-                                        {{ $row->contract_number ?: '—' }}
-                                        @if(isset($row->document_type))
-                                            @if(in_array($row->document_type, ['unlinked', 'legacy', 'refund'], true))
-                                                <small class="d-block">{{ \Nami\Finance\Services\RentalReceivablesLedger::TYPE_LABELS[$row->document_type] }} (قيد #{{ $row->id }})</small>
-                                                <small class="d-block text-muted">{{ \Illuminate\Support\Str::limit((string) $row->label, 90) }}</small>
-                                            @else
-                                                <small class="d-block">{{ \Nami\Finance\Services\RentalReceivablesLedger::TYPE_LABELS[$row->document_type] ?? 'فاتورة أساسية' }} #{{ $row->id }}</small>
-                                            @endif
-                                        @endif
+                            @foreach($section['clients'] as $client)
+                                @php
+                                    $contractsCount = $client->contracts->count();
+                                    $statementLink = !empty($client->client_account_id) && \Illuminate\Support\Facades\Route::has('finance.account-statement-clients.index')
+                                        ? route('finance.account-statement-clients.index', ['account_id' => $client->client_account_id])
+                                        : null;
+                                    $rentalLink = $isRental && $client->client_id && \Illuminate\Support\Facades\Route::has('finance.client-receivables.index')
+                                        ? route('finance.client-receivables.index', ['client_id' => $client->client_id, 'balance' => 'all', 'to' => $report['to'], 'branch_id' => $branchId ?? null])
+                                        : null;
+                                @endphp
+                                {{-- سطر العميل: إجمالي ما عليه، وتحته فواتيره --}}
+                                <tr class="client-head">
+                                    <td colspan="{{ $block['show_paid'] ? 5 : 4 }}">
+                                        <strong>{{ $client->client_name ?: 'عميل غير متاح' }}</strong>
+                                        <span class="text-muted">— {{ $client->client_phone ?: '—' }}@if($client->client_identity) — هوية {{ $client->client_identity }}@endif</span>
+                                        <small class="d-block">
+                                            المتبقي عن {{ $contractsCount ? $countLabel($contractsCount, 'عقد واحد', 'عقدين', 'عقود', 'عقداً') : $countLabel($client->documents_count, 'مطالبة واحدة', 'مطالبتين', 'مطالبات', 'مطالبة') }}
+                                            @if($statementLink)<span class="no-print"> — <a href="{{ $statementLink }}">كشف حساب العميل</a></span>@endif
+                                            @if($rentalLink)<span class="no-print"> — <a href="{{ $rentalLink }}">كشف حركة عقوده</a></span>@endif
+                                        </small>
                                     </td>
-                                    <td>
-                                        @if(!empty($row->client_account_id) && \Illuminate\Support\Facades\Route::has('finance.account-statement-clients.index'))
-                                            <a href="{{ route('finance.account-statement-clients.index', ['account_id' => $row->client_account_id]) }}">{{ $row->client_name ?: '—' }}</a>
-                                        @else
-                                            {{ $row->client_name ?: '—' }}
-                                        @endif
-                                    </td>
-                                    <td class="num">{{ $row->client_phone ?: '—' }}</td>
-                                    <td class="num">{{ $row->client_identity ?: '—' }}</td>
-                                    <td class="num">{{ $row->invoiced_at ? \Carbon\Carbon::parse($row->invoiced_at)->format('Y-m-d') : '—' }}</td>
-                                    <td class="num"><span class="pill {{ $row->aging_bucket === 'over' ? 'is-hot' : '' }}">{{ $row->age_days ?? '—' }}</span></td>
-                                    <td class="num">{{ number_format($row->total_due, 2) }}</td>
-                                    @if($block['show_paid'])<td class="num positive">{{ number_format($row->paid_amount, 2) }}</td>@endif
                                     <td class="num negative">
-                                        <strong>{{ number_format($row->remaining_amount, 2) }}</strong>
-                                        @if(abs(($row->adjustment_amount ?? 0) + ($row->offset_amount ?? 0)) > 0.005)
-                                            <small class="d-block text-muted">{{ __('finance::finance.ops_adjustments') }}: {{ number_format(($row->adjustment_amount ?? 0) + ($row->offset_amount ?? 0), 2) }}</small>
-                                        @endif
+                                        <small class="d-block text-muted">إجمالي على العميل</small>
+                                        <strong>{{ number_format($client->remaining_amount, 2) }}</strong>
                                     </td>
-                                    <td>
-                                        @php $statusText = \Nami\Finance\Services\RentalReceivablesLedger::paymentStatusLabel($row->payment_status ?? null); @endphp
-                                        <span class="pill {{ ($row->payment_status ?? '') === 'partial' ? '' : 'is-hot' }}">{{ $statusText }}</span>
-                                        @if(($row->paid_amount ?? 0) > 0.005 && $block['show_paid'])
-                                            <small class="d-block text-muted">سُدِّد {{ number_format($row->paid_amount, 2) }} من {{ number_format($row->total_due, 2) }}</small>
-                                        @endif
-                                    </td>
+                                    <td></td>
                                 </tr>
+                                @foreach($client->documents as $row)
+                                    <tr>
+                                        <td>
+                                            {{ $row->contract_number ?: '—' }}
+                                            @if(isset($row->document_type))
+                                                @if(in_array($row->document_type, ['unlinked', 'legacy', 'refund'], true))
+                                                    <small class="d-block">{{ \Nami\Finance\Services\RentalReceivablesLedger::TYPE_LABELS[$row->document_type] }} (قيد #{{ $row->id }})</small>
+                                                    <small class="d-block text-muted">{{ \Illuminate\Support\Str::limit((string) $row->label, 90) }}</small>
+                                                @else
+                                                    <small class="d-block">{{ \Nami\Finance\Services\RentalReceivablesLedger::TYPE_LABELS[$row->document_type] ?? 'فاتورة أساسية' }} #{{ $row->id }}</small>
+                                                @endif
+                                            @endif
+                                        </td>
+                                        <td class="num">{{ $row->invoiced_at ? \Carbon\Carbon::parse($row->invoiced_at)->format('Y-m-d') : '—' }}</td>
+                                        <td class="num"><span class="pill {{ $row->aging_bucket === 'over' ? 'is-hot' : '' }}">{{ $row->age_days ?? '—' }}</span></td>
+                                        <td class="num">{{ number_format($row->total_due, 2) }}</td>
+                                        @if($block['show_paid'])<td class="num positive">{{ number_format($row->paid_amount, 2) }}</td>@endif
+                                        <td class="num negative">
+                                            {{ number_format($row->remaining_amount, 2) }}
+                                            @if(abs(($row->adjustment_amount ?? 0) + ($row->offset_amount ?? 0)) > 0.005)
+                                                <small class="d-block text-muted">{{ __('finance::finance.ops_adjustments') }}: {{ number_format(($row->adjustment_amount ?? 0) + ($row->offset_amount ?? 0), 2) }}</small>
+                                            @endif
+                                        </td>
+                                        <td>
+                                            @php $statusText = \Nami\Finance\Services\RentalReceivablesLedger::paymentStatusLabel($row->payment_status ?? null); @endphp
+                                            <span class="pill {{ ($row->payment_status ?? '') === 'partial' ? '' : 'is-hot' }}">{{ $statusText }}</span>
+                                            @if(($row->paid_amount ?? 0) > 0.005 && $block['show_paid'])
+                                                <small class="d-block text-muted">سُدِّد {{ number_format($row->paid_amount, 2) }} من {{ number_format($row->total_due, 2) }}</small>
+                                            @endif
+                                        </td>
+                                    </tr>
+                                @endforeach
                             @endforeach
                         </tbody>
                         <tfoot>
                             <tr>
-                                <td colspan="6">{{ __('finance::finance.total') }}</td>
+                                <td colspan="3">{{ __('finance::finance.total') }}</td>
                                 <td class="num">{{ number_format($section['totals']['invoiced'], 2) }}</td>
                                 @if($block['show_paid'])<td class="num positive">{{ number_format($section['totals']['paid'], 2) }}</td>@endif
                                 <td class="num negative">{{ number_format($section['totals']['remaining'], 2) }}</td>
