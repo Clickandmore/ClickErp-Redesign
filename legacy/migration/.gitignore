@@ -1,0 +1,6 @@
+# ملفات بيانات ناتجة عن أداة الترحيل (بيانات عملاء) — لا تُرفع إلى git
+/exports/
+/safety_backups/
+/reports/
+/uploads/
+/uploaded_files/
