@@ -122,8 +122,15 @@ class ChartRestructureService
     private function preparePlan(array $plan): array
     {
         foreach ($plan['requires'] ?? [] as $required) {
-            if (!DB::table('fn_chart_restructure_runs')->where('plan', $required)->exists()) {
+            $run = DB::table('fn_chart_restructure_runs')->where('plan', $required)->orderByDesc('id')->first();
+            if (!$run) {
                 throw new RuntimeException("هذه الخطة تُنفَّذ بعد خطة «{$required}»، ولم تُنفَّذ على هذه القاعدة.");
+            }
+            // ملف خطة عُدّل بعد تنفيذها يعني أن هذه القاعدة مرت بمحتوى غير الموجود في الملف، فالأكواد قد لا تطابق
+            $file = base_path("packages/finance/database/chart_plans/{$required}.php");
+            if (is_file($file) && hash('sha256', json_encode(require $file)) !== $run->plan_hash) {
+                throw new RuntimeException("ملف خطة «{$required}» تغيّر بعد تنفيذها على هذه القاعدة، فلا يُضمن أن تطابق أكوادها هذه الخطة. "
+                    . 'لا تعدّل خطة منفذة: أعد ملفها كما نُفذ، أو ابدأ من نسخة جديدة من القاعدة.');
             }
         }
         if (!empty($plan['keep_codes'])) {
