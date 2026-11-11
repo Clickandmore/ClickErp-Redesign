@@ -326,6 +326,11 @@ return [
     'notifications_edit' => 'Edit Notifications',
     'notifications_delete' => 'Delete Notifications',
     'notifications_control' => 'Control Notifications',
+    'messaging_send' => 'Send messages (SMS & WhatsApp) and WhatsApp conversations',
+    'messaging_log_view' => 'View message log',
+    'messaging_templates_manage' => 'Manage message templates',
+    'messaging_alerts_manage' => 'Manage automatic alert settings',
+    'messaging_integrations_manage' => 'Manage messaging provider integrations',
 
     'sliders_view' => 'View Sliders',
     'sliders_create' => 'Create Slider',

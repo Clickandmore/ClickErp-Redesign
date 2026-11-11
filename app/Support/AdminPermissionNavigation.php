@@ -52,9 +52,9 @@ final class AdminPermissionNavigation
             'sections' => ['finance'],
         ],
         'messages' => [
-            'title' => 'إدارة الرسائل',
-            'title_en' => 'Messages Management',
-            'description' => 'إرسال الإشعارات وقنوات الرسائل والجمهور المستهدف.',
+            'title' => 'الرسائل والتواصل',
+            'title_en' => 'Messages & Communication',
+            'description' => 'محادثات واتساب، إرسال SMS وواتساب، سجل الرسائل، القوالب، التنبيهات الآلية وإعدادات الربط.',
             'tone' => 'management',
             'sections' => ['messages'],
         ],
@@ -140,6 +140,7 @@ final class AdminPermissionNavigation
         'finance_procurement' => ['finance', 'المشتريات'],
         'zatca' => ['finance', 'هيئة الزكاة والضريبة والجمارك'],
         'admin_notifications' => ['messages', 'إشعارات الموظفين'],
+        'messaging' => ['messages', 'الرسائل والتواصل'],
         'notifications' => ['messages', 'إشعارات الموقع'],
         'sliders' => ['content_management', 'سلايدر الموقع'],
         'faq' => ['content_management', 'الأسئلة الشائعة'],
@@ -302,7 +303,7 @@ final class AdminPermissionNavigation
     private static function permissionPrefixes(): array
     {
         return [
-            'admin_notifications_' => 'admin_notifications',
+            'admin_notifications_' => 'admin_notifications', 'messaging_' => 'messaging',
             'dashboard_' => 'dashboard', 'clients_' => 'clients',
             'maids_rental_' => 'maids_rental', 'maids_backout_' => 'maids_backout',
             'maids_deleted_' => 'maids_deleted', 'maids_' => 'maids', 'cv_' => 'cv_legacy',

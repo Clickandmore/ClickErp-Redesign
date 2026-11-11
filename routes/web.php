@@ -81,10 +81,6 @@ Route::get('/shared/maids/{maid}/cv-preview', [IngazMaidController::class, 'shar
     ->middleware(['signed', 'throttle:120,1'])
     ->name('maids.cv-preview.shared');
 
-Route::get('/getMaidDetails/{maidId}', [IngazMaidController::class, 'getMaidDetails'])->name('is.getMaidDetails');
-Route::get('/maidsLoopContractsAndSetAvailableWhenDoneCronJob', [AdminContractController::class, 'maidsLoopContractsAndSetAvailableWhenDoneCronJob'])->name('maidsLoopContractsAndSetAvailableWhenDoneCronJob');
-Route::get('/check-tazker-contracts', [AdminContractController::class, 'checkTazkerContracts'])->name('check.tazker.contracts');
-Route::get('/check-warranty-contracts', [AdminContractController::class, 'checkWarrantyContracts'])->name('check.warranty.contracts');
 Route::get('/rental-contract-reminders/{token}', [RentalContractExpiryReminderController::class, 'show'])->middleware('throttle:60,1')->name('rental-contract-reminders.show');
 Route::post('/rental-contract-reminders/{token}', [RentalContractExpiryReminderController::class, 'respond'])->middleware('throttle:20,1')->name('rental-contract-reminders.respond');
 
@@ -125,87 +121,45 @@ Route::get('/zoho/salesiq/oauth/callback', function (Request $request, SalesIqCl
 
     return response("Add this value to .env:\n\nZOHO_SALESIQ_REFRESH_TOKEN={$refreshToken}\n\nThen run:\nphp artisan config:clear\nphp artisan salesiq:visitors --limit=10", 200)
         ->header('Content-Type', 'text/plain; charset=UTF-8');
-})->name('zoho.salesiq.oauth.callback');
+})->middleware('dev.superadmin')->name('zoho.salesiq.oauth.callback'); // يعرض refresh token، فللمطوّر فقط
 
-Route::get('apis-generate', function () {
-
-
-    $projectName = 'ingaz';
-    $migrations = getMigrations($projectName);
-    foreach ($migrations as $index => $migration) {
-        $modelName = extractModelName($migration);
-
-        if ($modelName === null) {
-            continue;
-        }
-        // Artisan::call("make:controller Api/Api{$modelName}Controller --model={$projectName}/{$modelName}  --api");
-        Artisan::call("make:resource Api/{$modelName}Resource");
-        echo $modelName . "\n";
-    }
-});
 
 // update contracts when status is tazker and travel_histories
 
 
-// Laravel Migration System Routes
-Route::get('/migration', [\App\Http\Controllers\admin\MigrationController::class, 'index'])->name('migration.index');
-Route::post('/migration/status', [\App\Http\Controllers\admin\MigrationController::class, 'checkStatus'])->name('migration.status');
-Route::post('/migration/scan-columns', [\App\Http\Controllers\admin\MigrationController::class, 'scanColumns'])->name('migration.scan');
-Route::post('/migration/add-columns', [\App\Http\Controllers\admin\MigrationController::class, 'addMissingColumns'])->name('migration.add_columns');
-Route::post('/migration/apply-order', [\App\Http\Controllers\admin\MigrationController::class, 'applyCustomOrder'])->name('migration.order');
-Route::post('/migration/migrate-all', [\App\Http\Controllers\admin\MigrationController::class, 'migrateAllUsers'])->name('migration.migrate_all');
-Route::post('/migration/upload-customers', [\App\Http\Controllers\admin\MigrationController::class, 'uploadCustomers'])->name('migration.customers');
+// نظام ترحيل البيانات — للمدير المسجّل فقط (الصلاحيات في AdminRoutePermissionMatrix)
+Route::middleware(['admin', 'admin.route.permission'])->group(function () {
+    Route::get('/migration', [\App\Http\Controllers\admin\MigrationController::class, 'index'])->name('migration.index');
+    Route::post('/migration/status', [\App\Http\Controllers\admin\MigrationController::class, 'checkStatus'])->name('migration.status');
+    Route::post('/migration/scan-columns', [\App\Http\Controllers\admin\MigrationController::class, 'scanColumns'])->name('migration.scan');
+    Route::post('/migration/add-columns', [\App\Http\Controllers\admin\MigrationController::class, 'addMissingColumns'])->name('migration.add_columns');
+    Route::post('/migration/apply-order', [\App\Http\Controllers\admin\MigrationController::class, 'applyCustomOrder'])->name('migration.order');
+    Route::post('/migration/migrate-all', [\App\Http\Controllers\admin\MigrationController::class, 'migrateAllUsers'])->name('migration.migrate_all');
+    Route::post('/migration/upload-customers', [\App\Http\Controllers\admin\MigrationController::class, 'uploadCustomers'])->name('migration.customers');
 
-// Simple Migration System (Stable Link)
-Route::get('/migration/simple', function () {
-    return view('migration.simple');
-})->name('migration.simple');
+    Route::get('/migration/simple', function () {
+        return view('migration.simple');
+    })->name('migration.simple');
 
-// Route لمعالج الملفات (من Laravel)
-Route::any('/migration/file_processor.php', function (Illuminate\Http\Request $request) {
-    // تمرير الطلب إلى المعالج الأصلي
-    $publicPath = public_path('migration/file_processor.php');
-    if (file_exists($publicPath)) {
-        // تعيين متغيرات الطلب
-        $_POST = $request->all();
-        $_FILES = $request->files->all();
-        $_GET = $request->query();
+    Route::get('/migration/legacy', function () {
+        return redirect('/migration/file_only_migration.php');
+    })->name('migration.legacy');
 
-        // تشغيل المعالج
-        ob_start();
-        include $publicPath;
-        $output = ob_get_clean();
+    Route::get('/migration-system', function () {
+        return redirect('/migration.php');
+    })->name('migration.redirect');
 
-        return response($output)
-            ->header('Content-Type', 'application/json; charset=utf-8');
-    }
+    Route::get('/simple-migration', function () {
+        return redirect('/migration.php');
+    })->name('simple.migration.redirect');
 
-    return response()->json(['success' => false, 'message' => 'المعالج غير موجود'], 404);
-})->name('migration.processor');
-
-// Route لمعالج العاملات (من Laravel)
-Route::any('/migration/migrate_cvs_now.php', function (Illuminate\Http\Request $request) {
-    $publicPath = public_path('migration/migrate_cvs_now.php');
-    if (file_exists($publicPath)) {
-        $_POST = $request->all();
-        $_FILES = $request->files->all();
-        $_GET = $request->query();
-
-        ob_start();
-        include $publicPath;
-        $output = ob_get_clean();
-
-        return response($output)
-            ->header('Content-Type', 'application/json; charset=utf-8');
-    }
-
-    return response()->json(['success' => false, 'message' => 'معالج العاملات غير موجود'], 404);
-})->name('migration.maids_processor');
-
-// Legacy redirect for old public script
-Route::get('/migration/legacy', function () {
-    return redirect('/migration/file_only_migration.php');
-})->name('migration.legacy');
+    // سكربتات الأداة القديمة نُقلت من public/ إلى legacy/ وتُقدَّم من هنا
+    Route::any('/migration.php', [\App\Http\Controllers\admin\LegacyMigrationToolController::class, 'root'])->name('migration.legacy-tool.root');
+    Route::any('/migration_hub.php', [\App\Http\Controllers\admin\LegacyMigrationToolController::class, 'hub'])->name('migration.legacy-tool.hub');
+    Route::any('/migration/{path}', [\App\Http\Controllers\admin\LegacyMigrationToolController::class, 'script'])
+        ->where('path', '[A-Za-z0-9_\-/]+\.(php|html|js|css|csv|json)')
+        ->name('migration.legacy-tool.script');
+});
 
 Route::group([
     'prefix' => LaravelLocalization::setLocale(),
@@ -298,116 +252,11 @@ Route::group(
         Route::resource('contact-us', ContactUs::class);
         Route::get('/about-us', [\App\Http\Controllers\Web\AboutUsController::class, 'index'])->name('about-us');
 
-        Route::get('/clients/export/pdf', [UserController::class, 'exportPdf'])->name('clients.export.pdf');
-        Route::get('/clients/export/excel', [UserController::class, 'exportExcel'])->name('clients.export.excel');
-        Route::resource('skills', \App\Http\Controllers\ingaz\SkillController::class);
         Route::get('/get-offices-by-nationality', [App\Http\Controllers\ingaz\MaidController::class, 'getOfficesByNationality'])->name('getOfficesByNationality');
 
         // Dashboard route for clients
         Route::get('dashboard', [\App\Http\Controllers\Web\AuthController::class, 'dashboard'])->name('dashboard')->middleware('auth_web');
 
-        // Test route for orders
-        Route::get('test-orders', function () {
-            return response()->json([
-                'orders_count' => \App\Models\ingaz\Order::count(),
-                'latest_orders' => \App\Models\ingaz\Order::latest()->take(3)->get(['id', 'user_id', 'maid_id', 'status', 'created_at'])
-            ]);
-        })->name('test-orders');
-
-        // Test route for admin orders
-        Route::get('test-admin-orders', function () {
-            return response()->json([
-                'orders_count' => \App\Models\ingaz\Order::count(),
-                'orders' => \App\Models\ingaz\Order::with(['user', 'maid', 'jobType'])->latest()->take(5)->get()
-            ]);
-        })->name('test-admin-orders');
-
-        // Test route for orders display (no auth required)
-        Route::get('orders-display', function () {
-            $orders = \App\Models\ingaz\Order::with(['user', 'maid', 'jobType', 'details.admin'])->latest()->get();
-            return view('admin.ingaz.orders.index', [
-                'totalOrders' => $orders->count(),
-                'newOrders' => $orders->where('status', 'new')->count(),
-                'underProcessOrders' => $orders->where('status', 'under_process')->count(),
-                'completedOrders' => $orders->whereIn('status', ['completed', 'done'])->count(),
-                'jobTypes' => \App\Models\ingaz\JobType::with('translations')->get(),
-                'admins' => \App\Models\auth\Admin::select('id', 'name')->whereNull('deleted_at')->get(),
-                'orders' => $orders
-            ]);
-        })->name('orders-display');
-
-        // Test route for client orders display (no auth required)
-        Route::get('client-orders-display', function () {
-            // Get a test user ID (first user with orders)
-            $testUserId = \App\Models\ingaz\Order::first()?->user_id ?? 1;
-
-            // Get orders directly for testing
-            $currentOrders = \App\Models\ingaz\Order::where('user_id', $testUserId)
-                ->whereIn('status', ['new', 'completed', 'under_process', 'contracted', 'contracted_without_contract'])
-                ->with(['user', 'maid', 'jobType', 'details.admin'])
-                ->orderBy('created_at', 'desc')
-                ->get();
-
-            $previousOrders = \App\Models\ingaz\Order::where('user_id', $testUserId)
-                ->whereIn('status', ['refused', 'done'])
-                ->with(['user', 'maid', 'jobType', 'details.admin'])
-                ->orderBy('created_at', 'desc')
-                ->get();
-
-            $data['current'] = $currentOrders;
-            $data['previous'] = $previousOrders;
-            $data['order_progressbar'] = ['refused' => 0, 'new' => 20, 'paid' => 40, 'completed' => 60, 'started' => 80, 'done' => 100];
-
-            return view('web.ingaz.orders.index', $data);
-        })->name('client-orders-display');
-
-        // AJAX route for DataTable (no auth required)
-        Route::get('orders-ajax', function (\Illuminate\Http\Request $request) {
-            $query = \App\Models\ingaz\Order::query();
-
-            // Eager load relationships
-            $query->with([
-                'user',
-                'maid.nationality',
-                'jobType',
-                'details.admin',
-                'contracts'
-            ]);
-
-            // Order by created_at desc
-            $query->orderBy('created_at', 'desc');
-
-            $orders = $query->get();
-
-            return response()->json([
-                'draw' => intval($request->get('draw')),
-                'recordsTotal' => $orders->count(),
-                'recordsFiltered' => $orders->count(),
-                'data' => $orders->map(function ($order) {
-                    return [
-                        'DT_RowId' => 'row_' . $order->id,
-                        'id' => $order->id,
-                        'order_code' => $order->order_code,
-                        'user_id' => $order->user ? $order->user->name : '-',
-                        'phone' => $order->user ? $order->user->phone_code . $order->user->phone : '-',
-                        'maid_id' => $order->maid ? $order->maid->name : '-',
-                        'nationality_name' => $order->maid && $order->maid->nationality ? $order->maid->nationality->sub_title : '',
-                        'maid_passport_num' => $order->maid ? $order->maid->passport_num : '',
-                        'job_type_id' => $order->jobType ? $order->jobType->title : '',
-                        'status' => $order->status,
-                        'created_at' => $order->created_at->format('Y-m-d H:i:s'),
-                        'admin_name' => $order->details && $order->details->admin ? $order->details->admin->name : '-',
-                        'deliver_status' => $order->details && $order->details->deliver_maid == '1' ? 'نعم' : 'لا',
-                        'contract_status' => $order->contracts()->exists() ? 'يوجد عقد' : 'لا يوجد عقد',
-                        'actions' => '<div class="btn-group">
-                            <a href="#" class="btn btn-sm btn-primary">عرض</a>
-                            <a href="#" class="btn btn-sm btn-warning">تعديل</a>
-                            <a href="#" class="btn btn-sm btn-danger">حذف</a>
-                        </div>'
-                    ];
-                })
-            ]);
-        })->name('orders-ajax');
     }
 );
 
@@ -510,11 +359,4 @@ Route::prefix('admin')->middleware(['auth:admin', 'admin', 'admin.route.permissi
 Route::get('/feedback/{token}', [\App\Http\Controllers\admin\ComplaintFeedbackController::class, 'show'])->name('complaint.feedback');
 Route::post('/feedback/submit', [\App\Http\Controllers\admin\ComplaintFeedbackController::class, 'submit'])->name('complaint.feedback.submit');
 
-// Stable Simple Migration Routes
-Route::get('/migration-system', function () {
-    return redirect('/migration.php');
-})->name('migration.redirect');
 
-Route::get('/simple-migration', function () {
-    return redirect('/migration.php');
-})->name('simple.migration.redirect');

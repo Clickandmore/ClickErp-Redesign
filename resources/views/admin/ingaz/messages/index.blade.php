@@ -1,5 +1,5 @@
 @extends('admin.layout.indexs.index')
-@section('page-title', 'سجل الرسائل والإرسال')
+@section('page-title', 'سجل الرسائل')
 
 @section('style')
 <style>
@@ -191,18 +191,21 @@
 @endphp
 
 <div class="msg-page" dir="rtl">
+    @include('admin.ingaz.messaging._nav')
     {{-- الرأس --}}
     <div class="msg-hero">
         <div class="msg-hero-main">
             <span class="msg-hero-icon"><i class="fa fa-paper-plane"></i></span>
             <div>
-                <h1>سجل الرسائل والإرسال</h1>
+                <h1>سجل الرسائل</h1>
                 <p>كل رسالة خرجت من النظام: SMS وواتساب والبريد والإشعارات ورموز التحقق، ومصيرها عند المزوّد.</p>
             </div>
         </div>
         <div class="msg-hero-actions">
             <a href="{{ request()->fullUrl() }}" class="btn btn-glass"><i class="fa fa-sync-alt"></i> تحديث</a>
-            <a href="{{ route('notifications.settings') }}" class="btn btn-light"><i class="fa fa-plug"></i> إعدادات الربط</a>
+            @if (\App\Support\MessagingPermissions::allows(\App\Support\MessagingPermissions::INTEGRATIONS))
+                <a href="{{ route('notifications.settings') }}" class="btn btn-light"><i class="fa fa-plug"></i> إعدادات الربط</a>
+            @endif
         </div>
     </div>
 

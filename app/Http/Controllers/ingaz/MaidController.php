@@ -2647,7 +2647,11 @@ class MaidController extends Controller
      */
     public function sharedCvPreview(Maid $maid, ManagedFileStorage $storage)
     {
-        $path = $this->maidPreviewableCvPath($maid);
+        // "السيرة المرفوعة" في إعدادات السير الذاتية: نفس الرابط يقدّم ملف السيرة الذي رفعته الشركة.
+        $uploaded = $maid->uploadedClientCvPath();
+        $path = $uploaded && $storage->exists($uploaded)
+            ? $uploaded
+            : $this->maidPreviewableCvPath($maid);
         abort_unless($path, 404, 'ملف السيرة غير موجود.');
 
         $extension = strtolower(pathinfo((string) $path, PATHINFO_EXTENSION));
@@ -3399,18 +3403,18 @@ class MaidController extends Controller
             $statusText = $maid->available ? 'متاح' : 'غير متاح';
 
             $html .= '<tr>
-                <td>' . $maid->id . '</td>
-                <td>' . $maid->name . '</td>
-                <td>' . $maid->passport_num . '</td>
-                <td>' . ($maid->nationality->title ?? '') . '</td>
-                <td>' . ($maid->religion->title ?? '') . '</td>
-                <td>' . $maid->age . '</td>
-                <td>' . $maid->experience_years . '</td>
-                <td>' . ($maid->resolved_salary ?? '0') . '</td>
-                <td>' . ($maid->resolved_price ?? '0') . '</td>
-                <td>' . $jobTypes . '</td>
-                <td>' . $jobTitles . '</td>
-                <td>' . $statusText . '</td>
+                <td>' . e($maid->id) . '</td>
+                <td>' . e($maid->name) . '</td>
+                <td>' . e($maid->passport_num) . '</td>
+                <td>' . e($maid->nationality->title ?? '') . '</td>
+                <td>' . e($maid->religion->title ?? '') . '</td>
+                <td>' . e($maid->age) . '</td>
+                <td>' . e($maid->experience_years) . '</td>
+                <td>' . e($maid->resolved_salary ?? '0') . '</td>
+                <td>' . e($maid->resolved_price ?? '0') . '</td>
+                <td>' . e($jobTypes) . '</td>
+                <td>' . e($jobTitles) . '</td>
+                <td>' . e($statusText) . '</td>
             </tr>';
         }
 

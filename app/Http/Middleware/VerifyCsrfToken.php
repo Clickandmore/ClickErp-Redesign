@@ -20,5 +20,9 @@ class VerifyCsrfToken extends Middleware
         '*/moyasar/callback',
         'transfer/moyasar/callback/*',
         '*/transfer/moyasar/callback/*',
+        // سكربتات أداة الترحيل القديمة لا ترسل الرمز؛ تحميها صلاحيات المدير وفحص المصدر في LegacyMigrationToolController
+        'migration.php',
+        'migration_hub.php',
+        'migration/*.php',
     ];
 }

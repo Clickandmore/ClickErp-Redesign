@@ -53,6 +53,38 @@ class CommunicationSettings
         return self::all()['whatsapp'] ?? self::defaults()['whatsapp'];
     }
 
+    public const VERIFICATION_TEMPLATE = 'phone_verification_code';
+
+    /** @return array{fallback_to_sms: bool} */
+    public static function verification(): array
+    {
+        return self::all()['verification'] ?? self::defaults()['verification'];
+    }
+
+    /** قناة رمز التحقق = قناة قالب phone_verification_code في مكتبة القوالب (sms إن لم يوجد). */
+    public static function verificationChannel(): string
+    {
+        if (!Schema::hasTable('sms_templates')) {
+            return 'sms';
+        }
+        $template = \App\Models\SmsTemplate::getByName(self::VERIFICATION_TEMPLATE);
+
+        return $template && $template->channel === \App\Models\SmsTemplate::CHANNEL_WHATSAPP ? 'whatsapp' : 'sms';
+    }
+
+    /** هل توجد قناة جاهزة لإرسال رمز التحقق فعلياً؟ */
+    public static function verificationChannelIsReady(): bool
+    {
+        $smsReady = self::smsIsConfigured();
+
+        if (self::verificationChannel() === 'whatsapp') {
+            return app(\App\Services\WhatsApp\WhatsAppMessagingService::class)->isConfigured()
+                || (self::verification()['fallback_to_sms'] && $smsReady);
+        }
+
+        return $smsReady;
+    }
+
     public static function smsIsConfigured(?array $settings = null): bool
     {
         $settings ??= self::sms();
@@ -428,6 +460,12 @@ class CommunicationSettings
         $data['whatsapp']['ultramsg']['instances'] = $instances;
         $data['whatsapp']['ultramsg']['default_instance_key'] = $defaultKey;
 
+        unset($data['verification']['channel']);
+        $data['verification']['fallback_to_sms'] = filter_var(
+            data_get($data, 'verification.fallback_to_sms', true),
+            FILTER_VALIDATE_BOOLEAN
+        );
+
         return $data;
     }
 
@@ -619,6 +657,10 @@ class CommunicationSettings
                     'default_instance_key' => (string) config('services.whatsapp.ultramsg.default_instance_key', ''),
                     'instances' => array_values((array) config('services.whatsapp.ultramsg.instances', [])),
                 ],
+            ],
+            // القناة نفسها هي قناة قالب phone_verification_code؛ هنا فقط سلوك الاحتياط.
+            'verification' => [
+                'fallback_to_sms' => true,
             ],
         ];
     }

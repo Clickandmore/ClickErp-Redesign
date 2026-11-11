@@ -34,7 +34,7 @@ class UserAddressController extends Controller
 
     public function edit(Request $request, $id, objAction $action)
     {
-        $obj = $action->find($id);
+        $obj = $this->ownedAddress($action, $id);
         return response()->json([
             'data' => $obj
         ]);
@@ -59,6 +59,7 @@ class UserAddressController extends Controller
     public function update(Request $request, $id, objAction $action)
     {
         $data = $request->only($this->postData);
+        $this->ownedAddress($action, $id);
         $action->update($id, $data);
         $addresses = $action->getWhere(['user_id' => getGuardedUser()->id]);
         $html = view($this->folderPath . ".render_user_address", compact('addresses'))->render();
@@ -67,10 +68,19 @@ class UserAddressController extends Controller
 
     public function destroy(objAction $action, $id)
     {
-        $obj = $action->find($id);
+        $obj = $this->ownedAddress($action, $id);
         $obj->delete();
         $addresses = $action->getWhere(['user_id' => getGuardedUser()->id]);
         $html = view($this->folderPath . ".render_user_address", compact('addresses'))->render();
         return jsonSuccess(['html' => $html], __("ingaz.user_address_success"), 200);
+    }
+
+    // العنوان يخص العميل المسجّل دخوله فقط؛ كان يمكن تعديل/حذف عنوان أي عميل برقمه
+    private function ownedAddress(objAction $action, $id)
+    {
+        $address = $action->getWhereFirst(['id' => $id, 'user_id' => getGuardedUser('id')]);
+        abort_unless($address, 404);
+
+        return $address;
     }
 }

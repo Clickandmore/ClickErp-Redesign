@@ -1,0 +1,54 @@
+# مجلد ملفات مرفوعة — يُمنع تنفيذ أي سكربت فيه مهما كان امتداده.
+# Uploaded-files directory: never execute scripts from here.
+
+Options -ExecCGI -Indexes
+
+# Stop PHP from running even if a .php file slips in.
+<IfModule mod_php.c>
+    php_flag engine off
+</IfModule>
+<IfModule mod_php5.c>
+    php_flag engine off
+</IfModule>
+<IfModule mod_php7.c>
+    php_flag engine off
+</IfModule>
+<IfModule mod_php8.c>
+    php_flag engine off
+</IfModule>
+
+<IfModule mod_mime.c>
+    RemoveHandler .php .php3 .php4 .php5 .php6 .php7 .php8 .phtml .pht .phar .phps .cgi .pl .py .sh .asp .aspx .jsp
+    RemoveType .php .php3 .php4 .php5 .php6 .php7 .php8 .phtml .pht .phar .phps .cgi .pl .py .sh .asp .aspx .jsp
+</IfModule>
+
+# Deny direct requests for script files (covers PHP-FPM / proxy_fcgi setups
+# where php_flag/RemoveHandler have no effect).
+<FilesMatch "\.(?i:php[0-9]?|phtml|pht|phar|phps|cgi|pl|py|sh|asp|aspx|jsp)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# Never let a server config file be uploaded/served from here.
+<FilesMatch "^\.(htaccess|htpasswd|user\.ini)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    # Legacy SVG/HTML already stored here must not run scripts on our origin.
+    <FilesMatch "\.(?i:svgz?|html?|xhtml|xml)$">
+        Header set Content-Security-Policy "default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; sandbox"
+    </FilesMatch>
+</IfModule>

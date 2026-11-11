@@ -298,6 +298,12 @@ class ApiAuthController extends Controller
     public function change_password(ChangePasswordRequest $request, UserAction $userAction)
     {
         $data = $request->validated();
+
+        // لا تغيير لكلمة المرور إلا بعد تأكيد كود التحقق لنفس الرقم
+        if (!\App\Support\PasswordResetGrant::consume($data['phone'])) {
+            return apiResponse(false, app()->getLocale() === 'en' ? 'Verify the code sent to your phone first.' : 'يجب تأكيد كود التحقق المرسل إلى جوالك أولاً.', null, 403);
+        }
+
         $user = $userAction->getWhereFirst(['phone' => $data['phone']]);
         $user->update(['password' => Hash::make($data['password'])]);
 

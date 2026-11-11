@@ -30,23 +30,26 @@
 @endsection
 
 @section('content')
-@if (@AdminGuardHasPerm(\App\PermKeys::NOTIFICATIONS_CONTROL))
+@if (\App\Support\MessagingPermissions::allows(\App\Support\MessagingPermissions::SEND))
     <div class="container-fluid">
+        @include('admin.ingaz.messaging._nav')
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
             <div>
                 <h4 class="mb-1"><i class="fab fa-whatsapp text-success me-2"></i>محادثات واتساب</h4>
-                <div class="text-muted small">الرسائل الواردة من WhatsApp Cloud API والرد عليها من داخل كليك.</div>
+                <div class="text-muted small">رسائل العملاء الواردة على واتساب عبر المزود المربوط، والرد عليها من داخل النظام.</div>
             </div>
             <div class="d-flex gap-2">
                 <button type="button" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#metaTemplatesModal">
-                    <i class="fa fa-layer-group me-1"></i> قوالب Meta
+                    <i class="fa fa-layer-group me-1"></i> قوالب واتساب المعتمدة
                 </button>
                 <a href="{{ route('whatsapp.notifications.index') }}" class="btn btn-success">
                     <i class="fa fa-paper-plane me-1"></i> إرسال جديد
                 </a>
-                <a href="{{ route('notifications.settings') }}#whatsapp-settings" class="btn btn-outline-dark">
-                    <i class="fa fa-cog me-1"></i> إعدادات Meta
-                </a>
+                @if (\App\Support\MessagingPermissions::allows(\App\Support\MessagingPermissions::INTEGRATIONS))
+                    <a href="{{ route('notifications.settings') }}#whatsapp-settings" class="btn btn-outline-dark">
+                        <i class="fa fa-plug me-1"></i> إعدادات ربط واتساب
+                    </a>
+                @endif
                 <a href="{{ route('whatsapp.inbox.index', array_filter(['conversation' => $selectedConversation?->id, 'q' => request('q')])) }}" class="btn btn-outline-success">
                     <i class="fa fa-sync me-1"></i> تحديث
                 </a>

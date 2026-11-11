@@ -28,6 +28,12 @@ class CvOptionsSettings
     public const RENTAL_TRANSFER_COLUMN = 'rental_cv_transfer_enabled';
     public const MAID_TRANSACTION_EDIT_OVERRIDE_COLUMN = 'maid_transaction_edit_override_enabled';
 
+    public const DISPLAY_SOURCE_COLUMN = 'cv_display_source';
+    public const DISPLAY_GENERATED = 'generated';
+    public const DISPLAY_UPLOADED = 'uploaded';
+    public const DISPLAY_SOURCES = [self::DISPLAY_GENERATED, self::DISPLAY_UPLOADED];
+
+    private static ?string $displaySource = null;
     private static ?bool $rentalTransferEnabled = null;
     private static ?bool $maidTransactionEditOverrideEnabled = null;
 
@@ -68,8 +74,39 @@ class CvOptionsSettings
             ->value(self::MAID_TRANSACTION_EDIT_OVERRIDE_COLUMN);
     }
 
+    /**
+     * السيرة التي تُعرض للعميل في الموقع الخارجي والـ API:
+     *  - generated: السيرة المولّدة من القالب (الافتراضي)
+     *  - uploaded : ملف السيرة الذي رفعته الشركة (maid_cv_file)، ثم المولّدة إن لم يُرفع ملف
+     */
+    public static function displaySource(): string
+    {
+        if (self::$displaySource !== null) {
+            return self::$displaySource;
+        }
+
+        if (!Schema::hasTable('settings') || !Schema::hasColumn('settings', self::DISPLAY_SOURCE_COLUMN)) {
+            return self::$displaySource = self::DISPLAY_GENERATED;
+        }
+
+        $source = Setting::query()->without('translations')->value(self::DISPLAY_SOURCE_COLUMN);
+
+        return self::$displaySource = in_array($source, self::DISPLAY_SOURCES, true) ? $source : self::DISPLAY_GENERATED;
+    }
+
+    public static function displaysUploadedCv(): bool
+    {
+        return self::displaySource() === self::DISPLAY_UPLOADED;
+    }
+
+    public static function fakeDisplaySource(?string $source): void
+    {
+        self::$displaySource = $source;
+    }
+
     public static function clearCache(): void
     {
+        self::$displaySource = null;
         self::$rentalTransferEnabled = null;
         self::$maidTransactionEditOverrideEnabled = null;
     }

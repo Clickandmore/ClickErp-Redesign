@@ -323,7 +323,7 @@ class DashboardController extends Controller
         }
 
         // Agent-submitted CVs always start as pending review and hidden from the site.
-        $data = $request->all();
+        $data = $this->agentMaidInput($request);
         $data['status'] = 'available';
         $data['added_by'] = auth('agent')->id();
         $data['available'] = 1;
@@ -379,7 +379,7 @@ class DashboardController extends Controller
             abort(403, 'Unauthorized office');
         }
 
-        $data = array_merge($request->all(), $data);
+        $data = array_merge($this->agentMaidInput($request), $data);
         $data['status'] = 'available';
         $data['added_by'] = auth('agent')->id();
         $data['available'] = 1;
@@ -510,7 +510,7 @@ class DashboardController extends Controller
             abort(403, 'Unauthorized office');
         }
 
-        $data = $request->all();
+        $data = $this->agentMaidInput($request);
         $data['cooking_experience'] = $data['experience_status'] === 'has_experience'
             ? ($data['cooking_experience'] ?? null)
             : null;
@@ -527,6 +527,21 @@ class DashboardController extends Controller
         return redirect()->route('agent.maids.index')->with('success', app()->getLocale() === 'ar'
             ? 'تم حفظ التعديلات وإرسال السيرة إلى الإدارة للمراجعة.'
             : 'Changes were saved and sent to administration for review.');
+    }
+
+    /**
+     * حقول تقررها الإدارة فقط. نماذج الوكيل لا ترسلها، لكن $request->all() كان يقبلها،
+     * فيستطيع الوكيل مثلاً جعل عاملة محجوزة متاحة أو تغيير سعرها وتكلفتها.
+     */
+    private const AGENT_FORBIDDEN_MAID_FIELDS = [
+        'id', 'status', 'available', 'price', 'offer_price', 'supplier_cost_usd',
+        'branch_id', 'added_by', 'deleted_by', 'is_pinned', 'is_show',
+        'submission_status', 'submission_type', 'reviewed_by', 'reviewed_at', 'rejection_reason',
+    ];
+
+    private function agentMaidInput(Request $request): array
+    {
+        return \Illuminate\Support\Arr::except($request->all(), self::AGENT_FORBIDDEN_MAID_FIELDS);
     }
 
     private function generateCvAutomatically(Maid $maid, MaidCvPdfGenerator $cvGenerator): void

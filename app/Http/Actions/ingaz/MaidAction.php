@@ -496,12 +496,14 @@ class MaidAction extends MainAction
         $maritalStatusAr = null;
         $maritalStatusEn = null;
 
-        if (isset($data['marital_status:ar'])) {
-            $maritalStatusAr = $data['marital_status:ar'];
+        // الحالة الاجتماعية قد تكون فارغة (اختيارية في التأجير أو حسب إعدادات السير)؛
+        // القيمة null كانت تصل لجدول الترجمات (عمود NOT NULL) وتُفشل الحفظ.
+        if (array_key_exists('marital_status:ar', $data)) {
+            $maritalStatusAr = (string) ($data['marital_status:ar'] ?? '');
             unset($data['marital_status:ar']);
         }
-        if (isset($data['marital_status:en'])) {
-            $maritalStatusEn = $data['marital_status:en'];
+        if (array_key_exists('marital_status:en', $data)) {
+            $maritalStatusEn = (string) ($data['marital_status:en'] ?? '');
             unset($data['marital_status:en']);
         }
 
@@ -1439,13 +1441,15 @@ class MaidAction extends MainAction
         }
 
         // Handle marital_status:ar field for translation
-        if (isset($data['marital_status:ar'])) {
-            $maritalStatusAr = $data['marital_status:ar'];
+        // الحالة الاجتماعية قد تكون فارغة (اختيارية في التأجير أو حسب إعدادات السير)؛
+        // القيمة null كانت تصل لجدول الترجمات (عمود NOT NULL) وتُفشل الحفظ.
+        if (array_key_exists('marital_status:ar', $data)) {
+            $maritalStatusAr = (string) ($data['marital_status:ar'] ?? '');
             unset($data['marital_status:ar']);
         }
 
-        if (isset($data['marital_status:en'])) {
-            $maritalStatusEn = $data['marital_status:en'];
+        if (array_key_exists('marital_status:en', $data)) {
+            $maritalStatusEn = (string) ($data['marital_status:en'] ?? '');
             unset($data['marital_status:en']);
         }
 

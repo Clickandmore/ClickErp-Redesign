@@ -307,7 +307,7 @@ class OrderController extends Controller
                     return ($row->jobType) ? $row->jobType->title : '';
                 })
                 ->editColumn('user_id', function ($row) {
-                    return '<span class="client-name text-nowrap">' . (($row->user) ? $row->user->name : '-') . '</span>';
+                    return '<span class="client-name text-nowrap">' . (($row->user) ? e($row->user->name) : '-') . '</span>';
                 })
                 ->editColumn('phone', function ($row) {
                     return '<span class="phone-number">' . (($row->user) ? getPhoneWithTag($row->user->phone_code . $row->user->phone) : '-') . '</span>';
@@ -1804,16 +1804,16 @@ class OrderController extends Controller
         foreach ($orders as $order) {
             $statusText = getEnumValue('orders_statuses', $order->status);
             $html .= '<tr>
-                <td>' . $order->id . '</td>
-                <td>' . $order->order_code . '</td>
-                <td>' . ($order->user ? $order->user->name : '') . '</td>
+                <td>' . e($order->id) . '</td>
+                <td>' . e($order->order_code) . '</td>
+                <td>' . e($order->user ? $order->user->name : '') . '</td>
                 <td>' . ($order->user ? getPhoneWithTag($order->user->phone_code . $order->user->phone) : '') . '</td>
-                <td>' . ($order->maid ? $order->maid->name : '') . '</td>
-                <td>' . ($order->maid ? $order->maid->passport_num : '') . '</td>
-                <td>' . ($order->jobType ? $order->jobType->title : '') . '</td>
-                <td>' . $order->payment_method . '</td>
-                <td>' . $statusText . '</td>
-                <td>' . $order->created_at->format('Y-m-d H:i A') . '</td>
+                <td>' . e($order->maid ? $order->maid->name : '') . '</td>
+                <td>' . e($order->maid ? $order->maid->passport_num : '') . '</td>
+                <td>' . e($order->jobType ? $order->jobType->title : '') . '</td>
+                <td>' . e($order->payment_method) . '</td>
+                <td>' . e($statusText) . '</td>
+                <td>' . e($order->created_at->format('Y-m-d H:i A')) . '</td>
             </tr>';
         }
 

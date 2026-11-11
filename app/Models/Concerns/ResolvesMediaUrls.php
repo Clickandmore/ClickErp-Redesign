@@ -21,6 +21,14 @@ trait ResolvesMediaUrls
     {
         $data = parent::toArray();
 
+        // السيرة المرفوعة (إعدادات السير الذاتية) تُعرض للعميل حتى لو لم تُولَّد سيرة من القالب.
+        if (array_key_exists('cv_preview', $data)
+            && !filled($data['cv_preview'])
+            && method_exists($this, 'uploadedClientCvPath')
+            && $this->uploadedClientCvPath()) {
+            $data['cv_preview'] = $this->cvPreviewUrl();
+        }
+
         foreach ($this->mediaUrlColumns as $column) {
             // نمرّر القيمة التي كانت ستخرج فعلًا (وليس getRawOriginal) حتى لا يُعرض
             // مسار قديم عند تحويل موديل عُدّل ولم يُحفظ بعد.

@@ -94,12 +94,12 @@ Route::group(
             Route::resource('contact-us', ContactUsController::class);
             Route::get('laborSelection', [AboutUsController::class, 'index'])->name('laborSelection.index');
             Route::resource('packages', PackagesController::class);
-            Route::resource('user-addresses', UserAddressController::class);
             Route::post('/store-intended-url', function (Request $request) {
                 session(['url.intended' => $request->input('redirect_url')]);
                 return response()->json(['status' => 'ok']);
             })->name('store.intended.url');
             Route::middleware('site_auth')->group(function () {
+                Route::resource('user-addresses', UserAddressController::class);
                 Route::resource('profile', ProfileController::class);
                 Route::resource('last-orders', OrderController::class);
                 Route::resource('chats', ChatController::class);

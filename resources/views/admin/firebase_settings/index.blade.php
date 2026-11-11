@@ -299,6 +299,7 @@
 
 @section('content')
     <div class="container-fluid fb-page">
+        @include('admin.ingaz.messaging._nav')
 
         @if (session('success'))
             <div class="alert alert-success border-0 rounded-3">

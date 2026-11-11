@@ -268,10 +268,23 @@ class HomeController extends Controller
     }
     public function storeTicket(Request $request)
     {
-        $user = User::where('phone', 'like', '%' . $request->phone  . '%')->first();
+        // بدون رقم جوال: نفس رد الفشل الذي يفهمه البوت، بدل تحويل صفحة
+        if (blank($request->phone) || mb_strlen((string) $request->phone) > 20) {
+            return [
+                "status" => 0,
+            ];
+        }
+
+        // مطابقة تامة للرقم: LIKE '%x%' كان يربط الشكوى بأي عميل يحتوي رقمه على النص المرسل،
+        // و user_id من الطلب كان يسمح بنسب الشكوى لأي عميل
+        $rawPhone = trim((string) $request->phone);
+        $localPhone = preg_replace('/^(00966|966|0)/', '', preg_replace('/\D+/', '', $rawPhone));
+        $user = User::whereIn('phone', array_values(array_unique(array_filter([
+            $rawPhone, $localPhone, '0' . $localPhone, '966' . $localPhone,
+        ]))))->first();
         $ticket = new Complaint;
         if (!empty($user)) {
-            $ticket->user_id = $request->user_id ?? $user->id;
+            $ticket->user_id = $user->id;
         } else {
             $user = new User();
             $user->name = $request->name;

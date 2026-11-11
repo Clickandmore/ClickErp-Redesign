@@ -11,7 +11,7 @@ class MessageController extends Controller
 {
     public function index(Request $request)
     {
-        abort_unless(@AdminGuardHasPerm(\App\PermKeys::NOTIFICATIONS_CONTROL), 403);
+        abort_unless(\App\Support\MessagingPermissions::allows(\App\Support\MessagingPermissions::LOG), 403);
         $filters = $request->validate([
             'type' => ['nullable', Rule::in(array_merge(['all'], array_keys(OutboundMessageLog::CHANNELS)))],
             'status' => ['nullable', Rule::in(array_keys(OutboundMessageLog::STATUSES))],
@@ -60,7 +60,7 @@ class MessageController extends Controller
     /** Send a failed WhatsApp/SMS message again through the current provider (once per message). */
     public function resend(OutboundMessageLog $log)
     {
-        abort_unless(@AdminGuardHasPerm(\App\PermKeys::NOTIFICATIONS_CONTROL), 403);
+        abort_unless(\App\Support\MessagingPermissions::allows(\App\Support\MessagingPermissions::SEND), 403);
 
         $lock = \Illuminate\Support\Facades\Cache::lock('message-resend:' . $log->id, 60);
         if (!$lock->get()) {

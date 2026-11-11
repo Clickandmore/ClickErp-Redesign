@@ -106,7 +106,7 @@
                     || @AdminGuardHasPerm(\App\PermKeys::INVOICES_CREATE_DRAFT)
                 );
 
-                $canViewCrm = @SystemModuleEnabled('crm') && ($canViewCrmModule || @AdminGuardHasAnyPerm([\App\PermKeys::CLIENTS_VIEW, \App\PermKeys::CLIENTS_CREATE, \App\PermKeys::CLIENTS_EDIT, \App\PermKeys::CLIENTS_DELETE, \App\PermKeys::CLIENTS_EXPORT, \App\PermKeys::CLIENTS_SHOW, \App\PermKeys::CLIENTS_SETTINGS, \App\PermKeys::NOTIFICATIONS_CONTROL]));
+                $canViewCrm = @SystemModuleEnabled('crm') && ($canViewCrmModule || @AdminGuardHasAnyPerm([\App\PermKeys::CLIENTS_VIEW, \App\PermKeys::CLIENTS_CREATE, \App\PermKeys::CLIENTS_EDIT, \App\PermKeys::CLIENTS_DELETE, \App\PermKeys::CLIENTS_EXPORT, \App\PermKeys::CLIENTS_SHOW, \App\PermKeys::CLIENTS_SETTINGS]));
 
                 $canViewCv = @AdminGuardHasAnyPerm([\App\PermKeys::MAIDS_VIEW, \App\PermKeys::MAIDS_CREATE, \App\PermKeys::MAIDS_EDIT, \App\PermKeys::MAIDS_DELETE, \App\PermKeys::MAIDS_EXPORT, \App\PermKeys::MAIDS_CONTROL, \App\PermKeys::MAIDS_TOGGLE_STATUS, \App\PermKeys::MAIDS_TOGGLE_PIN, \App\PermKeys::MAIDS_RENTAL_VIEW, \App\PermKeys::MAIDS_BACKOUT_VIEW, \App\PermKeys::MAIDS_DELETED_VIEW]);
 
@@ -152,7 +152,6 @@
                     $canViewOperationalCommissions ||
                     $canViewReports || $canViewDataImports;
 
-                $canViewSms = @AdminGuardHasAnyPerm([\App\PermKeys::NOTIFICATIONS_CONTROL, \App\PermKeys::NOTIFICATIONS_VIEW]);
 
                 $canViewWebsiteManagement = @SystemModuleEnabled('website') && @AdminGuardHasAnyPerm([\App\PermKeys::WEBSITE_SETTINGS_CONTROL, \App\PermKeys::BLOGS_VIEW, \App\PermKeys::BLOGS_CONTROL, \App\PermKeys::HOME_SECTIONS_VIEW, \App\PermKeys::HOME_SECTIONS_EDIT, \App\PermKeys::HOME_SECTIONS_CONTROL, \App\PermKeys::SETTINGS_VIEW, \App\PermKeys::FAQ_VIEW, \App\PermKeys::STATISTICS_VIEW, \App\PermKeys::OFFERS_VIEW, \App\PermKeys::OFFERS_CONTROL, \App\PermKeys::WHY_CHOOSE_US_VIEW, \App\PermKeys::WHY_CHOOSE_US_CONTROL, \App\PermKeys::WHY_US_VIEW, \App\PermKeys::WHY_US_CONTROL, \App\PermKeys::FIND_US_VIEW, \App\PermKeys::FIND_US_CONTROL, \App\PermKeys::RECRUITMENT_REQUIREMENTS_VIEW, \App\PermKeys::RECRUITMENT_REQUIREMENTS_CONTROL, \App\PermKeys::GUIDELINES_VIEW, \App\PermKeys::GUIDELINES_CONTROL, \App\PermKeys::DEVELOPERS_PERMS]);
 
@@ -225,13 +224,13 @@
 
                 @if ($canViewCrm)
                     <li
-                        class="sidebar-module sidebar-module--crm {{ $isCrm || request()->routeIs('whatsapp.inbox.*') || request()->routeIs('whatsapp.notifications.*') || request()->routeIs('messages.*') ? '' : 'collapsed' }}">
+                        class="sidebar-module sidebar-module--crm {{ $isCrm ? '' : 'collapsed' }}">
                         <a class="m-link" data-bs-toggle="collapse" data-bs-target="#crm" href="#">
                             <i class="fa-regular fa-file-lines me-2"></i>
                             <span class="ms-2">{{ \App\Support\AdminPermissionNavigation::unitTitle('crm') }}</span>
                             <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                         </a>
-                        <ul class="sub-menu collapse {{ $isCrm || request()->routeIs('clients.*') || request()->routeIs('website-visitors.*') || request()->routeIs('whatsapp.inbox.*') || request()->routeIs('whatsapp.notifications.*') || request()->routeIs('messages.*') ? 'show' : '' }}"
+                        <ul class="sub-menu collapse {{ $isCrm || request()->routeIs('clients.*') || request()->routeIs('website-visitors.*') ? 'show' : '' }}"
                             id="crm">
                             @if (@AdminGuardHasPerm(\App\PermKeys::CLIENTS_VIEW))
                                 <li>
@@ -1214,20 +1213,47 @@
                     </li>
                 @endif
                 {{--                @include('finance::stock') --}}
-                {{-- اعدادات الرسائل النصية --}}
-                @php $showSystemUpdatesLink = \App\Services\SystemUpdates\SystemUpdateInbox::ready(); @endphp
-                @if ($canViewSms || $showSystemUpdatesLink || \App\Support\AdminDispatchPermissions::allows(auth('admin')->user(), \App\Support\AdminDispatchPermissions::VIEW))
-                    <li class="sidebar-module sidebar-module--messages {{ request()->routeIs('admin.dispatch.*', 'system-updates.*') ? '' : 'collapsed' }}">
+                {{-- الرسائل والتواصل: الإرسال والسجل والقوالب، ثم الإعدادات في الأسفل. الصلاحيات في MessagingPermissions --}}
+                @php
+                    $showSystemUpdatesLink = \App\Services\SystemUpdates\SystemUpdateInbox::ready();
+                    $canViewStaffDispatch = \App\Support\AdminDispatchPermissions::allows(auth('admin')->user(), \App\Support\AdminDispatchPermissions::VIEW);
+                    $isMessagingOpen = request()->routeIs(
+                        'whatsapp.inbox.*', 'whatsapp.notifications.*', 'notifications.index', 'messages.*',
+                        'admin.sms-templates.*', 'admin.dispatch.*', 'system-updates.*',
+                        'notifications.settings', 'notifications.settings.alerts', 'dash.firebase-settings.*'
+                    );
+                    $messagingLinks = [
+                        ['route' => 'whatsapp.inbox.index', 'active' => ['whatsapp.inbox.*'], 'icon' => 'fa fa-comments text-success', 'label' => __('messaging.whatsapp_inbox'), 'area' => \App\Support\MessagingPermissions::SEND],
+                        ['route' => 'whatsapp.notifications.index', 'active' => ['whatsapp.notifications.*'], 'icon' => 'fab fa-whatsapp text-success', 'label' => __('messaging.send_whatsapp'), 'area' => \App\Support\MessagingPermissions::SEND],
+                        ['route' => 'notifications.index', 'active' => ['notifications.index'], 'icon' => 'fa fa-sms', 'label' => __('messaging.send_sms'), 'area' => \App\Support\MessagingPermissions::SEND],
+                        ['route' => 'messages.index', 'active' => ['messages.*'], 'icon' => 'fa fa-history', 'label' => __('messaging.log'), 'area' => \App\Support\MessagingPermissions::LOG],
+                        ['route' => 'admin.sms-templates.index', 'active' => ['admin.sms-templates.*'], 'icon' => 'fa fa-layer-group', 'label' => __('messaging.templates'), 'area' => \App\Support\MessagingPermissions::TEMPLATES],
+                    ];
+                    $messagingSettingsLinks = [
+                        ['route' => 'notifications.settings.alerts', 'active' => ['notifications.settings.alerts'], 'icon' => 'fa fa-bell', 'label' => __('messaging.alerts'), 'area' => \App\Support\MessagingPermissions::ALERTS],
+                        ['route' => 'notifications.settings', 'active' => ['notifications.settings'], 'icon' => 'fa fa-plug', 'label' => __('messaging.integrations'), 'area' => \App\Support\MessagingPermissions::INTEGRATIONS],
+                        ['route' => 'dash.firebase-settings.index', 'active' => ['dash.firebase-settings.*'], 'icon' => 'fa fa-mobile-alt', 'label' => __('messaging.firebase'), 'area' => \App\Support\MessagingPermissions::INTEGRATIONS],
+                    ];
+                @endphp
+                @if (\App\Support\MessagingPermissions::allowsAny() || $showSystemUpdatesLink || $canViewStaffDispatch)
+                    <li class="sidebar-module sidebar-module--messages {{ $isMessagingOpen ? '' : 'collapsed' }}">
                         <a class="m-link" data-bs-toggle="collapse" data-bs-target="#smsManagement" href="#">
-                            <i class="fa fa-sms"></i>
+                            <i class="fa fa-comments"></i>
                             <span class="ms-2">{{ \App\Support\AdminPermissionNavigation::unitTitle('messages') }}</span>
                             <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                         </a>
-                        <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['messages.index', 'notifications.index', 'notifications.settings', 'notifications.settings.alerts']) || request()->routeIs('admin.dispatch.*', 'system-updates.*') || Request::is('admin/sms-templates*') ? 'show' : '' }}"
-                            id="smsManagement">
-                            @if (@AdminGuardHasPerm(\App\PermKeys::NOTIFICATIONS_CONTROL))
-                                <li><a class="m-link {{ request()->routeIs('messages.index') ? 'active' : '' }}" href="{{ route('messages.index') }}"><i class="fa fa-history"></i><span class="ms-2">سجل الرسائل والإرسال</span></a></li>
-                            @endif
+                        <ul class="sub-menu collapse {{ $isMessagingOpen ? 'show' : '' }}" id="smsManagement">
+                            @foreach ($messagingLinks as $link)
+                                @if (\App\Support\MessagingPermissions::allows($link['area']))
+                                    <li>
+                                        <a class="m-link {{ request()->routeIs(...$link['active']) ? 'active' : '' }}" href="{{ route($link['route']) }}">
+                                            <i class="{{ $link['icon'] }}"></i>
+                                            <span class="ms-2">{{ $link['label'] }}</span>
+                                        </a>
+                                    </li>
+                                @endif
+                            @endforeach
+                            @include('admin.notifications.sidebar-link')
                             @if ($showSystemUpdatesLink)
                                 <li>
                                     <a class="m-link {{ request()->routeIs('system-updates.*') ? 'active' : '' }}" href="{{ route('system-updates.index') }}">
@@ -1236,43 +1262,16 @@
                                     </a>
                                 </li>
                             @endif
-                            @include('admin.notifications.sidebar-link')
-                            @if (@AdminGuardHasPerm(\App\PermKeys::NOTIFICATIONS_CONTROL))
-                                <li>
-                                    <a class="m-link {{ Route::currentRouteName() == 'notifications.index' ? 'active' : '' }}"
-                                        href="{{ route('notifications.index') }}">
-                                        <i class="fa fa-paper-plane"></i>
-                                        <span class="ms-2">{{ __('admin.sidebar.send_sms') }}</span>
-                                    </a>
-                                </li>
-                            @endif
-                            @if (@AdminGuardHasPerm(\App\PermKeys::NOTIFICATIONS_CONTROL))
-                                <li>
-                                    <a class="m-link {{ Route::currentRouteName() == 'notifications.settings' ? 'active' : '' }}"
-                                        href="{{ route('notifications.settings') }}">
-                                        <i class="fa fa-plug"></i>
-                                        <span class="ms-2">{{ __('admin.sidebar.integration_settings') }}</span>
-                                    </a>
-                                </li>
-                            @endif
-                            @if (@AdminGuardHasPerm(\App\PermKeys::NOTIFICATIONS_CONTROL))
-                                <li>
-                                    <a class="m-link {{ Route::currentRouteName() == 'notifications.settings.alerts' ? 'active' : '' }}"
-                                        href="{{ route('notifications.settings.alerts') }}#alert-rules-settings">
-                                        <i class="fa fa-bell"></i>
-                                        <span class="ms-2">{{ __('admin.sidebar.notification_settings') }}</span>
-                                    </a>
-                                </li>
-                            @endif
-                            @if ($canViewSms)
-                            <li>
-                                <a class="m-link {{ Request::is('admin/sms-templates*') ? 'active' : '' }}"
-                                    href="/admin/sms-templates">
-                                    <i class="fa fa-sms"></i>
-                                    <span class="ms-2">{{ __('admin.sidebar.sms_templates') }}</span>
-                                </a>
-                            </li>
-                            @endif
+                            @foreach ($messagingSettingsLinks as $link)
+                                @if (\App\Support\MessagingPermissions::allows($link['area']))
+                                    <li>
+                                        <a class="m-link {{ request()->routeIs(...$link['active']) ? 'active' : '' }}" href="{{ route($link['route']) }}">
+                                            <i class="{{ $link['icon'] }}"></i>
+                                            <span class="ms-2">{{ $link['label'] }}</span>
+                                        </a>
+                                    </li>
+                                @endif
+                            @endforeach
                         </ul>
                     </li>
                 @endif
@@ -1649,7 +1648,7 @@
                                                 </a>
                                             </li>
                                         @endif
-                                        @if (@AdminGuardHasAnyPerm([\App\PermKeys::SETTINGS_VIEW, \App\PermKeys::DEVELOPERS_PERMS]))
+                                        @if (@AdminGuardHasAnyPerm([\App\PermKeys::SETTINGS_CONTROL, \App\PermKeys::DEVELOPERS_PERMS]))
                                             <li>
                                                 <a class="m-link {{ Request::is('migration/*') || Request::is('migration.php') ? 'active' : '' }}"
                                                     href="/migration/new_migration_system.php">
@@ -2030,16 +2029,6 @@
 
                                         @if (@AdminGuardHasPerm(\App\PermKeys::SETTINGS_VIEW))
                                             <li>
-                                                <a class="m-link {{ request()->routeIs('dash.firebase-settings.*') ? 'active' : '' }}"
-                                                    href="{{ route('dash.firebase-settings.index') }}">
-                                                    <i class="fa fa-bell"></i>
-                                                    <span class="ms-2">إشعارات Firebase</span>
-                                                </a>
-                                            </li>
-                                        @endif
-
-                                        @if (@AdminGuardHasPerm(\App\PermKeys::SETTINGS_VIEW))
-                                            <li>
                                                 <a class="m-link {{ request()->routeIs('istiqdam.*') ? 'active' : '' }}" href="{{ route('istiqdam.index') }}">
                                                     <i class="fa fa-building"></i>
                                                     <span
@@ -2047,7 +2036,7 @@
                                                 </a>
                                             </li>
                                         @endif
-                                        @if (@AdminGuardHasAnyPerm([\App\PermKeys::SETTINGS_VIEW, \App\PermKeys::DEVELOPERS_PERMS]))
+                                        @if (@AdminGuardHasAnyPerm([\App\PermKeys::SETTINGS_CONTROL, \App\PermKeys::DEVELOPERS_PERMS]))
                                             <li>
                                                 <a class="m-link {{ Request::is('migration/*') || Request::is('migration.php') ? 'active' : '' }}"
                                                     href="/migration/new_migration_system.php">

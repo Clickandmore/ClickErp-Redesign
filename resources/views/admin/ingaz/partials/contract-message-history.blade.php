@@ -33,7 +33,7 @@
                             @if ($entry->delivered_at)<div class="small">تسليم: {{ $entry->delivered_at->format('Y-m-d H:i') }}</div>@endif
                             @if ($entry->read_at)<div class="small">قراءة: {{ $entry->read_at->format('Y-m-d H:i') }}</div>@endif
                             @if ($entry->error)<div class="small text-danger">{{ $entry->error }}</div>@endif
-                            @if ($entry->canResend() && @AdminGuardHasPerm(\App\PermKeys::NOTIFICATIONS_CONTROL))
+                            @if ($entry->canResend() && \App\Support\MessagingPermissions::allows(\App\Support\MessagingPermissions::SEND))
                                 <form method="POST" action="{{ route('messages.resend', $entry->id) }}" class="mt-1" onsubmit="return confirm('إعادة إرسال هذه الرسالة؟');">
                                     @csrf
                                     <button type="submit" class="btn btn-sm btn-outline-primary"><i class="fa fa-redo"></i> إعادة الإرسال</button>

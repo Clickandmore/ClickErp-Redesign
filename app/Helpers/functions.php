@@ -57,15 +57,15 @@ function translationInputs($name, $model = null, $title = "", $type = 'input', $
             $html .= '<div class="mb-2">';
 
             if ($type == 'textarea') {
-                $html .= '<textarea id="' . $inputId . '" name="' . $inputName . '" type="text" class="form-control cu-form-design" placeholder="' . $title . '">' . $inputValue . '</textarea>';
+                $html .= '<textarea id="' . $inputId . '" name="' . $inputName . '" type="text" class="form-control cu-form-design" placeholder="' . $title . '">' . e($inputValue) . '</textarea>';
             } elseif ($type == 'file') {
                 if ($model) {
                     $slidersSrc = url(App\Constants::PUBLIC_SLIDERS_DIR . $inputValue);
-                    $html .= '<img class="mb-2" src="' . $slidersSrc . '" height="80" >';
+                    $html .= '<img class="mb-2" src="' . e($slidersSrc) . '" height="80" >';
                 }
-                $html .= '<input id="' . $inputId . '" name="' . $inputName . '" type="file" class="form-control cu-form-design" placeholder="' . $title . '" value="' . $inputValue . '">';
+                $html .= '<input id="' . $inputId . '" name="' . $inputName . '" type="file" class="form-control cu-form-design" placeholder="' . $title . '" value="' . e($inputValue) . '">';
             } else {
-                $html .= '<input id="' . $inputId . '" name="' . $inputName . '" type="text" class="form-control cu-form-design" placeholder="' . $title . '" value="' . $inputValue . '">';
+                $html .= '<input id="' . $inputId . '" name="' . $inputName . '" type="text" class="form-control cu-form-design" placeholder="' . $title . '" value="' . e($inputValue) . '">';
             }
 
             $html .= '</div>';

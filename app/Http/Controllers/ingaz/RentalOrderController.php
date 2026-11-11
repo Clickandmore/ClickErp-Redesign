@@ -149,7 +149,7 @@ class RentalOrderController extends Controller
                     ? '<span class="badge bg-info text-dark">' . e($row->branch->name) . '</span>'
                     : '<span class="text-muted">-</span>')
                 ->editColumn('user_id', function ($row) {
-                    return '<span class="client-name text-nowrap">' . (($row->user) ? $row->user->name : '-') . '</span>';
+                    return '<span class="client-name text-nowrap">' . (($row->user) ? e($row->user->name) : '-') . '</span>';
                 })
                 ->editColumn('phone', function ($row) {
                     return '<span class="phone-number">' . (($row->user) ? getPhoneWithTag(@$row->user->phone_code . @$row->user->phone) : '-') . '</span>';

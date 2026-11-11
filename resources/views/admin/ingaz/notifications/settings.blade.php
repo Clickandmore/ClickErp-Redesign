@@ -117,7 +117,7 @@
 
 @section('content')
     <form id="chatwootConnectionTest" method="POST" action="{{ route('notifications.settings.whatsapp.test') }}">@csrf</form>
-@if (@AdminGuardHasPerm(\App\PermKeys::NOTIFICATIONS_CONTROL))
+@if (\App\Support\MessagingPermissions::allows(\App\Support\MessagingPermissions::INTEGRATIONS))
     @php
         $oldSection = old('section');
         $communicationSettings = \App\Support\CommunicationSettings::all();
@@ -179,44 +179,26 @@
     @endphp
 
     <div class="container-fluid notif-settings">
+        @include('admin.ingaz.messaging._nav')
         <div class="ns-hero">
             <div>
                 <h4>
                     <i class="fa fa-plug me-2"></i>
-                    إعدادات الربط والإرسال
+                    إعدادات الربط مع مزودي الإرسال
                 </h4>
                 <p class="ns-hero-sub">
-                    تم فصل الحفظ إلى أقسام مستقلة: البريد الإلكتروني، الرسائل النصية، وواتساب.
+                    بيانات الاتصال بمزودي البريد والرسائل النصية وواتساب (Click Live Chat وMeta وUltraMsg وWiders)، وإشعارات التطبيق عبر Firebase.
+                    هذه الصفحة لمن يملك صلاحية «إدارة إعدادات الربط» فقط. قواعد التنبيه الآلي ومن تصله في «إعدادات التنبيهات».
                 </p>
             </div>
-            <div class="ns-hero-actions">
-                <a href="{{ route('notifications.settings.alerts') }}" class="btn">
-                    <i class="fa fa-bell me-1"></i>
-                    إعدادات التنبيهات
-                </a>
-                <a href="{{ route('notifications.index') }}" class="btn">
-                    <i class="fa fa-sms me-1"></i>
-                    إرسال SMS
-                </a>
-                <a href="{{ route('whatsapp.notifications.index') }}" class="btn">
-                    <i class="fa fa-whatsapp me-1"></i>
-                    إرسال واتساب
-                </a>
-                <a href="{{ route('whatsapp.inbox.index') }}" class="btn">
-                    <i class="fa fa-comments me-1"></i>
-                    محادثات واتساب
-                </a>
-                <a href="{{ route('messages.index') }}" class="btn">
-                    <i class="fa fa-inbox me-1"></i>
-                    سجل الرسائل
-                </a>
-            </div>
         </div>
-
         <nav class="ns-nav">
-            <a href="#email-settings"><i class="fa fa-envelope"></i> البريد الإلكتروني</a>
-            <a href="#sms-settings"><i class="fa fa-sms"></i> الرسائل النصية SMS</a>
+            <a href="#clickchat-readiness"><i class="fa fa-list-check"></i> جاهزية Click Live Chat</a>
+            <a href="#verification-settings"><i class="fa fa-key"></i> رمز التحقق</a>
             <a href="#whatsapp-settings"><i class="fa fa-whatsapp"></i> واتساب</a>
+            <a href="#sms-settings"><i class="fa fa-sms"></i> الرسائل النصية SMS</a>
+            <a href="#email-settings"><i class="fa fa-envelope"></i> البريد الإلكتروني</a>
+            <a href="{{ route('dash.firebase-settings.index') }}"><i class="fa fa-mobile-alt"></i> إشعارات التطبيق (Firebase)</a>
         </nav>
 
         @if(session('success'))
@@ -236,6 +218,8 @@
                 </ul>
             </div>
         @endif
+
+        @include('admin.ingaz.notifications.partials.verification-and-readiness')
 
         <div class="card ns-card" id="email-settings">
             <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
@@ -352,16 +336,6 @@
                         <div class="cfg-item"><span>حد الإرسال</span><b>{{ data_get($currentSettings, 'sms.bulk_send_limit', 200) }}</b></div>
                         <div class="cfg-item"><span>كلمة التأكيد</span><b dir="ltr">{{ data_get($currentSettings, 'sms.bulk_confirmation_keyword', 'SEND_ALL_SMS') }}</b></div>
                         <div class="cfg-item"><span>التحقق بالجوال</span><b>{{ data_get($currentSettings, 'sms.disable_phone_verification') ? 'ملغى - الرمز 12345' : 'مفعل' }}</b></div>
-                        <div class="cfg-item is-wide">
-                            <span>تنبيه حجوزات الموقع الخارجي</span>
-                            <b>
-                                @if (data_get($currentSettings, 'sms.external_order_admin_notification.enabled'))
-                                    مفعل — {{ data_get($currentSettings, 'sms.external_order_admin_notification.recipient_mode', 'selected_marketer') === 'unified' ? 'إلى الرقم الموحد' : 'إلى المسوق المختار' }}
-                                @else
-                                    غير مفعل
-                                @endif
-                            </b>
-                        </div>
                     </div>
                 </div>
 
@@ -404,43 +378,10 @@
                     </div>
 
                     <div class="col-12">
-                        <div class="ns-subcard" id="externalOrderAdminNotificationBox">
-                            <div>
-                                <div class="ns-subcard-head">
-                                    <div>
-                                        <h6>تنبيه المسؤول عند وصول حجز من الموقع الخارجي</h6>
-                                        <div class="text-muted small">يرسل النظام رسالة SMS بعد إنشاء الطلب بنجاح، ولا يتم الإرسال إذا كانت بوابة الرسائل متوقفة.</div>
-                                    </div>
-                                    <div class="form-check form-switch">
-                                        <input type="hidden" name="sms[external_order_admin_notification][enabled]" value="0">
-                                        <input class="form-check-input" type="checkbox"
-                                            name="sms[external_order_admin_notification][enabled]"
-                                            id="externalOrderAdminNotificationEnabled" value="1"
-                                            {{ data_get($smsData, 'external_order_admin_notification.enabled') ? 'checked' : '' }}>
-                                        <label class="form-check-label" for="externalOrderAdminNotificationEnabled">تفعيل التنبيه</label>
-                                    </div>
-                                </div>
-
-                                <div class="row g-3" id="externalOrderAdminNotificationFields">
-                                    <div class="col-md-6">
-                                        <label class="form-label">إرسال التنبيه إلى</label>
-                                        <select class="form-control" name="sms[external_order_admin_notification][recipient_mode]" id="externalOrderAdminRecipientMode">
-                                            <option value="selected_marketer" {{ data_get($smsData, 'external_order_admin_notification.recipient_mode', 'selected_marketer') === 'selected_marketer' ? 'selected' : '' }}>المسوق الذي اختاره العميل من الموقع</option>
-                                            <option value="unified" {{ data_get($smsData, 'external_order_admin_notification.recipient_mode') === 'unified' ? 'selected' : '' }}>رقم مسؤول موحد</option>
-                                        </select>
-                                        <div class="form-text">عند اختيار المسوق، يستخدم النظام رقم جواله المسجل. إذا لم يكن له رقم صالح فلن يرسل التنبيه.</div>
-                                    </div>
-                                    <div class="col-md-6" id="externalOrderUnifiedPhoneWrapper">
-                                        <label class="form-label">رقم المسؤول الموحد</label>
-                                        <input type="text" class="form-control" dir="ltr"
-                                            name="sms[external_order_admin_notification][unified_phone]"
-                                            id="externalOrderUnifiedPhone"
-                                            value="{{ data_get($smsData, 'external_order_admin_notification.unified_phone') }}"
-                                            placeholder="9665XXXXXXXX">
-                                        <div class="form-text">الصيغ المقبولة: <span dir="ltr">05XXXXXXXX</span> أو <span dir="ltr">5XXXXXXXX</span> أو <span dir="ltr">9665XXXXXXXX</span> أو <span dir="ltr">+9665XXXXXXXX</span>.</div>
-                                    </div>
-                                </div>
-                            </div>
+                        <div class="alert alert-light border small mb-0">
+                            <i class="fa fa-bell me-1"></i>
+                            تنبيه المسؤول عند وصول حجز من الموقع الخارجي انتقل إلى
+                            <a href="{{ route('notifications.settings.alerts') }}#external-order-alert-settings">إعدادات التنبيهات</a>.
                         </div>
                     </div>
 
@@ -556,7 +497,7 @@
             <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
                 <div>
                     <h5>إعدادات WhatsApp</h5>
-                    <div class="text-muted small">هذا القسم خاص باختيار المزود بين Meta API وUltraMsg وWiders / Chatwoot مع دعم أكثر من رقم واتساب.</div>
+                    <div class="text-muted small">اختيار مزود واتساب: Click Live Chat (المعتمد للإرسال بقوالب Meta المعتمدة)، أو Meta API مباشرة، أو UltraMsg، أو Widers / Chatwoot.</div>
                 </div>
                 <span class="badge bg-light text-dark">WhatsApp</span>
             </div>
@@ -1118,16 +1059,6 @@
         $('#taqnyatSettingsBox').toggleClass('d-none', provider !== 'taqnyat');
     }
 
-    function toggleExternalOrderAdminNotificationSettings() {
-        const enabled = $('#externalOrderAdminNotificationEnabled').is(':checked');
-        const unified = $('#externalOrderAdminRecipientMode').val() === 'unified';
-
-        $('#externalOrderAdminNotificationFields').toggleClass('opacity-50', !enabled);
-        $('#externalOrderAdminRecipientMode').prop('disabled', false);
-        $('#externalOrderUnifiedPhoneWrapper').toggleClass('d-none', !unified);
-        $('#externalOrderUnifiedPhone').prop('required', enabled && unified);
-    }
-
     function toggleWhatsAppDriverSettings() {
         const driver = $('#whatsappDriver').val();
         $('#chatwootSettingsBox').toggleClass('d-none', driver !== 'chatwoot');
@@ -1197,11 +1128,9 @@
 
     $(document).ready(function () {
         toggleSmsProviderSettings();
-        toggleExternalOrderAdminNotificationSettings();
         toggleWhatsAppDriverSettings();
 
         $('#smsProvider').on('change', toggleSmsProviderSettings);
-        $('#externalOrderAdminNotificationEnabled, #externalOrderAdminRecipientMode').on('change', toggleExternalOrderAdminNotificationSettings);
         $('#whatsappDriver').on('change', toggleWhatsAppDriverSettings);
 
         $('#addUltraMsgInstance').on('click', function () {

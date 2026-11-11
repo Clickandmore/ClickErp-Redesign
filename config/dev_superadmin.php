@@ -2,7 +2,9 @@
 
 return [
     'username' => env('DEV_SUPERADMIN_USERNAME', 'dev-superadmin'),
-    'password' => env('DEV_SUPERADMIN_PASSWORD', 'Dev@2026!ChangeMe'),
+    // لا قيمة افتراضية: كلمة المرور الافتراضية كانت محفوظة في المستودع.
+    // بدون DEV_SUPERADMIN_PASSWORD (أو كلمة مرور محفوظة من اللوحة) يبقى الدخول مغلقاً.
+    'password' => env('DEV_SUPERADMIN_PASSWORD'),
     'security_file' => storage_path('app/private/dev-superadmin-security.enc'),
     'verification' => [
         // Destructive database operations stay disabled until at least one

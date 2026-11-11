@@ -1573,19 +1573,19 @@ class UserController extends Controller
             $creator = $this->clientCreatorValue($client) ?: __('ingaz.not_specified');
 
             $html .= '<tr>
-                <td>' . $client->clientNumber() . '</td>
-                <td>' . $client->name . '</td>
-                <td>' . $displayPhone . '</td>
-                <td>' . $displayPhone2 . '</td>
-                <td>' . $client->email . '</td>
-                <td>' . ($client->nationality->title ?? '') . '</td>
-                <td>' . ($client->isCompanyClient() ? __('ingaz.company') : __('ingaz.person_client')) . '</td>
-                <td>' . $client->documentNumberLabel() . ': ' . ($client->documentNumber() ?: '') . '</td>
-                <td>' . $client->birthdate . '</td>
-                <td>' . $client->address . '</td>
-                <td>' . $client->city . '</td>
-                <td>' . $creator . '</td>
-                <td class="' . $statusClass . '">' . $statusText . '</td>
+                <td>' . e($client->clientNumber()) . '</td>
+                <td>' . e($client->name) . '</td>
+                <td>' . e($displayPhone) . '</td>
+                <td>' . e($displayPhone2) . '</td>
+                <td>' . e($client->email) . '</td>
+                <td>' . e($client->nationality->title ?? '') . '</td>
+                <td>' . e($client->isCompanyClient() ? __('ingaz.company') : __('ingaz.person_client')) . '</td>
+                <td>' . e($client->documentNumberLabel()) . ': ' . e($client->documentNumber() ?: '') . '</td>
+                <td>' . e($client->birthdate) . '</td>
+                <td>' . e($client->address) . '</td>
+                <td>' . e($client->city) . '</td>
+                <td>' . e($creator) . '</td>
+                <td class="' . $statusClass . '">' . e($statusText) . '</td>
             </tr>';
         }
 
@@ -1725,19 +1725,19 @@ class UserController extends Controller
             $creator = $this->clientCreatorValue($client) ?: __('ingaz.not_specified');
 
             $html .= '<tr>
-                <td>' . $client->clientNumber() . '</td>
-                <td>' . $client->name . '</td>
-                <td>' . $displayPhone . '</td>
-                <td>' . $displayPhone2 . '</td>
-                <td>' . $client->email . '</td>
-                <td>' . ($client->nationality->title ?? '') . '</td>
-                <td>' . ($client->isCompanyClient() ? __('ingaz.company') : __('ingaz.person_client')) . '</td>
-                <td>' . $client->documentNumberLabel() . ': ' . ($client->documentNumber() ?: '') . '</td>
-                <td>' . $client->birthdate . '</td>
-                <td>' . $client->address . '</td>
-                <td>' . $client->city . '</td>
-                <td>' . $creator . '</td>
-                <td class="' . $statusClass . '">' . $statusText . '</td>
+                <td>' . e($client->clientNumber()) . '</td>
+                <td>' . e($client->name) . '</td>
+                <td>' . e($displayPhone) . '</td>
+                <td>' . e($displayPhone2) . '</td>
+                <td>' . e($client->email) . '</td>
+                <td>' . e($client->nationality->title ?? '') . '</td>
+                <td>' . e($client->isCompanyClient() ? __('ingaz.company') : __('ingaz.person_client')) . '</td>
+                <td>' . e($client->documentNumberLabel()) . ': ' . e($client->documentNumber() ?: '') . '</td>
+                <td>' . e($client->birthdate) . '</td>
+                <td>' . e($client->address) . '</td>
+                <td>' . e($client->city) . '</td>
+                <td>' . e($creator) . '</td>
+                <td class="' . $statusClass . '">' . e($statusText) . '</td>
             </tr>';
         }
 

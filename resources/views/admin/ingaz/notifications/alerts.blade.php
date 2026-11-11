@@ -846,7 +846,7 @@
 @endsection
 
 @section('content')
-@if (@AdminGuardHasPerm(\App\PermKeys::NOTIFICATIONS_CONTROL))
+@if (\App\Support\MessagingPermissions::allows(\App\Support\MessagingPermissions::ALERTS))
     @php
         $oldSection = old('section');
         $alertDefinitions = $alertDefinitions ?? \App\Support\NotificationAlertSettings::definitions();
@@ -891,24 +891,15 @@
     @endphp
 
     <div class="container-fluid alerts-page" id="alert-rules-settings">
+        @include('admin.ingaz.messaging._nav')
         <div class="alerts-hero">
             <div class="alerts-hero__inner">
                 <div class="alerts-hero__title">
                     <span class="alerts-hero__icon"><i class="fa-solid fa-bell"></i></span>
                     <div>
                         <h4>إعدادات التنبيهات الآلية</h4>
-                        <p>تحكم في قواعد التنبيه، قنوات الإرسال، والمدد التي تعمل عليها مهام الجدولة.</p>
+                        <p>متى يرسل النظام رسالة تلقائية ولمن وعبر أي قناة. بيانات المزودين نفسها (مفاتيح API) في «إعدادات الربط».</p>
                     </div>
-                </div>
-                <div class="alerts-hero__actions">
-                    <a href="{{ route('notifications.settings') }}" class="btn">
-                        <i class="fa-solid fa-plug me-1"></i>
-                        إعدادات القنوات
-                    </a>
-                    <a href="{{ route('admin.sms-templates.index') }}" class="btn">
-                        <i class="fa-regular fa-file-lines me-1"></i>
-                        قوالب الرسائل
-                    </a>
                 </div>
             </div>
         </div>
@@ -1166,6 +1157,8 @@
             </div>
 
             @include('admin.ingaz.notifications.partials.contact-settings')
+
+            @include('admin.ingaz.notifications.partials.external-order-alert')
 
             <div class="alerts-savebar">
                 <div class="alerts-savebar__hint">

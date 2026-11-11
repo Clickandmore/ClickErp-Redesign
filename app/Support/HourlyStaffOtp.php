@@ -50,7 +50,8 @@ class HourlyStaffOtp
 
         // نفس سلوك رمز العميل: رمز ثابت من config('otp.fallback_code') لأرقام مسموح بها (أو للكل إن كانت القائمة فارغة)،
         // وإلا رمز عشوائي يُرسل بالرسائل. بلا بوابة رسائل مفعّلة يُستخدم الرمز الثابت ويُرجَع في الاستجابة.
-        $smsOn = (\App\Support\CommunicationSettings::smsGatewayIsEnabled() && !\App\Support\CommunicationSettings::phoneVerificationIsDisabled());
+        // «مفعّل» = توجد قناة جاهزة لرمز التحقق (SMS أو واتساب عبر المزود المربوط)، لا بوابة SMS وحدها.
+        $smsOn = (\App\Support\CommunicationSettings::verificationChannelIsReady() && !\App\Support\CommunicationSettings::phoneVerificationIsDisabled());
         $configured = (string) (config('otp.fallback_code') ?: '');
         $allowed = (array) config('otp.fallback_phones', []);
         $useFallback = $configured !== '' && (!$allowed || in_array($phone, $allowed, true) || in_array(ltrim($phone, '0'), $allowed, true));
@@ -70,11 +71,8 @@ class HourlyStaffOtp
         $sent = false;
         if ($smsOn && !$useFallback) {
             try {
-                $delivery = app(\App\Services\TemplateMessageService::class)->sendByName('phone_verification_code',
-                    ['verification_code' => $code, 'website_name' => config('app.url'), 'company_name' => config('app.name')],
-                    ['phone' => $phone],
-                    ['title' => 'رمز التحقق', 'source' => 'hourly_staff_login',
-                        'fallback' => ['title' => 'رمز التحقق', 'channel' => 'sms', 'message' => 'رمز الدخول لتطبيق الفريق: '.$code]]);
+                $delivery = app(\App\Services\VerificationCodeSender::class)->send($phone, $code, 'hourly_staff_login',
+                    ['website_name' => config('app.url'), 'company_name' => config('app.name')]);
                 $sent = (bool) ($delivery['success'] ?? false);
             } catch (\Throwable $e) {
                 $sent = false;

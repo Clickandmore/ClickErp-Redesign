@@ -80,6 +80,10 @@ class MaidFieldRules
     /** صيغ الصور المقبولة في الخادم (قاعدة mimes تتعرف على jfif كـ jpg). */
     public const IMAGE_MIMES = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'];
 
+    /** ملف السيرة الجاهزة (من المكتب الخارجي أو تصوير الشركة): PDF أو صورة. */
+    public const MAID_CV_EXTENSIONS = ['pdf', 'jpg', 'jpeg', 'jfif', 'png', 'webp'];
+    public const MAID_CV_MIMES = ['pdf', 'jpg', 'jpeg', 'png', 'webp'];
+
     /** الحد الأقصى لحجم الصور والمرفقات (كيلوبايت). */
     public const FILE_MAX_KB = 10240;
     public const VIDEO_MAX_KB = 204800;
@@ -95,7 +99,8 @@ class MaidFieldRules
         return [
             'image' => ['extensions' => self::IMAGE_EXTENSIONS, 'max_kb' => self::FILE_MAX_KB],
             'cv_file' => ['extensions' => array_merge(['pdf'], self::IMAGE_EXTENSIONS), 'max_kb' => self::FILE_MAX_KB],
-            'maid_cv_file' => ['extensions' => ['pdf'], 'max_kb' => self::FILE_MAX_KB],
+            // السيرة الجاهزة: PDF أو صورة، وتُعرض للعميل عند اختيار "السيرة المرفوعة" في إعدادات السير.
+            'maid_cv_file' => ['extensions' => self::MAID_CV_EXTENSIONS, 'max_kb' => self::FILE_MAX_KB],
             'driving_license_file' => ['extensions' => ['pdf', 'jpg', 'jpeg', 'png', 'webp'], 'max_kb' => self::FILE_MAX_KB],
             'video' => ['extensions' => ['mp4', 'mov', 'avi', 'wmv', 'webm', 'mkv', 'm4v'], 'max_kb' => self::VIDEO_MAX_KB],
         ];
@@ -121,6 +126,11 @@ class MaidFieldRules
     public static function passportIssueDateMin(): string
     {
         return self::today()->subYears(self::PASSPORT_ISSUE_MAX_YEARS)->toDateString();
+    }
+
+    public static function maidCvAccept(): string
+    {
+        return implode(',', array_map(fn ($ext) => '.' . $ext, self::MAID_CV_EXTENSIONS));
     }
 
     public static function imageAccept(): string

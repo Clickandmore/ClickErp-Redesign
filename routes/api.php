@@ -154,10 +154,11 @@ Route::group(
 
 
 Route::controller(Api\HomeController::class)->group(function ($router) {
-    Route::post('contract_status', 'contractStatus');
+    // واجهات عامة بلا تسجيل دخول (البوت): الحد لكل قيمة بحث / رقم جوال (RouteServiceProvider)
+    Route::post('contract_status', 'contractStatus')->middleware('throttle:bot-contract-status');
     Route::get('nationalites', 'nationalites');
     Route::get('all_staff', 'allStaff');
-    Route::post('store_ticket', 'storeTicket');
+    Route::post('store_ticket', 'storeTicket')->middleware('throttle:bot-store-ticket');
 });
 
 

@@ -9,6 +9,7 @@
 
 @section('content')
 <div class="container-fluid">
+    @include('admin.ingaz.messaging._nav')
     @if(session('success'))
         <div class="alert alert-success alert-dismissible fade show" role="alert">
             {{ session('success') }}
@@ -22,12 +23,10 @@
                 <div class="col-lg-8">
                     <span class="badge bg-light text-dark mb-3">Template Library</span>
                     <h2 class="mb-2">إدارة قوالب الرسائل</h2>
-                    <a class="btn btn-sm btn-outline-light mb-2" href="{{ request()->fullUrl() }}">تحديث حالة ميتا</a>
+                    <a class="btn btn-sm btn-outline-light mb-2" href="{{ request()->fullUrl() }}">تحديث حالة القوالب من المزود</a>
                     <p class="mb-0 text-white-50">المكتبة الموحدة لكل قوالب SMS وWhatsApp والإشعارات الداخلية، مع إمكانية تعديل النص وترتيب القوالب وتغيير قناة الإرسال لكل قالب.</p>
                 </div>
                 <div class="col-lg-4 text-lg-end">
-                    <a href="{{ route('notifications.settings') }}" class="btn btn-outline-light me-2 mb-2">إعدادات القنوات</a>
-                    <a href="{{ route('messages.index') }}" class="btn btn-outline-light me-2 mb-2">سجل الرسائل</a>
                     <a href="{{ route('admin.sms-templates.create') }}" class="btn btn-light mb-2">إضافة قالب جديد</a>
                 </div>
             </div>
@@ -124,7 +123,11 @@
                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
                     <div class="text-muted small">
                         أي تغيير في القناة هنا سيؤثر على مسارات الإرسال المرتبطة بهذا القالب، ويتم استخدام بيانات الربط من
-                        <a href="{{ route('notifications.settings') }}">إعدادات القنوات</a>.
+                        @if (\App\Support\MessagingPermissions::allows(\App\Support\MessagingPermissions::INTEGRATIONS))
+                            <a href="{{ route('notifications.settings') }}">إعدادات الربط</a>.
+                        @else
+                            «إعدادات الربط».
+                        @endif
                     </div>
                     @if($templates->isNotEmpty())
                         <button class="btn btn-primary" type="submit">حفظ الترتيب والإعدادات</button>

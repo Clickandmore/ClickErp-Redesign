@@ -6,6 +6,8 @@ use App\Support\R2StorageSettings;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
+use Symfony\Component\Mime\MimeTypes;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ManagedFileStorage
@@ -13,11 +15,39 @@ class ManagedFileStorage
     public const R2_PREFIX = 'r2://';
     private static ?string $configuredDiskHash = null;
 
+    /**
+     * امتدادات لا يجوز أبدًا أن تُحفظ بها الملفات المرفوعة: قرص public مخدوم مباشرة
+     * عبر /storage، فملف php يُنفَّذ على الخادم، وملفات html/svg تُنفِّذ سكربتات في
+     * نطاق النظام (XSS مخزَّن).
+     */
+    public const BLOCKED_EXTENSIONS = [
+        'php', 'php3', 'php4', 'php5', 'php6', 'php7', 'php8', 'phtml', 'pht', 'phar', 'phps', 'inc',
+        'html', 'htm', 'shtml', 'xhtml', 'xht', 'svg', 'svgz', 'xml', 'xsl', 'js', 'mjs',
+        'htaccess', 'htpasswd', 'exe', 'com', 'bat', 'cmd', 'msi', 'dll', 'sh', 'bash', 'cgi',
+        'pl', 'py', 'rb', 'asp', 'aspx', 'jsp', 'jspx', 'swf', 'hta', 'vbs',
+    ];
+
+    /**
+     * قائمة موجبة بما ترفعه الأنظمة فعلًا (صور، مستندات، جداول Excel، صوت/فيديو
+     * الرسائل والسير الذاتية، أرشيفات). أي امتداد خارجها يُرفض.
+     */
+    public const ALLOWED_EXTENSIONS = [
+        // صور
+        'jpg', 'jpeg', 'jpe', 'jfif', 'png', 'gif', 'webp', 'bmp', 'heic', 'heif', 'tif', 'tiff', 'ico', 'avif',
+        // مستندات
+        'pdf', 'doc', 'docx', 'xls', 'xlsx', 'xlsm', 'csv', 'txt', 'rtf', 'odt', 'ods', 'ppt', 'pptx', 'json',
+        // أرشيفات
+        'zip', 'rar', '7z',
+        // صوت وفيديو (الرسائل الصوتية، فيديوهات العاملات)
+        'mp3', 'mp4', 'm4a', 'm4v', 'aac', 'ogg', 'oga', 'opus', 'wav', 'amr', 'weba', 'webm',
+        'mov', 'avi', 'wmv', 'mkv', '3gp',
+    ];
+
     public function uploadFile(UploadedFile $file, string $directory): string
     {
         $directory = trim($directory, '/');
-        $extension = strtolower((string) $file->getClientOriginalExtension());
-        $filename = Str::random(10) . time() . ($extension !== '' ? '.' . $extension : '');
+        $extension = $this->safeUploadExtension($file);
+        $filename = Str::random(10) . time() . '.' . $extension;
 
         if (!R2StorageSettings::isReady()) {
             return $file->storeAs($directory, $filename, 'public');
@@ -38,7 +68,7 @@ class ManagedFileStorage
     public function storeFileContents(string $contents, string $directory, string $extension = ''): string
     {
         $directory = trim($directory, '/');
-        $extension = strtolower(trim($extension, " \t\n\r\0\x0B."));
+        $extension = $this->safeContentsExtension($contents, $extension);
         $filename = Str::random(10) . time() . ($extension !== '' ? '.' . $extension : '');
 
         if (!R2StorageSettings::isReady()) {
@@ -57,6 +87,130 @@ class ManagedFileStorage
     public function storeMaidFileContents(string $contents, string $directory, string $extension = ''): string
     {
         return $this->storeFileContents($contents, $directory, $extension);
+    }
+
+    /**
+     * يحدد امتداد الملف المحفوظ من جهة الخادم: امتداد العميل يُقبل فقط إن كان ضمن
+     * القائمة الموجبة (يحافظ على xlsx/csv/m4a كما رفعها المستخدم)، وإلا فالامتداد
+     * المستنتج من المحتوى (MIME). أي امتداد خطِر يُرفض بخطأ تحقق (422).
+     *
+     * @throws ValidationException
+     */
+    public function safeUploadExtension(UploadedFile $file): string
+    {
+        $clientExtension = $this->normalizeExtension((string) $file->getClientOriginalExtension());
+        $clientName = strtolower(trim((string) $file->getClientOriginalName()));
+
+        // صور SVG لواجهة الموقع يرفعها موظفو لوحة التحكم فقط؛ العملاء والوكلاء لا
+        if (in_array($clientExtension, ['svg', 'svgz'], true) && $this->uploaderIsBackOfficeStaff()) {
+            return $clientExtension;
+        }
+
+        // "shell.php" و ".htaccess" يُرفضان صراحة حتى لو بدا المحتوى صورة.
+        // أما "x.php.jpg" فيُحفظ بـ jpg تحت اسم عشوائي فلا خطر منه.
+        if ($this->isBlockedExtension($clientExtension)
+            || in_array($clientName, ['.htaccess', '.htpasswd', '.user.ini'], true)) {
+            $this->rejectUpload($file);
+        }
+
+        if ($clientExtension !== '' && in_array($clientExtension, self::ALLOWED_EXTENSIONS, true)) {
+            return $clientExtension;
+        }
+
+        // امتداد غير معروف لكنه ليس خطيراً (مثل pages أو numbers): يُقبل كما هو حتى لا
+        // يُرفض ملف عميل عادي. الخطر محصور في القائمة المحظورة التي فُحصت أعلاه.
+        if (preg_match('/^[a-z0-9]{1,10}$/', $clientExtension) === 1 && !$this->looksLikeMarkupOrScript($file)) {
+            return $clientExtension;
+        }
+
+        try {
+            $guessed = $this->normalizeExtension((string) $file->guessExtension());
+        } catch (\Throwable $exception) {
+            $guessed = '';
+        }
+
+        if ($guessed !== '' && in_array($guessed, self::ALLOWED_EXTENSIONS, true)) {
+            return $guessed;
+        }
+
+        $this->rejectUpload($file);
+    }
+
+    // محتوى HTML أو سكربت باسم امتداد غريب قد يُعرض كصفحة عند فتحه
+    private function looksLikeMarkupOrScript(UploadedFile $file): bool
+    {
+        try {
+            $mime = strtolower((string) $file->getMimeType());
+        } catch (\Throwable $exception) {
+            return true;
+        }
+
+        return $mime === ''
+            || str_contains($mime, 'html')
+            || str_contains($mime, 'xml')
+            || str_contains($mime, 'svg')
+            || str_contains($mime, 'javascript')
+            || str_contains($mime, 'php')
+            || str_contains($mime, 'x-sh');
+    }
+
+    private function uploaderIsBackOfficeStaff(): bool
+    {
+        try {
+            return auth('admin')->check();
+        } catch (\Throwable $exception) {
+            return false;
+        }
+    }
+
+    public function isBlockedExtension(?string $extension): bool
+    {
+        $extension = $this->normalizeExtension((string) $extension);
+
+        return $extension !== '' && (
+            in_array($extension, self::BLOCKED_EXTENSIONS, true)
+            || preg_match('/^(php\d*|phtml?|pht|phar)$/', $extension) === 1
+        );
+    }
+
+    private function safeContentsExtension(string $contents, string $extension): string
+    {
+        $extension = $this->normalizeExtension($extension);
+
+        if ($extension !== '' && in_array($extension, self::ALLOWED_EXTENSIONS, true)) {
+            return $extension;
+        }
+
+        if ($extension === '') {
+            return '';
+        }
+
+        // امتداد غير معروف أو خطِر (مثل رابط استيراد ينتهي بـ php): يُستنتج من المحتوى،
+        // وإن تعذر يُحفظ الملف بلا امتداد فلا يُنفَّذ ولا يُعرض كـ HTML.
+        try {
+            $mime = (string) ((new \finfo(FILEINFO_MIME_TYPE))->buffer($contents) ?: '');
+            $guessed = $mime !== '' ? (string) (MimeTypes::getDefault()->getExtensions($mime)[0] ?? '') : '';
+            $guessed = $this->normalizeExtension($guessed);
+        } catch (\Throwable $exception) {
+            $guessed = '';
+        }
+
+        return $guessed !== '' && in_array($guessed, self::ALLOWED_EXTENSIONS, true) ? $guessed : '';
+    }
+
+    private function normalizeExtension(string $extension): string
+    {
+        return strtolower(trim($extension, " \t\n\r\0\x0B."));
+    }
+
+    /**
+     * @throws ValidationException
+     */
+    private function rejectUpload(UploadedFile $file): never
+    {
+        throw ValidationException::withMessages([
+            'file' => 'نوع الملف "' . $file->getClientOriginalName() . '" غير مسموح برفعه.',
+        ]);
     }
 
     public function exists(?string $storedPath): bool

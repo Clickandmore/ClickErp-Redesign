@@ -22,6 +22,11 @@ class ChangePasswordController extends Controller
     public function store(ChangePasswordRequest $request, UserAction $userAction)
     {
         $data = $request->validated();
+
+        // لا تغيير لكلمة المرور إلا بعد تأكيد كود التحقق لنفس الرقم
+        if (!\App\Support\PasswordResetGrant::consume($data['phone'])) {
+            return jsonSuccess(null, app()->getLocale() === 'en' ? 'Verify the code sent to your phone first.' : 'يجب تأكيد كود التحقق المرسل إلى جوالك أولاً.', 403);
+        }
         $user = $userAction->getWhereFirst(['phone' => $data['phone']]);
         $user->update(['password' => Hash::make($data['password'])]);
 
@@ -36,11 +41,19 @@ class ChangePasswordController extends Controller
         return jsonSuccess(['redirect_url' => $target], __("ingaz.change_password_successfully"));
     }
 
-    public function update(ChangePasswordRequest $request, $id, UserAction $userAction)
+    // من صفحة إعدادات العميل: كان يغيّر كلمة مرور أي عميل برقمه التسلسلي بلا تسجيل دخول،
+    // الآن يغيّر كلمة مرور العميل المسجّل دخوله فقط
+    public function update(ChangePasswordRequest $request, $id)
     {
+        $user = Auth::guard('web')->user();
+
+        if (!$user || (int) $user->id !== (int) $id) {
+            abort(403);
+        }
+
         $data = $request->validated();
-        $user = $userAction->find($id);
         $user->update(['password' => Hash::make($data['password'])]);
+
         return jsonSuccess(null, __("ingaz.change_password_successfully"));
     }
 

@@ -571,16 +571,18 @@
                                 <div class="col-12">
                                     <label for="maid_cv_file" class="form-label">
                                         {{ helperTrans('ingaz.maid_cv_file') }}
-                                        <small class="text-muted">({{ helperTrans('ingaz.optional') }})</small>
+                                        @unless (\App\Support\MaidFormFieldSettings::state('maid_cv_file') === \App\Support\MaidFormFieldSettings::REQUIRED)
+                                            <small class="text-muted">({{ helperTrans('ingaz.optional') }})</small>
+                                        @endunless
                                     </label>
                                     <input type="file" name="maid_cv_file" id="maid_cv_file"
-                                        class="form-control" accept="application/pdf,.pdf">
+                                        class="form-control" accept="application/pdf,{{ \App\Support\MaidFieldRules::maidCvAccept() }}">
                                     <div class="form-text">{{ helperTrans('ingaz.maid_cv_file_hint') }}</div>
 
                                     @if (filled($obj->maid_cv_file))
                                         <div class="d-flex flex-wrap align-items-center gap-2 mt-2">
                                             <span class="badge bg-danger-subtle text-danger">
-                                                <i class="fas fa-file-pdf me-1"></i>{{ helperTrans('ingaz.maid_cv_file_current') }}
+                                                <i class="fas fa-file-alt me-1"></i>{{ helperTrans('ingaz.maid_cv_file_current') }}
                                             </span>
                                             <a href="{{ showFile($obj->maid_cv_file) }}" target="_blank"
                                                 rel="noopener" class="btn btn-outline-primary btn-sm">
@@ -1550,6 +1552,10 @@
     <script src="{{ asset('admin') }}/assets/js/bundle/select2.bundle.js"></script>
     <script src="{{ asset('admin') }}/assets/js/bundle/sweetalert2.bundle.js"></script>
     @include('admin.ingaz.maids.partials.field-rules')
+    @include('admin.ingaz.maids.partials.form-field-config', [
+        'disableHiddenInputs' => false,
+        'existingFiles' => ['maid_cv_file' => filled($obj->maid_cv_file)],
+    ])
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const form = document.getElementById('maidForm');
@@ -2736,6 +2742,9 @@
 
                 var isValid = true;
                 var errors = [];
+                if (window.maidFormFields) {
+                    window.maidFormFields.apply();
+                }
                 var typeContext = getTypeContext();
                 var cvTypeValue = $('select[name="type_id"]').val();
 
@@ -2758,7 +2767,7 @@
                 }
                 var image = imageInput && imageInput.files ? imageInput.files.length : 0;
 
-                if (!image && !hasExistingMaidImage) {
+                if (!window.maidFormFields.relaxed('image') && !image && !hasExistingMaidImage) {
                     errors.push(maidCreateTranslations.workerImageRequired);
                     isValid = false;
                 }
@@ -2769,6 +2778,12 @@
 
                 // في التأجير تصبح الحقول اختيارية، لكن إذا أُدخل رقم هوية فيلزم أن يكون بصيغة صحيحة.
                 if (typeContext.isRental) {
+                    if (idNumber && !idPattern.test(idNumber)) {
+                        errors.push(maidCreateTranslations.validIdNumberRequired);
+                        isValid = false;
+                    }
+                } else if (window.maidFormFields.relaxed('id_fields')) {
+                    // الهوية اختيارية أو مخفية في إعدادات الشركة: نتحقق من الصيغة فقط إذا أُدخلت
                     if (idNumber && !idPattern.test(idNumber)) {
                         errors.push(maidCreateTranslations.validIdNumberRequired);
                         isValid = false;
@@ -2829,12 +2844,19 @@
                     }
                 }
 
-                if (!typeContext.isInstantTransfer && !typeContext.isRental) {
+                if (!typeContext.isInstantTransfer && !typeContext.isRental && !window.maidFormFields.relaxed('marital_status')) {
                     var maritalStatus = $('select[name="marital_status:ar"]').val();
                     if (!maritalStatus || maritalStatus.trim() === '') {
                         errors.push(maidCreateTranslations.maritalStatusRequired);
                         isValid = false;
                     }
+                }
+
+                // الملفات الإلزامية حسب إعدادات السير الذاتية (مثل ملف السيرة الجاهزة)
+                var requiredFileErrors = window.maidFormFields.missingRequired();
+                if (requiredFileErrors.length) {
+                    errors = errors.concat(requiredFileErrors);
+                    isValid = false;
                 }
 
                 // صيغ الحقول وحدود التواريخ (partials.field-rules)

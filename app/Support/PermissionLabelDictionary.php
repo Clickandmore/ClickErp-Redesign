@@ -52,6 +52,11 @@ final class PermissionLabelDictionary
     /** مسميات كاملة لصلاحيات بعينها، تتجاوز أي تركيب آلي. */
     private const EXACT = [
         'maids_share_whatsapp' => 'مشاركة السير عبر واتساب',
+        'messaging_send' => 'إرسال الرسائل (SMS وواتساب) ومحادثات واتساب',
+        'messaging_log_view' => 'عرض سجل الرسائل',
+        'messaging_templates_manage' => 'إدارة قوالب الرسائل',
+        'messaging_alerts_manage' => 'إدارة إعدادات التنبيهات الآلية',
+        'messaging_integrations_manage' => 'إدارة إعدادات الربط مع مزودي الرسائل',
         'rec_contracts_archive_view' => 'عرض أرشيف عقود الاستقدام',
         'rec_contracts_archive' => 'أرشفة واسترجاع عقود الاستقدام',
         'rent_contract_archive_view' => 'عرض أرشيف عقود الإيجار',

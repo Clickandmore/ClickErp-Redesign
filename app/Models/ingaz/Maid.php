@@ -376,6 +376,14 @@ class Maid extends Model
      */
     public function cvPreviewUrl(): ?string
     {
+        // إعدادات السير الذاتية: "السيرة المرفوعة" تُعرض للعميل بدل المولّدة متى وُجدت،
+        // عبر نفس الرابط الموقّع الثابت الذي تستخدمه المواقع الخارجية (لا ينتهي ولا يتغير).
+        if ($uploaded = $this->uploadedClientCvPath()) {
+            return $this->exists && Route::has('maids.cv-preview.shared')
+                ? URL::signedRoute('maids.cv-preview.shared', ['maid' => $this->getKey()])
+                : showFile($uploaded);
+        }
+
         $path = $this->getRawOriginal('cv_preview');
 
         if (!filled($path)) {
@@ -398,8 +406,41 @@ class Maid extends Model
         return showFile($this->cv_file);
     }
 
+    /**
+     * ملف السيرة الذي رفعته الشركة (maid_cv_file) إذا كان الإعداد يعرض السيرة المرفوعة للعميل.
+     */
+    public function uploadedClientCvPath(): ?string
+    {
+        if (!\App\Support\CvOptionsSettings::displaysUploadedCv()) {
+            return null;
+        }
+
+        $path = $this->getRawOriginal('maid_cv_file');
+
+        return filled($path) ? (string) $path : null;
+    }
+
+    /** نفس الملف السابق لكن فقط إن كان صورة (لأماكن العرض التي تستخدم وسم img). */
+    public function uploadedClientCvImagePath(): ?string
+    {
+        $path = $this->uploadedClientCvPath();
+        if (!$path) {
+            return null;
+        }
+
+        $extension = strtolower(pathinfo(parse_url($path, PHP_URL_PATH) ?: $path, PATHINFO_EXTENSION));
+
+        return in_array($extension, \App\Support\MaidFieldRules::IMAGE_EXTENSIONS, true) ? $path : null;
+    }
+
     public function getCvDownloadURLAttribute(): ?string
     {
+        if ($uploaded = $this->uploadedClientCvPath()) {
+            return $this->exists && Route::has('maids.cv-preview.shared')
+                ? URL::signedRoute('maids.cv-preview.shared', ['maid' => $this->getKey(), 'download' => 1])
+                : showFile($uploaded);
+        }
+
         if (!filled($this->getRawOriginal('cv_preview'))
             || !$this->exists
             || !Route::has('maids.cv-preview.shared')) {

@@ -95,6 +95,18 @@ class RouteServiceProvider extends ServiceProvider
         });
 
         // تسجيل العملاء والتوكن وشاشة الموافقة: حد لكل IP يكفي للربط ويوقف الإغراق.
+        // واجهات البوت: كل الطلبات تأتي من عنوان البوت نفسه، فالحد على القيمة المطلوبة لا على العنوان
+        RateLimiter::for('bot-contract-status', function (Request $request) {
+            $value = (string) ($request->input('search_value') ?? $request->input('inpuut_id') ?? $request->input('inpuut_passport_id') ?? '');
+
+            return Limit::perMinute(10)->by('bot-status:' . hash('sha256', $value));
+        });
+
+        RateLimiter::for('bot-store-ticket', function (Request $request) {
+            // يمنع إغراق نفس الرقم برسائل SMS
+            return Limit::perMinute(3)->by('bot-ticket:' . hash('sha256', (string) $request->input('phone')));
+        });
+
         RateLimiter::for('mcp-oauth', function (Request $request) {
             return Limit::perMinute(30)->by('mcp-oauth:' . $request->ip());
         });

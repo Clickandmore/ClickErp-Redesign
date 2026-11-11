@@ -2,7 +2,17 @@
 Options +FollowSymLinks
 RewriteEngine On
 
-RewriteCond %{REQUEST_URI} !^/public/ 
+# حين يكون جذر المشروع هو جذر الموقع: امنع الوصول المباشر لأي ملف خارج public/
+# (السجلات، الكود، legacy/ وأداة الترحيل، .git ...). الشرط -f يجعل المنع للملفات
+# الموجودة فعلاً فقط، فلا يتأثر مسار مثل /packages الذي هو صفحة في الموقع.
+RewriteCond %{REQUEST_FILENAME} -f
+RewriteRule ^(app|bootstrap|certificate|config|database|docs|integrations|lang|legacy|migration_system|node_modules|packages|resources|routes|scripts|storage_old|stubs|tests|tools|vendor|\.(?!well-known/)[^/]+)/ - [F,L]
+RewriteCond %{REQUEST_FILENAME} -f
+RewriteRule ^storage/(?!app/public/) - [F,L]
+RewriteCond %{REQUEST_FILENAME} -f
+RewriteRule ^(artisan|server\.php|default\.php|info\.txt|error_log|routes\.txt|phpunit[^/]*\.xml|webpack\.mix\.js)$ - [F,L]
+
+RewriteCond %{REQUEST_URI} !^/public/
 
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteCond %{REQUEST_FILENAME} !-f
@@ -17,7 +27,7 @@ RewriteRule ^(/)?$ public/index.php [L]
 Options -Indexes
 
 # block files which needs to be hidden, specify .example extension of the file
-<Files ~ "\.(env|ini|json|config.js|md|gitignore|gitattributes|lock)$">
+<Files ~ "\.(env|ini|json|config.js|md|gitignore|gitattributes|lock|log|sql|bak|enc|pem|key)$">
     Order allow,deny
     Deny from all
 </Files>

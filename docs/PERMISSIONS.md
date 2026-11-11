@@ -33,6 +33,29 @@
 تمنحان الأرشفة أيضاً. ترحيل `2026_11_08_000006_add_contract_archive_permissions` ينشئها دون منحها لأي دور،
 ثم يمنحها أمر `permissions:prepare-server` للدور الرئيسي.
 
+## صلاحيات «الرسائل والتواصل»
+
+كل شاشات الرسائل في قائمة جانبية واحدة «الرسائل والتواصل»، والصلاحيات معرّفة في
+`App\Support\MessagingPermissions`:
+
+| الصلاحية | تفتح | تقبل أيضاً |
+|---|---|---|
+| `messaging_send` | محادثات واتساب، إرسال واتساب، إرسال SMS، إعادة إرسال رسالة فاشلة | `notifications_control` |
+| `messaging_log_view` | سجل الرسائل | `notifications_control` |
+| `messaging_templates_manage` | قوالب الرسائل وإنشاء قالب واتساب لدى المزود | `notifications_control`، `notifications_view` |
+| `messaging_alerts_manage` | إعدادات التنبيهات الآلية (القواعد، الجدولة، تواصل معنا، تنبيه حجوزات الموقع الخارجي) | `notifications_control` |
+| `messaging_integrations_manage` | إعدادات الربط: البريد وبوابات SMS ومزودو واتساب (Click Live Chat وMeta وUltraMsg وWiders) واختبار الاتصال، وإشعارات التطبيق Firebase (`/dash/firebase-settings`) | — وحدها |
+
+`notifications_control` لم تعد تفتح إعدادات الربط عمداً، وكذلك `settings_view`/`settings_control` لم تعد تفتح إعدادات Firebase (نُقلت من «الإعدادات» إلى «الرسائل والتواصل»)، لأنها تحوي مفاتيح API وكلمات مرور المزودين.
+ترحيل `2026_11_11_120000_add_messaging_permissions` ينشئ الصلاحيات الخمس ويمنحها لدور `Administrator`،
+ثم شغّل `permissions:prepare-server`. لمنح إعدادات الربط لدور آخر استخدم `/dash/perms/{roleId}`.
+
+مسار الحفظ `notifications.settings.update` مشترك بين الصفحتين: أقسام `email` و`sms` و`whatsapp`
+تحتاج صلاحية الربط، وباقي الأقسام صلاحية التنبيهات. تنبيه حجوزات الموقع الخارجي يُحفظ من صفحة التنبيهات
+لكنه يبقى مخزناً في `sms.external_order_admin_notification` داخل `CommunicationSettings` كما كان.
+
+روابط Webhook لدى المزودين (`api/webhooks/clickchat` و`api/webhooks/whatsapp`) وأسماء المسارات لم تتغير.
+
 ## صلاحية حذف تحويلات مساند
 
 الصلاحية المستقلة `musaned_transfers_delete` تُظهر زر حذف تحويل مساند وتسمح بتنفيذ الحذف.

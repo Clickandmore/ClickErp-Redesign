@@ -374,6 +374,13 @@ const PARTENR_CONTROL = 'partenr_control';
     const NOTIFICATIONS_DELETE = 'notifications_delete';
     const NOTIFICATIONS_CONTROL = 'notifications_control';
 
+    // الرسائل والتواصل — انظر App\Support\MessagingPermissions
+    const MESSAGING_SEND = 'messaging_send';
+    const MESSAGING_LOG_VIEW = 'messaging_log_view';
+    const MESSAGING_TEMPLATES_MANAGE = 'messaging_templates_manage';
+    const MESSAGING_ALERTS_MANAGE = 'messaging_alerts_manage';
+    const MESSAGING_INTEGRATIONS_MANAGE = 'messaging_integrations_manage';
+
     const SLIDERS_VIEW = 'sliders_view';
     const SLIDERS_CREATE = 'sliders_create';
     const SLIDERS_EDIT = 'sliders_edit';

@@ -232,7 +232,9 @@ class WhatsAppInboxController extends Controller
 
     public function createTemplate(Request $request, MetaWhatsAppTemplateService $templateService)
     {
-        $this->authorizeNotifications();
+        if (!\App\Support\MessagingPermissions::allows(\App\Support\MessagingPermissions::TEMPLATES)) {
+            abort(403, 'ليس لديك صلاحية لإدارة قوالب الرسائل');
+        }
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:512', 'regex:/^[a-z0-9_]+$/'],
@@ -512,8 +514,8 @@ class WhatsAppInboxController extends Controller
 
     private function authorizeNotifications(): void
     {
-        if (!@AdminGuardHasPerm(\App\PermKeys::NOTIFICATIONS_CONTROL)) {
-            abort(403, 'ليس لديك صلاحية لإدارة رسائل واتساب');
+        if (!\App\Support\MessagingPermissions::allows(\App\Support\MessagingPermissions::SEND)) {
+            abort(403, 'ليس لديك صلاحية لإرسال رسائل واتساب');
         }
     }
 

@@ -6,6 +6,7 @@ use App\Http\Controllers\admin\Controller;
 use App\Support\CommunicationSettings;
 use App\Support\AutomationSettings;
 use App\Support\NotificationAlertSettings;
+use App\Support\MessagingPermissions;
 use App\Models\ingaz\Order;
 use App\Enums\ingaz\OrderEnum;
 use App\Services\WhatsApp\MetaWhatsAppService;
@@ -17,11 +18,14 @@ use Illuminate\Validation\ValidationException;
 
 class NotificationSettingsController extends Controller
 {
-    private const ALLOWED_SECTIONS = ['alerts', 'email', 'sms', 'whatsapp', 'contact'];
+    private const ALLOWED_SECTIONS = ['alerts', 'email', 'sms', 'whatsapp', 'contact', 'external_order_alert', 'verification'];
+
+    /** أقسام تُحفظ من صفحة «إعدادات التنبيهات» وتعود إليها. */
+    private const ALERT_PAGE_SECTIONS = ['alerts', 'contact', 'external_order_alert'];
 
     public function edit()
     {
-        if (!@AdminGuardHasPerm(\App\PermKeys::NOTIFICATIONS_CONTROL)) {
+        if (!MessagingPermissions::allows(MessagingPermissions::INTEGRATIONS)) {
             return redirect()->back()->with('error', __('admin.no_permissions'));
         }
 
@@ -32,7 +36,7 @@ class NotificationSettingsController extends Controller
 
     public function editAlerts()
     {
-        if (!@AdminGuardHasPerm(\App\PermKeys::NOTIFICATIONS_CONTROL)) {
+        if (!MessagingPermissions::allows(MessagingPermissions::ALERTS)) {
             return redirect()->back()->with('error', __('admin.no_permissions'));
         }
 
@@ -46,21 +50,23 @@ class NotificationSettingsController extends Controller
             'alertTemplateOptions' => NotificationAlertSettings::templateOptions(),
             'automationSettings' => AutomationSettings::all(),
             'alertRuntimeStats' => $this->alertRuntimeStats(),
+            'externalOrderAlert' => (array) data_get(CommunicationSettings::sms(), 'external_order_admin_notification', []),
         ]);
     }
 
     public function update(Request $request)
     {
-        if (!@AdminGuardHasPerm(\App\PermKeys::NOTIFICATIONS_CONTROL)) {
-            return redirect()->back()->with('error', __('admin.no_permissions'));
-        }
-
         $section = (string) $request->input('section');
 
         if (!in_array($section, self::ALLOWED_SECTIONS, true)) {
             return redirect()
-                ->route('notifications.settings')
+                ->back()
                 ->with('error', 'القسم المطلوب غير صحيح.');
+        }
+
+        // نفس المسار يحفظ إعدادات الربط وإعدادات التنبيهات؛ لكل منهما صلاحيته.
+        if (!@AdminGuardHasAnyPerm(MessagingPermissions::forSettingsSection($section))) {
+            return redirect()->back()->with('error', __('admin.no_permissions'));
         }
 
         try {
@@ -70,6 +76,8 @@ class NotificationSettingsController extends Controller
                 'sms' => $this->validateSmsSection($request),
                 'whatsapp' => $this->validateWhatsAppSection($request),
                 'contact' => \App\Support\ContactNotificationSettings::validate((array) $request->input('contact', [])),
+                'external_order_alert' => $this->validateExternalOrderAlertSection($request),
+                'verification' => $this->validateVerificationSection($request),
             };
 
             if ($section === 'alerts') {
@@ -78,26 +86,37 @@ class NotificationSettingsController extends Controller
                 $validatedContact = $request->has('contact')
                     ? \App\Support\ContactNotificationSettings::validate((array) $request->input('contact'))
                     : null;
+                $validatedExternalOrderAlert = $request->has('external_order_alert')
+                    ? $this->validateExternalOrderAlertSection($request)
+                    : null;
 
                 DB::transaction(function () use (
                     $validatedSectionPayload,
                     $validatedCustomAlerts,
                     $validatedAutomation,
-                    $validatedContact
+                    $validatedContact,
+                    $validatedExternalOrderAlert
                 ): void {
                     NotificationAlertSettings::persist($validatedSectionPayload, $validatedCustomAlerts);
                     AutomationSettings::persist($validatedAutomation);
                     if ($validatedContact !== null) {
                         \App\Support\ContactNotificationSettings::persist($validatedContact);
                     }
+                    if ($validatedExternalOrderAlert !== null) {
+                        $this->persistExternalOrderAlert($validatedExternalOrderAlert);
+                    }
                 });
             } elseif ($section === 'contact') {
                 \App\Support\ContactNotificationSettings::persist($validatedSectionPayload);
+            } elseif ($section === 'external_order_alert') {
+                $this->persistExternalOrderAlert($validatedSectionPayload);
+            } elseif ($section === 'verification') {
+                $this->persistVerification($validatedSectionPayload);
             } else {
                 CommunicationSettings::persistSection($section, $validatedSectionPayload);
             }
 
-            $route = in_array($section, ['alerts', 'contact'], true) ? 'notifications.settings.alerts' : 'notifications.settings';
+            $route = in_array($section, self::ALERT_PAGE_SECTIONS, true) ? 'notifications.settings.alerts' : 'notifications.settings';
 
             return redirect()
                 ->to(route($route) . '#' . $this->sectionAnchor($section))
@@ -110,14 +129,14 @@ class NotificationSettingsController extends Controller
                 'section' => $section,
             ]);
 
-            $fallbackRoute = in_array($section, ['alerts', 'contact'], true)
+            $fallbackRoute = in_array($section, self::ALERT_PAGE_SECTIONS, true)
                 ? 'notifications.settings.alerts'
                 : 'notifications.settings';
 
             return redirect()
                 ->to(route($fallbackRoute) . '#' . $this->sectionAnchor($section))
                 ->withInput($request->except('whatsapp.chatwoot.access_token'))
-                ->with('error', $section === 'alerts'
+                ->with('error', in_array($section, self::ALERT_PAGE_SECTIONS, true)
                     ? 'تعذر حفظ إعدادات التنبيهات. لم يتم حفظ أي جزء من التغييرات.'
                     : 'تعذر حفظ إعدادات الربط حالياً.');
         }
@@ -125,7 +144,7 @@ class NotificationSettingsController extends Controller
 
     public function testWhatsApp(MetaWhatsAppService $metaWhatsAppService)
     {
-        if (!@AdminGuardHasPerm(\App\PermKeys::NOTIFICATIONS_CONTROL)) {
+        if (!MessagingPermissions::allows(MessagingPermissions::INTEGRATIONS)) {
             abort(403, __('admin.no_permissions'));
         }
 
@@ -176,7 +195,7 @@ class NotificationSettingsController extends Controller
         Request $request,
         MetaWhatsAppOnboardingService $onboardingService
     ) {
-        if (!@AdminGuardHasPerm(\App\PermKeys::NOTIFICATIONS_CONTROL)) {
+        if (!MessagingPermissions::allows(MessagingPermissions::INTEGRATIONS)) {
             return response()->json(['message' => __('admin.no_permissions')], 403);
         }
 
@@ -374,12 +393,6 @@ class NotificationSettingsController extends Controller
 
     private function validateSmsSection(Request $request): array
     {
-        $validateUnifiedPhone = $request->boolean('sms.external_order_admin_notification.enabled')
-            && $request->input('sms.external_order_admin_notification.recipient_mode') === 'unified';
-        $unifiedPhoneRules = $validateUnifiedPhone
-            ? ['required', 'regex:/^(?:\+?9665|05|5)\d{8}$/']
-            : ['nullable'];
-
         $validated = $request->validate([
             'section' => 'required|in:sms',
             'sms' => 'required|array',
@@ -397,21 +410,87 @@ class NotificationSettingsController extends Controller
             'sms.bulk_send_limit' => 'required|integer|min:1|max:10000',
             'sms.bulk_confirmation_keyword' => 'required|string|max:50',
             'sms.disable_phone_verification' => 'nullable|boolean',
-            'sms.external_order_admin_notification' => 'required|array',
-            'sms.external_order_admin_notification.enabled' => 'nullable|boolean',
-            'sms.external_order_admin_notification.recipient_mode' => 'required|in:selected_marketer,unified',
-            'sms.external_order_admin_notification.unified_phone' => $unifiedPhoneRules,
             'sms.taqnyat' => 'required|array',
             'sms.taqnyat.base_url' => 'nullable|url|max:255',
             'sms.taqnyat.bearer_token' => 'nullable|string|max:5000',
         ], [
             'sms.url.url' => 'رابط مزود الرسائل النصية غير صحيح.',
             'sms.taqnyat.base_url.url' => 'رابط بوابة تقنيات غير صحيح.',
-            'sms.external_order_admin_notification.unified_phone.required' => 'أدخل الرقم الموحد الذي سيستقبل تنبيهات حجوزات الموقع الخارجي.',
-            'sms.external_order_admin_notification.unified_phone.regex' => 'صيغة الرقم الموحد غير صحيحة. استخدم 05XXXXXXXX أو 5XXXXXXXX أو 9665XXXXXXXX أو +9665XXXXXXXX.',
         ]);
 
+        // تنبيه حجوزات الموقع الخارجي انتقل إلى صفحة التنبيهات؛ لا يُعاد كتابته من هنا.
+        unset($validated['sms']['external_order_admin_notification']);
+
         return $validated['sms'];
+    }
+
+    private function validateVerificationSection(Request $request): array
+    {
+        $validated = $request->validate([
+            'verification' => 'required|array',
+            'verification.channel' => 'required|in:sms,whatsapp',
+            'verification.fallback_to_sms' => 'nullable|boolean',
+        ]);
+
+        if (!\App\Models\SmsTemplate::getByName(CommunicationSettings::VERIFICATION_TEMPLATE)) {
+            throw ValidationException::withMessages([
+                'verification.channel' => 'قالب «phone_verification_code» غير موجود أو غير نشط في «قوالب الرسائل»؛ فعّله أولاً.',
+            ]);
+        }
+        if ($validated['verification']['channel'] === 'whatsapp'
+            && !app(\App\Services\WhatsApp\WhatsAppMessagingService::class)->isConfigured()) {
+            throw ValidationException::withMessages([
+                'verification.channel' => 'مزود واتساب غير مربوط بعد؛ أكمل بيانات الربط في قسم واتساب ثم أعد المحاولة.',
+            ]);
+        }
+
+        return [
+            'channel' => $validated['verification']['channel'],
+            'fallback_to_sms' => $request->boolean('verification.fallback_to_sms'),
+        ];
+    }
+
+    /** القناة تُكتب على قالب رمز التحقق نفسه (مصدر واحد)، والاحتياط في إعدادات الربط. */
+    private function persistVerification(array $payload): void
+    {
+        DB::transaction(function () use ($payload): void {
+            \App\Models\SmsTemplate::query()
+                ->where('name', CommunicationSettings::VERIFICATION_TEMPLATE)
+                ->update(['channel' => $payload['channel'] === 'whatsapp'
+                    ? \App\Models\SmsTemplate::CHANNEL_WHATSAPP
+                    : \App\Models\SmsTemplate::CHANNEL_SMS]);
+            CommunicationSettings::persist(['verification' => ['fallback_to_sms' => $payload['fallback_to_sms']]], []);
+        });
+    }
+
+    /** يبقى التخزين في نفس مفتاح إعدادات SMS الذي يقرؤه ExternalOrderAdminSmsNotifier. */
+    private function persistExternalOrderAlert(array $payload): void
+    {
+        CommunicationSettings::persist(['sms' => ['external_order_admin_notification' => $payload]], []);
+    }
+
+    private function validateExternalOrderAlertSection(Request $request): array
+    {
+        $validateUnifiedPhone = $request->boolean('external_order_alert.enabled')
+            && $request->input('external_order_alert.recipient_mode') === 'unified';
+
+        $validated = $request->validate([
+            'external_order_alert' => 'required|array',
+            'external_order_alert.enabled' => 'nullable|boolean',
+            'external_order_alert.recipient_mode' => 'required|in:selected_marketer,unified',
+            'external_order_alert.unified_phone' => $validateUnifiedPhone
+                ? ['required', 'regex:/^(?:\+?9665|05|5)\d{8}$/']
+                : ['nullable', 'string', 'max:20'],
+        ], [
+            'external_order_alert.unified_phone.required' => 'أدخل الرقم الموحد الذي سيستقبل تنبيهات حجوزات الموقع الخارجي.',
+            'external_order_alert.unified_phone.regex' => 'صيغة الرقم الموحد غير صحيحة. استخدم 05XXXXXXXX أو 5XXXXXXXX أو 9665XXXXXXXX أو +9665XXXXXXXX.',
+        ]);
+
+        return [
+            'enabled' => $request->boolean('external_order_alert.enabled'),
+            'recipient_mode' => $validated['external_order_alert']['recipient_mode'],
+            'unified_phone' => (string) ($validated['external_order_alert']['unified_phone'] ?? ''),
+        ];
     }
 
     private function validateWhatsAppSection(Request $request): array
@@ -477,6 +556,8 @@ class NotificationSettingsController extends Controller
     private function successMessage(string $section): string
     {
         if ($section === 'contact') return 'تم تحديث إعدادات إشعارات تواصل معنا بنجاح.';
+        if ($section === 'external_order_alert') return 'تم تحديث تنبيه حجوزات الموقع الخارجي بنجاح.';
+        if ($section === 'verification') return 'تم تحديث قناة رمز التحقق بنجاح.';
         return match ($section) {
             'alerts' => 'تم تحديث إعدادات التنبيهات الآلية بنجاح.',
             'email' => 'تم تحديث إعدادات البريد الإلكتروني بنجاح.',
@@ -488,6 +569,8 @@ class NotificationSettingsController extends Controller
     private function sectionAnchor(string $section): string
     {
         if ($section === 'contact') return 'contact-notification-settings';
+        if ($section === 'external_order_alert') return 'external-order-alert-settings';
+        if ($section === 'verification') return 'verification-settings';
         return match ($section) {
             'alerts' => 'alert-rules-settings',
             'email' => 'email-settings',

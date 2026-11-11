@@ -5,28 +5,15 @@
 @endsection
 
 @section('content')
-@if (@AdminGuardHasPerm(\App\PermKeys::NOTIFICATIONS_CONTROL))
+@if (\App\Support\MessagingPermissions::allows(\App\Support\MessagingPermissions::SEND))
     <div class="container-fluid">
+        @include('admin.ingaz.messaging._nav')
         <div class="card">
             <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
                 <h4 class="mb-0">
                     <i class="fa fa-whatsapp text-success me-2"></i>
-                    إرسال واتساب (تحقق/متابعة)
+                    إرسال رسالة واتساب
                 </h4>
-                <div class="d-flex gap-2">
-                    <a href="{{ route('notifications.index') }}" class="btn btn-outline-primary">
-                        <i class="fa fa-sms me-1"></i>
-                        إرسال SMS
-                    </a>
-                    <a href="{{ route('notifications.settings') }}" class="btn btn-outline-dark">
-                        <i class="fa fa-plug me-1"></i>
-                        إعدادات الربط
-                    </a>
-                    <a href="{{ route('messages.index') }}" class="btn btn-outline-secondary">
-                        <i class="fa fa-inbox me-1"></i>
-                        سجل الرسائل
-                    </a>
-                </div>
             </div>
             <div class="card-body">
                 <div class="alert {{ $whatsappConfig['configured'] ? 'alert-success' : 'alert-danger' }} mb-4">

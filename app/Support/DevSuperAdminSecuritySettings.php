@@ -50,7 +50,9 @@ class DevSuperAdminSecuritySettings
             return Hash::check($password, $hash);
         }
 
-        return hash_equals((string) config('dev_superadmin.password'), $password);
+        $configured = (string) config('dev_superadmin.password');
+
+        return $configured !== '' && hash_equals($configured, $password);
     }
 
     public static function persist(array $payload): array

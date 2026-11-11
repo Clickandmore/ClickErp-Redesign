@@ -31,7 +31,8 @@
                 $priceDisplay = $priceRaw !== null ? formatMoney($priceRaw) : null;
                 $rentalPriceDisplay = $rentalPriceRaw !== null ? formatMoney($rentalPriceRaw) : null;
                 $transferPriceDisplay = $transferPriceRaw !== null ? formatMoney($transferPriceRaw) : null;
-                $cvFile = $maid->cv_file ?? $maid->cv_preview;
+                // إعدادات السير الذاتية: عند اختيار "السيرة المرفوعة" تُفتح صورة السيرة التي رفعتها الشركة.
+                $cvFile = $maid->uploadedClientCvImagePath() ?? $maid->cv_file ?? $maid->cv_preview;
                 $cv_code = $maid->cv_code ? $maid->cv_code : null;
                 $listingJobTypes = $maid->site_listing_job_types ?? $maid->jobTypes;
             @endphp

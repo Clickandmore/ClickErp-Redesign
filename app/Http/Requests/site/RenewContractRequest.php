@@ -7,6 +7,13 @@ use App\Http\Requests\MainRequest;
 class RenewContractRequest extends MainRequest
 {
     /**
+     * مرفقات تجديد العقد تُرفع من نموذج عام بلا تسجيل دخول وتُخزَّن على قرص
+     * public المخدوم عبر /storage — لذلك يجب حصرها في صور ومستندات PDF فقط
+     * (لا php/html/svg) مع حدّ للحجم.
+     */
+    public const DOCUMENT_FILE_RULES = ['file', 'mimes:jpg,jpeg,png,webp,gif,bmp,heic,heif,tif,tiff,pdf,doc,docx', 'max:20480'];
+
+    /**
      * Determine if the user is authorized to make this request.
      *
      * @return bool
@@ -35,15 +42,15 @@ class RenewContractRequest extends MainRequest
             'worker_old_salary' => ['required'],
             'worker_brought_from' => ['required'],
             'worker_marital_status' => ['required'],
-            'sponsor_card' => ['required'],
-            'worker_residence' => ['required'],
-            'first_page_of_the_worker_passport' => ['required'],
-            'travel_tickets' => ['required'],
-            'visa_printed_in_the_worker_passport' => ['required'],
-            'exit_and_re_entry_visa' => ['required'],
-            'customer_national_address' => ['required'],
-            'worker_information' => ['required'],
-            'image_of_bank_transfer' => ['required'],
+            'sponsor_card' => ['required', ...self::DOCUMENT_FILE_RULES],
+            'worker_residence' => ['required', ...self::DOCUMENT_FILE_RULES],
+            'first_page_of_the_worker_passport' => ['required', ...self::DOCUMENT_FILE_RULES],
+            'travel_tickets' => ['required', ...self::DOCUMENT_FILE_RULES],
+            'visa_printed_in_the_worker_passport' => ['required', ...self::DOCUMENT_FILE_RULES],
+            'exit_and_re_entry_visa' => ['required', ...self::DOCUMENT_FILE_RULES],
+            'customer_national_address' => ['required', ...self::DOCUMENT_FILE_RULES],
+            'worker_information' => ['required', ...self::DOCUMENT_FILE_RULES],
+            'image_of_bank_transfer' => ['required', ...self::DOCUMENT_FILE_RULES],
         'g-recaptcha-response' => 'required',
 
         ];

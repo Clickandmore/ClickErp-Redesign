@@ -201,6 +201,17 @@ class AuthController extends Controller
             ], 422);
         }
 
+        // لا تغيير لكلمة المرور إلا بعد تأكيد كود التحقق لنفس الرقم (confirm-code)
+        if (!\App\Support\PasswordResetGrant::consume($data['phone'])) {
+            $message = app()->getLocale() === 'en' ? 'Verify the code sent to your phone first.' : 'يجب تأكيد كود التحقق المرسل إلى جوالك أولاً.';
+
+            return apiResponse(false, $message, [
+                'errors' => [
+                    'code' => [$message],
+                ],
+            ], 403);
+        }
+
         $user->forceFill([
             'password' => Hash::make($data['new_password']),
             'remember_token' => Str::random(60),

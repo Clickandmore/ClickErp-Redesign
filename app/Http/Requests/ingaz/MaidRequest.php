@@ -8,6 +8,7 @@ use App\Models\ingaz\JobType;
 use App\Models\ingaz\Maid;
 use App\Support\ExperiencePeriod;
 use App\Support\MaidFieldRules;
+use App\Support\MaidFormFieldSettings;
 use App\Rules\InternationalMobile;
 use App\Services\BranchAccessService;
 use Illuminate\Validation\Rule;
@@ -50,7 +51,13 @@ class MaidRequest extends MainRequest
                     'max:' . MaidFieldRules::FILE_MAX_KB,
                 ]),
             ],
-            'maid_cv_file' => 'nullable|file|mimes:pdf|max:10240',
+            'maid_cv_file' => [
+                Rule::requiredIf(fn () => $this->maidCvFileIsRequired()),
+                'nullable',
+                'file',
+                'mimes:' . implode(',', MaidFieldRules::MAID_CV_MIMES),
+                'max:' . MaidFieldRules::FILE_MAX_KB,
+            ],
             'video' => 'nullable|file|mimes:mp4,mov,avi,wmv,webm,mkv,m4v|max:' . MaidFieldRules::VIDEO_MAX_KB,
             'remove_video' => 'nullable|boolean',
             'video_link' => 'nullable|url|max:2000',
@@ -96,7 +103,8 @@ class MaidRequest extends MainRequest
             'experience_status' => 'required|in:has_experience,no_experience',
             'cooking_experience' => [
                 'nullable',
-                Rule::requiredIf(fn () => $this->input('experience_status') === 'has_experience'),
+                Rule::requiredIf(fn () => $this->input('experience_status') === 'has_experience'
+                    && !MaidFormFieldSettings::isRelaxed('cooking_experience')),
                 Rule::in([
                     'arabic_cooking',
                     'regular_cooking',
@@ -246,6 +254,12 @@ class MaidRequest extends MainRequest
                 : null,
         ];
 
+        // النموذج يرسل العمر "0" عند تركه فارغًا؛ والعمر قد يُترك فارغًا عندما تجعل الشركة
+        // تاريخ الميلاد اختياريًا أو تخفي العمر من إعدادات السير، فـ"0" تعني: لم يُدخل.
+        if ($this->has('age') && in_array(trim((string) $this->input('age')), ['', '0'], true)) {
+            $data['age'] = null;
+        }
+
         if ($this->isSelectedRentalType()) {
             $branchAccess = app(BranchAccessService::class);
             $forcedBranchId = $branchAccess->enabled() && !$branchAccess->canViewAllBranches()
@@ -304,7 +318,8 @@ class MaidRequest extends MainRequest
             'passport_expiry_date.after_or_equal' => 'تاريخ انتهاء جواز السفر يجب أن يكون بعد تاريخ الإصدار ولا يكون تاريخًا منتهيًا',
             'cv_file.required' => helperTrans('web.cv_file_is_required'),
             'maid_cv_file.file' => 'ملف سيرة العاملة من المكتب الخارجي غير صالح',
-            'maid_cv_file.mimes' => 'يجب أن يكون ملف سيرة العاملة من المكتب الخارجي بصيغة PDF',
+            'maid_cv_file.mimes' => 'يجب أن يكون ملف سيرة العاملة بصيغة PDF أو صورة (JPG, PNG, WEBP)',
+            'maid_cv_file.required' => 'ملف سيرة العاملة (صورة أو PDF) مطلوب حسب إعدادات السير الذاتية',
             'maid_cv_file.max' => 'حجم ملف سيرة العاملة من المكتب الخارجي يجب ألا يتجاوز 10 ميجابايت',
             'driving_license_file.file' => 'مرفق رخصة القيادة غير صالح',
             'driving_license_file.mimes' => 'يجب أن يكون مرفق رخصة القيادة بصيغة PDF أو صورة (JPG, PNG, WEBP)',
@@ -544,6 +559,26 @@ class MaidRequest extends MainRequest
     /**
      * @param string $type string | date | number
      */
+    /**
+     * ملف السيرة الجاهزة إلزامي إذا اختارت الشركة ذلك في إعدادات السير الذاتية،
+     * إلا في التعديل عندما يكون للعاملة ملف محفوظ مسبقًا.
+     */
+    private function maidCvFileIsRequired(): bool
+    {
+        if (MaidFormFieldSettings::state('maid_cv_file') !== MaidFormFieldSettings::REQUIRED) {
+            return false;
+        }
+
+        $maidId = $this->route('maid');
+        if (!$maidId) {
+            return true;
+        }
+
+        $this->existingMaid ??= $maidId instanceof Maid ? $maidId : Maid::find($maidId);
+
+        return !filled($this->existingMaid?->getRawOriginal('maid_cv_file'));
+    }
+
     private function isChanged(string $field, string $type = 'string'): bool
     {
         $maidId = $this->route('maid');

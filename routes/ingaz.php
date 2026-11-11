@@ -129,14 +129,15 @@ Route::group(
         Route::post('moyasar/webhook', [MoyasarWebhookController::class, 'webhook'])->name('moyasar.webhook')->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class]);
 
         Route::group(["prefix" => "admin"], function () {
-            Route::get('print/rental-contract/{id}', [AdminContractController::class, 'printRentalContract'])->name('print.rental.contract');
-            Route::post('RentContract/{id}/save-signature', [AdminContractController::class, 'saveSignature'])->name('RentContract.saveSignature');
             Route::get('form-settings/preview/rental-contract', [FormSettingsController::class, 'publicRentalContractPreview'])
                 ->middleware('throttle:60,1')
                 ->name('public.form-settings.preview.rental-contract');
         });
 
         Route::group(["prefix" => "admin", "middleware" => ["auth:admin", "admin", "admin.route.permission"]], function () {
+            // كانا متاحين لأي زائر برقم العقد التسلسلي (بيانات العميل والعاملة، والتوقيع نيابة عنه)
+            Route::get('print/rental-contract/{id}', [AdminContractController::class, 'printRentalContract'])->name('print.rental.contract');
+            Route::post('RentContract/{id}/save-signature', [AdminContractController::class, 'saveSignature'])->name('RentContract.saveSignature');
 
             Route::resource('partenrs', ClientController::class);
             Route::resource('why-us', WhyUsController::class);
@@ -911,13 +912,13 @@ Route::group(
     ],
     function () {
         Route::get('superadmin', [DevSuperAdminController::class, 'loginForm'])->name('superadmin.login');
-        Route::post('superadmin', [DevSuperAdminController::class, 'login'])->name('superadmin.login.post');
+        Route::post('superadmin', [DevSuperAdminController::class, 'login'])->middleware('throttle:5,1')->name('superadmin.login.post');
 
         Route::prefix('dev-super-admin')->name('dev-superadmin.')->group(function () {
             Route::get('login', function () {
                 return redirect()->route('superadmin.login');
             })->name('login');
-            Route::post('login', [DevSuperAdminController::class, 'login'])->name('login.post');
+            Route::post('login', [DevSuperAdminController::class, 'login'])->middleware('throttle:5,1')->name('login.post');
 
             Route::middleware('dev.superadmin')->group(function () {
                 Route::get('invoice-corrections', [\App\Http\Controllers\admin\SuperAdminInvoiceCorrectionController::class, 'index'])->name('invoice-corrections.index');
