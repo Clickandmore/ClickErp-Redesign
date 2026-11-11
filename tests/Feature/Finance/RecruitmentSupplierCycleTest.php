@@ -489,7 +489,7 @@ class RecruitmentSupplierCycleTest extends TestCase
         $this->assertNotSame($root->id, $nested->parent_id);
 
         $nationalityNode = CostCenter::query()->find($nested->parent_id);
-        $this->assertSame('اختبار الهند', $nationalityNode->title);
+        $this->assertSame(RecruitmentCostCenters::NATIONALITY_TITLE_PREFIX . 'اختبار الهند', $nationalityNode->title);
         $this->assertSame($root->id, $nationalityNode->parent_id);
         $this->assertSame(0, (int) $nationalityNode->table_related_id);
     }

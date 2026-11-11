@@ -48,6 +48,7 @@ class CostCenterController extends Controller
         $tree = $service->getAccountTree();
         $data["accountTree"] = $tree['costs'];
         $data["constraints"] = $tree['constraintDetails'];
+        $data["nationalityNodes"] = \App\Support\RecruitmentCostCenters::nationalityNodes();
         $data["createRoute"] = route($this->mainRoute . ".create");
         $data["dataTableRoute"] = route($this->mainRoute . ".index");
         $data["bladeTitle"] = __("finance::finance.Cost Center Operations");
@@ -142,6 +143,16 @@ class CostCenterController extends Controller
      */
     public function destroy(int $id, ObjService $service)
     {
+        // الحذف يمتد بالـ cascade إلى المراكز الفرعية وإلى سطور القيود المربوطة، فحذف عقدة دولة
+        // كان يمسح مراكز عقودها وقيودها. لا يُحذف إلا مركز فارغ.
+        $hasChildren = \Nami\Finance\Models\CostCenter::query()->where('parent_id', $id)->exists();
+        $hasLines = \Illuminate\Support\Facades\DB::table('fn_constraint_details')->where('cost_center_id', $id)->exists();
+        if ($hasChildren || $hasLines) {
+            return jsonError($hasChildren
+                ? 'لا يمكن حذف مركز تكلفة تحته مراكز فرعية. انقلها أو احذفها أولاً.'
+                : 'لا يمكن حذف مركز تكلفة عليه قيود محاسبية.', 422);
+        }
+
         $service->delete($id);
         return jsonSuccess([],'',201);
     }

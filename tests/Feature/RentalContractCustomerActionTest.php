@@ -115,6 +115,19 @@ class RentalContractCustomerActionTest extends TestCase
         $this->assertNull($reminder->fresh()->response);
     }
 
+    public function test_customer_is_offered_only_their_subscribed_package(): void
+    {
+        $package = fn () => DB::table('packages')->insertGetId(['original_price' => 1000, 'price_after_discount' => 1000,
+            'price_with_tax' => 1150, 'days_count' => 30, 'rental_type' => 'monthly', 'duration_unit' => 'month', 'is_show' => true]);
+        $subscribed = $package();
+        $other = $package();
+        [$contract, $reminder] = $this->fixture();
+        DB::table('rental_contract_infos')->where('rental_contract_id', $contract->id)->update(['package_id' => $subscribed]);
+        $options = $this->actions->options($contract->fresh('info'), $reminder);
+        $this->assertSame([$subscribed], array_column($options, 'package_id'));
+        $this->assertNotContains($other, array_column($options, 'package_id'));
+    }
+
     public function test_return_is_only_an_intent_and_notifies_employee_once(): void
     {
         [$contract, $reminder] = $this->fixture();

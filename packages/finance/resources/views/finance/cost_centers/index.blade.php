@@ -58,6 +58,11 @@
             max-width: 480px;
         }
 
+        .cost-center-tree-toolbar .cost-center-nationality-filter {
+            min-width: 200px;
+            max-width: 260px;
+        }
+
         .cost-center-tree-actions {
             display: inline-flex;
             gap: 4px;
@@ -202,6 +207,15 @@
         <div class="cost-center-tree-toolbar">
             <input type="search" class="form-control" id="filterUl" placeholder="ابحث برقم أو اسم مركز التكلفة"
                 autocomplete="off" />
+            @if (!empty($nationalityNodes))
+                <select class="form-control cost-center-nationality-filter" id="nationalityFilter"
+                    aria-label="فلتر الجنسية">
+                    <option value="">كل الجنسيات</option>
+                    @foreach ($nationalityNodes as $node)
+                        <option value="{{ $node['id'] }}">{{ $node['name'] }} ({{ $node['children'] }} عقد)</option>
+                    @endforeach
+                </select>
+            @endif
             <button type="button" class="btn btn-outline-primary" id="expandCostCenters">
                 <i class="fa fa-folder-open"></i> فتح الكل
             </button>
@@ -306,10 +320,10 @@
                 const filter = ($('#filterUl').val() || '').trim().toLocaleLowerCase('ar');
 
                 if (!filter) {
-                    tree.find('[data-cost-center-node]').show();
-                    setBranches(false);
+                    applyNationality();
                     return;
                 }
+                $('#nationalityFilter').val('');
 
                 function evaluateNode(node) {
                     const $node = $(node);
@@ -336,6 +350,36 @@
                     evaluateNode(this);
                 });
             }
+
+            // فلتر الجنسية: يُظهر عقدة الدولة المختارة وعقودها فقط، مع الطريق إليها مفتوحاً.
+            function applyNationality() {
+                const centerId = $('#nationalityFilter').val();
+                tree.find('[data-cost-center-node]').show();
+                setBranches(false);
+                if (!centerId) {
+                    return;
+                }
+
+                const $node = tree.find('[data-cost-center-item][data-center-id="' + centerId + '"]')
+                    .closest('[data-cost-center-node]');
+                if (!$node.length) {
+                    return;
+                }
+
+                tree.find('[data-cost-center-node]').hide();
+                $node.show().find('[data-cost-center-node]').show();
+                $node.parents('[data-cost-center-node]').show();
+                $node.parents('ul.cost-center-tree-branch').addClass('show');
+                $node.children('ul.cost-center-tree-branch').addClass('show');
+                $node.parents('[data-cost-center-node]').addBack()
+                    .children('[data-cost-center-item]').find('[data-bs-toggle="collapse"]').attr('aria-expanded', 'true');
+                $node[0].scrollIntoView({ block: 'start', behavior: 'smooth' });
+            }
+
+            $('#nationalityFilter').on('change', function() {
+                $('#filterUl').val('');
+                applyNationality();
+            });
 
             $('#filterUl').on('input', function() {
                 clearTimeout(filterTimer);

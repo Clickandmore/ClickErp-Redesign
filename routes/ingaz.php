@@ -402,6 +402,7 @@ Route::group(
             Route::get('maid-cv-shares/clients', [\App\Http\Controllers\ingaz\MaidCvShareController::class, 'clients'])->name('maid-cv-shares.clients');
             Route::post('maid-cv-shares', [\App\Http\Controllers\ingaz\MaidCvShareController::class, 'store'])->name('maid-cv-shares.store');
             Route::get('maid-cv-shares/{share}', [\App\Http\Controllers\ingaz\MaidCvShareController::class, 'show'])->whereNumber('share')->name('maid-cv-shares.show');
+            Route::put('maid-cv-shares/{share}', [\App\Http\Controllers\ingaz\MaidCvShareController::class, 'update'])->whereNumber('share')->name('maid-cv-shares.update');
             Route::post('maid-cv-shares/{share}/confirm', [\App\Http\Controllers\ingaz\MaidCvShareController::class, 'confirm'])->whereNumber('share')->name('maid-cv-shares.confirm');
             Route::post('maid-cv-shares/{share}/retry', [\App\Http\Controllers\ingaz\MaidCvShareController::class, 'retry'])->whereNumber('share')->name('maid-cv-shares.retry');
             Route::get('maid-cv-share-messages/{message}/download', [\App\Http\Controllers\ingaz\MaidCvShareController::class, 'download'])->whereNumber('message')->name('maid-cv-shares.download');

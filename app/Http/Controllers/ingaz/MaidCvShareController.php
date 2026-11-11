@@ -72,7 +72,7 @@ class MaidCvShareController extends Controller
     {
         $validated = $request->validate(['maid_ids' => ['required', 'array', 'min:1', 'max:20'],
             'maid_ids.*' => ['required', 'integer', 'distinct']]);
-        $maids = Maid::query()->approvedSubmission()->with(['nationality', 'jobTypes'])->whereIn('id', $validated['maid_ids'])->get();
+        $maids = Maid::query()->approvedSubmission()->with(['nationality', 'jobTypes', 'jobTitles', 'religion'])->whereIn('id', $validated['maid_ids'])->get();
         if ($maids->count() !== count($validated['maid_ids'])) {
             throw ValidationException::withMessages(['maid_ids' => 'بعض السير غير متاحة أو ليس لديك صلاحية الوصول إليها.']);
         }
@@ -104,7 +104,7 @@ class MaidCvShareController extends Controller
         if (!$allowedPhones->contains($meta->normalizePhone($data['phone']))) {
             throw ValidationException::withMessages(['phone' => 'اختر أحد أرقام العميل المسجلة.']);
         }
-        $maids = Maid::query()->approvedSubmission()->with(['nationality', 'jobTypes'])->whereIn('id', $data['maid_ids'])->get();
+        $maids = Maid::query()->approvedSubmission()->with(['nationality', 'jobTypes', 'jobTitles', 'religion'])->whereIn('id', $data['maid_ids'])->get();
         if ($maids->count() !== count($data['maid_ids'])) {
             throw ValidationException::withMessages(['maid_ids' => 'بعض السير غير متاحة أو ليس لديك صلاحية الوصول إليها.']);
         }
@@ -131,7 +131,33 @@ class MaidCvShareController extends Controller
     public function show(int $share)
     {
         $share = $this->accessibleShare($share)->load('messages');
-        return view('admin.ingaz.maid-cv-shares.show', compact('share'));
+        $service = app(MaidCvShareService::class);
+        $options = (array) ($share->messages->firstWhere('maid_id', null)?->snapshot ?? []) + $service->defaultOptions();
+        $editable = $share->status === 'draft' && (int) $share->admin_id === (int) auth('admin')->id()
+            && $share->created_at->gte(now()->subDay());
+        return view('admin.ingaz.maid-cv-shares.show', compact('share', 'options', 'editable'));
+    }
+
+    /** حفظ تعديلات المراجعة على المسودة، ثم الإرسال إن طلبه الموظف. */
+    public function update(Request $request, int $share, MaidCvShareService $service)
+    {
+        $model = $this->accessibleShare($share);
+        abort_unless((int) $model->admin_id === (int) auth('admin')->id(), 403);
+        abort_if($model->created_at->lt(now()->subDay()), 422, 'انتهت صلاحية المعاينة؛ جهز مشاركة جديدة.');
+        $data = $request->validate([
+            'fields' => ['nullable', 'array'], 'fields.*' => ['string', 'in:' . implode(',', array_keys(MaidCvShareService::FIELDS))],
+            'intro' => ['nullable', 'string', 'max:1000'], 'outro' => ['nullable', 'string', 'max:1000'],
+            'custom' => ['nullable', 'boolean'], 'message' => ['nullable', 'string', 'max:' . MaidCvShareService::MAX_LENGTH],
+            'items' => ['nullable', 'array'], 'items.*.include' => ['nullable', 'boolean'],
+            'items.*.name' => ['nullable', 'string', 'max:150'], 'items.*.reference' => ['nullable', 'string', 'max:50'],
+            'items.*.nationality' => ['nullable', 'string', 'max:100'], 'items.*.job' => ['nullable', 'string', 'max:150'],
+            'items.*.religion' => ['nullable', 'string', 'max:50'], 'items.*.age' => ['nullable', 'string', 'max:20'],
+            'items.*.experience' => ['nullable', 'string', 'max:100'], 'items.*.salary' => ['nullable', 'string', 'max:50'],
+            'items.*.note' => ['nullable', 'string', 'max:500'], 'send' => ['nullable', 'boolean'],
+        ]);
+        $service->updateDraft($model, $data);
+        if ($request->boolean('send')) return $this->confirm($model->id);
+        return redirect()->route('maid-cv-shares.show', $model->id)->with('success', 'تم حفظ التعديلات.');
     }
 
     public function confirm(int $share)
@@ -188,6 +214,11 @@ class MaidCvShareController extends Controller
         $message = MaidCvShareMessage::findOrFail($message);
         $this->accessibleShare($message->share_id);
         abort_unless($message->file_path, 404);
+        if (request()->boolean('inline')) {
+            // معاينة داخل الصفحة قبل الإرسال.
+            return Storage::disk('local')->response($message->file_path, $message->filename,
+                ['Content-Type' => 'application/pdf', 'X-Content-Type-Options' => 'nosniff', 'Cache-Control' => 'private, no-store']);
+        }
         return Storage::disk('local')->download($message->file_path, $message->filename, ['Content-Type' => 'application/pdf']);
     }
 
