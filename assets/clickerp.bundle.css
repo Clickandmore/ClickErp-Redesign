@@ -3212,3 +3212,4 @@ td.num.g{color:var(--green-d)}td.num.r{color:#d64545}
 @media (max-width:1200px){.sx-lay{grid-template-columns:1fr}.sx-nav{position:static;flex-direction:row;flex-wrap:wrap}.sx-int,.sx-ch{grid-template-columns:repeat(2,1fr)}.sx-br,.sx-nat{grid-template-columns:1fr 1fr}}
 .sx-check .ok span{text-decoration:none}
 td .fx-why{white-space:normal;line-height:1.6}
+.fx-side .kvgrid{grid-template-columns:1fr}.fx-side .kv{display:flex;flex-direction:row;justify-content:space-between;align-items:center;gap:10px;padding:10px 16px}.fx-side .kv b{text-align:end}

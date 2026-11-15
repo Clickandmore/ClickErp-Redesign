@@ -1,5 +1,5 @@
 {
-  "version": "v1.7",
+  "version": "v1.8",
   "date": "2026-11-16",
   "entry": "login.html",
   "screens": [
@@ -672,6 +672,51 @@
       "id": "setDev",
       "file": "setDev.html",
       "title": "المطوّر"
+    },
+    {
+      "id": "visaDash",
+      "file": "visaDash.html",
+      "title": "تأشيرات الشركة — المتابعة"
+    },
+    {
+      "id": "visaRequests",
+      "file": "visaRequests.html",
+      "title": "طلبات التأشيرات"
+    },
+    {
+      "id": "visaAdd",
+      "file": "visaAdd.html",
+      "title": "طلب تأشيرة جديد"
+    },
+    {
+      "id": "visaShow",
+      "file": "visaShow.html",
+      "title": "تفاصيل طلب التأشيرة"
+    },
+    {
+      "id": "visaBalance",
+      "file": "visaBalance.html",
+      "title": "رصيد التأشيرات"
+    },
+    {
+      "id": "visaReports",
+      "file": "visaReports.html",
+      "title": "تقارير التأشيرات"
+    },
+    {
+      "id": "visaPrebook",
+      "file": "visaPrebook.html",
+      "title": "الحجز المسبق للتأجير"
+    },
+    {
+      "id": "visaSettings",
+      "file": "visaSettings.html",
+      "title": "إعدادات التأشيرات"
+    },
+    {
+      "id": "hbCollect",
+      "file": "hbCollect.html",
+      "title": "التحصيل والتعويضات (بالساعة)"
     }
   ],
   "states": [

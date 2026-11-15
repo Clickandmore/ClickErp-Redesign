@@ -3350,11 +3350,11 @@ const DEPTS=[
   H("الاستقدام"),A("orders","shopping-cart","الطلبات","Orders","121"),A("cvs","files","السير الذاتية","CVs"),
   A("contracts","file-text","عقود الاستقدام","Recruitment contracts","115"),A("invoices","receipt","فواتير العقود","Contract invoices"),
   A("delegations","file-signature","تفاويض الإنجاز","Mandates"),A("trips","plane","الرحلات","Trips"),A("agents","handshake","الوكلاء الخارجيون","External agents"),
-  H("تأشيرات الشركة"),S("gauge","لوحة متابعة التأشيرات","Visa dashboard"),S("file-plus-2","طلبات التأشيرات","Visa requests"),S("wallet-cards","رصيد التأشيرات","Visa balance"),
-  S("bar-chart-3","تقارير التأشيرات","Visa reports"),S("calendar-clock","الحجز المسبق للتأجير","Pre-bookings"),S("sliders-horizontal","إعدادات التأشيرات","Visa settings"),
+  H("تأشيرات الشركة"),A("visaDash","gauge","لوحة متابعة التأشيرات","Visa dashboard"),A("visaRequests","file-plus-2","طلبات التأشيرات","Visa requests"),A("visaBalance","wallet-cards","رصيد التأشيرات","Visa balance"),
+  A("visaReports","bar-chart-3","تقارير التأشيرات","Visa reports"),A("visaPrebook","calendar-clock","الحجز المسبق للتأجير","Pre-bookings"),A("visaSettings","sliders-horizontal","إعدادات التأشيرات","Visa settings"),
   H("الإيجار والنقل"),A("rental","repeat","عقود التأجير","Rental contracts"),A("rentalInvoices","receipt-text","فواتير التأجير","Rental invoices"),A("rentalSettings","package","باقات التأجير","Rental packages"),A("rentalTerms","scroll-text","بنود عقد التأجير","Rental terms"),A("transfer","arrow-left-right","نقل الخدمات","Service transfer","17"),A("transferOverview","activity","حالات نقل الخدمات","Transfer overview"),A("housing","home","الإيواء","Housing"),
   H("التأجير بالساعة"),A("hb-board","layout-list","لوحة الطلبات","Requests board"),A("hb-visits","map-pin","الزيارات","Visits"),A("hb-schedule","calendar-range","الجدول والفرق","Schedule & teams"),A("hb-tracking","route","التتبع والمسارات","Tracking"),
-  A("hb-alerts","flag","البلاغات","Alerts"),S("banknote","التحصيل والتعويضات","Collections"),A("hb-clients","users","العملاء","Clients"),A("hb-services","package","الخدمات والباقات","Services"),A("hb-zones","map","المناطق","Zones")]},
+  A("hb-alerts","flag","البلاغات","Alerts"),A("hbCollect","banknote","التحصيل والتعويضات","Collections"),A("hb-clients","users","العملاء","Clients"),A("hb-services","package","الخدمات والباقات","Services"),A("hb-zones","map","المناطق","Zones")]},
  {id:"crm",i:"users",ar:"العملاء",en:"Customers",s:"العملاء",d:"العملاء والمتابعة والتواصل وخدمة العملاء",items:[
   H("العملاء (CRM)"),A("clients","users","جميع العملاء","All clients","241"),A("followups","calendar-check","متابعة العملاء","Follow-ups"),A("visitors","globe","زوار الموقع","Site visitors"),A("polls","clipboard-list","الاستبيانات","Polls"),
   A("chats","messages-square","المحادثات","Conversations","3"),A("campaigns","megaphone","الحملات والرسائل المرسلة","Campaigns"),A("clArchive","archive","الأرشيف","Archive"),
@@ -3375,7 +3375,7 @@ const DEPTS=[
 const SUBS={contracts:["contractShow","contractAdd","contractEdit"],cvs:["cvAdd","cvShow","cvEdit"],clients:["clientShow","clientAdd"],orders:["orderShow"],
  rental:["rentalShow","rentalAdd"],housing:["housingShow","housingAdd"],transfer:["transferShow","transferAdd"],
  reports:["report"],finSales:["finSaleAdd","finBonds","finReturns"],finBanks:["finBoxes","finTransfers","finChecksIn","finChecksOut"],finClients:["finSuppliers","finAgents"],
- finCenters:["finCentersTree"],finReports:["finReport"],finItems:["finStock","finInventory"],finEntries:["finAdd","finShow"],finAccounts:["finSettings"],clArchive:[],delegations:["delAdd","delShow"],trips:["tripShow"],agents:["agentShow"],"hb-board":["hbNew"],"hb-visits":["hbVisit"],coupons:["couponForm","couponShow","couponBulk","couponReport","couponSettings"],claims:["claimAdd","claimShow","claimTypes"],absconding:["abscShow"],campaigns:["campaignNew"],finRequests:["finRequestAdd","finRequestShow"],finAssets:["finAssetShow"],finCommissions:["finCommissionShow","finCommissionRules"],finTax:["finZatca"],hrEmployees:["hrEmployeeShow","hrEmployeeAdd"],hrPayroll:["hrPayrollRun"],setUsers:["setRoles"]};
+ finCenters:["finCentersTree"],finReports:["finReport"],finItems:["finStock","finInventory"],finEntries:["finAdd","finShow"],finAccounts:["finSettings"],clArchive:[],delegations:["delAdd","delShow"],trips:["tripShow"],agents:["agentShow"],"hb-board":["hbNew"],"hb-visits":["hbVisit"],coupons:["couponForm","couponShow","couponBulk","couponReport","couponSettings"],claims:["claimAdd","claimShow","claimTypes"],absconding:["abscShow"],campaigns:["campaignNew"],finRequests:["finRequestAdd","finRequestShow"],finAssets:["finAssetShow"],finCommissions:["finCommissionShow","finCommissionRules"],finTax:["finZatca"],hrEmployees:["hrEmployeeShow","hrEmployeeAdd"],hrPayroll:["hrPayrollRun"],setUsers:["setRoles"],visaRequests:["visaAdd","visaShow"]};
 const PG={};DEPTS.forEach(d=>d.items.forEach(p=>{if(!p.soon&&!p.sec)PG[p.id]=p}));
 const owner=c=>{for(const d of DEPTS)for(const p of d.items){if(p.soon||p.sec)continue;if(p.id===c||(SUBS[p.id]||[]).includes(c))return [d,p]}return [null,null]};
 const PK="clickerp-pins";
@@ -4332,6 +4332,110 @@ S.setDev=()=>`
   ${SEC("wrench","أدوات",`<div class="acts2" style="padding:0 20px 18px">${[["database-backup","نسخة احتياطية الآن"],["file-pen","تصحيح فاتورة"],["life-buoy","الاستعادة والفحص"],["megaphone","تحديثات النظام"],["user-check","الدخول كموظف"],["construction","وضع التحديث","danger"]].map(a=>`<button class="atile ${a[2]||""}">${X(a[0])}<span>${a[1]}</span></button>`).join("")}</div>`)}</div></div>`;
 
 Object.assign(T,{setHome:{ar:"الإعدادات",en:"Settings"},setGeneral:{ar:"الإعدادات العامة",en:"General"},setSite:{ar:"موقع المكتب",en:"Website"},setRecruit:{ar:"الاستقدام والسير",en:"Recruitment & CVs"},setRental:{ar:"إعدادات التأجير",en:"Rental"},setUsers:{ar:"المستخدمون",en:"Users"},setRoles:{ar:"الأدوار والصلاحيات",en:"Roles"},setBranches:{ar:"الفروع",en:"Branches"},setLists:{ar:"القوائم المرجعية",en:"Reference lists"},setMessages:{ar:"الرسائل والإشعارات",en:"Messaging"},setIntegrations:{ar:"التكاملات",en:"Integrations"},setImport:{ar:"استيراد البيانات",en:"Data import"},setAi:{ar:"المساعد الذكي",en:"AI assistant"},setSupport:{ar:"الدعم",en:"Support"},setDev:{ar:"المطوّر",en:"Developer"}});
+Object.keys(S).forEach(k=>{screens[k]=S[k]});
+})();
+/* ===== v1.8 — Company visas + hourly collections, from ClickERP code ===== */
+(()=>{
+const {X,SEC,KV,TAG,SW,ROW,FLD,SEL,INP,TXT,STAT,PAGER,ACTS,HEAD,B,TABS,CHIPS,STEPS,FS}=window.CXH;
+const NEW=["visaDash","visaRequests","visaAdd","visaShow","visaBalance","visaReports","visaPrebook","visaSettings","hbCollect"];
+window.CERP_PAGES=(window.CERP_PAGES||[]).concat(NEW);
+const IDEA=t=>`<div class="fx-idea">${X("lightbulb")}<div><b>ليه الشكل ده؟</b><span>${t}</span></div></div>`;
+const VS={under_process:["n","تحت الإجراء"],approved:["a","موافق عليه — بانتظار السداد"],paid:["a","مسدد — بانتظار الرقم"],completed:["g","مكتمل"],rejected:["r","مرفوض"],cancelled:["n","ملغي"]};
+const USE=(u,t)=>`<div class="fx-life ${u/t>=.9?"r":u/t>=.6?"a":""}"><span class="track"><i style="width:${Math.round(u/t*100)}%"></i></span><b class="num">${u}/${t}</b></div>`;
+const vTabs=on=>TABS([["visaDash","gauge","المتابعة"],["visaRequests","file-plus-2","الطلبات",23],["visaBalance","wallet-cards","الرصيد"],["visaReports","bar-chart-3","التقارير"],["visaPrebook","calendar-clock","الحجز المسبق",4],["visaSettings","sliders-horizontal","الإعدادات"]],on);
+const S={};
+
+S.visaDash=()=>`
+ ${IDEA("التأشيرات رصيد بيخلص مع كل عقد. اللوحة بتجاوب على 3 أسئلة: إيه المتاح أستقدم عليه دلوقتي؟ إيه اللي واقف ومستني مين؟ وإيه اللي قرب ينتهي قبل ما يتحرق؟")}
+ ${HEAD("تأشيرات الشركة","كل عقد استقدام للشركة بيستهلك وحدة واحدة من طلب مكتمل.",B("ghost","file-plus","عقد استقدام للشركة")+B("primary","plus","طلب تأشيرة جديد",'data-go="visaAdd"'))}
+ ${vTabs("visaDash")}
+ <div class="fx-pipe card">${[["n","تحت الإجراء",3],["a","بانتظار الموافقة",2,1],["a","بانتظار السداد",4],["a","بانتظار رقم التأشيرة",3],["g","مكتمل — فيه رصيد",11]].map((p,i,a)=>`<button class="st ${p[0]}${p[3]?" on":""}"><b class="num">${p[2]}</b><span>${p[1]}</span></button>${i<a.length-1?`<i class="ar">${X("chevron-left")}</i>`:""}`).join("")}<span class="fx-pipe-x">${X("wallet")}<span>مستحقات وكلاء مفتوحة <b class="num">54,400</b></span></span></div>
+ <div class="grid-2 wide-l"><div>
+  <div class="card flush fx-t"><div class="card-h pad"><div><h3>المتاح للاستقدام دلوقتي</h3><p>حسب المهنة والجنسية</p></div>${B("ghost sm","","الرصيد كامل",'data-go="visaBalance"')}</div><div class="tw"><table><thead><tr><th>المهنة</th><th>الجنسية</th><th>الجنس</th><th style="width:170px">المستهلك</th><th>المتبقي</th><th>أقرب انتهاء</th></tr></thead><tbody>
+  ${[["عاملة منزلية","الفلبين","أنثى",14,20,"2027-02-10"],["عاملة منزلية","إندونيسيا","أنثى",9,10,"2026-12-04"],["سائق خاص","بنغلاديش","ذكر",2,5,"2027-05-21"],["طباخة","سريلانكا","أنثى",3,8,"2026-12-28"],["ممرضة منزلية","كينيا","أنثى",1,4,"2027-03-15"]].map(r=>`<tr><td><b>${r[0]}</b></td><td>${r[1]}</td><td>${r[2]}</td><td>${USE(r[3],r[4])}</td><td class="num"><b>${r[4]-r[3]}</b></td><td class="num">${r[5]}</td></tr>`).join("")}</tbody></table></div></div>
+  <div class="card flush fx-t"><div class="card-h pad"><div><h3>عقود الشركة المتعثرة</h3><p>واقفة في مرحلة أكتر من المعتاد</p></div></div><div class="fx-acc">${[["CN-2026-0091","ديوي لستاري","التفويض","منذ 12 يوم"],["CN-2026-0084","روزا دلا","بانتظار التذكرة","منذ 21 يوم"]].map(r=>`<div><b><span class="num">${r[0]}</span> · ${r[1]}</b><span>${TAG("a",r[2])} ${r[3]}</span></div>`).join("")}</div></div>
+ </div><div>
+  <div class="card"><div class="card-h"><div><h3>قربت تنتهي</h3><p>رصيد هيتحرق لو ماتستخدمش</p></div></div><div class="hx-exp">${[["VR-0031","عاملة منزلية · إندونيسيا","1 متبقي","بعد 18 يوم","r"],["VR-0028","طباخة · سريلانكا","5 متبقي","بعد 42 يوم","a"],["VR-0033","عاملة منزلية · الفلبين","6 متبقي","بعد 86 يوم","n"]].map(e=>`<div class="${e[4]}">${X("stamp")}<div><b class="num">${e[0]} · ${e[2]}</b><small>${e[1]}</small></div><em>${e[3]}</em></div>`).join("")}</div></div>
+  <div class="card"><div class="card-h"><div><h3>مستحقات الوكلاء</h3><p>أعمار الديون</p></div></div>${[["PLATINUM BROTHERS","32,600","45 يوم",0],["Supreme Link Ltd","21,800","112 يوم",1]].map(a=>`<div class="hx-dep" style="grid-template-columns:1fr auto auto"><b>${a[0]}</b><span class="num">${a[1]}</span>${a[3]?TAG("r","+90 يوم"):TAG("n",a[2])}</div>`).join("")}</div>
+ </div></div>`;
+
+const VR=[["VR-0034","2026-11-12","عاملة منزلية","الفلبين","أنثى",10,0,"—","under_process"],["VR-0033","2026-10-20","عاملة منزلية","الفلبين","أنثى",10,6,"V-7781204","completed"],["VR-0032","2026-10-14","سائق خاص","بنغلاديش","ذكر",5,3,"V-7779810","completed"],["VR-0031","2026-09-02","عاملة منزلية","إندونيسيا","أنثى",10,1,"V-7760012","completed"],["VR-0030","2026-11-03","ممرضة منزلية","كينيا","أنثى",4,0,"—","paid"],["VR-0029","2026-11-01","طباخة","سريلانكا","أنثى",3,0,"—","approved"],["VR-0027","2026-08-11","عاملة منزلية","أوغندا","أنثى",6,0,"—","rejected"]];
+S.visaRequests=()=>`
+ ${IDEA("كل طلب ظاهر رصيده كشريط (اتستهلك كام من كام)، والحالة مكتوبة بالخطوة اللي مستنياه («مسدد — بانتظار الرقم») بدل كلمة لوحدها.")}
+ ${HEAD("طلبات التأشيرات","23 طلب · 11 مكتمل فيه رصيد",B("ghost","file-spreadsheet","Excel")+B("primary","plus","طلب تأشيرة جديد",'data-go="visaAdd"'))}
+ ${vTabs("visaRequests")}
+ ${CHIPS([["كل الطلبات","",23],["تحت الإجراء","n",3],["موافق عليه","a",2],["مسدد","a",4],["مكتمل","g",11],["مرفوض","r",2],["ملغي","n",1]])}
+ <div class="fbar"><div class="fb grow"><label>بحث</label><div class="inp">${X("search")}<input placeholder="الكود، رقم التأشيرة، رقم المعاملة"></div></div><div class="fb"><label>المهنة</label>${SEL(["الكل","عاملة منزلية","سائق خاص","طباخة","ممرضة منزلية"])}</div><div class="fb"><label>الجنسية</label>${SEL(["الكل","الفلبين","إندونيسيا","سريلانكا","بنغلاديش","كينيا"])}</div><div class="fb"><label>الرصيد</label>${SEL(["الكل","لديها رصيد متبقٍ فقط"])}</div></div>
+ <div class="card flush fx-t"><div class="tw"><table><thead><tr><th>الطلب</th><th>المهنة / الجنسية</th><th>العدد والرصيد</th><th>رقم التأشيرة</th><th>الحالة</th><th class="act"></th></tr></thead><tbody>
+ ${VR.map(r=>`<tr><td><div class="wcell"><div><a href="#" data-go="visaShow" class="num cx-tk">${r[0]}</a><small class="num">${r[1]}</small></div></div></td><td><div class="wcell"><div><b>${r[2]}</b><small>${r[3]} · ${r[4]}</small></div></div></td><td style="min-width:150px">${r[8]==="completed"?USE(r[5]-r[6],r[5]):`<span class="num">${r[5]} تأشيرات</span>`}</td><td class="num">${r[7]}</td><td>${TAG(VS[r[8]][0],VS[r[8]][1])}</td><td class="act">${ACTS([["eye","عرض",'data-go="visaShow"']])}</td></tr>`).join("")}
+ </tbody></table></div>${PAGER("عرض 7 من 23 طلب")}</div>`;
+
+S.visaAdd=()=>`
+ ${IDEA("فورم قصير بملخص جنبه بيوضح الطلب ده هيضيف كام وحدة للرصيد وهيمشي إزاي بعد الحفظ.")}
+ ${HEAD("طلب تأشيرة جديد","الحقول المعلّمة * إلزامية.",B("ghost","","إلغاء",'data-go="visaRequests"')+B("primary","save","حفظ الطلب"),["visaRequests","طلبات التأشيرات"])}
+ <div class="grid-2 wide-l">${FS(1,"بيانات الطلب",`<div class="fgrid">${FLD("المهنة",SEL(["عاملة منزلية","سائق خاص","طباخة","ممرضة منزلية"]),1)}${FLD("الجنسية",SEL(["الفلبين","إندونيسيا","سريلانكا","بنغلاديش","كينيا"]),1)}${FLD("الجنس",'<div class="cx-seg2 in"><button class="on">أنثى</button><button>ذكر</button></div>',1)}${FLD("عدد التأشيرات",INP("","10",1),1)}${FLD("تاريخ الطلب",'<input type="date" value="2026-11-16">',1)}${FLD("نوع التأشيرة",SEL(["اختياري","عمالة منزلية","مهنية"]))}${FLD("رقم المعاملة / طلب مساند",INP("","",1))}${FLD("ملاحظات",TXT("",2),0,"",1)}</div>`)}
+ <div class="card sec fx-sum"><div class="sec-h">${X("receipt")}<b>ملخص الطلب</b></div><div class="fx-sum-amt"><small>عاملة منزلية · الفلبين · أنثى</small><b class="num">+10 <small>وحدات</small></b><span>هتضاف للرصيد بعد الإكمال</span></div><div class="fx-path">${["الموافقة","السداد (قيد دفعة مقدمة 1597)","إدخال رقم التأشيرة","الرصيد متاح لعقود الشركة"].map((x,i)=>`<div class="${i===0?"on":""}"><span class="num">${i+1}</span>${x}</div>`).join("")}</div></div></div>`;
+
+S.visaShow=()=>`
+ ${IDEA("كارت «الخطوة الجاية» بيعرض الإجراء الواحد المطلوب دلوقتي (موافقة ← سداد ← رقم التأشيرة)، والعقود اللي استهلكت من الرصيد قدامك بحالة كل وحدة.")}
+ <div class="page-head compact"><div><a class="back" href="#" data-go="visaRequests" style="margin:0 0 8px">${X("arrow-right")}<span>طلبات التأشيرات</span></a><h1><span class="num">VR-0033</span> ${TAG("g","مكتمل")}</h1><p>عاملة منزلية · الفلبين · أنثى · 10 تأشيرات · V-7781204</p></div><div class="actions">${B("ghost","printer","طباعة")+B("ghost","pencil","تعديل")+B("primary","file-plus","إنشاء عقد استقدام")}</div></div>
+ <div class="card fx-track">${[["الموافقة","20 أكتوبر",2],["السداد","24 أكتوبر · 20,000",2],["الإكمال","V-7781204",2],["الاستهلاك","4 من 10",1]].map((s,i)=>`<div class="s ${s[2]===2?"done":s[2]===1?"now":""}"><span class="n">${s[2]===2?X("check"):`<b class="num">${i+1}</b>`}</span><div><b>${s[0]}</b><small>${s[1]}</small></div></div>`).join(`<i class="l"></i>`)}</div>
+ <div class="grid-kpi">${[["layers","الإجمالي","10","تأشيرات"],["wallet-cards","المتبقي","6","متاحة لعقود الشركة"],["pie-chart","الاستهلاك","40%","4 عقود"],["banknote","تكلفة الوحدة","2,000","ر.س"]].map(k=>`<div class="card kpi fx-kpi"><div class="kl">${X(k[0])}<span>${k[1]}</span></div><div class="kv num">${k[2]}</div><div class="km"><span>${k[3]}</span></div></div>`).join("")}</div>
+ <div class="grid-2 wide-l"><div>
+  <div class="card flush fx-t"><div class="card-h pad"><div><h3>العقود المربوطة بالطلب</h3><p>كل عقد = وحدة</p></div>${B("ghost sm","link","ربط عقد شركة قائم")}</div><div class="tw"><table><thead><tr><th>العقد</th><th>العاملة / الوكيل</th><th>المرحلة · الغرض</th><th>الرصيد</th></tr></thead><tbody>${[["CN-2026-0121","ماري ديلا · PLATINUM","وصول","تأجير","g","مستهلكة محاسبيًا"],["CN-2026-0119","جوي سانتوس · PLATINUM","تذكرة","نقل خدمات","a","محجوزة — لم تُستهلك"],["CN-2026-0117","آنا ريس · PLATINUM","تفويض","غير محدد","a","محجوزة — لم تُستهلك"],["CN-2026-0102","ليزا كروز · PLATINUM","ملغي","تأجير","n","ملغي — أُعيدت الوحدة"]].map(r=>`<tr><td class="num"><b>${r[0]}</b></td><td>${r[1]}</td><td><div class="wcell"><div><b>${r[2]}</b><small>${r[3]}</small></div></div></td><td>${TAG(r[4],r[5])}</td></tr>`).join("")}</tbody></table></div></div>
+  ${SEC("history","سجل الأحداث",`<div class="tl">${[["14 نوفمبر","استهلاك وحدة — CN-2026-0121","آلي"],["02 نوفمبر","عودة وحدة للرصيد — CN-2026-0102 اتلغى","آلي"],["26 أكتوبر","الإكمال — V-7781204","خالد المطيري"],["24 أكتوبر","السداد 20,000 ر.س — قيد JE-23701","ريم الدوسري"]].map(x=>`<div class="tli"><span class="dot"></span><div><b>${x[1]}</b><small>${x[2]}</small><small class="num">${x[0]}</small></div></div>`).join("")}</div>`)}
+ </div><div class="fx-side">
+  ${SEC("banknote","السداد والقيود",KV([["المبلغ المسدد",'<b class="num">20,000 ر.س</b>'],["تاريخ السداد",'<span class="num">2026-10-24</span>'],["المصدر","بنك · مصرف الراجحي"],["القيد",'<a href="#" class="num">JE-23701</a>']])+`<div class="cx-right">${B("ghost sm danger","undo-2","إلغاء السداد (قيد عكسي)")}</div>`)}
+  ${SEC("x-circle","إلغاء وحدات متبقية",`<div class="fgrid one">${FLD("عدد الوحدات",INP("","1",1))}${FLD("النوع",'<div class="cx-seg2 in"><button class="on">استرداد</button><button>محروقة</button></div>')}${FLD("يُسترد إلى",SEL(["مصرف الراجحي","الخزنة الرئيسية"]))}</div><div class="cx-right">${B("ghost","check","تنفيذ الإلغاء")}</div>`)}
+  ${SEC("paperclip","المرفقات",`<div class="cx-files one">${[["image","صورة التأشيرة.pdf","صورة التأشيرة"],["receipt","إيصال السداد.pdf","إيصال السداد"]].map(f=>`<div class="cx-file">${X(f[0])}<div><b>${f[1]}</b><small>${f[2]}</small></div>${ACTS([["download","تحميل"]])}</div>`).join("")}</div>`)}
+ </div></div>`;
+
+S.visaBalance=()=>`
+ ${IDEA("الرصيد بقيمته بالفلوس مش بس بالعدد، ومطابقة حساب الدفعة المقدمة بتطلّع الفرق تلقائياً — فالمحاسب يعرف لو فيه قيد شارد قبل الإقفال.")}
+ ${HEAD("رصيد التأشيرات","المتاح لعقود الشركة وقيمته.",B("ghost","file-spreadsheet","Excel"))}
+ ${vTabs("visaBalance")}
+ <div class="statgrid">${STAT("n","layers","إجمالي التأشيرات","94")+STAT("g","file-check","مستخدمة في عقود","57")+STAT("a","wallet-cards","متاحة للربط","37",1)+STAT("n","banknote","قيمة الرصيد المتبقي","74,000")}</div>
+ <div class="fbar"><div class="fb"><label>الفرع</label>${SEL(["كل الفروع","الفرع الرئيسي"])}</div><div class="fb"><label>نوع التأشيرة</label>${SEL(["الكل","عمالة منزلية","مهنية"])}</div><div class="fb"><label>قريبة الانتهاء</label>${SEL(["الكل","خلال 30 يوم","خلال 60 يوم","خلال 90 يوم","منتهية"])}</div></div>
+ <div class="card flush fx-t"><div class="tw"><table><thead><tr><th>المهنة</th><th>الجنسية</th><th>الطلبات</th><th style="width:180px">الاستهلاك</th><th>المتبقي</th><th>أقرب انتهاء</th><th>قيمة المتبقي</th></tr></thead><tbody>
+ ${[["عاملة منزلية","الفلبين",3,14,20,"2027-02-10","12,000"],["عاملة منزلية","إندونيسيا",2,9,10,"2026-12-04","2,000"],["طباخة","سريلانكا",2,3,8,"2026-12-28","10,000"],["سائق خاص","بنغلاديش",1,2,5,"2027-05-21","7,500"],["ممرضة منزلية","كينيا",1,1,4,"2027-03-15","6,600"]].map(r=>`<tr><td><b>${r[0]}</b></td><td>${r[1]}</td><td class="num">${r[2]}</td><td>${USE(r[3],r[4])}</td><td class="num"><b>${r[4]-r[3]}</b></td><td class="num">${r[5]}</td><td class="num">${r[6]}</td></tr>`).join("")}
+ </tbody></table></div></div>
+ ${SEC("scale","مطابقة حساب الدفعة المقدمة (1597)",`<div class="fx-calc3" style="margin:0 20px 18px;border:0;padding:0"><div><small>قيمة الوحدات غير المستخدمة</small><b class="num">74,000</b></div><span>−</span><div><small>رصيد الحساب 1597</small><b class="num">76,000</b></div><span>=</span><div class="tot"><small>الفرق</small><b class="num">−2,000</b></div></div><div class="cx-body"><div class="cx-note">${X("alert-triangle")}<div><b>قيد شارد واحد</b><span>JE-23955 · 08 نوفمبر · «سداد تأشيرات» مدين 2,000 — مش مربوط بأي طلب.</span></div></div></div>`)}`;
+
+S.visaReports=()=>`
+ ${IDEA("التقارير الـ 8 كروت كل واحد بيقول بيجاوب على أنهي سؤال («إيه اللي هيتحرق؟»، «كام تكلفة العاملة الواحدة فعلياً؟») بدل أسماء تقنية.")}
+ ${HEAD("تقارير التأشيرات","8 تقارير — كل واحد بيجاوب على سؤال.","")}
+ ${vTabs("visaReports")}
+ <div class="sx-kb" style="grid-template-columns:repeat(4,1fr)">${[["banknote","مدفوعات التأشيرات","دفعنا كام وإمتى؟"],["pie-chart","استهلاك التأشيرات","استخدمنا كام من كل طلب؟"],["x-circle","التأشيرات الملغاة","إيه اللي اتلغى واترد أو اتحرق؟"],["alarm-clock","قريبة الانتهاء","إيه اللي هيتحرق لو ماتستخدمش؟"],["timer","مدة دورة الاستقدام","من التأشيرة للوصول بياخد كام يوم؟"],["wallet","مستحقات الوكلاء","مين له عندنا ومن إمتى؟"],["calculator","تكلفة العاملة الواحدة","التكلفة الفعلية بعد التأشيرة والتذكرة والعمولة"],["star","تقييم الوكلاء","مين أسرع وأقل مرتجع؟"]].map(k=>`<a href="#" class="card" data-go="report">${X(k[0])}<b>${k[1]}</b><small>${k[2]}</small></a>`).join("")}</div>`;
+
+S.visaPrebook=()=>`
+ ${IDEA("الحجز المسبق بيربط عاملة لسه ماوصلتش بعميل إيجار، والجدول بيقول هي وصلت ولا لأ وزر «إنشاء عقد التأجير» بيظهر أول ما توصل.")}
+ ${HEAD("الحجز المسبق للتأجير","احجز عاملة قبل وصولها لعميل إيجار.","",["visaDash","تأشيرات الشركة"])}
+ ${vTabs("visaPrebook")}
+ <div class="grid-2 wide-l"><div class="card flush fx-t"><div class="tw"><table><thead><tr><th>الحجز</th><th>العاملة / عقد الشركة</th><th>عميل الإيجار</th><th>الوصول</th><th>الحالة</th><th class="act"></th></tr></thead><tbody>
+ ${[["PB-012","ماري ديلا","CN-2026-0121","شركة الوفاء الطبية",1,"g","حجز مسبق"],["PB-011","جوي سانتوس","CN-2026-0119","فيصل القحطاني",0,"g","حجز مسبق"],["PB-010","آنا ريس","CN-2026-0117","هيا العنزي",0,"g","حجز مسبق"],["PB-008","روزا دلا","CN-2026-0098","عبدالله الدوسري",1,"n","تحوّل لعقد تأجير"]].map(r=>`<tr><td class="num"><b>${r[0]}</b></td><td><div class="wcell"><div><b>${r[1]}</b><small class="num">${r[2]}</small></div></div></td><td>${r[3]}</td><td>${r[4]?TAG("g","وصلت"):TAG("a","لم تصل بعد")}</td><td>${TAG(r[5],r[6])}</td><td class="act">${r[4]&&r[6]==="حجز مسبق"?B("primary sm","file-plus","إنشاء عقد التأجير"):ACTS([["x","إلغاء"]])}</td></tr>`).join("")}
+ </tbody></table></div></div>
+ ${SEC("plus-circle","حجز جديد",`<div class="fgrid one">${FLD("عقد الشركة (العاملة قبل الوصول)",SEL(["CN-2026-0123 — سيتي رحمة — إندونيسيا","CN-2026-0124 — ميرنا لوبيز — الفلبين"]),1)}${FLD("عميل الإيجار",`<div class="inp">${X("search")}<input placeholder="اسم العميل أو الجوال"></div>`,1)}${FLD("ملاحظات",TXT("",2))}</div><div class="cx-right">${B("primary","save","حفظ الحجز")}</div>`)}</div>`;
+
+S.visaSettings=()=>`
+ ${IDEA("مُدد التنبيهات مكتوبة كجمل («نبّهني لو طلب اتوافق عليه وماتسددش خلال 7 أيام»)، فالمدير يفهم كل رقم بيعمل إيه.")}
+ ${HEAD("إعدادات التأشيرات","الحسابات والتنبيهات وأنواع التأشيرات.",B("primary","save","حفظ"))}
+ ${vTabs("visaSettings")}
+ <div class="grid-2">${SEC("book-open","الحسابات",KV([["الدفعة المقدمة",'1597 · دفعات مقدمة — تأشيرات <span class="tag n">ثابت</span>'],["تكلفة نقل الخدمات","5240 · تكلفة نقل خدمات"],["التأشيرات الملغاة","5245 · مصروف تأشيرات ملغاة"]]))}
+ ${SEC("tags","أنواع التأشيرات",`<div class="fx-acc">${[["عمالة منزلية","Domestic",1],["مهنية","Professional",1],["زيارة عمل","Business visit",0]].map(t=>`<div><b>${t[0]} <small style="color:var(--muted);font-weight:500">${t[1]}</small></b>${SW(t[2])}</div>`).join("")}</div><div class="cx-right">${B("ghost sm","plus","إضافة نوع")}</div>`)}</div>
+ ${SEC("bell","التنبيهات اليومية",`${[["تأشيرات قربت تنتهي","نبّهني لو فيه رصيد هيتحرق خلال",30],["موافق عليه ومتسددش","لو اتوافق على الطلب ومتسددش خلال",7],["مسدد ومفيش رقم تأشيرة","لو اتسدد ورقم التأشيرة ماتسجلش خلال",14],["قبل موعد الرحلة","قبل رحلة العاملة بـ",2],["واقف في التفويض","لو العقد فضل في مرحلة التفويض أكتر من",7],["عقد متوقف","لو العقد ماتحركش أكتر من",14],["مستحق وكيل","لو مستحق الوكيل عدّى عليه أكتر من",30]].map(r=>`<div class="sx-rule"><div><b>${r[0]}</b><small>${r[1]} ${r[2]} يوم.</small></div><span class="sx-num"><input class="num" value="${r[2]}"><em>يوم</em></span></div>`).join("")}`)}`;
+
+/* ================= التحصيل والتعويضات — التأجير بالساعة ================= */
+S.hbCollect=()=>`
+ ${IDEA("النقد اللي مع الطاقم بقى رحلة واضحة (العميل دفع ← عهدة على المحصّل ← اتورّد)، وكل محصّل ظاهر رصيده اللي معاه. والتعويضات في نفس الشاشة بحالة الصرف — في الكود شاشتين منفصلتين ولوحات جوه الطلب.")}
+ ${HEAD("التحصيل والتعويضات","النقد مع الطاقم وتعويضات عملاء التأجير بالساعة.",B("ghost","file-spreadsheet","Excel")+B("primary","plus","تعويض جديد"))}
+ ${TABS([["hbCollect","hand-coins","العهد النقدية",6],["#comp","heart-handshake","تعويضات العملاء",9]],"hbCollect")}
+ <div class="fx-flow4 card">${[["banknote","العميل دفع نقداً للطاقم","4,860","هذا الأسبوع","n"],["hand-coins","لسه مع الطاقم","2,140","في 6 عهد مفتوحة","a"],["building","اتورّد للمكتب","2,720","بسندات توريد","g"]].map((s,i)=>`<div class="s ${s[4]}">${X(s[0])}<small>${s[1]}</small><b class="num">${s[2]}</b><em>${s[3]}</em></div>${i<2?`<i class="ar">${X("arrow-left")}</i>`:""}`).join("")}</div>
+ <div class="grid-2 wide-l"><div class="card flush fx-t"><div class="tw"><table><thead><tr><th>سند التحصيل</th><th>الطلب / الزيارة</th><th>محصّل / مورّد / متبقٍ</th><th>الحالة</th><th class="act"></th></tr></thead><tbody>
+ ${[["CC-0412","أحمد — سائق","HR-2210 · V-8840","450 / 0 / 450","a","مفتوحة"],["CC-0411","ميرا — عاملة","HR-2207 · V-8831","300 / 300 / 0","g","مورّدة"],["CC-0409","أحمد — سائق","HR-2201 · V-8812","600 / 200 / 400","a","جزئية"],["CC-0405","سامي — سائق","HR-2196 · V-8790","520 / 0 / 520","r","متأخرة 3 أيام"]].map(r=>`<tr><td><div class="wcell"><div><b class="num">${r[0]}</b><small>${r[1]}</small></div></div></td><td class="num">${r[2]}</td><td class="num">${r[3]}</td><td>${TAG(r[4],r[5])}</td><td class="act">${r[4]!=="g"?B("primary sm","check","استلام توريد"):ACTS([["printer","إيصال"]])}</td></tr>`).join("")}
+ </tbody></table></div></div>
+ <div class="card"><div class="card-h"><div><h3>أرصدة المحصّلين</h3><p>النقد اللي معاهم دلوقتي</p></div></div>${[["أحمد — سائق",850,"2 عهدة"],["سامي — سائق",520,"متأخرة"],["ميرا — عاملة",0,"مفيش"],["جنات — عاملة",770,"3 عهد"]].map(c=>`<div class="hx-dep" style="grid-template-columns:1fr 90px auto"><b>${c[0]}</b><span class="track"><i style="width:${c[1]/850*100}%"></i></span><span class="num">${c[1]} ر.س</span></div>`).join("")}</div></div>`;
+
+Object.assign(T,{visaDash:{ar:"تأشيرات الشركة",en:"Company visas"},visaRequests:{ar:"طلبات التأشيرات",en:"Visa requests"},visaAdd:{ar:"طلب تأشيرة جديد",en:"New visa request"},visaShow:{ar:"VR-0033",en:"Visa request"},visaBalance:{ar:"رصيد التأشيرات",en:"Visa balance"},visaReports:{ar:"تقارير التأشيرات",en:"Visa reports"},visaPrebook:{ar:"الحجز المسبق للتأجير",en:"Pre-bookings"},visaSettings:{ar:"إعدادات التأشيرات",en:"Visa settings"},hbCollect:{ar:"التحصيل والتعويضات",en:"Collections"}});
 Object.keys(S).forEach(k=>{screens[k]=S[k]});
 })();
 /* ===== multipage boot ===== */

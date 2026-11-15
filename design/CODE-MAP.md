@@ -36,7 +36,7 @@
 
 ---
 
-## العمليات — قريباً
+## العمليات — ✅ v1.8 (`visa*` · `hbCollect`)
 
 **تأشيرات الشركة** (`admin/visa_requests/*` + `v2/visas/*` · `VisaRequestController` · `docs/VISA_REQUESTS.md`)
 - **الحالات:** تحت الإجراء، موافق عليه، مسدد، مكتمل، مرفوض، ملغي.
