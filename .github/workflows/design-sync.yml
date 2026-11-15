@@ -1,8 +1,11 @@
 name: Design sync
 
-# طريقتين للتحديث:
-# 1) ارفع ملف zip التصميم داخل design/incoming/ من GitHub (Add file → Upload files) — يشتغل تلقائياً.
-# 2) من Actions → Design sync → Run workflow والصق رابط ملف zip.
+# GitHub هو المرجع المركزي للتصميم.
+# - نسخة كاملة (من المشروع الأساسي): اترك module فاضي → تستبدل design/pages
+#   وترفض أي نسخة رقمها مش أعلى من الحالية.
+# - موديول/اقتراح (من أي حساب تاني): اكتب اسم في module (مثلاً auth)
+#   → يتحط في design/modules/<الاسم> من غير ما يلمس design/pages.
+# - بديل بدون لينك: ارفع zip في design/incoming/ (اسم يبدأ بـ module- = موديول).
 on:
   push:
     paths:
@@ -12,6 +15,10 @@ on:
       zip_url:
         description: 'رابط ملف التصميم المضغوط (zip)'
         required: true
+      module:
+        description: 'اسم الموديول (فاضي = نسخة كاملة للمشروع الأساسي)'
+        required: false
+        default: ''
 
 permissions:
   contents: write
@@ -27,17 +34,23 @@ jobs:
       - name: Get zip
         env:
           ZIP_URL: ${{ inputs.zip_url }}
+          MODULE_IN: ${{ inputs.module }}
         run: |
           set -euo pipefail
           mkdir -p /tmp/in
+          module="${MODULE_IN:-}"
           if [ -n "${ZIP_URL:-}" ]; then
             curl -fsSL "$ZIP_URL" -o /tmp/in/design.zip
           else
             f=$(ls -t design/incoming/*.zip | head -1)
             cp "$f" /tmp/in/design.zip
+            base=$(basename "$f" .zip)
+            case "$base" in module-*) module="${base#module-}" ;; esac
           fi
+          module=$(printf '%s' "$module" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9-' '-' | sed 's/^-*//;s/-*$//')
+          echo "MODULE=$module" >> "$GITHUB_ENV"
 
-      - name: Extract into design/pages
+      - name: Extract
         run: |
           set -euo pipefail
           mkdir -p /tmp/x
@@ -46,11 +59,27 @@ jobs:
           if [ -z "$src" ]; then
             src=$(find /tmp/x -name index.html -printf '%d %h\n' | sort -n | head -1 | cut -d' ' -f2-)
           fi
-          [ -n "$src" ] || { echo "No index.html / screens.json found in zip"; exit 1; }
-          rm -rf design/pages
-          mkdir -p design/pages
-          cp -r "$src"/. design/pages/
+          [ -n "$src" ] || { echo "::error::No index.html / screens.json found in zip"; exit 1; }
+
+          if [ -n "$MODULE" ]; then
+            dest="design/modules/$MODULE"
+            label="module $MODULE"
+          else
+            dest="design/pages"
+            ver() { grep -m1 -oE '"version"[^"]*"v?[0-9]+(\.[0-9]+)*' "$1" 2>/dev/null | grep -oE '[0-9]+(\.[0-9]+)*' || true; }
+            new=$(ver "$src/screens.json"); cur=$(ver design/pages/screens.json)
+            if [ -z "$new" ]; then echo "::error::screens.json has no version"; exit 1; fi
+            if [ -n "$cur" ] && [ "$(printf '%s\n%s\n' "$cur" "$new" | sort -V | tail -1)" != "$new" -o "$cur" = "$new" ]; then
+              echo "::error::Rejected: incoming v$new is not newer than published v$cur. Sync from GitHub first, then bump the version."
+              exit 1
+            fi
+            label="v$new"
+          fi
+          rm -rf "$dest"
+          mkdir -p "$dest"
+          cp -r "$src"/. "$dest"/
           rm -rf design/incoming
+          echo "LABEL=$label" >> "$GITHUB_ENV"
 
       - name: Commit and push
         run: |
@@ -61,6 +90,5 @@ jobs:
           git config user.email "$botmail"
           git add -A design
           if git diff --cached --quiet; then echo "No changes"; exit 0; fi
-          ver=$(grep -m1 -oE 'v[0-9]+\.[0-9]+(\.[0-9]+)?' design/pages/CHANGELOG.md || echo update)
-          git commit -m "design: ${ver} (auto sync)"
+          git commit -m "design: ${LABEL} (auto sync)"
           git push
