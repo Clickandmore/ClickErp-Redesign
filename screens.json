@@ -1,5 +1,5 @@
 {
-  "version": "v1.6",
+  "version": "v1.7",
   "date": "2026-11-16",
   "entry": "login.html",
   "screens": [
@@ -597,6 +597,81 @@
       "id": "hrDaily",
       "file": "hrDaily.html",
       "title": "التقارير اليومية"
+    },
+    {
+      "id": "setHome",
+      "file": "setHome.html",
+      "title": "الإعدادات (كل الإعدادات)"
+    },
+    {
+      "id": "setGeneral",
+      "file": "setGeneral.html",
+      "title": "الإعدادات العامة"
+    },
+    {
+      "id": "setSite",
+      "file": "setSite.html",
+      "title": "موقع المكتب"
+    },
+    {
+      "id": "setRecruit",
+      "file": "setRecruit.html",
+      "title": "الاستقدام والسير"
+    },
+    {
+      "id": "setRental",
+      "file": "setRental.html",
+      "title": "إعدادات التأجير"
+    },
+    {
+      "id": "setUsers",
+      "file": "setUsers.html",
+      "title": "المستخدمون"
+    },
+    {
+      "id": "setRoles",
+      "file": "setRoles.html",
+      "title": "الأدوار والصلاحيات"
+    },
+    {
+      "id": "setBranches",
+      "file": "setBranches.html",
+      "title": "الفروع"
+    },
+    {
+      "id": "setLists",
+      "file": "setLists.html",
+      "title": "القوائم المرجعية"
+    },
+    {
+      "id": "setMessages",
+      "file": "setMessages.html",
+      "title": "الرسائل والإشعارات"
+    },
+    {
+      "id": "setIntegrations",
+      "file": "setIntegrations.html",
+      "title": "التكاملات"
+    },
+    {
+      "id": "setImport",
+      "file": "setImport.html",
+      "title": "استيراد البيانات"
+    },
+    {
+      "id": "setAi",
+      "file": "setAi.html",
+      "title": "المساعد الذكي"
+    },
+    {
+      "id": "setSupport",
+      "file": "setSupport.html",
+      "title": "الدعم"
+    },
+    {
+      "id": "setDev",
+      "file": "setDev.html",
+      "title": "المطوّر"
     }
   ],
   "states": [

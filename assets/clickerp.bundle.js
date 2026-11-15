@@ -3369,13 +3369,13 @@ const DEPTS=[
   A("hrDash","gauge","لوحة الموارد البشرية","HR dashboard"),A("hrEmployees","id-card","الموظفون","Employees"),A("hrWorkers","user-round","العاملات","Workers"),A("hrAttendance","clock","الحضور","Attendance"),
   A("hrRequests","inbox","الطلبات","Requests","7"),A("hrCustody","key-round","العهد","Custody"),A("hrSanctions","gavel","الجزاءات","Sanctions"),A("hrPayroll","banknote","الرواتب","Payroll"),A("hrDaily","notebook-pen","التقارير اليومية","Daily reports")]},
  {id:"settings",i:"settings",ar:"الإعدادات",en:"Settings",s:"الإعدادات",d:"إعدادات المكتب والمستخدمين والتكاملات",items:[
-  R("sliders-horizontal","العامة","General","set-general"),A("coupons","ticket-percent","كوبونات الخصم","Coupons"),R("globe","موقع المكتب","Office website","set-site"),R("files","الاستقدام والسير","Recruitment & CVs","set-recruit"),R("repeat","التأجير","Rental","set-rental"),
-  R("shield-check","المستخدمون والصلاحيات","Users & roles","set-users"),R("git-branch","الفروع","Branches","set-branches"),S("list","القوائم المرجعية","Reference lists"),R("bell","الرسائل والإشعارات","Messages & notifications","set-messages"),
-  R("plug","التكاملات","Integrations","set-integrations"),R("upload","استيراد البيانات","Data import","set-import"),R("sparkles","المساعد الذكي","AI assistant","set-ai"),R("life-buoy","الدعم","Support","set-support"),S("code","المطوّر (Super Admin)","Developer")]}];
+  A("setHome","layout-grid","كل الإعدادات","All settings"),A("setGeneral","sliders-horizontal","العامة","General"),A("coupons","ticket-percent","كوبونات الخصم","Coupons"),A("setSite","globe","موقع المكتب","Office website"),A("setRecruit","files","الاستقدام والسير","Recruitment & CVs"),A("setRental","repeat","التأجير","Rental"),
+  A("setUsers","shield-check","المستخدمون والصلاحيات","Users & roles"),A("setBranches","git-branch","الفروع","Branches"),A("setLists","list","القوائم المرجعية","Reference lists"),A("setMessages","bell","الرسائل والإشعارات","Messages & notifications"),
+  A("setIntegrations","plug","التكاملات","Integrations"),A("setImport","upload","استيراد البيانات","Data import"),A("setAi","sparkles","المساعد الذكي","AI assistant"),A("setSupport","life-buoy","الدعم","Support"),A("setDev","code","المطوّر (Super Admin)","Developer")]}];
 const SUBS={contracts:["contractShow","contractAdd","contractEdit"],cvs:["cvAdd","cvShow","cvEdit"],clients:["clientShow","clientAdd"],orders:["orderShow"],
  rental:["rentalShow","rentalAdd"],housing:["housingShow","housingAdd"],transfer:["transferShow","transferAdd"],
  reports:["report"],finSales:["finSaleAdd","finBonds","finReturns"],finBanks:["finBoxes","finTransfers","finChecksIn","finChecksOut"],finClients:["finSuppliers","finAgents"],
- finCenters:["finCentersTree"],finReports:["finReport"],finItems:["finStock","finInventory"],finEntries:["finAdd","finShow"],finAccounts:["finSettings"],clArchive:[],delegations:["delAdd","delShow"],trips:["tripShow"],agents:["agentShow"],"hb-board":["hbNew"],"hb-visits":["hbVisit"],coupons:["couponForm","couponShow","couponBulk","couponReport","couponSettings"],claims:["claimAdd","claimShow","claimTypes"],absconding:["abscShow"],campaigns:["campaignNew"],finRequests:["finRequestAdd","finRequestShow"],finAssets:["finAssetShow"],finCommissions:["finCommissionShow","finCommissionRules"],finTax:["finZatca"],hrEmployees:["hrEmployeeShow","hrEmployeeAdd"],hrPayroll:["hrPayrollRun"]};
+ finCenters:["finCentersTree"],finReports:["finReport"],finItems:["finStock","finInventory"],finEntries:["finAdd","finShow"],finAccounts:["finSettings"],clArchive:[],delegations:["delAdd","delShow"],trips:["tripShow"],agents:["agentShow"],"hb-board":["hbNew"],"hb-visits":["hbVisit"],coupons:["couponForm","couponShow","couponBulk","couponReport","couponSettings"],claims:["claimAdd","claimShow","claimTypes"],absconding:["abscShow"],campaigns:["campaignNew"],finRequests:["finRequestAdd","finRequestShow"],finAssets:["finAssetShow"],finCommissions:["finCommissionShow","finCommissionRules"],finTax:["finZatca"],hrEmployees:["hrEmployeeShow","hrEmployeeAdd"],hrPayroll:["hrPayrollRun"],setUsers:["setRoles"]};
 const PG={};DEPTS.forEach(d=>d.items.forEach(p=>{if(!p.soon&&!p.sec)PG[p.id]=p}));
 const owner=c=>{for(const d of DEPTS)for(const p of d.items){if(p.soon||p.sec)continue;if(p.id===c||(SUBS[p.id]||[]).includes(c))return [d,p]}return [null,null]};
 const PK="clickerp-pins";
@@ -4159,6 +4159,179 @@ S.hrDaily=()=>`
   <div class="card"><div class="card-h"><div><h3>الالتزام الشهر ده</h3></div></div>${[["خدمة العملاء",96],["المبيعات",88],["الإيواء",100],["العمليات",79]].map(d=>`<div class="hx-dep"><b>${d[0]}</b><span class="track"><i style="width:${d[1]}%"></i></span><span class="num">${d[1]}%</span></div>`).join("")}</div></div></div>`;
 
 Object.assign(T,{hrDash:{ar:"لوحة الموارد البشرية",en:"HR dashboard"},hrEmployees:{ar:"الموظفون",en:"Employees"},hrEmployeeShow:{ar:"سارة القحطاني",en:"Employee"},hrEmployeeAdd:{ar:"إضافة موظف",en:"New employee"},hrWorkers:{ar:"العاملات",en:"Workers"},hrAttendance:{ar:"الحضور والانصراف",en:"Attendance"},hrRequests:{ar:"طلبات الموظفين",en:"Requests"},hrCustody:{ar:"عهد الموظفين",en:"Custody"},hrSanctions:{ar:"الجزاءات",en:"Sanctions"},hrPayroll:{ar:"الرواتب",en:"Payroll"},hrPayrollRun:{ar:"مسير العاملات",en:"Workers payroll"},hrDaily:{ar:"التقارير اليومية",en:"Daily reports"}});
+Object.keys(S).forEach(k=>{screens[k]=S[k]});
+})();
+/* ===== v1.7 — Settings rebuilt from ClickERP code + a single settings hub ===== */
+(()=>{
+const {X,SEC,KV,TAG,SW,ROW,FLD,SEL,INP,TXT,STAT,PAGER,ACTS,HEAD,B,TABS,CHIPS,STEPS,FS}=window.CXH;
+const NEW=["setHome","setGeneral","setSite","setRecruit","setRental","setUsers","setRoles","setBranches","setLists","setMessages","setIntegrations","setImport","setAi","setSupport","setDev"];
+window.CERP_PAGES=(window.CERP_PAGES||[]).concat(NEW);
+const IDEA=t=>`<div class="fx-idea">${X("lightbulb")}<div><b>ليه الشكل ده؟</b><span>${t}</span></div></div>`;
+const SNAV=(items,on)=>`<aside class="sx-nav card">${items.map((x,i)=>`<a href="#" class="${i===on?"on":""}">${X(x[0])}<span>${x[1]}</span>${x[2]?`<em class="${x[3]||""}">${x[2]}</em>`:""}</a>`).join("")}</aside>`;
+const LAY=(nav,body)=>`<div class="sx-lay">${nav}<div class="sx-body">${body}</div></div>`;
+const SAVEBAR=(t)=>`<div class="sx-save">${X("info")}<span>${t||"التغييرات بتتحفظ للمكتب كله وبتتسجّل في سجل النشاط."}</span>${B("ghost","","تراجع")}${B("primary","save","حفظ التغييرات")}</div>`;
+const RULE=(title,sentence,ctl)=>`<div class="sx-rule"><div><b>${title}</b><small>${sentence}</small></div>${ctl}</div>`;
+const NUM=(v,u)=>`<span class="sx-num"><input class="num" value="${v}"><em>${u}</em></span>`;
+const ST=(c,t)=>`<span class="sx-st ${c}"><i></i>${t}</span>`;
+const S={};
+
+/* ================= كل الإعدادات (hub — مش موجود في الكود) ================= */
+const AREAS=[["setGeneral","sliders-horizontal","العامة","بيانات الشركة، لوحة التحكم، قواعد التشغيل، النماذج والتخزين",""],["setSite","globe","موقع المكتب","الهوية، المحتوى، السياسات، الدخول والطلب، SEO والإعلانات",""],["setRecruit","files","الاستقدام والسير","حقول نموذج السيرة، القالب، الجنسيات والأسعار، مراحل العقود",""],["setRental","repeat","التأجير","إعدادات العقد، البنود، الباقات، التأجير بالساعة",""],["setUsers","shield-check","المستخدمون والصلاحيات","الموظفين، الأدوار، مصفوفة الصلاحيات","a","2 حساب معلّق"],["setBranches","git-branch","الفروع","بيانات الفروع وساعات العمل ومشاركة البيانات",""],["setLists","list","القوائم المرجعية","الدول والمدن والمهن واللغات والمطارات…",""],["setMessages","bell","الرسائل والإشعارات","القوالب، المزودين، التنبيهات الآلية، إشعارات التطبيق","r","مزود SMS متوقف"],["setIntegrations","plug","التكاملات","مساند، ميسر، ZATCA، Zoho، Firebase، التخزين","a","شهادة ZATCA"],["setImport","upload","استيراد البيانات","29 نوع بيانات بقوالب جاهزة ومراجعة قبل الاعتماد",""],["coupons","ticket-percent","كوبونات الخصم","قواعد الخصم وحماية العمولة",""],["setAi","sparkles","المساعد الذكي","ربط Claude و ChatGPT بالنظام وصلاحيات الموظفين",""],["setSupport","life-buoy","الدعم","مركز المعرفة وتذاكر الدعم",""],["setDev","code","المطوّر","الاشتراك والموديلات والنسخ الاحتياطي",""]];
+S.setHome=()=>`
+ ${IDEA("في الكود الإعدادات متفرقة على أكتر من 40 صفحة. هنا مدخل واحد: بحث بيلاقي أي إعداد باسمه («مدة الضمان»، «لوجو الفاتورة»)، وكروت للأقسام عليها اللي محتاج انتباه، وقائمة «جهّز مكتبك» للمكاتب الجديدة.")}
+ ${HEAD("الإعدادات","كل إعدادات المكتب في مكان واحد.","")}
+ <div class="sx-search card"><div class="inp big">${X("search")}<input placeholder="دوّر على أي إعداد… مثلاً: مدة الضمان، لوجو الفاتورة، قالب واتساب، الضريبة"></div>
+  <div class="sx-hits">${[["مدة الضمان (بالأيام)","العامة ← قواعد التشغيل","setGeneral"],["لوجو هيئة الزكاة على الفاتورة","العامة ← النماذج ← الفاتورة","setGeneral"],["مدة الاختبار الافتراضية لعقد التأجير","التأجير ← إعدادات العقد","setRental"]].map(h=>`<a href="#" data-go="${h[2]}">${X("corner-down-left")}<b>${h[0]}</b><small>${h[1]}</small></a>`).join("")}</div></div>
+ <div class="grid-2 wide-l"><div class="sx-areas">${AREAS.map(a=>`<a href="#" data-go="${a[0]}" class="card sx-area">${X(a[1])}<div><b>${a[2]}</b><small>${a[3]}</small></div>${a[4]?`<em class="${a[4]}">${a[5]}</em>`:X("chevron-left")}</a>`).join("")}</div>
+  <div><div class="card sec"><div class="sec-h">${X("list-checks")}<b>جهّز مكتبك</b><em class="sx-prog">7 من 9</em></div><div class="sx-check">${[["بيانات الشركة والرقم الضريبي",1],["الشعار وهوية النماذج",1],["الفروع وساعات العمل",1],["الموظفين والأدوار",1],["الجنسيات والأسعار",1],["قوالب الرسائل ومزود واتساب",1],["الربط مع مساند",1],["ربط ZATCA (الوضع الفعلي)",0,"setIntegrations"],["استيراد العملاء والعقود القديمة",0,"setImport"]].map(c=>`<div class="${c[1]?"ok":""}">${X(c[1]?"check-circle-2":"circle")}<span>${c[0]}</span>${c[2]?B("ghost sm","","كمّل",`data-go="${c[2]}"`):""}</div>`).join("")}</div></div>
+  <div class="card sec"><div class="sec-h">${X("history")}<b>آخر تغييرات في الإعدادات</b></div><div class="tl">${[["اليوم 09:12","غيّر مدة الضمان من 60 إلى 90 يوم","مشرف النظام"],["أمس","أضاف قالب واتساب: payment_reminder","سارة القحطاني"],["14 نوفمبر","فعّل الوضع المبسط للطلب في الموقع","مشرف النظام"]].map(x=>`<div class="tli"><span class="dot"></span><div><b>${x[1]}</b><small>${x[2]}</small><small class="num">${x[0]}</small></div></div>`).join("")}</div></div></div></div>`;
+
+/* ================= العامة ================= */
+S.setGeneral=()=>`
+ ${IDEA("القواعد مكتوبة كجمل («الضمان 90 يوم من تاريخ الوصول») بدل حقول أرقام من غير معنى، والأقسام في قائمة جانبية بدل صفحات منفصلة. شريط الحفظ ثابت تحت.")}
+ ${HEAD("الإعدادات العامة","بيانات الشركة وقواعد التشغيل والنماذج.","",["setHome","الإعدادات"])}
+ ${LAY(SNAV([["building-2","بيانات الشركة"],["layout-dashboard","لوحة التحكم"],["timer","قواعد التشغيل"],["file-text","النماذج والعقود"],["hard-drive","التخزين"],["languages","الترجمات"]],0),`
+  ${SEC("building-2","بيانات الشركة",`<div class="fgrid">${FLD("اسم الشركة",INP("","مكتب الريادة للاستقدام"),1)}${FLD("الاسم بالإنجليزية",INP("","Al Riyada Recruitment",1))}${FLD("ممثل الشركة",INP("","محمد العتيبي"))}${FLD("الرقم الضريبي",INP("","310245881600003",1),0,"15 رقم يبدأ بـ 3")}${FLD("السجل التجاري",INP("","7012458816",1),0,"10 أرقام يبدأ بـ 7")}${FLD("رقم الترخيص",INP("","1438-221",1))}${FLD("انتهاء الترخيص",'<input type="date" value="2027-08-30">')}${FLD("الهاتف",INP("","0114482200",1))}${FLD("البريد",INP("","info@riyada.sa",1))}${FLD("المدينة",INP("","الرياض"))}${FLD("العنوان",INP("","طريق الملك فهد — العليا"),0,"",1)}</div><div class="sx-logo"><span class="ph">${X("image")}</span><div><b>شعار الشركة على العقود والمستندات</b><small>PNG بخلفية شفافة · 600×200</small></div>${B("ghost sm","upload","تغيير")}</div>`)}
+  ${SEC("timer","قواعد التشغيل",`${RULE("مدة الضمان","الضمان بيبدأ من تاريخ وصول العاملة، وبيتحدّث يومياً الساعة 02:00.",NUM(90,"يوم"))}${RULE("صلاحية الطلب","الطلب اللي ماتحوّلش لعقد بيتلغى تلقائياً بعدها.",NUM(14,"يوم"))}${RULE("مهلة الطلب الجديد","لو محدش اتصرف في الطلب الجديد يتصعّد للمدير.",NUM(24,"ساعة"))}${RULE("حد الطلب العاجل","الطلب بيتعلّم «عاجل» لو فاضل على موعده أقل من.",NUM(48,"ساعة"))}${RULE("الطلب المعلّق القديم","الطلب بيظهر في «يحتاج متابعة» بعد.",NUM(7,"يوم"))}`)}
+  ${SEC("banknote","ملاحظات الدفع",`<div class="fgrid">${FLD("ملاحظات التحويل البنكي",TXT("بتظهر للعميل في صفحة الدفع",2),0,"",1)}${FLD("ملاحظات تحويل سداد",TXT("",2),0,"",1)}</div>`)}
+  ${SAVEBAR()}`)}`;
+
+/* ================= موقع المكتب ================= */
+S.setSite=()=>`
+ ${IDEA("كل تعديل بيبان في معاينة صغيرة لهيدر الموقع جنبه، فالموظف يشوف أثر التغيير قبل الحفظ. ومفاتيح التشغيل المهمة (إظهار الموقع، وضع الصيانة) في أول الصفحة بلون واضح.")}
+ ${HEAD("موقع المكتب","الموقع اللي العملاء بيحجزوا منه.",B("ghost","external-link","فتح الموقع"),["setHome","الإعدادات"])}
+ <div class="sx-live card">${ROW("الموقع ظاهر للعملاء","riyada.clickerp.sa · آخر تحديث للكاش من 3 دقايق",SW(1))}${ROW("وضع الصيانة","العملاء هيشوفوا رسالة «تحت الصيانة»",SW(0))}${B("ghost sm","refresh-cw","مسح كاش الموقع")}</div>
+ ${LAY(SNAV([["info","البيانات الأساسية"],["palette","الهوية والوسائط"],["share-2","روابط التواصل"],["file-text","المحتوى والنصوص"],["scale","السياسات والشروط"],["log-in","الدخول والطلب"],["search","SEO والتتبع"],["megaphone","الإعلانات"]],5),`
+  <div class="grid-2 wide-l"><div>
+  ${SEC("log-in","تسجيل دخول العملاء",`<div class="cx-rcards three" style="grid-template-columns:1fr 1fr">${[["key-round","كلمة المرور","النظام الحالي"],["smartphone","رمز OTP","النظام المبسط — أسرع للعميل",1]].map(c=>`<label class="cx-rcard${c[3]?" on":""}">${X(c[0])}<b>${c[1]}</b><small>${c[2]}</small></label>`).join("")}</div>${ROW("نفس الطريقة في تطبيق العميل","",SW(1))}`)}
+  ${SEC("shopping-cart","الطلب من الموقع",`${RULE("طريقة حجز السيرة","العميل يحجز من غير ما يسجّل دخول، وبنكلّمه نكمّل.",SEL(["الوضع المبسط","تسجيل الدخول أولاً"]))}${RULE("اختيار الموظف أثناء الحجز","العميل يختار الموظف اللي هيتابعه.",SW(0))}${RULE("طلب الإيجار","باقة ← عنوان ← تأكيد، أو خطوة واحدة.",SEL(["الوضع المبسط","باقة ثم عنوان ثم تأكيد"]))}${RULE("خدمة العملاء أثناء الحجز","شات بيظهر للعميل في صفحة الحجز.",SW(1))}`)}
+  </div><div><div class="card sec sx-prev"><div class="sec-h">${X("eye")}<b>معاينة الموقع</b></div><div class="sx-browser"><div class="bar"><i></i><i></i><i></i><span>riyada.clickerp.sa</span></div><div class="hdr"><b>مكتب الريادة</b><span>الاستقدام · التأجير · نقل الخدمات</span>${B("primary sm","log-in","دخول برمز")}</div><div class="hero"><b>عاملات منزلية من 8 دول</b><small>احجز السيرة واحنا نكمّل معاك</small><span class="cta">تصفّح السير</span></div></div></div></div></div>
+  ${SAVEBAR()}`)}`;
+
+/* ================= الاستقدام والسير ================= */
+const FLDS=[["الاسم بالإنجليزي","req"],["رقم الجواز","req"],["تاريخ انتهاء الجواز","req"],["الديانة","def"],["الحالة الاجتماعية","opt"],["عدد الأطفال","hide"],["المؤهل التعليمي","opt"],["اللغات","def"],["سنوات الخبرة","req"],["الخبرة داخل المملكة","opt"],["فيديو تعريفي","opt"],["الطول والوزن","hide"]];
+S.setRecruit=()=>`
+ ${IDEA("حقول نموذج السيرة في جدول واحد بأربع اختيارات واضحة لكل حقل (إلزامي / كالمعتاد / اختياري / مخفي) بدل صفحات. والجنسيات بأسعارها في كروت تتعدّل في مكانها.")}
+ ${HEAD("الاستقدام والسير","نموذج السيرة، القالب، الجنسيات، ومراحل العقود.","",["setHome","الإعدادات"])}
+ ${LAY(SNAV([["list-checks","حقول نموذج السيرة"],["eye","ظهور السير في الموقع"],["layout-template","قالب السيرة"],["flag","الجنسيات والأسعار",8],["git-commit-horizontal","مراحل عقود الاستقدام"],["file-signature","مراحل التفويض"]],0),`
+  ${SEC("list-checks","حقول نموذج السيرة",`<div class="sx-fm">${FLDS.map(f=>`<div><b>${f[0]}</b><div class="cx-seg2 in sm4">${[["req","إلزامي"],["def","كالمعتاد"],["opt","اختياري"],["hide","مخفي"]].map(o=>`<button class="${o[0]===f[1]?"on "+o[0]:""}">${o[1]}</button>`).join("")}</div></div>`).join("")}</div>`)}
+  ${SEC("eye","ظهور السير",`${RULE("ترتيب السير في الموقع","",SEL(["من الأحدث إلى الأقدم","عشوائي","من الأقدم إلى الأحدث"]))}${RULE("السيرة اللي العميل يشوفها","المولّدة من القالب بتبان موحّدة لكل السير.",SEL(["المولّدة من القالب","المرفوعة من الشركة"]))}${RULE("سيرة عاملة الإيجار متاحة لنقل الخدمات","",SW(1))}${RULE("تعديل سيرة مرتبطة بمعاملات",'<span class="tag a">حساس</span> أي تعديل بيتسجّل وبيظهر في سجل العقد.',SW(0))}`)}
+  ${SEC("flag","الجنسيات والأسعار",`<div class="sx-nat">${[["الفلبين","18,500","1,500","1,600"],["إندونيسيا","16,800","1,400","1,500"],["سريلانكا","15,900","1,300","1,450"],["أوغندا","12,400","1,100","1,200"],["كينيا","13,200","1,150","1,250"],["بنغلاديش","11,800","1,000","1,150"]].map(n=>`<div class="card"><b>${n[0]}</b><div><small>الاستقدام</small><input class="num" value="${n[1]}"></div><div><small>التأجير الشهري</small><input class="num" value="${n[2]}"></div><div><small>الراتب</small><input class="num" value="${n[3]}"></div>${SW(1)}</div>`).join("")}</div>`)}
+  ${SAVEBAR()}`)}`;
+
+/* ================= التأجير ================= */
+S.setRental=()=>`
+ ${IDEA("إعدادات عقد التأجير بقت قواعد بجمل وأرقام («فترة الاختبار 3 أيام»، «التنبيه قبل الانتهاء بـ 7 أيام على واتساب»)، والتأجير بالساعة ملخص بحالته مع رابط للتفاصيل.")}
+ ${HEAD("إعدادات التأجير","عقد التأجير الشهري والتأجير بالساعة.","",["setHome","الإعدادات"])}
+ ${LAY(SNAV([["file-text","إعدادات العقد"],["scroll-text","بنود العقد",24],["package","الباقات",9],["clock","التأجير بالساعة"]],0),`
+  ${SEC("file-text","قواعد العقد الافتراضية",`${RULE("فترة الاختبار","العميل يقدر يرجّع العاملة خلالها من غير خصم.",NUM(3,"أيام"))}${RULE("ساعات العمل اليومية","بتتكتب في العقد.",NUM(10,"ساعات"))}${RULE("الخصم اليومي","لكل يوم غياب للعاملة.",NUM(60,"ر.س"))}${RULE("الإشعار المسبق","قبل إنهاء العقد من أي طرف.",NUM(7,"أيام"))}`)}
+  ${SEC("bell","تنبيه انتهاء العقد",`${RULE("تفعيل التنبيه","",SW(1))}${RULE("ابعت التنبيه قبل الانتهاء بـ","",NUM(7,"أيام"))}${RULE("القناة","",SEL(["واتساب","رسالة نصية","رسالة نصية وواتساب"]))}`)}
+  ${SEC("building-2","بيانات الطرف الأول في العقد",`<div class="fgrid">${FLD("اسم الشركة",INP("","مكتب الريادة للاستقدام"))}${FLD("رقم الترخيص",INP("","1438-221",1))}${FLD("السجل التجاري",INP("","7012458816",1))}${FLD("صندوق البريد",INP("","12214",1))}${FLD("الجوال",INP("","0551002200",1))}${FLD("الفاكس",INP("اختياري"))}</div><div class="sx-logo"><span class="ph">${X("pen-tool")}</span><div><b>توقيع الشركة</b><small>بيتطبع على العقد</small></div>${B("ghost sm","upload","رفع")}</div>`)}
+  <div class="card sx-hb"><div>${X("clock")}<div><b>التأجير بالساعة</b><small>8:00–22:00 · فترة 60 دقيقة · الجمعة مقفول · 3 مدن · خرائط Google</small></div></div>${ST("g","مفعّل ومربوط بالإيواء")}${B("ghost sm","","التفاصيل",'data-go="hb-services"')}</div>
+  ${SAVEBAR()}`)}`;
+
+/* ================= المستخدمون والصلاحيات ================= */
+const uTabs=on=>TABS([["setUsers","users","المستخدمون",46],["setRoles","shield-check","الأدوار والصلاحيات",6],["#trash","trash-2","المحذوفون",3]],on);
+S.setUsers=()=>`
+ ${IDEA("كل مستخدم ظاهر دوره وفروعه وآخر نشاط، والإجراءات الحساسة (تعليق، إنهاء الجلسة، الدخول كموظف) في قائمة واحدة. التعليق بيطلب «مين يستلم شغله» عشان مفيش عميل يتنسي.")}
+ ${HEAD("المستخدمون والصلاحيات","46 مستخدم · 6 أدوار · 3 فروع",B("ghost","file-spreadsheet","Excel")+B("primary","user-plus","مستخدم جديد"),["setHome","الإعدادات"])}
+ ${uTabs("setUsers")}
+ ${CHIPS([["الكل","",46],["نشط","g",42],["معلّق","a",2],["متصل الآن","g",18]])}
+ <div class="fbar"><div class="fb grow"><label>بحث</label><div class="inp">${X("search")}<input placeholder="الاسم، اسم المستخدم، الجوال"></div></div><div class="fb"><label>الدور</label>${SEL(["كل الأدوار","مدير النظام","مدير فرع","خدمة العملاء","المبيعات","المحاسب"])}</div><div class="fb"><label>الفرع</label>${SEL(["كل الفروع","الفرع الرئيسي","فرع جدة","فرع الدمام"])}</div></div>
+ <div class="card flush fx-t"><div class="tw"><table><thead><tr><th>المستخدم</th><th>الدور</th><th>الفروع</th><th>آخر نشاط</th><th>الحالة</th><th class="act"></th></tr></thead><tbody>
+ ${[["محمد العتيبي","admin","مدير النظام","كل الفروع","الآن","g","نشط"],["سارة القحطاني","sara.q","خدمة العملاء","الرئيسي","منذ 4 دقايق","g","نشط"],["خالد المطيري","khalid.m","المبيعات","الرئيسي · جدة","منذ ساعة","g","نشط"],["ريم الدوسري","reem.d","المحاسب","الرئيسي","أمس","g","نشط"],["ماجد السهلي","majed.s","مدير فرع","الدمام","منذ 12 يوم","a","معلّق"]].map(r=>`<tr><td><div class="hx-emp"><span class="hx-av">${r[0][0]}</span><div><b>${r[0]}</b><small class="num">@${r[1]}</small></div></div></td><td>${TAG("n",r[2])}</td><td>${r[3]}</td><td>${ST(r[4]==="الآن"||r[4].includes("دقايق")?"g":"n",r[4])}</td><td>${TAG(r[5],r[6])}</td><td class="act">${ACTS([["pencil","تعديل"],["key-round","كلمة المرور"],["more-horizontal","تعليق، إنهاء الجلسة، الدخول كموظف، حذف"]])}</td></tr>`).join("")}
+ </tbody></table></div>${PAGER("عرض 5 من 46 مستخدم")}</div>`;
+
+const MODS=[["العقود",["عرض","إضافة","تعديل","حذف"],[1,1,1,0]],["السير الذاتية",["عرض","إضافة","تعديل","حذف"],[1,1,1,0]],["العملاء",["عرض","إضافة","تعديل","حذف"],[1,1,1,0]],["الشكاوى",["عرض","إضافة","تعديل","حذف"],[1,1,1,0]],["الفواتير",["عرض","إضافة","تعديل","حذف"],[1,0,0,0]],["الطلبات المالية",["عرض","إضافة","تعديل","حذف"],[1,1,0,0]],["التقارير المالية",["عرض","إضافة","تعديل","حذف"],[0,0,0,0]],["الإعدادات",["عرض","إضافة","تعديل","حذف"],[0,0,0,0]]];
+S.setRoles=()=>`
+ ${IDEA("الدور بيتوصف بجملة («يقدر يشتغل على العقود والعملاء والشكاوى، ومش شايف المالية») تتكتب تلقائياً من المصفوفة، فأي مدير يفهم الصلاحيات من غير ما يقرا 200 علامة.")}
+ ${HEAD("الأدوار والصلاحيات","مين يقدر يعمل إيه — لكل دور ولكل فرع.",B("primary","plus","دور جديد"),["setHome","الإعدادات"])}
+ ${uTabs("setRoles")}
+ <div class="sx-lay">${SNAV([["crown","مدير النظام",1],["building","مدير فرع",3],["headphones","خدمة العملاء",14],["trending-up","المبيعات",18],["calculator","المحاسب",4],["home","مشرف الإيواء",6]],2)}<div class="sx-body">
+  <div class="card sx-role"><div><small>دور</small><h2>خدمة العملاء</h2><p>يقدر يشتغل على <b>العقود والسير والعملاء والشكاوى</b> (عرض وإضافة وتعديل من غير حذف)، ويشوف الفواتير بس، ويقدّم طلبات مالية. <b>مش شايف</b> التقارير المالية والإعدادات.</p></div><div class="fb"><label>الفرع</label>${SEL(["كل الفروع","الفرع الرئيسي","فرع جدة"])}</div></div>
+  <div class="card flush"><div class="sx-mx-h"><div class="inp">${X("search")}<input placeholder="ابحث في الصلاحيات"></div></div><div class="tw"><table class="sx-mx"><thead><tr><th>الشاشة</th><th>الكل</th><th>عرض</th><th>إضافة</th><th>تعديل</th><th>حذف</th></tr></thead><tbody>${MODS.map(m=>`<tr><td><b>${m[0]}</b></td><td><input type="checkbox" ${m[2].every(Boolean)?"checked":""}></td>${m[2].map(v=>`<td><input type="checkbox" ${v?"checked":""}></td>`).join("")}</tr>`).join("")}</tbody></table></div></div>
+  ${SAVEBAR("الصلاحيات بتتطبق على المستخدمين بعد ما يعملوا تحديث للصفحة.")}</div></div>`;
+
+/* ================= الفروع ================= */
+S.setBranches=()=>`
+ ${IDEA("كل فرع كارت فيه مديره وساعاته وعدد موظفيه، ومشاركة البيانات بين الفروع بقت مصفوفة واحدة واضحة (مين يشوف عملاء مين) بدل toggles متفرقة.")}
+ ${HEAD("الفروع","3 من 5 فروع مسموحة في الاشتراك",B("ghost","bar-chart-3","تقرير الفروع")+B("primary","plus","فرع جديد"),["setHome","الإعدادات"])}
+ <div class="sx-br">${[["الفرع الرئيسي","RYD-01","الرياض — العليا","محمد العتيبي",28,"8:00–22:00 · الجمعة مقفول",1],["فرع جدة","JED-02","جدة — الروضة","فهد الحربي",11,"9:00–21:00 · الجمعة مقفول",1],["فرع الدمام","DMM-03","الدمام — الشاطئ","غير مسند",4,"9:00–17:00",0]].map(b=>`<div class="card sx-brc"><div class="h">${X("building-2")}<div><b>${b[0]}</b><small class="num">${b[1]} · ${b[2]}</small></div>${b[6]?TAG("g","نشط"):TAG("a","مفيش مدير")}</div>${KV([["المدير",b[3]],["الموظفون",`<span class="num">${b[4]}</span>`],["ساعات العمل",b[5]]])}<div class="f">${B("ghost sm","pencil","تعديل")}${B("ghost sm","user-plus","إضافة موظف")}</div></div>`).join("")}</div>
+ ${SEC("share-2","مشاركة البيانات بين الفروع",`<div class="tw"><table class="sx-mx"><thead><tr><th>الفرع</th><th>العملاء</th><th>السير المخصصة</th><th>المكاتب الخارجية</th></tr></thead><tbody>${[["الفرع الرئيسي",1,1,1],["فرع جدة",1,0,1],["فرع الدمام",0,0,1]].map(r=>`<tr><td><b>${r[0]}</b></td>${[1,2,3].map(i=>`<td>${SW(r[i])}</td>`).join("")}</tr>`).join("")}</tbody></table></div>${RULE("السير الذاتية غير المسندة لفرع","تظهر لكل الفروع.",SW(1))}${RULE("حسابات مالية لكل فرع","كل فرع ليه حساباته ومراكز تكلفته.",SW(1))}`)}
+ ${SAVEBAR()}`;
+
+/* ================= القوائم المرجعية ================= */
+S.setLists=()=>`
+ ${IDEA("14 قائمة كانت متفرقة في القائمة الجانبية بقت كروت في صفحة واحدة بعدد عناصر كل قائمة، وأي قائمة بتتفتح جنبها للتعديل مع ترتيب بالسحب.")}
+ ${HEAD("القوائم المرجعية","القيم اللي بتظهر في القوائم المنسدلة في النظام كله.","",["setHome","الإعدادات"])}
+ <div class="sx-lay">${SNAV([["globe","الدول",42],["map-pin","المدن",118],["flag","الجنسيات",8],["church","الأديان",4],["briefcase","المهن",12],["sparkles","المهارات",18],["languages","اللغات",9],["graduation-cap","المؤهلات",6],["heart","الحالات الاجتماعية",4],["plane","المطارات",11],["home","أماكن الإيواء",4],["message-square-warning","أنواع الشكاوى",9],["building","مكاتب الاستقدام",23],["footprints","الخطوات",7]],6)}<div class="sx-body">
+  <div class="card flush"><div class="card-h pad"><div><h3>اللغات</h3><p>9 لغات · بتظهر في نموذج السيرة</p></div>${B("primary sm","plus","إضافة")}</div><div class="tw"><table><thead><tr><th style="width:30px"></th><th>بالعربي</th><th>بالإنجليزي</th><th>رمز الـ API</th><th>في نموذج السيرة</th><th class="act"></th></tr></thead><tbody>${[["العربية","Arabic","ar",1],["الإنجليزية","English","en",1],["التاغالوغ","Tagalog","tl",1],["الإندونيسية","Indonesian","id",1],["السنهالية","Sinhala","si",1],["السواحيلية","Swahili","sw",0]].map(r=>`<tr><td>${X("grip-vertical")}</td><td><b>${r[0]}</b></td><td>${r[1]}</td><td class="num">${r[2]}</td><td>${SW(r[3])}</td><td class="act">${ACTS([["pencil","تعديل"],["trash-2","حذف"]])}</td></tr>`).join("")}</tbody></table></div></div></div></div>`;
+
+/* ================= الرسائل والإشعارات ================= */
+S.setMessages=()=>`
+ ${IDEA("أول حاجة حالة كل قناة (واتساب، SMS، البريد، التطبيق) بلون — فلو مزود وقف تعرف فوراً. والقوالب بتتجرب من مكانها بزر «جرّب على رقمي».")}
+ ${HEAD("الرسائل والإشعارات","القنوات والقوالب والتنبيهات الآلية.",B("primary","plus","قالب جديد"),["setHome","الإعدادات"])}
+ <div class="sx-ch">${[["message-circle","واتساب","Click Live Chat · 3 أرقام","g","شغّال","98% تسليم"],["smartphone","SMS","تقنيات Taqnyat","r","متوقف","الرصيد خلص — آخر إرسال أمس 17:20"],["mail","البريد","SMTP · info@riyada.sa","g","شغّال",""],["bell-ring","إشعارات التطبيق","Firebase","g","شغّال","2,410 جهاز"]].map(c=>`<div class="card sx-chc ${c[3]}">${X(c[0])}<div><b>${c[1]}</b><small>${c[2]}</small></div>${ST(c[3],c[4])}${c[5]?`<em>${c[5]}</em>`:""}${B("ghost sm","settings-2","الإعدادات")}</div>`).join("")}</div>
+ ${TABS([["setMessages","layout-template","القوالب",34],["#alerts","alarm-clock","التنبيهات الآلية",12],["#log","history","السجل"]],"setMessages")}
+ <div class="card flush fx-t"><div class="tw"><table><thead><tr><th>القالب</th><th>القناة</th><th>الرسالة</th><th>المتغيرات</th><th>مفعّل</th><th class="act"></th></tr></thead><tbody>
+ ${[["contract_stage_arrival","وصول العاملة","واتساب","أهلاً {اسم_العميل}، العاملة {اسم_العاملة} وصلت الرياض الساعة {الوقت}…",3,1],["payment_reminder","تذكير بالدفع","واتساب","تذكير: فاتورة {رقم_الفاتورة} بمبلغ {المبلغ} مستحقة يوم {التاريخ}",3,1],["otp_login","رمز الدخول","SMS","رمز التحقق: {الرمز}",1,1],["complaint_received","استلام شكوى","واتساب","استلمنا شكواك رقم {رقم_الشكوى} وهنرد خلال 24 ساعة",1,1],["offer_ramadan","عرض رمضان","واتساب","بمناسبة رمضان خصم {النسبة} بكود {الكود}",2,0]].map(r=>`<tr><td><div class="wcell"><div><b>${r[1]}</b><small class="num">${r[0]}</small></div></div></td><td>${TAG(r[2]==="SMS"?"a":"g",r[2])}</td><td><span class="cx-msgcell">${r[3]}</span></td><td class="num">${r[4]}</td><td>${SW(r[5])}</td><td class="act">${B("ghost sm","send","جرّب")}${ACTS([["pencil","تعديل"]])}</td></tr>`).join("")}
+ </tbody></table></div></div>`;
+
+/* ================= التكاملات (hub — مش موجود في الكود) ================= */
+S.setIntegrations=()=>`
+ ${IDEA("كل الربطات في صفحة واحدة ككروت بحالتها (متصل / محتاج انتباه / مش مربوط) وزر «اختبار الاتصال» — في الكود كل ربط صفحة لوحده ومفيش مكان يقولك إيه شغّال.")}
+ ${HEAD("التكاملات","ربط النظام بالمنصات الحكومية وبوابات الدفع والخدمات.","",["setHome","الإعدادات"])}
+ <div class="sx-int">${[["landmark","مساند / تكامل","منصة الاستقدام — الطلبات والعقود","g","متصل","Production · آخر مزامنة 09:40"],["credit-card","ميسر","بوابة الدفع للعقود والفواتير","g","متصل","42 عملية الشهر ده"],["badge-check","ZATCA","الفوترة الإلكترونية — المرحلة الثانية","a","محتاج انتباه","15 فاتورة معلّقة","finZatca"],["message-circle","Click Live Chat","واتساب وشات الموقع","g","متصل","3 أرقام"],["headphones","Zoho SalesIQ","زوار الموقع والمحادثات","n","مش مربوط",""],["bell-ring","Firebase","إشعارات تطبيق العميل","g","متصل",""],["hard-drive","Cloudflare R2","تخزين ملفات السير","g","متصل","12.4 GB"],["smartphone","Taqnyat SMS","الرسائل النصية","r","متوقف","الرصيد خلص","setMessages"]].map(c=>`<div class="card sx-ic">${X(c[0])}<b>${c[1]}</b><small>${c[2]}</small>${ST(c[3],c[4])}${c[5]?`<em>${c[5]}</em>`:""}<div class="f">${c[3]==="n"?B("primary sm","link","ربط"):B("ghost sm","activity","اختبار الاتصال")}${B("ghost sm","settings-2","",c[6]?`data-go="${c[6]}"`:"")}</div></div>`).join("")}</div>`;
+
+/* ================= استيراد البيانات ================= */
+S.setImport=()=>`
+ ${IDEA("الاستيراد بقى 4 خطوات واضحة، ونوع البيانات بيتختار ككروت مجمّعة (العملاء، العقود، المالية…) بدل قائمة فيها 29 اختيار. المراجعة بتفصل الصفوف السليمة عن اللي فيها مشكلة بسببها قبل الاعتماد.")}
+ ${HEAD("استيراد البيانات","انقل بياناتك القديمة بقوالب Excel جاهزة.",B("ghost","play-circle","فيديو الشرح"),["setHome","الإعدادات"])}
+ <div class="card fx-track">${[["نوع البيانات",2],["رفع الملف",2],["المراجعة",1],["الاعتماد",0]].map((s,i)=>`<div class="s ${s[1]===2?"done":s[1]===1?"now":""}"><span class="n">${s[1]===2?X("check"):`<b class="num">${i+1}</b>`}</span><div><b>${s[0]}</b></div></div>`).join(`<i class="l"></i>`)}</div>
+ <div class="grid-2 wide-l"><div>
+  <div class="card sec"><div class="sec-h">${X("file-spreadsheet")}<b>عملاء — clients_2024.xlsx</b><em class="sx-prog">1,240 صف</em></div>
+   <div class="sx-imp">${[["g","check-circle-2","1,186","سليمة وجاهزة"],["a","alert-triangle","38","هتتدمج مع عملاء موجودين"],["r","x-circle","16","فيها مشكلة"]].map(k=>`<div class="${k[0]}">${X(k[1])}<b class="num">${k[2]}</b><span>${k[3]}</span></div>`).join("")}</div>
+   ${CHIPS([["فيها مشكلة","r",16],["هتتدمج","a",38],["سليمة","g",1186]])}
+   <div class="tw"><table><thead><tr><th>صف</th><th>الاسم</th><th>الجوال</th><th>السبب</th></tr></thead><tbody>${[["14","فهد الشمري","05512","رقم الجوال ناقص"],["88","—","0559912003","الاسم فاضي"],["203","نوره العتيبي","0557712004","رقم الهوية متكرر في الملف (صف 197)"],["412","Saleh A.","0501234567","الجنسية «KSA» مش معروفة — اختار «السعودية»"]].map(r=>`<tr><td class="num">${r[0]}</td><td>${r[1]}</td><td class="num">${r[2]}</td><td><span class="fx-why" style="margin:0">${r[3]}</span></td></tr>`).join("")}</tbody></table></div>
+   <div class="cx-right">${B("ghost","download","تحميل الصفوف اللي فيها مشكلة")}${B("primary","check","اعتماد 1,224 صف")}</div></div>
+ </div><div>
+  <div class="card sec"><div class="sec-h">${X("layers")}<b>أنواع البيانات</b></div><div class="sx-types">${[["users","العملاء",["العملاء","عملاء (أربيا)"]],["files","السير والعاملات",["السير الذاتية","سير الإيجار","سير (أربيا)"]],["file-text","العقود",["عقود الاستقدام","عقود التأجير","الإيواء","نقل الخدمات","تفاويض الإنجاز"]],["wallet","المالية",["الحسابات","القيود","سندات القبض والصرف","الفواتير","مراكز التكلفة"]],["building","أخرى",["مكاتب الاستقدام","المستخدمون","الموظفين","الشكاوي"]]].map(g=>`<div><b>${X(g[1]==="العملاء"?"users":g[0])}${g[1]}</b><span>${g[2].join(" · ")}</span></div>`).join("")}</div></div>
+  <div class="card sec"><div class="sec-h">${X("history")}<b>آخر عمليات الاستيراد</b></div><div class="fx-acc">${[["عقود الاستقدام","14 نوفمبر · 312 صف"],["السير الذاتية","12 نوفمبر · 840 صف"],["القيود المالية","03 نوفمبر · 2,104 صف"]].map(r=>`<div><b>${r[0]}</b><span>${r[1]}</span></div>`).join("")}</div></div>
+ </div></div>`;
+
+/* ================= المساعد الذكي (mcp) ================= */
+S.setAi=()=>`
+ ${IDEA("صفحة واحدة للموظف والمدير: الموظف يشوف إزاي يربط ويسأل، والمدير يشوف مين بيستخدم وإيه الأدوات المسموحة. الأسئلة المقترحة بتعلّم الموظف يستفيد من أول يوم.")}
+ ${HEAD("المساعد الذكي","اسأل النظام بالعربي من Claude أو ChatGPT — بصلاحياتك بس.","",["setHome","الإعدادات"])}
+ <div class="grid-2 wide-l"><div>
+  <div class="card sx-ai"><div><small>رابط الخادم</small><code dir="ltr">https://riyada.clickerp.sa/mcp</code></div>${B("ghost sm","copy","نسخ")}</div>
+  ${SEC("plug","إزاي تربطه",`<div class="fx-path" style="margin:0 20px 18px">${["افتح Claude أو ChatGPT ← الإعدادات ← Connectors","أضف الرابط اللي فوق","سجّل دخول بحسابك في كليك","اسأل بالعربي"].map((x,i)=>`<div class="${i===0?"on":""}"><span class="num">${i+1}</span>${x}</div>`).join("")}</div>`)}
+  ${SEC("message-circle","جرّب تسأل",`<div class="sx-q">${["كام عقد استقدام اتأخر وصوله أكتر من 45 يوم؟","مين العملاء اللي عليهم مستحقات أكتر من 10,000؟","لخّص شكاوى الأسبوع ده حسب النوع","أضف متابعة لمنيرة الشهري بكرة الساعة 10"].map(q=>`<span>${X("sparkles")}${q}</span>`).join("")}</div>`)}
+  ${SEC("shield-check","بياناتك في أمان",`<div class="cx-body"><p>المساعد بيشوف بس اللي صلاحياتك تسمح بيه. أي إضافة أو تعديل بيطلب منك تأكيد قبل التنفيذ، وكل طلب بيتسجّل.</p></div>`)}
+ </div><div>
+  <div class="card"><div class="card-h"><div><h3>الاستخدام</h3><p>آخر 30 يوم</p></div></div><div class="fx-io">${[["الاستدعاءات","1,284","g","activity"],["موظفين بيستخدموه","14","g","users"],["إضافات وتعديلات","96","a","pencil"],["بحث بلا نتايج","23","a","search-x"]].map(m=>`<div class="${m[2]}">${X(m[3])}<small>${m[0]}</small><b class="num">${m[1]}</b></div>`).join("")}</div></div>
+  ${SEC("users","مين يقدر يستخدمه",`${RULE("الإتاحة","",SEL(["موظفين محددين","كل الموظفين","مقفول"]))}${RULE("السماح بالإضافة والتعديل","بتأكيد الموظف قبل التنفيذ.",SW(1))}${RULE("حد الاستخدام","لكل موظف.",NUM(30,"طلب/دقيقة"))}`)}
+ </div></div>`;
+
+/* ================= الدعم ================= */
+S.setSupport=()=>`
+ ${IDEA("البحث في الأدلة قبل فتح التذكرة: وانت بتكتب مشكلتك بيقترح الأدلة اللي ممكن تحلها، فتذاكر أقل وحل أسرع.")}
+ ${HEAD("الدعم","أدلة الاستخدام وتذاكر الدعم الفني.",B("primary","plus","فتح تذكرة"),["setHome","الإعدادات"])}
+ <div class="sx-search card"><div class="inp big">${X("search")}<input value="إزاي أصدر فاتورة ضريبية لعقد تأجير"></div><div class="sx-hits">${[["إصدار فاتورة عقد تأجير وترحيلها لـ ZATCA","المالية · 3 دقايق قراءة · فيديو"],["تصحيح فاتورة مرفوضة من الهيئة","المالية · دقيقتين"],["إعداد نسبة الضريبة","الإعدادات · دقيقة"]].map(h=>`<a href="#">${X("book-open")}<b>${h[0]}</b><small>${h[1]}</small></a>`).join("")}</div></div>
+ <div class="grid-2 wide-l"><div class="sx-kb">${[["file-text","العقود",14],["users","العملاء",9],["wallet","المالية",21],["user-cog","الموارد البشرية",8],["repeat","التأجير",12],["settings","الإعدادات",11]].map(k=>`<a href="#" class="card">${X(k[0])}<b>${k[1]}</b><small class="num">${k[2]} دليل</small></a>`).join("")}</div>
+  <div class="card flush fx-t"><div class="card-h pad"><div><h3>تذاكري</h3></div></div><div class="tw"><table><tbody>${[["مشكلة في ربط مساند بعد التحديث","قيد المعالجة","a","عاجلة"],["طلب تقرير مخصص للعمولات","مفتوحة","n","عادية"],["الرسائل النصية مش بتوصل","مغلقة","g","مرتفعة"]].map(t=>`<tr><td><b>${t[0]}</b></td><td>${TAG(t[2],t[1])}</td><td><small>${t[3]}</small></td></tr>`).join("")}</tbody></table></div></div></div>`;
+
+/* ================= المطوّر (superadmin) ================= */
+S.setDev=()=>`
+ ${IDEA("لوحة المطوّر بقت ملخص حالة: الاشتراك، الموديلات المفعّلة كمفاتيح، آخر نسخة احتياطية، والمهام المجدولة اللي فيها مشكلة — بدل 10 صفحات منفصلة.")}
+ ${HEAD("المطوّر (Super Admin)","للفريق التقني بس — دخول منفصل بتحقق إضافي.","",["setHome","الإعدادات"])}
+ <div class="grid-kpi">${[["badge-check","الاشتراك","Pro · سنوي","ينتهي 30 يونيو 2027"],["users","المستخدمون","46 / 60","مسموح"],["git-branch","الفروع","3 / 5","مسموح"],["database-backup","آخر نسخة احتياطية","اليوم 03:00","R2 + محلي · 1.8 GB"]].map(k=>`<div class="card kpi fx-kpi"><div class="kl">${X(k[0])}<span>${k[1]}</span></div><div class="kv" style="font-size:20px">${k[2]}</div><div class="km"><span>${k[3]}</span></div></div>`).join("")}</div>
+ <div class="grid-2">
+  ${SEC("blocks","الموديلات",`${[["التأجير بالساعة",1],["الموقع الخارجي",1],["CRM",1],["الموارد البشرية",1],["المالية والفوترة",1],["تأشيرات الشركة",0],["كوبونات الخصم",1],["نظام العمولات",1],["روابط API",0]].map(m=>ROW(m[0],"",SW(m[1]))).join("")}`)}
+  <div>${SEC("calendar-clock","المهام المجدولة",`<div class="fx-acc">${[["تحديث حالات الضمان","يومياً 02:00","g","ناجح"],["معالجة الطلبات المنتهية","كل 30 دقيقة","g","ناجح"],["إرسال تنبيهات العقود","يومياً 09:00","r","فشل — SMS متوقف"],["النسخ الاحتياطي","يومياً 03:00","g","ناجح"]].map(r=>`<div><b>${r[0]}<small style="display:block;color:var(--muted);font-weight:500">${r[1]}</small></b>${ST(r[2],r[3])}</div>`).join("")}</div>`)}
+  ${SEC("wrench","أدوات",`<div class="acts2" style="padding:0 20px 18px">${[["database-backup","نسخة احتياطية الآن"],["file-pen","تصحيح فاتورة"],["life-buoy","الاستعادة والفحص"],["megaphone","تحديثات النظام"],["user-check","الدخول كموظف"],["construction","وضع التحديث","danger"]].map(a=>`<button class="atile ${a[2]||""}">${X(a[0])}<span>${a[1]}</span></button>`).join("")}</div>`)}</div></div>`;
+
+Object.assign(T,{setHome:{ar:"الإعدادات",en:"Settings"},setGeneral:{ar:"الإعدادات العامة",en:"General"},setSite:{ar:"موقع المكتب",en:"Website"},setRecruit:{ar:"الاستقدام والسير",en:"Recruitment & CVs"},setRental:{ar:"إعدادات التأجير",en:"Rental"},setUsers:{ar:"المستخدمون",en:"Users"},setRoles:{ar:"الأدوار والصلاحيات",en:"Roles"},setBranches:{ar:"الفروع",en:"Branches"},setLists:{ar:"القوائم المرجعية",en:"Reference lists"},setMessages:{ar:"الرسائل والإشعارات",en:"Messaging"},setIntegrations:{ar:"التكاملات",en:"Integrations"},setImport:{ar:"استيراد البيانات",en:"Data import"},setAi:{ar:"المساعد الذكي",en:"AI assistant"},setSupport:{ar:"الدعم",en:"Support"},setDev:{ar:"المطوّر",en:"Developer"}});
 Object.keys(S).forEach(k=>{screens[k]=S[k]});
 })();
 /* ===== multipage boot ===== */
