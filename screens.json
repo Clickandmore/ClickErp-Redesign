@@ -1,5 +1,5 @@
 {
-  "version": "v1.3.2",
+  "version": "v1.4",
   "date": "2026-11-16",
   "entry": "login.html",
   "screens": [
@@ -437,6 +437,51 @@
       "id": "hb-zones",
       "file": "hb-zones.html",
       "title": "المدن والمناطق"
+    },
+    {
+      "id": "claims",
+      "file": "claims.html",
+      "title": "الشكاوى"
+    },
+    {
+      "id": "claimAdd",
+      "file": "claimAdd.html",
+      "title": "تسجيل شكوى جديدة"
+    },
+    {
+      "id": "claimShow",
+      "file": "claimShow.html",
+      "title": "تفاصيل الشكوى"
+    },
+    {
+      "id": "claimTypes",
+      "file": "claimTypes.html",
+      "title": "أنواع الشكاوى"
+    },
+    {
+      "id": "absconding",
+      "file": "absconding.html",
+      "title": "بلاغات الهروب"
+    },
+    {
+      "id": "abscShow",
+      "file": "abscShow.html",
+      "title": "بلاغ هروب"
+    },
+    {
+      "id": "chats",
+      "file": "chats.html",
+      "title": "المحادثات"
+    },
+    {
+      "id": "campaigns",
+      "file": "campaigns.html",
+      "title": "الحملات والرسائل المرسلة"
+    },
+    {
+      "id": "campaignNew",
+      "file": "campaignNew.html",
+      "title": "حملة جديدة"
     }
   ],
   "states": [
