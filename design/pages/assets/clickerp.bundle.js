@@ -1,3 +1,4 @@
+/* Click ERP design bundle v1.1 */
 
 /* ===== clickerp.js ===== */
 const T={
