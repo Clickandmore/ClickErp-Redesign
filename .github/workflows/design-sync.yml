@@ -1,0 +1,66 @@
+name: Design sync
+
+# طريقتين للتحديث:
+# 1) ارفع ملف zip التصميم داخل design/incoming/ من GitHub (Add file → Upload files) — يشتغل تلقائياً.
+# 2) من Actions → Design sync → Run workflow والصق رابط ملف zip.
+on:
+  push:
+    paths:
+      - 'design/incoming/*.zip'
+  workflow_dispatch:
+    inputs:
+      zip_url:
+        description: 'رابط ملف التصميم المضغوط (zip)'
+        required: true
+
+permissions:
+  contents: write
+
+concurrency: design-sync
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get zip
+        env:
+          ZIP_URL: ${{ inputs.zip_url }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/in
+          if [ -n "${ZIP_URL:-}" ]; then
+            curl -fsSL "$ZIP_URL" -o /tmp/in/design.zip
+          else
+            f=$(ls -t design/incoming/*.zip | head -1)
+            cp "$f" /tmp/in/design.zip
+          fi
+
+      - name: Extract into design/pages
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/x
+          unzip -q /tmp/in/design.zip -d /tmp/x
+          src=$(find /tmp/x -name screens.json -printf '%d %h\n' | sort -n | head -1 | cut -d' ' -f2-)
+          if [ -z "$src" ]; then
+            src=$(find /tmp/x -name index.html -printf '%d %h\n' | sort -n | head -1 | cut -d' ' -f2-)
+          fi
+          [ -n "$src" ] || { echo "No index.html / screens.json found in zip"; exit 1; }
+          rm -rf design/pages
+          mkdir -p design/pages
+          cp -r "$src"/. design/pages/
+          rm -rf design/incoming
+
+      - name: Commit and push
+        run: |
+          set -euo pipefail
+          bot='github-actions[bot]'
+          printf -v botmail '41898282+%s\x40users.noreply.github.com' "$bot"
+          git config user.name "$bot"
+          git config user.email "$botmail"
+          git add -A design
+          if git diff --cached --quiet; then echo "No changes"; exit 0; fi
+          ver=$(grep -m1 -oE 'v[0-9]+\.[0-9]+(\.[0-9]+)?' design/pages/CHANGELOG.md || echo update)
+          git commit -m "design: ${ver} (auto sync)"
+          git push
