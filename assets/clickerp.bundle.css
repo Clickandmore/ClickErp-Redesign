@@ -2695,3 +2695,19 @@ body[dir="rtl"] .rx .trip-l svg{transform:scaleX(-1)}
 @media(max-width:900px){.rx .hh .actions .uk-sel{flex:1}.rx .kit-kv{grid-template-columns:1fr}.rx .uk-fg .w2{grid-column:auto}.rx .kit-kpis.n3{grid-template-columns:repeat(2,minmax(0,1fr))}.rx .kit-in.sm{width:100%!important}}
 @media(max-width:1200px){.rx .kit-dg{grid-template-columns:minmax(0,1fr)}.rx .kit-side{position:static}.rx .kit-kpis.n5,.rx .kit-kpis.n6{grid-template-columns:repeat(3,minmax(0,1fr))}.rx .hb-cols{grid-template-columns:repeat(2,minmax(0,1fr))}.rx .hb-map{grid-template-columns:1fr}}
 .rx .dp-w .dp-ic{background:none!important;border-radius:0;padding:0;width:17px;height:17px;color:var(--muted)!important;box-shadow:none}
+
+/* ---- v1.3.2 — sidebar: cleaner section header, stronger type ---- */
+.side .nav .dp-head{padding:6px 10px 12px;margin:0 2px 8px;border-bottom:1px solid var(--line)}
+.side .nav .dp-t{gap:3px}
+.side .nav .dp-t b{font-size:18px;font-weight:800;color:var(--navy);letter-spacing:0}
+.side .nav .dp-t small{font-size:12.5px;font-weight:500;line-height:1.55;color:#5b6576}
+.side .nav .dp-meta{display:none}
+.nav a,.nav-eh{font-size:15px;font-weight:700;color:#0f172a}
+.nav a.on,.nav-eh.on{font-weight:800;color:var(--navy)}
+.nav a svg,.nav-eh svg:not(.chev){color:#1f2937;stroke-width:2.1}
+.nav-ref{font-size:15px;font-weight:600;color:#334155}
+.nav-ref svg{color:#64748b}
+.nav-soon{font-size:15px;font-weight:600;color:#8a94a6}
+.nav-soon svg{color:#a3adbd}
+.side .nav .nav-kid-sec{margin:16px 10px 6px;font-size:12.5px;font-weight:800;color:#475569;letter-spacing:0}
+.side .nav .dp-list>.nav-kid-sec:first-child{margin-top:2px}

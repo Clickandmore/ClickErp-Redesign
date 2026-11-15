@@ -3406,10 +3406,14 @@ window.renderNav=function(c){
  if(c!==LAST){LAST=c;SEL=od?od.id:"all"}
  rail(c);lucide.createIcons();
  const d=DEPTS.find(x=>x.id===SEL)||DEPTS[0];
- const ready=d.items.filter(p=>!p.soon&&!p.sec&&!p.ref).length,refs=d.items.filter(p=>p.ref).length,soon=d.items.filter(p=>p.soon).length;
- const head=`<div class="dp-head"><div class="dp-t"><b>${t(d.ar,d.en)}</b><small>${d.d}</small></div></div>
-  <div class="dp-meta"><span>${ready} ${t("جاهزة","ready")}</span>${refs?`<span class="dot"></span><span class="rf">${refs} ${t("مرجع","ref")}</span>`:""}${soon?`<span class="dot"></span><span class="sn">${soon} ${t("قريباً","soon")}</span>`:""}</div>`;
- const list=d.items.map(p=>link(p,op&&p.id===op.id,d.id!=="all")).join("");
+ const head=`<div class="dp-head"><div class="dp-t"><b>${t(d.ar,d.en)}</b><small title="${d.d}">${d.d}</small></div></div>`;
+ /* v1.3.2: ready screens first — inside each group (ready → ref → soon), and groups with ready screens before reference/soon-only groups */
+ const rk=p=>p.soon?2:p.ref?1:0,groups=[];let g={h:null,items:[]};
+ d.items.forEach(p=>{if(p.sec){if(g.h||g.items.length)groups.push(g);g={h:p,items:[]}}else g.items.push(p)});
+ if(g.h||g.items.length)groups.push(g);
+ groups.forEach((x,i)=>{x.i=i;x.items=x.items.map((p,j)=>[p,j]).sort((a,b)=>rk(a[0])-rk(b[0])||a[1]-b[1]).map(a=>a[0]);x.r=x.items.length?Math.min(...x.items.map(rk)):0});
+ groups.sort((a,b)=>a.r-b.r||a.i-b.i);
+ const list=groups.map(x=>(x.h?link(x.h):"")+x.items.map(p=>link(p,op&&p.id===op.id,d.id!=="all")).join("")).join("");
  let pins="";
  if(d.id==="all")pins=`<div class="nav-sec-t">${t("الشاشات المثبتة","Pinned")}<small class="num">${PINS.length}</small></div>`+
   (PINS.length?PINS.map(id=>`<a href="#" data-go="${id}" class="${op&&op.id===id?"on":""}">${I(PG[id].i)}<span>${t(PG[id].ar,PG[id].en)}</span>${PG[id].b?`<span class="badge num">${PG[id].b}</span>`:""}${pinBtn(id,true)}</a>`).join("")
