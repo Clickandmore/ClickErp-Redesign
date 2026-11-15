@@ -3376,6 +3376,11 @@ const SUBS={contracts:["contractShow","contractAdd","contractEdit"],cvs:["cvAdd"
  rental:["rentalShow","rentalAdd"],housing:["housingShow","housingAdd"],transfer:["transferShow","transferAdd"],
  reports:["report"],finSales:["finSaleAdd","finBonds","finReturns"],finBanks:["finBoxes","finTransfers","finChecksIn","finChecksOut"],finClients:["finSuppliers","finAgents"],
  finCenters:["finCentersTree"],finReports:["finReport"],finItems:["finStock","finInventory"],finEntries:["finAdd","finShow"],finAccounts:["finSettings"],clArchive:[],delegations:["delAdd","delShow"],trips:["tripShow"],agents:["agentShow"],"hb-board":["hbNew"],"hb-visits":["hbVisit"],coupons:["couponForm","couponShow","couponBulk","couponReport","couponSettings"],claims:["claimAdd","claimShow","claimTypes"],absconding:["abscShow"],campaigns:["campaignNew"],finRequests:["finRequestAdd","finRequestShow"],finAssets:["finAssetShow"],finCommissions:["finCommissionShow","finCommissionRules"],finTax:["finZatca"],hrEmployees:["hrEmployeeShow","hrEmployeeAdd"],hrPayroll:["hrPayrollRun"],setUsers:["setRoles"],visaRequests:["visaAdd","visaShow"]};
+/* v1.8.1: sidebar badges = only things that need action (no totals). r=urgent/late, a=waiting for you, n=unread */
+const ALERTS={orders:[6,"a","6 طلبات جديدة لسه محدش ردّ عليها"],contracts:[18,"r","18 عقد تجاوز 45 يوم بدون تذاكر"],invoices:[7,"r","7 فواتير متأخرة السداد"],transfer:[4,"a","4 طلبات نقل بانتظار موافقتك"],housing:[2,"a","2 عاملة محتاجين فحص طبي"],followups:[5,"a","5 متابعات مطلوبة النهارده"],chats:[3,"n","3 محادثات غير مقروءة"],claims:[2,"r","شكوتين عاجلتين"],absconding:[2,"r","2 بلاغ هروب مفتوح"],"hb-alerts":[1,"r","بلاغ مفتوح من الطاقم"],visaDash:[2,"a","2 طلب تأشيرة بانتظار الموافقة"],finRequests:[5,"a","5 طلبات مالية بانتظار اعتمادك"],finTax:[4,"r","4 فواتير مرفوضة من ZATCA"],hrRequests:[7,"a","7 طلبات موظفين مستنية قرارك"],hrAttendance:[1,"r","موظف غايب بدون إذن النهارده"],setMessages:[0,"r","مزود الرسائل النصية متوقف"]};
+DEPTS.forEach(d=>d.items.forEach(p=>{if(p.sec)return;delete p.b;if(ALERTS[p.id])p.al=ALERTS[p.id]}));
+const ALB=p=>p&&p.al?`<span class="nal ${p.al[1]}${p.al[0]?"":" dot"}" title="${p.al[2]}">${p.al[0]?`<b class="num">${p.al[0]}</b>`:""}</span>`:"";
+const DAL=d=>{const al=d.items.filter(p=>p.al);if(!al.length)return "";const r=al.filter(p=>p.al[1]==="r").length,w=al.length-r;return `<span class="dal">${r?`<span class="nal r" title="${r} حاجة عاجلة"><b class="num">${r}</b></span>`:""}${w?`<span class="nal a" title="${w} حاجة مستنياك"><b class="num">${w}</b></span>`:""}</span>`};
 const PG={};DEPTS.forEach(d=>d.items.forEach(p=>{if(!p.soon&&!p.sec)PG[p.id]=p}));
 const owner=c=>{for(const d of DEPTS)for(const p of d.items){if(p.soon||p.sec)continue;if(p.id===c||(SUBS[p.id]||[]).includes(c))return [d,p]}return [null,null]};
 const PK="clickerp-pins";
@@ -3387,7 +3392,7 @@ let LAST=null,SEL="all";
 const pinBtn=(id,pinned)=>`<span class="pin ${pinned?"is":""}" role="button" data-pin="${id}" title="${pinned?t("إلغاء التثبيت","Unpin"):t("تثبيت","Pin")}">${I(pinned?"pin-off":"pin")}</span>`;
 const link=(p,active,pinUI)=>p.sec?`<div class="nav-kid-sec">${p.ar}</div>`:p.ref?`<a class="nav-ref" href="${RB}${p.ref}.html" target="_blank" rel="noopener" title="${t("تصميم مرجعي (الريادة) — هيتعاد بثيمنا","Reference design (Riyada)")}">${I(p.i)}<span>${t(p.ar,p.en)}</span><em>${t("مرجع","Ref")}</em></a>`:p.soon
  ?`<span class="nav-soon" title="${t("قيد التصميم","In design")}">${I(p.i)}<span>${t(p.ar,p.en)}</span><em>${t("قريباً","Soon")}</em></span>`
- :`<a href="#" data-go="${p.id}" class="${active?"on":""}">${I(p.i)}<span>${t(p.ar,p.en)}</span>${p.b?`<span class="badge num">${p.b}</span>`:""}${pinUI?pinBtn(p.id,PINS.includes(p.id)):""}</a>`;
+ :`<a href="#" data-go="${p.id}" class="${active?"on":""}">${I(p.i)}<span>${t(p.ar,p.en)}</span>${ALB(p)}${pinUI?pinBtn(p.id,PINS.includes(p.id)):""}</a>`;
 function rail(c){
  const side=document.querySelector("#app .side");if(!side)return;
  document.querySelectorAll(".modbar").forEach(e=>e.remove());
@@ -3416,10 +3421,10 @@ window.renderNav=function(c){
  const list=groups.map(x=>(x.h?link(x.h):"")+x.items.map(p=>link(p,op&&p.id===op.id,d.id!=="all")).join("")).join("");
  let pins="";
  if(d.id==="all")pins=`<div class="nav-sec-t">${t("الشاشات المثبتة","Pinned")}<small class="num">${PINS.length}</small></div>`+
-  (PINS.length?PINS.map(id=>`<a href="#" data-go="${id}" class="${op&&op.id===id?"on":""}">${I(PG[id].i)}<span>${t(PG[id].ar,PG[id].en)}</span>${PG[id].b?`<span class="badge num">${PG[id].b}</span>`:""}${pinBtn(id,true)}</a>`).join("")
+  (PINS.length?PINS.map(id=>`<a href="#" data-go="${id}" class="${op&&op.id===id?"on":""}">${I(PG[id].i)}<span>${t(PG[id].ar,PG[id].en)}</span>${ALB(PG[id])}${pinBtn(id,true)}</a>`).join("")
    :`<div class="pin-empty">${I("pin")}<span>${t("ثبّت الشاشات اللي بتستخدمها كتير من زر التثبيت جنب أي شاشة في أقسامها.","Pin screens you use often from any section.")}</span></div>`);
  let deps="";
- if(d.id==="all")deps=`<div class="nav-sec-t">${t("الإدارات","Departments")}<small class="num">${DEPTS.length-1}</small></div><div class="dp-list">`+DEPTS.slice(1).map(x=>{const n=x.items.filter(p=>!p.sec).length;return `<button class="dep-row" data-rail="${x.id}">${I(x.i)}<span><b>${t(x.ar,x.en)}</b><small>${x.d}</small></span><span class="badge num">${n}</span>${I("chevron-left")}</button>`}).join("")+`</div>`;
+ if(d.id==="all")deps=`<div class="nav-sec-t">${t("الإدارات","Departments")}<small class="num">${DEPTS.length-1}</small></div><div class="dp-list">`+DEPTS.slice(1).map(x=>{const n=x.items.filter(p=>!p.sec).length;return `<button class="dep-row" data-rail="${x.id}">${I(x.i)}<span><b>${t(x.ar,x.en)}</b><small>${x.d}</small></span>${DAL(x)}${I("chevron-left")}</button>`}).join("")+`</div>`;
  return head+`<div class="dp-list">${list}</div>`+pins+deps;
 };
 const reNav=()=>{const nv=document.querySelector("#app .nav");if(!nv)return;const st=nv.scrollTop;nv.innerHTML=renderNav(cur);lucide.createIcons();nv.scrollTop=st};
