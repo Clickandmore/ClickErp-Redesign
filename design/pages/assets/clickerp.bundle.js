@@ -1,4 +1,4 @@
-/* Click ERP design bundle v1.1 */
+/* Click ERP design bundle v1.3 */
 
 /* ===== clickerp.js ===== */
 const T={
@@ -3390,10 +3390,22 @@ document.addEventListener("click",e=>{const b=e.target.closest("[data-rail]");if
 document.addEventListener("click",e=>{const ap=document.getElementById("app");if(!ap||!ap.classList.contains("peek")||e.target.closest("[data-rail]"))return;if(e.target.closest(".side .nav [data-go]")||!e.target.closest(".side"))ap.classList.remove("peek")},true);
 })();
 
+/* ===== clickerp-login.js ===== */
+/* Login routing: staff → dashboard, agents → cvs; works in prototype and multipage export */
+(()=>{
+const DEST={staff:"dashboard",agent:"cvs"};
+document.addEventListener("click",e=>{
+ if(!e.target.closest("[data-login]"))return;
+ const to=DEST[ROLE]||"dashboard";
+ if(window.CERP_PAGE){e.preventDefault();e.stopImmediatePropagation();location.href=to+".html";return}
+ cur=to; // original handler then shows #app and renders cur
+},true);
+})();
+
 /* ===== multipage boot ===== */
 (function(){var P=window.CERP_PAGE;if(!P)return;var PAGES=window.CERP_PAGES||[];
 if(P==="login"){renderLogin();return}
-document.getElementById("login")&&document.getElementById("login").classList.add("hidden");
+var lg=document.getElementById("login");if(lg)lg.classList.add("hidden");
 document.getElementById("app").classList.remove("hidden");cur=P;render();
-document.addEventListener("click",function(e){var g=e.target.closest("[data-go]");if(g&&!e.target.closest("[data-pin]")&&PAGES.indexOf(g.dataset.go)>-1&&g.dataset.go!==P){e.preventDefault();e.stopImmediatePropagation();location.href=g.dataset.go+".html"}
+document.addEventListener("click",function(e){var g=e.target.closest("[data-go]");if(g&&!e.target.closest("[data-pin]")&&PAGES.indexOf(g.dataset.go)>-1&&g.dataset.go!==P){e.preventDefault();e.stopImmediatePropagation();location.href=g.dataset.go+".html";return}
 if(e.target.closest("[data-logout]")){e.preventDefault();e.stopImmediatePropagation();location.href="login.html"}},true);})();

@@ -1,4 +1,4 @@
-/* Click ERP design bundle v1.1 */
+/* Click ERP design bundle v1.3 */
 @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
 :root{--navy:#16233f;--navy-2:#22345a;--navy-soft:#eef1f7;--green:#7ab648;--green-d:#65a034;--green-soft:#eef6e6;--ink:#0d1626;--body:#2b384e;--muted:#5f6c80;--muted-2:#828d9e;--line:#dfe4ee;--line-2:#eaeef5;--bg:#f5f7fa;--surface:#fff;--red:#d4453c;--red-soft:#fdeceb;--amber:#c8862a;--amber-soft:#fdf3e3;--r:12px;--r-s:8px;--shadow:0 1px 2px rgba(16,26,46,.05),0 8px 24px -16px rgba(16,26,46,.24);--sw:264px}
 *{box-sizing:border-box}
@@ -2013,3 +2013,4 @@ body[dir=ltr] .nav a>span.pin{right:8px;left:auto}
 .nav a:hover>.badge{visibility:hidden}
 .nav a,.nav-eh{font-size:15px}
 .nav-kids a,.nav>a:not(:has(svg:not(.lucide-dot))){font-size:14.5px}
+.lg-art .slot img{display:block;width:100%;height:100%;object-fit:cover}
