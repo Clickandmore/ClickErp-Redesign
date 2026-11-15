@@ -2,9 +2,394 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="utf-8">
-<title>Click ERP</title>
-<meta http-equiv="refresh" content="0; url=design/pages/login.html">
-<script>location.replace("design/pages/login.html" + location.hash);</script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Click ERP Redesign</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@500;600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: a navy cover band with the product framed like a browser, then module sections as screen galleries, closed by the release roadmap. Single light theme by choice: it is the product's own palette. */
+:root{
+  --navy:#16233f; --navy-2:#22345a; --green:#7ab648; --green-d:#5b9330;
+  --paper:#f4f6fa; --ink:#0d1626; --muted:#5f6c80; --line:#dde3ed; --card:#ffffff;
+  --display:"Readex Pro","IBM Plex Sans Arabic",system-ui,sans-serif;
+  --body:"IBM Plex Sans Arabic",system-ui,-apple-system,"Segoe UI",Tahoma,sans-serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.7}
+a{color:inherit}
+img{max-width:100%;display:block}
+.wrap{max-width:1240px;margin:0 auto;padding:0 clamp(16px,4vw,40px)}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0;line-height:1.3}
+:focus-visible{outline:3px solid var(--green);outline-offset:3px;border-radius:6px}
+
+/* top bar */
+.top{background:var(--navy);color:#fff}
+.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:16px;height:68px}
+.brand{display:flex;align-items:center;gap:12px;font-family:var(--display);font-weight:600}
+.brand img{height:34px;background:#fff;border-radius:8px;padding:4px 8px}
+.brand small{font-family:var(--body);font-weight:500;color:#aab6cc;font-size:13px}
+.top nav{display:flex;gap:8px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 16px;border-radius:10px;font-weight:600;font-size:14px;text-decoration:none;white-space:nowrap}
+.btn.pri{background:var(--green);color:var(--navy)}
+.btn.pri:hover{background:#8cc65a}
+.btn.gh{border:1px solid rgba(255,255,255,.22);color:#fff}
+.btn.gh:hover{background:rgba(255,255,255,.08)}
+
+/* cover */
+.cover{background:var(--navy);color:#fff;padding:48px 0 0;position:relative;overflow:hidden}
+.cover:before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(135deg,rgba(255,255,255,.03) 0 1px,transparent 1px 24px);pointer-events:none}
+.cover .wrap{position:relative;display:grid;gap:36px}
+.kicker{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--green);letter-spacing:.02em}
+.kicker:before{content:"";width:28px;height:3px;border-radius:3px;background:var(--green)}
+.cover h1{font-size:clamp(30px,4.4vw,52px);font-weight:700;max-width:20ch;margin-top:12px}
+.cover p.lead{color:#c9d2e2;font-size:17px;max-width:60ch;margin:14px 0 0}
+.facts{display:flex;flex-wrap:wrap;gap:10px 28px;margin-top:22px}
+.facts div{display:flex;flex-direction:column}
+.facts b{font-family:var(--display);font-size:28px;font-weight:700;color:#fff;font-variant-numeric:tabular-nums;line-height:1.2}
+.facts small{color:#aab6cc;font-size:13px}
+.hero-shot{margin-bottom:-90px}
+.cover-pad{height:130px}
+
+/* screen card */
+.shot{display:flex;flex-direction:column;gap:12px;text-decoration:none}
+.frame{display:block;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;box-shadow:0 1px 2px rgba(16,26,46,.05),0 18px 40px -28px rgba(16,26,46,.45);transition:transform .2s ease,box-shadow .2s ease}
+.bar{display:flex;gap:6px;padding:9px 12px;background:#eef1f6;border-bottom:1px solid var(--line)}
+.bar i{width:9px;height:9px;border-radius:50%;background:#cfd6e2}
+.frame img{aspect-ratio:16/10;width:100%;height:auto;object-fit:cover;object-position:top}
+.shot:hover .frame{transform:translateY(-3px);box-shadow:0 1px 2px rgba(16,26,46,.05),0 26px 50px -28px rgba(16,26,46,.55)}
+.cap b{display:block;font-weight:700;font-size:15.5px}
+.cap small{color:var(--muted);font-size:13.5px}
+.shot.big .frame{border-radius:16px;border-color:rgba(255,255,255,.18);box-shadow:0 40px 80px -40px rgba(0,0,0,.6)}
+.shot.big .bar{background:#1d2c4c;border-color:#2a3b60}
+.shot.big .bar i{background:#3a4c74}
+.shot.big .cap{display:none}
+
+/* sections */
+main{display:grid;gap:72px;padding-bottom:72px}
+.sec-h{display:flex;align-items:flex-start;gap:16px;margin-bottom:24px;padding-top:24px;border-top:1px solid var(--line)}
+.idx{font-family:var(--display);font-weight:700;color:var(--green-d);font-size:15px;padding-top:6px;font-variant-numeric:tabular-nums}
+.sec-h h2{font-size:clamp(24px,2.6vw,32px);font-weight:700}
+.sec-h p{color:var(--muted);margin:4px 0 0;max-width:65ch}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:28px 24px}
+.login-feature{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:32px;align-items:center;margin-bottom:36px}
+.login-feature ul{margin:0;padding:0;list-style:none;display:grid;gap:12px}
+.login-feature li{display:flex;gap:10px;align-items:flex-start;color:var(--ink)}
+.login-feature li:before{content:"";flex:none;width:8px;height:8px;margin-top:10px;border-radius:2px;background:var(--green)}
+.flow{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:20px;font-size:13.5px;font-weight:600}
+.flow span{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:4px 12px}
+.flow em{font-style:normal;color:var(--muted)}
+.grid.states{grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:24px 20px}
+.grid.states .cap b{font-size:14.5px}
+.grid.states .cap small{font-size:12.5px}
+
+/* roadmap */
+.road{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
+.road li{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:2px;position:relative}
+.road .v{font-family:var(--display);font-weight:700;color:var(--muted);font-size:14px;direction:ltr;text-align:end;font-variant-numeric:tabular-nums}
+.road b{font-size:15px}
+.road small{color:var(--muted);font-size:13px;line-height:1.6}
+.road li.done{background:#eef6e6;border-color:#cfe6b8}
+.road li.done .v{color:var(--green-d)}
+.road li.now{background:var(--navy);border-color:var(--navy);color:#fff}
+.road li.now .v{color:var(--green)}
+.road li.now small{color:#c9d2e2}
+.road li.now:after{content:"المعاينة الحالية";position:absolute;top:14px;inset-inline-start:16px;font-size:11px;font-weight:700;background:var(--green);color:var(--navy);border-radius:20px;padding:1px 8px}
+
+footer{border-top:1px solid var(--line);padding:24px 0 40px;color:var(--muted);font-size:13.5px}
+footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+
+@media (max-width:860px){
+  .login-feature{grid-template-columns:1fr}
+  .hero-shot{margin-bottom:-50px} .cover-pad{height:80px}
+}
+@media (max-width:520px){
+  .top nav .gh{display:none}
+  .brand small{display:none}
+}
+@media (prefers-reduced-motion:reduce){.frame{transition:none}}
+</style>
 </head>
-<body><a href="design/pages/login.html">Click ERP</a></body>
+<body>
+<div class="top"><div class="wrap">
+  <div class="brand"><img src="assets/logo-light-tight.png" alt="Click &amp; More"><span>Click ERP <small>· إعادة التصميم v1.3.1</small></span></div>
+  <nav><a class="btn gh" href="screens.html">فهرس الشاشات</a><a class="btn pri" href="login.html">افتح النموذج الحي</a></nav>
+</div></div>
+
+<section class="cover">
+  <div class="wrap">
+    <div>
+      <span class="kicker">نظام إدارة مكاتب الاستقدام</span>
+      <h1>Click ERP بتصميم جديد: العقود والعملاء والمالية في نظام واحد</h1>
+      <p class="lead">نموذج تفاعلي كامل باللغتين العربية والإنجليزية، اتجاهه من اليمين للشمال، ومبني بثيم واحد معتمد. كل صورة هنا بتفتح الشاشة الحية نفسها.</p>
+      <div class="facts">
+        <div><b>87</b><small>شاشة في النموذج</small></div>
+        <div><b>14</b><small>حالة لتسجيل الدخول</small></div>
+        <div><b>5</b><small>أقسام في القائمة</small></div>
+        <div><b>AR · EN</b><small>لغتين</small></div>
+      </div>
+    </div>
+    <div class="hero-shot"><a class="shot big" href="dashboard.html">
+  <span class="frame"><span class="bar"><i></i><i></i><i></i></span><img src="shots/dashboard.webp" alt="لوحة التحكم" loading="lazy" width="1440" height="900"></span>
+  <span class="cap"><b>لوحة التحكم</b><small></small></span>
+</a></div>
+  </div>
+</section>
+<div class="cover-pad"></div>
+
+<main class="wrap">
+  <section>
+    <header class="sec-h"><span class="idx">01</span><div><h2>لوحة التحكم</h2><p>صورة الشركة في الشهر، وكارت الحضور وتسجيل الانصراف، وعرض حسب دور المستخدم.</p></div></header>
+    <div class="login-feature">
+      <a class="shot" href="dashboard.html">
+  <span class="frame"><span class="bar"><i></i><i></i><i></i></span><img src="shots/dashboard.webp" alt="لوحة التحكم" loading="lazy" width="1440" height="900"></span>
+  <span class="cap"><b>لوحة التحكم</b><small>الرئيسية بعد الدخول</small></span>
+</a>
+      <ul>
+        <li>مؤشرات الشهر: الإيرادات، والعقود الموقّعة، والمستحقات اللي لسه ما اتحصّلتش.</li>
+        <li>عرض حسب الدور: المالك، والمبيعات، والعلاقات الخارجية، ومشرف العمليات.</li>
+        <li>الحضور جوه الرئيسية: وقت الدخول، ومدة الجلسة، والموقع، وزر تسجيل الانصراف.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <header class="sec-h"><span class="idx">02</span><div><h2>تسجيل الدخول</h2><p>شاشة الدخول وحالاتها كاملة، من الرمز لحد اختيار الفرع، بهوية المكتب نفسه وتحتها by ClickERP.</p></div></header>
+    <div class="login-feature">
+      <a class="shot" href="login.html">
+  <span class="frame"><span class="bar"><i></i><i></i><i></i></span><img src="shots/login.webp" alt="تسجيل الدخول" loading="lazy" width="1440" height="900"></span>
+  <span class="cap"><b>تسجيل الدخول</b><small>خطوتين بس: المعرّف، وبعدين كلمة المرور</small></span>
+</a>
+      <div>
+        <ul>
+          <li>شعار المكتب واسمه واضحين فوق الفورم، وPowered by ClickERP في الفوتر.</li>
+          <li>دخول على خطوتين: المعرّف الأول، وبعدين المستخدم بيختار كلمة المرور أو رمز لمرة واحدة.</li>
+          <li>حماية الحساب: التحقق بخطوتين، وعدد المحاولات، والقفل المؤقت بعدّاد.</li>
+          <li>حالات المكتب نفسه: اشتراك منتهٍ وحساب موقوف، ببياناتها المحفوظة.</li>
+          <li>دخول تجريبي بـ 8 أدوار، وكل دور بيفتح على الشاشة بتاعته بضغطة واحدة.</li>
+          <li>بوابة للوكلاء الخارجيين من نفس الشاشة بضغطة على «وكيل خارجي؟».</li>
+        </ul>
+        <div class="flow"><span>الجوال أو البريد</span><em>←</em><span>كلمة المرور أو الرمز</span><em>←</em><span>اختيار الفرع</span><em>←</em><span>لوحة التحكم</span></div>
+      </div>
+    </div>
+    <div class="grid states"><a class="shot" href="states/login--otp.html">
+  <span class="frame"><span class="bar"><i></i><i></i><i></i></span><img src="shots/login--otp.webp" alt="رمز التحقق" loading="lazy" width="1440" height="900"></span>
+  <span class="cap"><b>رمز التحقق</b><small>6 خانات، عدّاد إعادة إرسال، والوثوق بالجهاز 30 يوماً</small></span>
+</a>
+<a class="shot" href="states/login--sending.html">
+  <span class="frame"><span class="bar"><i></i><i></i><i></i></span><img src="shots/login--sending.webp" alt="جارٍ الإرسال" loading="lazy" width="1440" height="900"></span>
+  <span class="cap"><b>جارٍ الإرسال</b><small>الدخول برمز: الجوال أو البريد بيتعرّف تلقائياً</small></span>
+</a>
+<a class="shot" href="states/login--otperr.html">
+  <span class="frame"><span class="bar"><i></i><i></i><i></i></span><img src="shots/login--otperr.webp" alt="رمز خاطئ" loading="lazy" width="1440" height="900"></span>
+  <span class="cap"><b>رمز خاطئ</b><small>رسالة الخطأ وعدد المحاولات المتبقية</small></span>
+</a>
+<a class="shot" href="states/login--2fa.html">
+  <span class="frame"><span class="bar"><i></i><i></i><i></i></span><img src="shots/login--2fa.webp" alt="التحقق بخطوتين" loading="lazy" width="1440" height="900"></span>
+  <span class="cap"><b>التحقق بخطوتين</b><small>للحسابات ذات الصلاحيات العليا بعد كلمة المرور</small></span>
+</a>
+<a class="shot" href="states/login--err.html">
+  <span class="frame"><span class="bar"><i></i><i></i><i></i></span><img src="shots/login--err.webp" alt="بيانات خاطئة" loading="lazy" width="1440" height="900"></span>
+  <span class="cap"><b>بيانات خاطئة</b><small>متبقي 3 محاولات قبل القفل المؤقت</small></span>
+</a>
+<a class="shot" href="states/login--locked.html">
+  <span class="frame"><span class="bar"><i></i><i></i><i></i></span><img src="shots/login--locked.webp" alt="قفل مؤقت" loading="lazy" width="1440" height="900"></span>
+  <span class="cap"><b>قفل مؤقت</b><small>عدّاد تنازلي بعد 5 محاولات خاطئة</small></span>
+</a>
+<a class="shot" href="states/login--reset.html">
+  <span class="frame"><span class="bar"><i></i><i></i><i></i></span><img src="shots/login--reset.webp" alt="استعادة كلمة المرور" loading="lazy" width="1440" height="900"></span>
+  <span class="cap"><b>استعادة كلمة المرور</b><small>الخطوة 1 من 3: الجوال أو البريد</small></span>
+</a>
+<a class="shot" href="states/login--newpw.html">
+  <span class="frame"><span class="bar"><i></i><i></i><i></i></span><img src="shots/login--newpw.webp" alt="كلمة مرور جديدة" loading="lazy" width="1440" height="900"></span>
+  <span class="cap"><b>كلمة مرور جديدة</b><small>مؤشر القوة وشروط كلمة المرور</small></span>
+</a>
+<a class="shot" href="states/login--done.html">
+  <span class="frame"><span class="bar"><i></i><i></i><i></i></span><img src="shots/login--done.webp" alt="نجاح التغيير" loading="lazy" width="1440" height="900"></span>
+  <span class="cap"><b>نجاح التغيير</b><small>خروج تلقائي من الأجهزة الأخرى</small></span>
+</a>
+<a class="shot" href="states/login--first.html">
+  <span class="frame"><span class="bar"><i></i><i></i><i></i></span><img src="shots/login--first.webp" alt="أول دخول" loading="lazy" width="1440" height="900"></span>
+  <span class="cap"><b>أول دخول</b><small>تعيين كلمة المرور وتأكيد رقم الجوال</small></span>
+</a>
+<a class="shot" href="states/login--branch.html">
+  <span class="frame"><span class="bar"><i></i><i></i><i></i></span><img src="shots/login--branch.webp" alt="اختيار الفرع" loading="lazy" width="1440" height="900"></span>
+  <span class="cap"><b>اختيار الفرع</b><small>الفروع بعدّاد المعلّق + «تذكّر اختياري»</small></span>
+</a>
+<a class="shot" href="states/login--suspended.html">
+  <span class="frame"><span class="bar"><i></i><i></i><i></i></span><img src="shots/login--suspended.webp" alt="اشتراك منتهٍ" loading="lazy" width="1440" height="900"></span>
+  <span class="cap"><b>اشتراك منتهٍ</b><small>البيانات محفوظة، والتجديد مع Click &amp; More</small></span>
+</a>
+<a class="shot" href="states/login--stopped.html">
+  <span class="frame"><span class="bar"><i></i><i></i><i></i></span><img src="shots/login--stopped.webp" alt="حساب موقوف" loading="lazy" width="1440" height="900"></span>
+  <span class="cap"><b>حساب موقوف</b><small>موقوف من مدير النظام في المكتب</small></span>
+</a></div>
+  </section>
+
+  <section class="mod">
+  <header class="sec-h"><span class="idx">03</span><div><h2>العمليات</h2><p>دورة العقد من الطلب للوصول · 12 شاشة في المعاينة</p></div></header>
+  <div class="grid"><a class="shot" href="contracts.html">
+  <span class="frame"><span class="bar"><i></i><i></i><i></i></span><img src="shots/contracts.webp" alt="عقود الاستقدام" loading="lazy" width="1440" height="900"></span>
+  <span class="cap"><b>عقود الاستقدام</b><small>مؤشرات المراحل وتنبيه العقود بدون تذاكر</small></span>
+</a>
+<a class="shot" href="contractShow.html">
+  <span class="frame"><span class="bar"><i></i><i></i><i></i></span><img src="shots/contractShow.webp" alt="تفاصيل العقد" loading="lazy" width="1440" height="900"></span>
+  <span class="cap"><b>تفاصيل العقد</b><small>المراحل والمستندات وسجل العقد</small></span>
+</a>
+<a class="shot" href="orders.html">
+  <span class="frame"><span class="bar"><i></i><i></i><i></i></span><img src="shots/orders.webp" alt="الطلبات والحجوزات" loading="lazy" width="1440" height="900"></span>
+  <span class="cap"><b>الطلبات والحجوزات</b><small>الطلبات الواردة من كل القنوات</small></span>
+</a>
+<a class="shot" href="cvs.html">
+  <span class="frame"><span class="bar"><i></i><i></i><i></i></span><img src="shots/cvs.webp" alt="السير الذاتية" loading="lazy" width="1440" height="900"></span>
+  <span class="cap"><b>السير الذاتية</b><small>بحث وفلترة وحجز للطلب</small></span>
+</a>
+<a class="shot" href="cvShow.html">
+  <span class="frame"><span class="bar"><i></i><i></i><i></i></span><img src="shots/cvShow.webp" alt="تفاصيل السيرة" loading="lazy" width="1440" height="900"></span>
+  <span class="cap"><b>تفاصيل السيرة</b><small>بيانات العاملة والخبرة والإجراءات</small></span>
+</a>
+<a class="shot" href="rental.html">
+  <span class="frame"><span class="bar"><i></i><i></i><i></i></span><img src="shots/rental.webp" alt="عقود التأجير" loading="lazy" width="1440" height="900"></span>
+  <span class="cap"><b>عقود التأجير</b><small>عقود التأجير الشهري ومتابعتها</small></span>
+</a>
+<a class="shot" href="rentalShow.html">
+  <span class="frame"><span class="bar"><i></i><i></i><i></i></span><img src="shots/rentalShow.webp" alt="تفاصيل عقد التأجير" loading="lazy" width="1440" height="900"></span>
+  <span class="cap"><b>تفاصيل عقد التأجير</b><small>الدفعات والتمديد والتوقيع</small></span>
+</a>
+<a class="shot" href="housing.html">
+  <span class="frame"><span class="bar"><i></i><i></i><i></i></span><img src="shots/housing.webp" alt="إدارة الإيواء" loading="lazy" width="1440" height="900"></span>
+  <span class="cap"><b>إدارة الإيواء</b><small>الإيواء المؤقت ومدة البقاء</small></span>
+</a>
+<a class="shot" href="transfer.html">
+  <span class="frame"><span class="bar"><i></i><i></i><i></i></span><img src="shots/transfer.webp" alt="نقل الخدمات" loading="lazy" width="1440" height="900"></span>
+  <span class="cap"><b>نقل الخدمات</b><small>طلبات النقل ومراحلها</small></span>
+</a>
+<a class="shot" href="delegations.html">
+  <span class="frame"><span class="bar"><i></i><i></i><i></i></span><img src="shots/delegations.webp" alt="تفاويض الإنجاز" loading="lazy" width="1440" height="900"></span>
+  <span class="cap"><b>تفاويض الإنجاز</b><small>مراحل التفويض ونسبة التنفيذ</small></span>
+</a>
+<a class="shot" href="trips.html">
+  <span class="frame"><span class="bar"><i></i><i></i><i></i></span><img src="shots/trips.webp" alt="الرحلات" loading="lazy" width="1440" height="900"></span>
+  <span class="cap"><b>الرحلات</b><small>الوصول والترحيل حتى الاستلام</small></span>
+</a>
+<a class="shot" href="agents.html">
+  <span class="frame"><span class="bar"><i></i><i></i><i></i></span><img src="shots/agents.webp" alt="الوكلاء الخارجيون" loading="lazy" width="1440" height="900"></span>
+  <span class="cap"><b>الوكلاء الخارجيون</b><small>المكاتب والأرصدة والسير المرفوعة</small></span>
+</a></div>
+</section><section class="mod">
+  <header class="sec-h"><span class="idx">04</span><div><h2>التأجير بالساعة</h2><p>الطلبات والزيارات والفرق والتتبع · 6 شاشة في المعاينة</p></div></header>
+  <div class="grid"><a class="shot" href="hb-board.html">
+  <span class="frame"><span class="bar"><i></i><i></i><i></i></span><img src="shots/hb-board.webp" alt="لوحة الطلبات" loading="lazy" width="1440" height="900"></span>
+  <span class="cap"><b>لوحة الطلبات</b><small>اللي محتاج إجراء النهارده</small></span>
+</a>
+<a class="shot" href="hb-visits.html">
+  <span class="frame"><span class="bar"><i></i><i></i><i></i></span><img src="shots/hb-visits.webp" alt="الزيارات" loading="lazy" width="1440" height="900"></span>
+  <span class="cap"><b>الزيارات</b><small>كل الزيارات بالحالة والفريق</small></span>
+</a>
+<a class="shot" href="hb-schedule.html">
+  <span class="frame"><span class="bar"><i></i><i></i><i></i></span><img src="shots/hb-schedule.webp" alt="الجدول والفرق" loading="lazy" width="1440" height="900"></span>
+  <span class="cap"><b>الجدول والفرق</b><small>توزيع الفرق على الساعات</small></span>
+</a>
+<a class="shot" href="hb-tracking.html">
+  <span class="frame"><span class="bar"><i></i><i></i><i></i></span><img src="shots/hb-tracking.webp" alt="التتبع والمسارات" loading="lazy" width="1440" height="900"></span>
+  <span class="cap"><b>التتبع والمسارات</b><small>مواقع الفرق مباشرة</small></span>
+</a>
+<a class="shot" href="hb-services.html">
+  <span class="frame"><span class="bar"><i></i><i></i><i></i></span><img src="shots/hb-services.webp" alt="الخدمات والباقات" loading="lazy" width="1440" height="900"></span>
+  <span class="cap"><b>الخدمات والباقات</b><small>الباقات والأسعار</small></span>
+</a>
+<a class="shot" href="hbNew.html">
+  <span class="frame"><span class="bar"><i></i><i></i><i></i></span><img src="shots/hbNew.webp" alt="إنشاء طلب بالساعة" loading="lazy" width="1440" height="900"></span>
+  <span class="cap"><b>إنشاء طلب بالساعة</b><small>خطوات الطلب والملخص</small></span>
+</a></div>
+</section><section class="mod">
+  <header class="sec-h"><span class="idx">05</span><div><h2>العملاء</h2><p>من أول تواصل لحد العقد · 2 شاشتين في المعاينة</p></div></header>
+  <div class="grid"><a class="shot" href="clients.html">
+  <span class="frame"><span class="bar"><i></i><i></i><i></i></span><img src="shots/clients.webp" alt="إدارة العملاء" loading="lazy" width="1440" height="900"></span>
+  <span class="cap"><b>إدارة العملاء</b><small>ملفات الأفراد والشركات</small></span>
+</a>
+<a class="shot" href="followups.html">
+  <span class="frame"><span class="bar"><i></i><i></i><i></i></span><img src="shots/followups.webp" alt="متابعة العملاء" loading="lazy" width="1440" height="900"></span>
+  <span class="cap"><b>متابعة العملاء</b><small>مواعيد المتابعة ونتايجها</small></span>
+</a></div>
+</section><section class="mod">
+  <header class="sec-h"><span class="idx">06</span><div><h2>المالية</h2><p>محاسبة كاملة جوه النظام · 4 شاشة في المعاينة</p></div></header>
+  <div class="grid"><a class="shot" href="finAccounts.html">
+  <span class="frame"><span class="bar"><i></i><i></i><i></i></span><img src="shots/finAccounts.webp" alt="شجرة الحسابات" loading="lazy" width="1440" height="900"></span>
+  <span class="cap"><b>شجرة الحسابات</b><small>الدليل المحاسبي بمستوياته</small></span>
+</a>
+<a class="shot" href="finEntries.html">
+  <span class="frame"><span class="bar"><i></i><i></i><i></i></span><img src="shots/finEntries.webp" alt="القيود اليومية" loading="lazy" width="1440" height="900"></span>
+  <span class="cap"><b>القيود اليومية</b><small>القيود وحالة الاعتماد</small></span>
+</a>
+<a class="shot" href="invoices.html">
+  <span class="frame"><span class="bar"><i></i><i></i><i></i></span><img src="shots/invoices.webp" alt="فواتير العقود" loading="lazy" width="1440" height="900"></span>
+  <span class="cap"><b>فواتير العقود</b><small>الفواتير والتحصيل</small></span>
+</a>
+<a class="shot" href="finReports.html">
+  <span class="frame"><span class="bar"><i></i><i></i><i></i></span><img src="shots/finReports.webp" alt="التقارير المالية" loading="lazy" width="1440" height="900"></span>
+  <span class="cap"><b>التقارير المالية</b><small>القوائم المالية وميزان المراجعة</small></span>
+</a></div>
+</section><section class="mod">
+  <header class="sec-h"><span class="idx">07</span><div><h2>الكوبونات</h2><p>خصومات بالاستهداف وحدود الاستخدام وحماية العمولة · 6 شاشة في المعاينة</p></div></header>
+  <div class="grid"><a class="shot" href="coupons.html">
+  <span class="frame"><span class="bar"><i></i><i></i><i></i></span><img src="shots/coupons.webp" alt="كوبونات الخصم" loading="lazy" width="1440" height="900"></span>
+  <span class="cap"><b>كوبونات الخصم</b><small>القائمة بالاستخدام والحالة</small></span>
+</a>
+<a class="shot" href="couponForm.html">
+  <span class="frame"><span class="bar"><i></i><i></i><i></i></span><img src="shots/couponForm.webp" alt="كوبون جديد" loading="lazy" width="1440" height="900"></span>
+  <span class="cap"><b>كوبون جديد</b><small>الخصم والخدمات والاستهداف والصلاحية</small></span>
+</a>
+<a class="shot" href="couponShow.html">
+  <span class="frame"><span class="bar"><i></i><i></i><i></i></span><img src="shots/couponShow.webp" alt="تفاصيل الكوبون" loading="lazy" width="1440" height="900"></span>
+  <span class="cap"><b>تفاصيل الكوبون</b><small>الأداء وآخر الاستخدامات</small></span>
+</a>
+<a class="shot" href="couponBulk.html">
+  <span class="frame"><span class="bar"><i></i><i></i><i></i></span><img src="shots/couponBulk.webp" alt="أكواد بالجملة" loading="lazy" width="1440" height="900"></span>
+  <span class="cap"><b>أكواد بالجملة</b><small>مجموعة أكواد لاستخدام واحد</small></span>
+</a>
+<a class="shot" href="couponReport.html">
+  <span class="frame"><span class="bar"><i></i><i></i><i></i></span><img src="shots/couponReport.webp" alt="تقرير الكوبونات" loading="lazy" width="1440" height="900"></span>
+  <span class="cap"><b>تقرير الكوبونات</b><small>أثر الخصومات على الإيراد</small></span>
+</a>
+<a class="shot" href="couponSettings.html">
+  <span class="frame"><span class="bar"><i></i><i></i><i></i></span><img src="shots/couponSettings.webp" alt="إعدادات الكوبونات" loading="lazy" width="1440" height="900"></span>
+  <span class="cap"><b>إعدادات الكوبونات</b><small>القواعد والتنبيهات والفواتير</small></span>
+</a></div>
+</section><section class="mod">
+  <header class="sec-h"><span class="idx">08</span><div><h2>القوالب</h2><p>أربع قوالب بتتبني عليها كل الشاشات الفرعية · 4 شاشة في المعاينة</p></div></header>
+  <div class="grid"><a class="shot" href="tplList.html">
+  <span class="frame"><span class="bar"><i></i><i></i><i></i></span><img src="shots/tplList.webp" alt="قالب القائمة" loading="lazy" width="1440" height="900"></span>
+  <span class="cap"><b>قالب القائمة</b><small>فلاتر وجدول وحالات فاضية</small></span>
+</a>
+<a class="shot" href="tplForm.html">
+  <span class="frame"><span class="bar"><i></i><i></i><i></i></span><img src="shots/tplForm.webp" alt="قالب الفورم" loading="lazy" width="1440" height="900"></span>
+  <span class="cap"><b>قالب الفورم</b><small>أقسام مرقّمة وحقول</small></span>
+</a>
+<a class="shot" href="tplShow.html">
+  <span class="frame"><span class="bar"><i></i><i></i><i></i></span><img src="shots/tplShow.webp" alt="قالب التفاصيل" loading="lazy" width="1440" height="900"></span>
+  <span class="cap"><b>قالب التفاصيل</b><small>هوية وإجراءات وتبويبات</small></span>
+</a>
+<a class="shot" href="tplReport.html">
+  <span class="frame"><span class="bar"><i></i><i></i><i></i></span><img src="shots/tplReport.webp" alt="قالب التقرير" loading="lazy" width="1440" height="900"></span>
+  <span class="cap"><b>قالب التقرير</b><small>أرقام ورسوم وجدول بإجمالي</small></span>
+</a></div>
+</section><section class="mod">
+  <header class="sec-h"><span class="idx">09</span><div><h2>التقارير</h2><p>قرارات مبنية على أرقام · 1 شاشة في المعاينة</p></div></header>
+  <div class="grid"><a class="shot" href="reports.html">
+  <span class="frame"><span class="bar"><i></i><i></i><i></i></span><img src="shots/reports.webp" alt="مركز التقارير" loading="lazy" width="1440" height="900"></span>
+  <span class="cap"><b>مركز التقارير</b><small>كل تقارير النظام في مكان واحد</small></span>
+</a></div>
+</section>
+
+  <section>
+    <header class="sec-h"><span class="idx">010</span><div><h2>خطة الإصدارات</h2><p>كل إصدار بيضيف وظائف مكتب الريادة بنفس الثيم، لحد حوالي 110 شاشة بعد v1.7.</p></div></header>
+    <ol class="road"><li class="done"><span class="v">v1.3</span><b>الأساس</b><small>60 شاشة بالثيم المعتمد</small></li><li class="now"><span class="v">v1.3.1</span><b>الدخول والقائمة والكوبونات</b><small>الدخول + 13 حالة، القائمة بالأقسام الخمسة، الكوبونات، القوالب</small></li><li class=""><span class="v">v1.4</span><b>الهيكل والرئيسية</b><small>القائمة والشريط العلوي، 8 أدوار، تحسين 19 شاشة</small></li><li class=""><span class="v">v1.5</span><b>شاشات جديدة</b><small>الحملات والمحادثات والوكلاء والشكاوى والمالية (17)</small></li><li class=""><span class="v">v1.6</span><b>التأجير بالساعة</b><small>10 شاشات</small></li><li class=""><span class="v">v1.7</span><b>الموارد البشرية والإعدادات</b><small>21 شاشة + مكتبة المكونات</small></li><li class=""><span class="v">v1.8</span><b>التأشيرات والكوبونات</b><small>25 شاشة</small></li><li class=""><span class="v">v1.9</span><b>البوابات</b><small>بوابة الموظف وبوابة الوكيل</small></li></ol>
+  </section>
+</main>
+
+<footer><div class="wrap"><span>Click ERP · تصميم Click &amp; More · نوفمبر 2026</span><span>كل البيانات في النموذج وهمية للعرض.</span></div></footer>
+</body>
 </html>

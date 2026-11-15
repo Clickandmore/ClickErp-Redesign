@@ -4,6 +4,8 @@
 
 ## المحتوى
 
+- **التصميم المعتمد (في الجذر):** `index.html` (الصفحة الرئيسية) و`login.html` وكل شاشة في ملف `*.html`، مع `assets/` و`states/` و`shots/` و`screens.json` و`CHANGELOG.md`. بيتعرض مباشرة على https://clickandmore.github.io/ClickErp-Redesign/ — شرح الملفات في `design/PAGES.md`. الروابط القديمة تحت `design/pages/` بتحوّل تلقائياً للجذر.
+- `design/`: القرارات والبريفات ومرجع الريادة (`design/modules/riyada`).
 - `source/resources/views/admin`: واجهات لوحة التحكم الأساسية وقالبها المشترك.
 - `source/resources/views/components`: مكوّنات Blade المشتركة التي تعتمد عليها الصفحات.
 - `source/resources/views/click`: أجزاء القالب القديم اللازمة لبعض الشاشات.

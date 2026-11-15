@@ -2,11 +2,11 @@
 
 آخر تحديث: 2026-11-15. الملف ده مرجع للوكيل والمطورين: إيه اللي متصمم، وفين.
 
-- **عندنا (المعتمد):** `design/pages/` — v1.3، الثيم المعتمد. https://clickandmore.github.io/ClickErp-Redesign/design/pages/
+- **عندنا (المعتمد):** جذر المستودع (`*.html` + `assets/`) — الثيم المعتمد. https://clickandmore.github.io/ClickErp-Redesign/
 - **الريادة (مرجع وظائف بس، مش ثيم):** `design/modules/riyada/` — 107 شاشة و293 حالة. https://clickandmore.github.io/ClickErp-Redesign/design/modules/riyada/
   - قائمة الوظائف: `design/modules/riyada/FEATURES.md`، والفهرس: `design/modules/riyada/screens.json`
 
-القاعدة: الشكل من `design/pages`، والوظايف الناقصة تتاخد من الريادة بعد اعتمادها في شيت المقارنة.
+القاعدة: الشكل من التصميم الأساسي في جذر المستودع، والوظايف الناقصة تتاخد من الريادة بعد اعتمادها في شيت المقارنة.
 
 ## قرارات لسه مفتوحة (متتنفذش قبل الحسم)
 

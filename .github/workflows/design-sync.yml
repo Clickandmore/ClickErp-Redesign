@@ -1,10 +1,11 @@
 name: Design sync
 
 # GitHub هو المرجع المركزي للتصميم.
-# - نسخة كاملة (من المشروع الأساسي): اترك module فاضي → تستبدل design/pages
-#   وترفض أي نسخة رقمها مش أعلى من الحالية.
+# - نسخة كاملة (من المشروع الأساسي): اترك module فاضي → تستبدل ملفات التصميم في جذر المستودع
+#   (‎*.html, screens.json, CHANGELOG.md, assets/, shots/, states/) وترفض أي نسخة رقمها مش أعلى من الحالية.
+#   README.md بتاع الحزمة يتحط في design/PAGES.md، وdesign/pages/ فيها تحويلات للروابط القديمة.
 # - موديول/اقتراح (من أي حساب تاني): اكتب اسم في module (مثلاً auth)
-#   → يتحط في design/modules/<الاسم> من غير ما يلمس design/pages.
+#   → يتحط في design/modules/<الاسم> من غير ما يلمس التصميم الأساسي.
 # - بديل بدون لينك: ارفع zip في design/incoming/ (اسم يبدأ بـ module- = موديول).
 on:
   push:
@@ -64,20 +65,35 @@ jobs:
           if [ -n "$MODULE" ]; then
             dest="design/modules/$MODULE"
             label="module $MODULE"
+            rm -rf "$dest"
+            mkdir -p "$dest"
+            cp -r "$src"/. "$dest"/
           else
-            dest="design/pages"
             ver() { grep -m1 -oE '"version"[^"]*"v?[0-9]+(\.[0-9]+)*' "$1" 2>/dev/null | grep -oE '[0-9]+(\.[0-9]+)*' || true; }
-            new=$(ver "$src/screens.json"); cur=$(ver design/pages/screens.json)
+            new=$(ver "$src/screens.json"); cur=$(ver screens.json)
             if [ -z "$new" ]; then echo "::error::screens.json has no version"; exit 1; fi
             if [ -n "$cur" ] && [ "$(printf '%s\n%s\n' "$cur" "$new" | sort -V | tail -1)" != "$new" -o "$cur" = "$new" ]; then
               echo "::error::Rejected: incoming v$new is not newer than published v$cur. Sync from GitHub first, then bump the version."
               exit 1
             fi
             label="v$new"
+            # Replace only the design files at the repo root; never touch source/, public/, docs/, design/.
+            rm -rf ./*.html screens.json CHANGELOG.md assets shots states
+            for f in "$src"/* ; do
+              b=$(basename "$f")
+              case "$b" in
+                README.md) cp "$f" design/PAGES.md ;;
+                source|public|docs|design|.github) echo "::warning::skipped reserved name $b" ;;
+                *) cp -r "$f" ./ ;;
+              esac
+            done
+            # Old links under design/pages/ redirect to the root.
+            rm -rf design/pages && mkdir -p design/pages
+            for f in ./*.html; do
+              b=$(basename "$f")
+              printf '<!DOCTYPE html>\n<html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>Click ERP</title>\n<meta http-equiv="refresh" content="0; url=../../%s">\n<link rel="canonical" href="../../%s">\n<script>location.replace("../../%s" + location.search + location.hash);</script>\n</head><body><a href="../../%s">../../%s</a></body></html>\n' "$b" "$b" "$b" "$b" "$b" > "design/pages/$b"
+            done
           fi
-          rm -rf "$dest"
-          mkdir -p "$dest"
-          cp -r "$src"/. "$dest"/
           rm -rf design/incoming
           echo "LABEL=$label" >> "$GITHUB_ENV"
 
@@ -88,7 +104,7 @@ jobs:
           printf -v botmail '41898282+%s\x40users.noreply.github.com' "$bot"
           git config user.name "$bot"
           git config user.email "$botmail"
-          git add -A design
+          git add -A .
           if git diff --cached --quiet; then echo "No changes"; exit 0; fi
           git commit -m "design: ${LABEL} (auto sync)"
           git push

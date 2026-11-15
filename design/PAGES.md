@@ -3,7 +3,7 @@
 Generated from `Click ERP Redesign.html`. One file per screen, all sharing one CSS and one JS bundle.
 
 ```
-design/pages/
+/ (جذر المستودع)
   index.html                 فهرس كل الشاشات
   login.html                 تسجيل الدخول
   <screen>.html              شاشة واحدة (59 شاشة) — markup جاهز مسبقاً
@@ -26,9 +26,9 @@ design/pages/
 ## خطوات رفع إصدار جديد إلى GitHub
 1. نزّل `pages.zip` من مشروع التصميم، وفكّ الضغط.
 2. في المستودع `Clickandmore/ClickErp-Redesign`، اعمل فرع جديد: `design/vX.Y`.
-3. استبدل محتوى `design/pages/` بالكامل بالملفات الجديدة (احذف القديم أولاً حتى تختفي الشاشات المحذوفة).
-4. `git add design/pages && git commit -m "design: vX.Y" && git push`، ثم افتح Pull Request.
-   - بدون git: من صفحة المستودع على GitHub ← `design/pages` ← **Add file → Upload files** واسحب الملفات.
+3. استبدل ملفات التصميم في جذر المستودع (`*.html`, `screens.json`, `CHANGELOG.md`, `assets/`, `shots/`, `states/`) بالملفات الجديدة — احذف القديم أولاً حتى تختفي الشاشات المحذوفة، ولا تلمس `source/` و`public/` و`docs/` و`design/`. أو الأسهل: ارفع الـ zip في `design/incoming/` والـ workflow يعمل كل ده لوحده.
+4. `git add -A && git commit -m "design: vX.Y" && git push`، ثم افتح Pull Request.
+   - بدون git: من صفحة المستودع على GitHub ← الجذر ← **Add file → Upload files** واسحب الملفات.
 5. راجع `CHANGELOG.md` في الـ PR لمعرفة الشاشات التي تغيّرت.
 
 ## السحب من GitHub إلى التصميم
