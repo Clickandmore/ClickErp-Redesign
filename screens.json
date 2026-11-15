@@ -1,5 +1,5 @@
 {
-  "version": "v1.4",
+  "version": "v1.5",
   "date": "2026-11-16",
   "entry": "login.html",
   "screens": [
@@ -482,6 +482,61 @@
       "id": "campaignNew",
       "file": "campaignNew.html",
       "title": "حملة جديدة"
+    },
+    {
+      "id": "finDash",
+      "file": "finDash.html",
+      "title": "لوحة المالية"
+    },
+    {
+      "id": "finRequests",
+      "file": "finRequests.html",
+      "title": "الطلبات المالية"
+    },
+    {
+      "id": "finRequestAdd",
+      "file": "finRequestAdd.html",
+      "title": "طلب مالي جديد"
+    },
+    {
+      "id": "finRequestShow",
+      "file": "finRequestShow.html",
+      "title": "تفاصيل الطلب المالي"
+    },
+    {
+      "id": "finAssets",
+      "file": "finAssets.html",
+      "title": "الأصول الثابتة"
+    },
+    {
+      "id": "finAssetShow",
+      "file": "finAssetShow.html",
+      "title": "تفاصيل الأصل"
+    },
+    {
+      "id": "finCommissions",
+      "file": "finCommissions.html",
+      "title": "العمولات"
+    },
+    {
+      "id": "finCommissionShow",
+      "file": "finCommissionShow.html",
+      "title": "عمولات المسوق"
+    },
+    {
+      "id": "finCommissionRules",
+      "file": "finCommissionRules.html",
+      "title": "قواعد ونسب العمولات"
+    },
+    {
+      "id": "finTax",
+      "file": "finTax.html",
+      "title": "الضريبة و ZATCA"
+    },
+    {
+      "id": "finZatca",
+      "file": "finZatca.html",
+      "title": "ربط ZATCA"
     }
   ],
   "states": [

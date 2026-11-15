@@ -3360,11 +3360,11 @@ const DEPTS=[
   A("chats","messages-square","المحادثات","Conversations","3"),A("campaigns","megaphone","الحملات والرسائل المرسلة","Campaigns"),A("clArchive","archive","الأرشيف","Archive"),
   H("خدمة العملاء"),A("claims","alert-triangle","الشكاوى","Complaints","23"),A("absconding","user-x","بلاغات الهروب","Absconding reports","2")]},
  {id:"finance",i:"wallet",ar:"المالية",en:"Finance",s:"المالية",d:"الحسابات والفواتير والتقارير المالية",items:[
-  R("gauge","لوحة المالية","Finance dashboard","finDash"),R("inbox","الطلبات المالية","Finance requests","finRequests"),A("finSales","receipt-text","الفواتير والسندات","Invoices & bonds"),
+  A("finDash","gauge","لوحة المالية","Finance dashboard"),A("finRequests","inbox","الطلبات المالية","Finance requests","5"),A("finSales","receipt-text","الفواتير والسندات","Invoices & bonds"),
   A("finEntries","book-open","القيود","Journal entries"),A("finAccounts","list-tree","الدليل المحاسبي","Chart of accounts"),A("finPurchases","shopping-bag","المشتريات","Purchases"),
   A("finItems","boxes","المخزون والأصناف","Stock & items"),A("finBanks","landmark","البنوك والخزن","Banks & cash"),A("finClients","contact","العملاء والموردون والوكلاء","Clients, suppliers & agents"),
-  R("building","الأصول","Assets","finAssets"),A("finCenters","target","مراكز التكلفة","Cost centres"),R("percent","العمولات","Commissions","finCommissions"),
-  A("finReports","bar-chart-3","التقارير والقوائم","Reports & statements"),S("badge-check","الضريبة و ZATCA","Tax & ZATCA")]},
+  A("finAssets","building","الأصول","Assets"),A("finCenters","target","مراكز التكلفة","Cost centres"),A("finCommissions","percent","العمولات","Commissions"),
+  A("finReports","bar-chart-3","التقارير والقوائم","Reports & statements"),A("finTax","badge-check","الضريبة و ZATCA","Tax & ZATCA")]},
  {id:"hr",i:"user-cog",ar:"الموارد البشرية",en:"HR",s:"الموارد",d:"الموظفون والحضور والرواتب",items:[
   S("gauge","لوحة الموارد البشرية","HR dashboard"),R("id-card","الموظفون","Employees","hr-employees"),R("user-round","العاملات","Workers","hr-workers"),R("clock","الحضور","Attendance","hr-attendance"),
   R("inbox","الطلبات","Requests","hr-requests"),R("key-round","العهد","Custody","hr-custody"),R("gavel","الجزاءات","Sanctions","hr-sanctions"),R("banknote","الرواتب","Payroll","hr-payroll"),R("notebook-pen","التقارير اليومية","Daily reports","hr-daily")]},
@@ -3375,7 +3375,7 @@ const DEPTS=[
 const SUBS={contracts:["contractShow","contractAdd","contractEdit"],cvs:["cvAdd","cvShow","cvEdit"],clients:["clientShow","clientAdd"],orders:["orderShow"],
  rental:["rentalShow","rentalAdd"],housing:["housingShow","housingAdd"],transfer:["transferShow","transferAdd"],
  reports:["report"],finSales:["finSaleAdd","finBonds","finReturns"],finBanks:["finBoxes","finTransfers","finChecksIn","finChecksOut"],finClients:["finSuppliers","finAgents"],
- finCenters:["finCentersTree"],finReports:["finReport"],finItems:["finStock","finInventory"],finEntries:["finAdd","finShow"],finAccounts:["finSettings"],clArchive:[],delegations:["delAdd","delShow"],trips:["tripShow"],agents:["agentShow"],"hb-board":["hbNew"],"hb-visits":["hbVisit"],coupons:["couponForm","couponShow","couponBulk","couponReport","couponSettings"],claims:["claimAdd","claimShow","claimTypes"],absconding:["abscShow"],campaigns:["campaignNew"]};
+ finCenters:["finCentersTree"],finReports:["finReport"],finItems:["finStock","finInventory"],finEntries:["finAdd","finShow"],finAccounts:["finSettings"],clArchive:[],delegations:["delAdd","delShow"],trips:["tripShow"],agents:["agentShow"],"hb-board":["hbNew"],"hb-visits":["hbVisit"],coupons:["couponForm","couponShow","couponBulk","couponReport","couponSettings"],claims:["claimAdd","claimShow","claimTypes"],absconding:["abscShow"],campaigns:["campaignNew"],finRequests:["finRequestAdd","finRequestShow"],finAssets:["finAssetShow"],finCommissions:["finCommissionShow","finCommissionRules"],finTax:["finZatca"]};
 const PG={};DEPTS.forEach(d=>d.items.forEach(p=>{if(!p.soon&&!p.sec)PG[p.id]=p}));
 const owner=c=>{for(const d of DEPTS)for(const p of d.items){if(p.soon||p.sec)continue;if(p.id===c||(SUBS[p.id]||[]).includes(c))return [d,p]}return [null,null]};
 const PK="clickerp-pins";
@@ -3813,6 +3813,198 @@ S.campaignNew=()=>`
 
 Object.assign(T,{claims:{ar:"الشكاوى",en:"Complaints"},claimAdd:{ar:"تسجيل شكوى جديدة",en:"New complaint"},claimShow:{ar:"#000148",en:"Complaint details"},claimTypes:{ar:"أنواع الشكاوى",en:"Complaint types"},
  absconding:{ar:"بلاغات الهروب",en:"Absconding reports"},abscShow:{ar:"بلاغ هروب",en:"Absconding report"},chats:{ar:"المحادثات",en:"Conversations"},campaigns:{ar:"الحملات والرسائل المرسلة",en:"Campaigns"},campaignNew:{ar:"حملة جديدة",en:"New campaign"}});
+Object.keys(S).forEach(k=>{screens[k]=S[k]});
+window.CXH={X,SEC,KV,TAG,SW,ROW,FLD,SEL,INP,TXT,STAT,PAGER,ACTS,HEAD,B,TABS,CHIPS,STEPS,FS};
+})();
+/* ===== v1.5 — Finance group rebuilt from ClickERP code + UX ideas (dashboard, requests, assets, commissions, tax/ZATCA) ===== */
+(()=>{
+const {X,SEC,KV,TAG,SW,ROW,FLD,SEL,INP,TXT,STAT,PAGER,ACTS,HEAD,B,TABS,CHIPS,STEPS,FS}=window.CXH;
+const NEW=["finDash","finRequests","finRequestAdd","finRequestShow","finAssets","finAssetShow","finCommissions","finCommissionShow","finCommissionRules","finTax","finZatca"];
+window.CERP_PAGES=(window.CERP_PAGES||[]).concat(NEW);
+const IDEA=(txt)=>`<div class="fx-idea">${X("lightbulb")}<div><b>ليه الشكل ده؟</b><span>${txt}</span></div></div>`;
+const MONEY=v=>`<span class="num">${v}</span> <small class="cur">ر.س</small>`;
+const BARS=(rows,max)=>`<div class="fx-bars">${rows.map(r=>`<div class="col"><div class="pair"><i class="in" style="height:${Math.round(r[1]/max*100)}%" title="إيرادات ${r[1]}"></i><i class="out" style="height:${Math.round(r[2]/max*100)}%" title="مصروفات ${r[2]}"></i></div><small>${r[0]}</small></div>`).join("")}</div><div class="fx-legend"><span><i class="in"></i>الإيرادات</span><span><i class="out"></i>المصروفات</span></div>`;
+const SHARE=(rows)=>`<div class="fx-share">${rows.map(r=>`<div class="r"><div class="t"><b>${r[0]}</b><small>${r[1]}</small></div><span class="track"><i style="width:${r[3]}%"></i></span><b class="num">${r[2]}</b></div>`).join("")}</div>`;
+const S={};
+
+/* ================= لوحة المالية (FV/home.blade.php · HomeService) ================= */
+S.finDash=()=>`
+ ${IDEA("بدل 4 أرقام جامدة، اللوحة بتبدأ بجملة بتلخّص الوضع، وبعدها «محتاج منك النهارده» بالإجراءات اللي مستنياك. كل رقم تحته معناه بالعربي البسيط، والرسوم بتقارن بالشهر اللي فات.")}
+ ${HEAD("لوحة المالية","المركز المالي والتشغيلي · محدّث حتى اليوم 10:24",B("ghost","file-plus-2","قيد يومية",'data-go="finAdd"')+B("ghost","arrow-down-left","سند قبض")+B("primary","arrow-up-right","سند صرف"))}
+ <div class="fx-hero card"><div class="fx-hero-t"><small>الشهر ده لحد النهارده</small><h2>الشركة كسبانة <b class="num g">+86,400 ر.س</b> بعد المصروفات، والسيولة المتاحة تكفي <b>~ 2.4 شهر</b> تشغيل.</h2><p>الإيرادات أعلى من الشهر اللي فات بـ <b class="num">12%</b>، والمصروفات ثابتة تقريباً. فيه <b class="num">184,600 ر.س</b> مستحقات على العملاء، منها <b class="num">7</b> فواتير متأخرة.</p></div>
+  <div class="fx-todo"><b>محتاج منك النهارده</b>${[["inbox","a","5 طلبات مالية بانتظار اعتمادك","finRequests"],["file-check","n","3 قيود معلّقة محتاجة مراجعة","finEntries"],["alarm-clock","r","7 فواتير عملاء متأخرة أكتر من 30 يوم","finClients"],["percent","n","عمولات 4 مسوقين جاهزة للاعتماد","finCommissions"]].map(t=>`<a href="#" data-go="${t[3]}" class="${t[1]}">${X(t[0])}<span>${t[2]}</span>${X("chevron-left")}</a>`).join("")}</div></div>
+ <div class="grid-kpi">${[["wallet","صافي السيولة المتاحة","612,300","في 6 حسابات بنكية ونقدية","",""],["users","ذمم العملاء","184,600","على 41 عميل · 7 فواتير متأخرة","r","↑ 4%"],["building-2","التزامات الموردين والمكاتب","96,750","لـ 12 مورد ومكتب خارجي","",""],["trending-up","نتيجة الشهر","+86,400","من 214 قيد معتمد","g","↑ 18%"]].map(k=>`<div class="card kpi fx-kpi"><div class="kl">${X(k[0])}<span>${k[1]}</span></div><div class="kv num">${k[2]}<small class="cur">ر.س</small></div><div class="km"><span>${k[3]}</span>${k[5]?`<em class="${k[4]}">${k[5]}</em>`:""}</div></div>`).join("")}</div>
+ <div class="grid-2 wide-l">
+  <div class="card"><div class="card-h"><div><h3>الأداء المالي الشهري</h3><p>الإيرادات مقابل المصروفات — آخر 12 شهر</p></div>${B("ghost sm","","قائمة الدخل",'data-go="finReports"')}</div>
+   ${BARS([["ديس",298,241],["ينا",312,250],["فبر",284,239],["مار",341,262],["أبر",366,270],["ماي",352,281],["يون",330,276],["يول",318,270],["أغس",361,288],["سبت",372,290],["أكت",388,301],["نوف",412,326]],420)}
+   <div class="fx-mini3">${[["إيرادات الشهر","412,800","↑ 12% عن أكتوبر","g"],["مصروفات الشهر","326,400","↑ 8% عن أكتوبر","a"],["نتيجة اليوم","+6,120","14 قيد","g"]].map(m=>`<div><small>${m[0]}</small><b class="num">${m[1]}</b><em class="${m[3]}">${m[2]}</em></div>`).join("")}</div></div>
+  <div class="card"><div class="card-h"><div><h3>فين الفلوس؟</h3><p>أرصدة البنوك والنقدية</p></div>${B("ghost sm","","البنوك والخزن",'data-go="finBanks"')}</div>
+   ${SHARE([["مصرف الراجحي","جاري · ••4410","284,500",46],["البنك الأهلي","جاري · ••0921","176,200",29],["بنك الرياض","مساند · ••7713","92,600",15],["الخزنة الرئيسية","نقدي","41,000",7],["خزنة فرع جدة","نقدي","18,000",3]])}</div>
+ </div>
+ <div class="fx-g3">
+  <div class="card"><div class="card-h"><div><h3>أكبر أرصدة العملاء</h3><p>اللي عليهم أكتر</p></div></div>${SHARE([["شركة نجد للمقاولات","3 فواتير · أقدمها 41 يوم","18,400",100],["هيا العنزي","فاتورة واحدة · 33 يوم","15,900",86],["عبدالله الدوسري","2 فاتورة","12,400",67],["منيرة الشهري","فاتورة جزئية","9,250",50]])}</div>
+  <div class="card"><div class="card-h"><div><h3>أكبر أرصدة الموردين</h3><p>اللي لهم عندنا</p></div></div>${SHARE([["PLATINUM BROTHERS","مكتب خارجي · الفلبين","32,600",100],["Supreme Link Ltd","مكتب خارجي · أوغندا","21,800",67],["مؤسسة النقل السريع","مورد","9,400",29]])}</div>
+  <div class="card"><div class="card-h"><div><h3>التحصيل والمدفوعات</h3><p>الداخل والخارج</p></div></div><div class="fx-io">${[["تحصيل اليوم","24,300","g","arrow-down-left"],["مدفوعات اليوم","8,900","a","arrow-up-right"],["تحصيل الشهر","356,100","g","arrow-down-left"],["مدفوعات الشهر","271,700","a","arrow-up-right"]].map(m=>`<div class="${m[2]}">${X(m[3])}<small>${m[0]}</small><b class="num">${m[1]}</b></div>`).join("")}</div></div>
+ </div>
+ <div class="card flush"><div class="card-h pad"><div><h3>أحدث القيود المعتمدة</h3><p>14 قيد النهارده · <a href="#" data-go="finEntries">3 قيود معلّقة</a></p></div>${B("ghost sm","","كل القيود",'data-go="finEntries"')}</div><div class="tw"><table><thead><tr><th>القيد</th><th>البيان</th><th>المصدر</th><th>المبلغ</th><th>بواسطة</th><th>الوقت</th></tr></thead><tbody>
+ ${[["JE-24118","تحصيل فاتورة INV-9921 — منيرة الشهري","سند قبض","9,250","سارة القحطاني","10:12"],["JE-24117","سداد مساند — طلب FR-0412","طلب مالي","2,875","خالد المطيري","09:40"],["JE-24116","عمولة تفويض — DL-0040","عمولات","300","آلي","09:02"],["JE-24115","إهلاك شهري — أصول نوفمبر","إهلاك","4,120","آلي","08:00"]].map(r=>`<tr><td class="num"><b>${r[0]}</b></td><td>${r[1]}</td><td>${TAG("n",r[2])}</td><td class="num"><b>${r[3]}</b></td><td>${r[4]}</td><td class="num">${r[5]}</td></tr>`).join("")}</tbody></table></div></div>`;
+
+/* ================= الطلبات المالية (FinancialRequestController) ================= */
+const FRS={preparing:["n","تجهيز","مقدم الطلب يكمّل البيانات"],for_approval:["a","بانتظار الاعتماد","المعتمد يراجع"],approved:["n","معتمد — بانتظار الدفع","مقدم الطلب يسدد ويرفع الإثبات"],paid:["g","تم السداد","طلب الإقفال"],request_closing:["a","طلب إقفال","المالية ترفق الإيصال"],receipt_attached:["n","تم إرفاق الإيصال","المالية تقفل الطلب"],rejected:["r","غير مكتمل","مقدم الطلب يصحح ويعيد الإرسال"],closed:["g","مقفلة","—"]};
+const ESC={normal:"",important:'<span class="fx-esc a">هام</span>',critical:'<span class="fx-esc r">شديد الأهمية</span>'};
+const FR=[["FR-0418","سداد مساند","منيرة الشهري","CN-2026-0115","2,875","for_approval","critical","سارة القحطاني",4],["FR-0417","رسوم تأشيرة","شركة نجد للمقاولات","CN-2026-0114","2,000","for_approval","important","خالد المطيري",2],["FR-0416","استرداد عميل","هيا العنزي","CN-2026-0106","16,650","approved","normal","سارة القحطاني",1],["FR-0415","رسوم إقامة","—","RC-2026-0044","650","rejected","normal","خالد المطيري",3],["FR-0414","تأمين طبي","فيصل القحطاني","RC-2026-0039","1,150","request_closing","normal","سارة القحطاني",0],["FR-0412","سداد مساند","عبدالله الدوسري","CN-2026-0112","2,875","paid","normal","خالد المطيري",0]];
+const frTabs=on=>TABS([["finRequests","inbox","غير المقفلة",23],["#all","layers","كل الطلبات",412],["#inc","circle-alert","غير مكتملة",3],["#paid","check-circle-2","مدفوعة / قيد الإقفال",6],["#del","trash-2","المحذوفة",2]],on);
+S.finRequests=()=>`
+ ${IDEA("الـ 8 حالات بقت «خط سير» واحد فوق الجدول، كل محطة بعددها وتقدر تضغط عليها. وفي الجدول عمود «الخطوة الجاية» بيقول مين لازم يعمل إيه — بدل ما الموظف يفسّر اسم الحالة. والطلبات اللي واقفة أكتر من 3 أيام بتتعلّم.")}
+ ${HEAD("الطلبات المالية","طلبات صرف تشغيلية مرتبطة بالعملاء والعاملات والعقود — بمسار اعتماد واضح.",B("ghost","file-spreadsheet","Excel")+B("ghost","printer","طباعة")+B("primary","plus","طلب جديد",'data-go="finRequestAdd"'))}
+ <div class="fx-pipe card">${[["preparing","تجهيز",2],["for_approval","بانتظار الاعتماد",5,1],["approved","بانتظار الدفع",4],["paid","تم السداد",6],["request_closing","طلب إقفال",3],["receipt_attached","الإيصال مرفق",1],["closed","مقفلة",391]].map((p,i,a)=>`<button class="st ${FRS[p[0]][0]}${p[3]?" on":""}"><b class="num">${p[2]}</b><span>${p[1]}</span></button>${i<a.length-1?`<i class="ar">${X("chevron-left")}</i>`:""}`).join("")}<span class="fx-pipe-x">${X("corner-down-left")}<span>غير مكتمل: <b class="num">3</b> رجعت لمقدم الطلب</span></span></div>
+ ${frTabs("finRequests")}
+ <div class="fbar"><div class="fb grow"><label>بحث</label><div class="inp">${X("search")}<input placeholder="رقم الطلب، رقم العقد، العميل، رقم الهوية…"></div></div>
+  <div class="fb"><label>نوع الطلب</label>${SEL(["كل الأنواع","سداد مساند","رسوم تأشيرة","رسوم إنجاز","رسوم إقامة","رسوم رخصة عمل","تأمين طبي","صرف راتب عاملة","استرداد عميل","طلب مالي آخر"])}</div>
+  <div class="fb"><label>التصعيد</label>${SEL(["الكل","شديد الأهمية","هام","عادي"])}</div>
+  <div class="fb"><label>التاريخ</label>${SEL(["كل الفترات","اليوم","هذا الأسبوع","هذا الشهر"])}</div></div>
+ <div class="card flush fx-t"><div class="tw"><table><thead><tr><th>الطلب</th><th>النوع</th><th>العميل / العقد</th><th>المبلغ</th><th>الحالة</th><th>الخطوة الجاية</th><th class="act"></th></tr></thead><tbody>
+ ${FR.map(r=>`<tr${r[8]>=3?' class="fx-late"':""}><td><div class="wcell"><div><span><a href="#" data-go="finRequestShow" class="num cx-tk">${r[0]}</a> ${ESC[r[6]]}</span><small>${r[7]}</small></div></div></td><td>${r[1]}</td><td><div class="wcell"><div><b>${r[2]}</b><small class="num">${r[3]}</small></div></div></td><td class="num"><b>${r[4]}</b> <small class="cur">ر.س</small></td><td>${TAG(FRS[r[5]][0],FRS[r[5]][1])}</td><td><span class="fx-next">${FRS[r[5]][2]}${r[8]?`<em class="${r[8]>=3?"r":""}">منذ ${r[8]} ${r[8]>2?"أيام":"يوم"}</em>`:""}</span></td><td class="act">${r[5]==="for_approval"?B("primary sm","check","اعتماد",'data-go="finRequestShow"'):ACTS([["eye","عرض",'data-go="finRequestShow"'],["more-horizontal","المزيد"]])}</td></tr>`).join("")}
+ </tbody></table></div>${PAGER("عرض 6 من 23 طلب غير مقفل")}</div>`;
+
+const TYPES=[["landmark","سداد مساند","رقم طلب مساند، رقم الفاتورة",1],["stamp","رسوم تأشيرة","رقم التأشيرة، المرجع الحكومي"],["file-signature","رسوم إنجاز","رقم إنجاز، رقم التفويض"],["id-card","رسوم إقامة","رقم الإقامة، المدة"],["briefcase","رسوم رخصة عمل","رقم الرخصة، المدة"],["shield-plus","تأمين طبي","رقم الوثيقة، الشركة"],["banknote","صرف راتب عاملة","الشهر، عدد الأيام"],["undo-2","استرداد عميل","سبب الاسترداد"],["file-question","طلب مالي آخر","الموضوع، رقم مرجعي"]];
+S.finRequestAdd=()=>`
+ ${IDEA("أول خطوة اختيار نوع الطلب ككروت، وبعدها بيظهر بس الحقول الخاصة بالنوع ده. والملخص على الجنب بيترجم القيد المحاسبي لجملة مفهومة («هيتخصم من … لصالح …») قبل الإرسال.")}
+ ${HEAD("طلب مالي جديد","اختار النوع، اربطه بالعميل والعقد، وابعته للاعتماد.",B("ghost","","إلغاء",'data-go="finRequests"')+B("primary","send","إرسال طلب الاعتماد"),["finRequests","الطلبات المالية"])}
+ <div class="grid-2 wide-l"><div>
+  ${FS(1,"نوع الطلب",`<div class="fx-types">${TYPES.map(t=>`<label class="cx-rcard${t[3]?" on":""}">${X(t[0])}<b>${t[1]}</b><small>${t[2]}</small></label>`).join("")}</div>`)}
+  ${FS(2,"ربط العميل والعقد",`<div class="fgrid">${FLD("العقد",`<div class="fx-inl">${INP("","CN-2026-0115",1)}${B("ghost","download","سحب")}</div>`,0,"استقدام · التكلفة 18,500 · الراتب 1,200",1)}${FLD("العميل",`<div class="inp">${X("search")}<input value="منيرة الشهري — 1042887331"></div>`)}${FLD("العاملة",`<div class="inp">${X("search")}<input value="ماريتس دي لا كروز — P7741203"></div>`)}</div>`)}
+  ${FS(3,"تفاصيل سداد مساند",`<div class="fgrid">${FLD("رقم طلب مساند",INP("","MS-88120431",1))}${FLD("رقم فاتورة مساند",INP("","INV-7720019",1))}<div class="fld">${B("ghost","refresh-cw","جلب من مساند")}</div></div>`)}
+  ${FS(4,"المبلغ والدفع",`<div class="fgrid">${FLD("المبلغ",INP("","2,875",1),1,"ر.س")}${FLD("الفرع",SEL(["الفرع الرئيسي","فرع جدة"]),1)}${FLD("تاريخ الطلب",'<input type="date" value="2026-11-16">')}${FLD("التصعيد",SEL(["عادي","هام","شديد الأهمية"]))}${FLD("طريقة الدفع",'<div class="cx-seg2 in"><button class="on">تحويل بنكي</button><button>نقدي</button></div>',1)}${FLD("طبيعة المبلغ",'<div class="cx-seg2 in"><button class="on">دائن</button><button>مدين</button></div>',1)}${FLD("الغرض من الدفع",TXT("مثال: سداد رسوم مساند لعقد CN-2026-0115",2),1,"",1)}</div>`)}
+  ${FS(5,"البيانات المحاسبية والتحويل",`<div class="fgrid">${FLD("الحساب المحاسبي",`<div class="inp">${X("search")}<input value="2101 · مستحقات مساند"></div>`)}${FLD("الاسم المحاسبي",INP("","مساند — تكامل",0),1)}${FLD("المدفوع له",INP("","وزارة الموارد البشرية — مساند"),1)}${FLD("اسم البنك",INP("اختياري"))}${FLD("رقم الآيبان",INP("SA00 0000 0000 0000 0000 0000","",1))}${FLD("اسم صاحب الحساب",INP("اختياري"))}</div>`)}
+  ${FS(6,"المرفقات",`<div class="dropz">${X("upload-cloud")}<b>مرفق الطلب الرئيسي + ملفات أخرى</b><small>فاتورة مساند، إيصال، أي مستند داعم</small></div>`)}
+ </div><div>
+  <div class="card sec fx-sum"><div class="sec-h">${X("receipt")}<b>ملخص الطلب</b></div>
+   <div class="fx-sum-amt"><small>سداد مساند</small><b class="num">2,875 <small>ر.س</small></b><span>منيرة الشهري · CN-2026-0115</span></div>
+   <div class="fx-entry"><b>القيد اللي هيتعمل عند الإقفال</b><div class="ln"><span class="dr">مدين</span><span>2101 · مستحقات مساند</span><b class="num">2,875</b></div><div class="ln"><span class="cr">دائن</span><span>1102 · مصرف الراجحي</span><b class="num">2,875</b></div><p>يعني: هيتصرف <b class="num">2,875 ر.س</b> من حساب الراجحي لمساند لصالح عقد منيرة الشهري.</p></div>
+   <div class="fx-path"><b>هيمشي إزاي؟</b>${["أنت ترسله للاعتماد","المدير المالي يعتمده","أنت تسدد وترفع إثبات التحويل","المالية تقفله بالإيصال"].map((x,i)=>`<div class="${i===0?"on":""}"><span class="num">${i+1}</span>${x}</div>`).join("")}</div>
+  </div></div></div>`;
+
+S.finRequestShow=()=>`
+ ${IDEA("أهم حاجة في الصفحة «دورك دلوقتي»: كارت واحد بالإجراء المطلوب منك بالظبط، والخط اللي فوق بيوضح الطلب وصل لفين. السجل والمرفقات تحت للي عايز التفاصيل.")}
+ <div class="page-head compact"><div><a class="back" href="#" data-go="finRequests" style="margin:0 0 8px">${X("arrow-right")}<span>الطلبات المالية</span></a><h1><span class="num">FR-0418</span> ${ESC.critical}</h1><p>سداد مساند · منيرة الشهري · CN-2026-0115 · قدّمه سارة القحطاني منذ 4 أيام</p></div><div class="actions">${B("ghost","printer","طباعة")+B("ghost","pencil","تعديل")}</div></div>
+ <div class="card fx-track">${[["تجهيز","سارة · 12 نوفمبر",2],["الاعتماد","بانتظارك",1],["السداد","",0],["الإقفال","",0]].map((s,i)=>`<div class="s ${s[2]===2?"done":s[2]===1?"now":""}"><span class="n">${s[2]===2?X("check"):`<b class="num">${i+1}</b>`}</span><div><b>${s[0]}</b><small>${s[1]}</small></div></div>`).join(`<i class="l"></i>`)}</div>
+ <div class="grid-2 fx-wr"><div>
+  ${SEC("info","البيانات الأساسية",KV([["نوع الطلب","سداد مساند"],["المبلغ",'<b class="num">2,875 ر.س</b>'],["الفرع","الفرع الرئيسي"],["تاريخ الطلب",'<span class="num">2026-11-12</span>'],["طريقة الدفع","تحويل بنكي"],["الغرض","سداد رسوم مساند للعقد CN-2026-0115"]]))}
+  ${SEC("landmark","تفاصيل نوع الطلب",KV([["رقم طلب مساند",'<span class="num">MS-88120431</span>'],["رقم فاتورة مساند",'<span class="num">INV-7720019</span>'],["العقد",'<a href="#" data-go="contractShow" class="num">CN-2026-0115</a>'],["العاملة","ماريتس دي لا كروز"]]))}
+  ${SEC("book-open","البيانات المحاسبية",KV([["الحساب","2101 · مستحقات مساند"],["المدفوع له","وزارة الموارد البشرية — مساند"],["طبيعة المبلغ","دائن"],["الآيبان",'<span class="num">SA03 8000 0000 6080 1016 7519</span>']]))}
+  ${SEC("history","سجل الطلب",`<div class="tl">${[["16 نوفمبر 09:10","تم تصعيده إلى «شديد الأهمية»","سارة القحطاني"],["12 نوفمبر 14:22","أُرسل للاعتماد","سارة القحطاني"],["12 نوفمبر 14:05","تم إنشاء الطلب","سارة القحطاني"]].map(x=>`<div class="tli"><span class="dot"></span><div><b>${x[1]}</b><small>${x[2]}</small><small class="num">${x[0]}</small></div></div>`).join("")}</div>`)}
+ </div><div>
+  <div class="card sec fx-turn"><div class="sec-h">${X("hand")}<b>دورك دلوقتي: اعتماد الطلب</b></div><p>راجع المبلغ والمرفقات. لو اعتمدته، سارة هتسدد وترفع إثبات التحويل.</p>
+   <div class="fgrid one">${FLD("التصعيد",SEL(["شديد الأهمية","هام","عادي"]))}${FLD("الملاحظات",TXT("إلزامية لو رفضت الطلب",3))}</div>
+   <div class="fx-turn-a">${B("primary","check","اعتماد")}${B("ghost danger","x","غير معتمد — إرجاع")}</div></div>
+  ${SEC("paperclip","المرفقات",`<div class="cx-files one">${[["file-text","فاتورة مساند.pdf","مرفق الطلب الرئيسي"],["image","صورة العقد.jpg","ملف آخر"]].map(f=>`<div class="cx-file">${X(f[0])}<div><b>${f[1]}</b><small>${f[2]}</small></div>${ACTS([["download","تحميل"]])}</div>`).join("")}</div>`)}
+  ${SEC("user-round","معلومات المتابعة",KV([["مقدم الطلب","سارة القحطاني"],["المعتمد","المدير المالي"],["آخر تحديث","منذ 3 ساعات"]]))}
+ </div></div>`;
+
+/* ================= الأصول (finance.principles.* + websites/transfer/depreciation/sales) ================= */
+const AS=[["AS-014","سيارة نقل العاملات — هيونداي H1","المركبات","مستودع الرياض","2024-03-01","142,000","98,410",31,"قسط ثابت"],["AS-013","أجهزة لابتوب (12)","أجهزة الحاسب","الفرع الرئيسي","2025-01-10","54,000","40,500",25,"قسط ثابت"],["AS-011","أثاث مكتب فرع جدة","الأثاث","فرع جدة","2023-06-15","38,500","21,180",45,"قسط متناقص"],["AS-009","مكيفات سكن الإيواء (8)","التجهيزات","إيواء الرياض — المبنى أ","2022-09-01","46,000","13,800",70,"قسط ثابت"],["AS-006","طابعة وماكينة تصوير","أجهزة الحاسب","الفرع الرئيسي","2021-11-20","12,800","640",95,"قسط ثابت"]];
+const asTabs=on=>TABS([["finAssets","building","الأصول",14],["#dep","trending-down","الإهلاك"],["#loc","map-pin","المواقع",5],["#move","arrow-left-right","النقل"],["#sale","badge-dollar-sign","البيع والتكهين"]],on);
+S.finAssets=()=>`
+ ${IDEA("كل أصل ظاهر قيمته الدفترية ونسبة اللي اتهلك منه كشريط، فتعرف بنظرة إيه اللي قرب يخلص ومحتاج استبدال. والإهلاك والمواقع والنقل والبيع بقوا تبويبات في نفس المكان بدل 6 شاشات منفصلة.")}
+ ${HEAD("الأصول الثابتة","المركبات والأجهزة والأثاث — القيمة الدفترية والإهلاك والمواقع.",B("ghost","calculator","إهلاك المجموعات")+B("ghost","file-spreadsheet","Excel")+B("primary","plus","إضافة أصل"))}
+ ${asTabs("finAssets")}
+ <div class="statgrid">${STAT("n","building","تكلفة الأصول","293,300")+STAT("g","scale","القيمة الدفترية الحالية","174,530")+STAT("a","trending-down","إهلاك الشهر","4,120")+STAT("r","alarm-clock","تخلص السنة دي","2")}</div>
+ <div class="fbar"><div class="fb grow"><label>بحث</label><div class="inp">${X("search")}<input placeholder="اسم الأصل أو الكود…"></div></div><div class="fb"><label>المجموعة</label>${SEL(["كل المجموعات","المركبات","أجهزة الحاسب","الأثاث","التجهيزات"])}</div><div class="fb"><label>الموقع</label>${SEL(["كل المواقع","الفرع الرئيسي","فرع جدة","مستودع الرياض","إيواء الرياض"])}</div></div>
+ <div class="card flush fx-t"><div class="tw"><table><thead><tr><th>الأصل</th><th>المجموعة</th><th>الموقع</th><th>التكلفة</th><th>القيمة الدفترية</th><th style="width:150px">المُهلك</th><th class="act"></th></tr></thead><tbody>
+ ${AS.map(r=>`<tr><td><div class="wcell"><div><a href="#" data-go="finAssetShow"><b>${r[1]}</b></a><small class="num">${r[0]} · ${r[8]}</small></div></div></td><td>${r[2]}</td><td>${r[3]}</td><td class="num"><div class="wcell"><div><span>${r[5]}</span><small>شراء ${r[4]}</small></div></div></td><td class="num"><b>${r[6]}</b></td><td><div class="fx-life ${r[7]>=90?"r":r[7]>=60?"a":""}"><span class="track"><i style="width:${r[7]}%"></i></span><b class="num">${r[7]}%</b></div></td><td class="act">${ACTS([["eye","عرض",'data-go="finAssetShow"'],["more-horizontal","المزيد"]])}</td></tr>`).join("")}
+ </tbody></table></div>${PAGER("عرض 5 من 14 أصل")}</div>`;
+
+S.finAssetShow=()=>`
+ ${IDEA("رسم بيوضح القيمة الدفترية بتنزل إزاي لحد الخردة، وكل الإجراءات (نقل، إهلاك يدوي، بيع، تكهين) في مكان واحد جنب بيانات الأصل.")}
+ <div class="page-head compact"><div><a class="back" href="#" data-go="finAssets" style="margin:0 0 8px">${X("arrow-right")}<span>الأصول</span></a><h1>سيارة نقل العاملات — هيونداي H1</h1><p>AS-014 · المركبات · مستودع الرياض · قسط ثابت 60 شهر</p></div><div class="actions">${B("ghost","pencil","تعديل")+B("ghost","printer","طباعة")}</div></div>
+ <div class="showgrid3 cx-show"><aside class="cvside">
+  <div class="card idcard"><span class="bigph">${X("truck")}</span><b class="num">98,410 ر.س</b><small>القيمة الدفترية</small><div class="fx-life big"><span class="track"><i style="width:31%"></i></span><b class="num">31% مُهلك</b></div>
+   <div class="idk"><div><small>التكلفة</small><b class="num">142,000</b></div><div><small>الخردة</small><b class="num">10,000</b></div><div><small>إهلاك شهري</small><b class="num">2,200</b></div><div><small>باقي</small><b class="num">40 شهر</b></div></div></div>
+  <div class="card acard"><div class="sec-h">${X("zap")}<b>الإجراءات</b></div><div class="acts2">${[["arrow-left-right","نقل لموقع"],["calculator","إهلاك يدوي"],["badge-dollar-sign","بيع"],["archive-x","تكهين","danger"]].map(a=>`<button class="atile ${a[2]||""}">${X(a[0])}<span>${a[1]}</span></button>`).join("")}</div></div>
+ </aside><div class="cvmain">
+  <div class="vtabs">${[["info","معلومات",1],["list","الحركات"],["trending-down","الإهلاك"]].map(x=>`<button class="${x[2]?"on":""}">${X(x[0])}<span>${x[1]}</span></button>`).join("")}</div>
+  <div class="tabbody">
+   <div class="card"><div class="card-h"><div><h3>القيمة الدفترية على مدار العمر</h3><p>من الشراء مارس 2024 لحد الخردة فبراير 2029</p></div></div><div class="fx-decline">${[142,115.6,98.4,72,45.6,10].map((v,i)=>`<div class="c${i===2?" now":""}"><i style="height:${Math.round(v/142*100)}%"></i><b class="num">${v}k</b><small>${2024+i}</small></div>`).join("")}</div></div>
+   ${SEC("info","البيانات",KV([["نوع التسجيل","مشتريات"],["الحساب الرئيسي","1210 · المركبات"],["تاريخ الشراء",'<span class="num">2024-03-01</span>'],["بداية الخدمة",'<span class="num">2024-03-05</span>'],["الحساب الدائن","1102 · مصرف الراجحي"],["الضريبة",'15% · <span class="num">21,300</span>'],["مخصص الإهلاك","1219 · مجمع إهلاك المركبات"],["مصروف الإهلاك","5310 · مصروف الإهلاك"]]))}
+   ${SEC("map-pin","سجل المواقع",`<div class="tl">${[["2025-08-10","نُقل من الفرع الرئيسي إلى مستودع الرياض","خالد المطيري"],["2024-03-05","بداية الخدمة — الفرع الرئيسي","مشرف النظام"]].map(x=>`<div class="tli"><span class="dot"></span><div><b>${x[1]}</b><small>${x[2]}</small><small class="num">${x[0]}</small></div></div>`).join("")}</div>`)}
+  </div></div></div>`;
+
+/* ================= العمولات (resources/views/commissions/*) ================= */
+const MK=[["سارة القحطاني","خدمة العملاء",14,6,"4,850","2,100",[["استقدام",8],["تأجير",4],["تفويض",2]]],["خالد المطيري","المبيعات",9,3,"3,200","1,450",[["استقدام",5],["نقل خدمة",4]]],["نورة السبيعي","المبيعات",11,0,"2,780","0",[["تأجير",11]]],["فهد الحربي","فرع جدة",6,2,"1,500","600",[["استقدام",4],["تفويض",2]]]];
+const cmTabs=on=>TABS([["finCommissions","users","المسوقون"],["#pay","wallet","مركز الصرف"],["finCommissionRules","sliders-horizontal","القواعد والنسب"]],on);
+S.finCommissions=()=>`
+ ${IDEA("رحلة العمولة بقت 4 محطات بالفلوس فيها (محتاجة احتساب ← معتمدة ← في الرصيد ← اتصرفت) فيبان الفلوس واقفة فين. وكل مسوق كارت فيه اللي محتاج مراجعة وزر واحد «راجع واعتمد».")}
+ ${HEAD("العمولات","مراجعة واعتماد عمولات المسوقين وصرفها — للتفويض والاستقدام ونقل الخدمات والتأجير.",B("ghost","file-spreadsheet","تصدير")+B("primary","wallet","إصدار سند صرف"))}
+ ${cmTabs("finCommissions")}
+ <div class="fx-flow4 card">${[["clock","عمليات لسه متحسبتش","11 عملية","≈ 24,600 أساس","a"],["badge-check","معتمدة","12,330","هذا الشهر","n"],["piggy-bank","رصيد مستحق للموظفين","4,150","لـ 3 موظفين","g"],["wallet","اتصرفت","38,900","هذه السنة · 16 سند","n"]].map((s,i)=>`<div class="s ${s[4]}">${X(s[0])}<small>${s[1]}</small><b class="num">${s[2]}</b><em>${s[3]}</em></div>${i<3?`<i class="ar">${X("arrow-left")}</i>`:""}`).join("")}</div>
+ <div class="fbar"><div class="fb grow"><label>بحث سريع</label><div class="inp">${X("search")}<input placeholder="اسم المسوق أو رقمه"></div></div><div class="fb"><label>نوع الخدمة</label>${SEL(["كل الخدمات","تفويض إنجاز إلكتروني","استقدام","نقل خدمة","عقود التأجير"])}</div><div class="fb"><label>حالة الملف</label>${SEL(["كل الحالات","لديه عقود غير محتسبة","لديه رصيد مستحق","لا توجد عقود معلقة"])}</div></div>
+ <div class="fx-mk">${MK.map(m=>`<div class="card fx-mkc"><div class="h"><span class="av">${m[0][0]}</span><div><b>${m[0]}</b><small>${m[1]}</small></div>${m[3]?`<em class="a">${m[3]} محتاجة احتساب</em>`:`<em class="g">مفيش معلّق</em>`}</div>
+  <div class="svc">${m[6].map(x=>`<span>${x[0]} <b class="num">${x[1]}</b></span>`).join("")}</div>
+  <div class="nums"><div><small>عمولة محتسبة</small><b class="num">${m[4]}</b></div><div><small>رصيد مستحق</small><b class="num">${m[5]}</b></div><div><small>العمليات</small><b class="num">${m[2]}</b></div></div>
+  <div class="f">${m[3]?B("primary sm","list-checks","راجع واعتمد",'data-go="finCommissionShow"'):B("ghost sm","eye","عرض الملف",'data-go="finCommissionShow"')}${m[5]!=="0"?B("ghost sm","wallet","صرف"):""}</div></div>`).join("")}</div>`;
+
+const OPS=[["عقد","CN-2026-0115","OR-4419","استقدام","منيرة الشهري","ساري","2026-11-02","18,500","مسدد",1],["عقد","CN-2026-0112","OR-4402","استقدام","عبدالله الدوسري","ساري","2026-10-28","16,800","مسدد",1],["تفويض","DL-0041","—","تفويض إنجاز","شركة نجد للمقاولات","تم التنفيذ","2026-10-26","1,200","مسدد",1],["عقد","RC-2026-0044","—","تأجير","شركة الوفاء الطبية","ساري","2026-10-20","7,200","جزئي",1],["عقد","CN-2026-0106","OR-4388","استقدام","هيا العنزي","ملغي","2026-10-11","15,900","مسترد",0],["تفويض","DL-0039","—","تفويض إنجاز","فيصل القحطاني","تم التنفيذ","2026-10-09","1,200","مسدد",1]];
+S.finCommissionShow=()=>`
+ ${IDEA("الاختيار والحساب في نفس الشاشة: بتعلّم على العمليات، والشريط اللي تحت بيحسب الأساس والعمولة على طول بالقاعدة الافتراضية، وتقدر تعدّل قبل الاعتماد. العقود الملغية بتتقفل تلقائياً ومعاها السبب.")}
+ ${HEAD("سارة القحطاني — العمولات","خدمة العملاء · 14 عملية · رصيد مستحق 2,100 ر.س",B("ghost","file-plus-2","قيود الخصومات السابقة")+B("primary","wallet","إصدار سند صرف"),["finCommissions","العمولات"])}
+ <div class="card fx-track">${[["اختيار العمليات","",1],["تحديد ومراجعة العمولة","",0],["إضافة إلى الرصيد","",0],["سند الصرف","",0]].map((s,i)=>`<div class="s ${s[2]?"now":""}"><span class="n"><b class="num">${i+1}</b></span><div><b>${s[0]}</b></div></div>`).join(`<i class="l"></i>`)}</div>
+ ${CHIPS([["الكل","",14],["غير محتسبة","a",6],["محتسبة","g",8]])}
+ <div class="card flush fx-t"><div class="tw"><table><thead><tr><th style="width:36px"><input type="checkbox" checked></th><th>المصدر</th><th>الخدمة</th><th>العميل</th><th>الحالة</th><th>قيمة الأساس</th><th>سداد العميل</th><th>العمولة المقترحة</th></tr></thead><tbody>
+ ${OPS.map(r=>`<tr class="${r[9]?"fx-sel":"fx-off"}"><td><input type="checkbox" ${r[9]?"checked":"disabled"}></td><td><div class="wcell"><div><b class="num">${r[1]}</b><small>${r[0]}${r[2]!=="—"?` · ${r[2]}`:""}</small></div></div></td><td>${r[3]}</td><td><div class="wcell"><div><b>${r[4]}</b><small class="num">${r[6]}</small></div></div></td><td>${TAG(r[5]==="ملغي"?"r":"g",r[5])}</td><td class="num">${r[7]}</td><td>${TAG(r[8]==="مسدد"?"g":r[8]==="جزئي"?"a":"r",r[8])}</td><td>${r[9]?`<span class="num"><b>${r[3]==="تفويض إنجاز"?"300":r[3]==="تأجير"?"5% · 360":"500"}</b></span>`:'<small class="empty">مستبعدة — العقد ملغي</small>'}</td></tr>`).join("")}
+ </tbody></table></div>
+ <div class="fx-selbar"><span><b class="num">5</b> عمليات محددة</span><span>الأساس <b class="num">44,900</b></span><span>العمولة <b class="num g">1,960 ر.س</b></span><span class="sp"></span>${B("ghost sm","","إلغاء التحديد")}${B("primary","arrow-left","مراجعة وتحديد العمولة")}</div></div>
+ <div class="grid-2">
+  ${SEC("history","آخر حركات الرصيد",`<div class="tw"><table><thead><tr><th>الحركة</th><th>المبلغ</th><th>الرصيد بعد</th></tr></thead><tbody>${[["اعتماد دفعة #12","+2,100","2,100","JE-24090"],["سند صرف CS-016","−3,400","0","JE-23944"],["اعتماد دفعة #11","+3,400","3,400","JE-23810"]].map(r=>`<tr><td><div class="wcell"><div><b>${r[0]}</b><small class="num">${r[3]}</small></div></div></td><td class="num"><b class="${r[1][0]==="+"?"g":"r"}">${r[1]}</b></td><td class="num">${r[2]}</td></tr>`).join("")}</tbody></table></div>`)}
+  ${SEC("undo-2","خصومات العقود المرتجعة",`<div class="cx-body"><div class="cx-note">${X("alert-triangle")}<div><b>CN-2026-0106 · هيا العنزي</b><span>العقد اتلغى بعد احتساب عمولة 500 ر.س — هيتخصم من الرصيد الجاي.</span></div></div></div><div class="cx-right">${B("ghost sm","check","تسوية الخصم")}</div>`)}
+ </div>`;
+
+S.finCommissionRules=()=>`
+ ${IDEA("كل خدمة كارت فيه القاعدة الافتراضية بجملة واضحة («500 ر.س ثابت لكل عقد»)، والاستثناءات في جدول واحد تحتها — بدل فورم طويل بأربع أقسام.")}
+ ${HEAD("قواعد ونسب العمولات","القاعدة الافتراضية لكل خدمة، واستثناءات المسوقين، وسياسة التأجير المرتجع.",B("primary","save","حفظ الإعدادات"),["finCommissions","العمولات"])}
+ ${cmTabs("finCommissionRules")}
+ <div class="fx-rules">${[["file-signature","تفويض إنجاز إلكتروني","مبلغ ثابت","300","ر.س لكل تفويض"],["plane","استقدام","مبلغ ثابت","500","ر.س لكل عقد"],["arrow-left-right","نقل خدمة","نسبة","3","% من قيمة النقل"],["repeat","عقود التأجير","نسبة","5","% من قيمة العقد"]].map(r=>`<div class="card fx-rule">${X(r[0])}<b>${r[1]}</b><div class="cx-seg2 in"><button class="${r[2]==="مبلغ ثابت"?"on":""}">مبلغ ثابت</button><button class="${r[2]==="نسبة"?"on":""}">نسبة %</button></div><div class="v"><input class="num" value="${r[3]}"><span>${r[4]}</span></div></div>`).join("")}</div>
+ <div class="grid-2">
+  ${SEC("repeat","لو عقد التأجير رجع قبل مدته",`<label class="cx-radio"><span class="rd"></span><span><b>خصم العمولة كاملة</b><small>العمولة كلها بتتخصم من رصيد المسوق</small></span></label><label class="cx-radio on"><span class="rd"></span><span><b>خصم نصيب المدة غير المنفذة بس</b><small>مثال: عقد 12 شهر رجع بعد 4 ← يتخصم ثلثين العمولة</small></span></label>`)}
+  ${SEC("link","حسابات استحقاق العمولة",`<div class="fx-acc">${[["سارة القحطاني","2310-04 · عمولات مستحقة — سارة"],["خالد المطيري","2310-07 · عمولات مستحقة — خالد"],["نورة السبيعي","تلقائي — يتعمل عند أول اعتماد"]].map(r=>`<div><b>${r[0]}</b><span>${r[1]}</span></div>`).join("")}</div>`)}
+ </div>
+ ${SEC("user-cog","استثناءات المسوقين",`<div class="tw"><table><thead><tr><th>المسوق</th><th>الخدمة</th><th>الطريقة</th><th>القيمة</th><th class="act"></th></tr></thead><tbody>${[["نورة السبيعي","عقود التأجير","نسبة","7%"],["فهد الحربي","كل الخدمات","مبلغ ثابت","400 ر.س"]].map(r=>`<tr><td><b>${r[0]}</b></td><td>${r[1]}</td><td>${r[2]}</td><td class="num"><b>${r[3]}</b></td><td class="act">${ACTS([["pencil","تعديل"],["trash-2","حذف"]])}</td></tr>`).join("")}</tbody></table></div><div class="cx-right">${B("ghost sm","plus","إضافة استثناء")}</div>`,"")}`;
+
+/* ================= الضريبة و ZATCA (tax-declaration, tax-invoice-statement, zatca settings) ================= */
+const ZS={cleared:["g","معتمد من الهيئة"],reported:["g","مرحّل للهيئة"],pending:["a","معلّق"],rejected:["r","مرفوض من الهيئة"],na:["n","غير مطلوب"]};
+const txTabs=on=>TABS([["finTax","receipt","الإقرار والفواتير"],["finZatca","shield-check","ربط ZATCA"],["#rates","percent","نسب الضريبة",2]],on);
+S.finTax=()=>`
+ ${IDEA("الإقرار الضريبي بيبدأ بالرقم اللي يهمك: «المستحق للهيئة الربع ده»، وتحته إزاي اتحسب. والفواتير المرفوضة أو المعلّقة من ZATCA بتطلع الأول عشان تتصلح قبل ما تتنسي.")}
+ ${HEAD("الضريبة و ZATCA","الإقرار الضريبي وحالة الفواتير الإلكترونية مع هيئة الزكاة والضريبة والجمارك.",B("ghost","file-spreadsheet","Excel")+B("ghost","file-text","PDF")+B("primary","send","ترحيل المعلّق للهيئة"))}
+ ${txTabs("finTax")}
+ <div class="grid-2 wide-l">
+  <div class="card fx-vat"><div class="h"><div><small>الربع الرابع 2026 · أكتوبر – ديسمبر</small><h2>المستحق للهيئة <b class="num">38,412 ر.س</b></h2><p>آخر موعد للإقرار والسداد <b>31 يناير 2027</b> · باقي 76 يوم</p></div>${SEL(["الربع الرابع 2026","الربع الثالث 2026","فترة مخصصة…"])}</div>
+   <div class="fx-calc3"><div><small>ضريبة المبيعات</small><b class="num">61,920</b><em>على مبيعات 412,800</em></div><span>−</span><div><small>ضريبة المشتريات</small><b class="num">23,508</b><em>على مشتريات 156,720</em></div><span>=</span><div class="tot"><small>صافي المستحق</small><b class="num">38,412</b></div></div></div>
+  <div class="card"><div class="card-h"><div><h3>حالة الفواتير مع ZATCA</h3><p>الشهر ده · 318 فاتورة</p></div></div>${SHARE([["معتمد / مرحّل","",'296',93],["معلّق","لسه ماترحّلش",'15',5],["مرفوض","محتاج تصحيح",'4',1],["غير مطلوب","",'3',1]])}</div>
+ </div>
+ ${CHIPS([["محتاج تصرف","r",19],["الكل","",318],["معتمد","g",214],["مرحّل","g",82],["معلّق","a",15],["مرفوض","r",4]])}
+ <div class="fbar"><div class="fb"><label>من</label><input type="date" value="2026-11-01"></div><div class="fb"><label>إلى</label><input type="date" value="2026-11-16"></div><div class="fb"><label>المصدر</label>${SEL(["الكل","الاستقدام والتفويض","الإيجار"])}</div><div class="fb grow"><label>بحث</label><div class="inp">${X("search")}<input placeholder="رقم الفاتورة، العميل، العقد…"></div></div></div>
+ <div class="card flush fx-t"><div class="tw"><table><thead><tr><th>الفاتورة</th><th>المصدر</th><th>العميل</th><th>بدون ضريبة</th><th>الضريبة</th><th>الإجمالي</th><th>حالة ZATCA</th><th class="act"></th></tr></thead><tbody>
+ ${[["INV-9916","2026-11-04","الاستقدام","هيا العنزي","13,826","2,074","15,900","rejected","الرقم الضريبي للمشتري غير صحيح"],["RI-2210","2026-11-09","الإيجار","شركة الوفاء الطبية","6,261","939","7,200","rejected","تاريخ الفاتورة في المستقبل"],["INV-9921","2026-11-14","الاستقدام","منيرة الشهري","16,087","2,413","18,500","pending",""],["INV-9920","2026-11-13","الاستقدام","شركة نجد للمقاولات","15,565","2,335","17,900","cleared",""],["RI-2214","2026-11-12","الإيجار","فيصل القحطاني","3,130","470","3,600","reported",""]].map(r=>`<tr><td><div class="wcell"><div><b class="num">${r[0]}</b><small class="num">${r[1]}</small></div></div></td><td>${r[2]}</td><td>${r[3]}</td><td class="num">${r[4]}</td><td class="num">${r[5]}</td><td class="num"><b>${r[6]}</b></td><td>${TAG(ZS[r[7]][0],ZS[r[7]][1])}${r[8]?`<small class="fx-why">${r[8]}</small>`:""}</td><td class="act">${r[7]==="rejected"?B("ghost sm","wrench","تصحيح"):r[7]==="pending"?B("ghost sm","send","ترحيل"):ACTS([["eye","عرض"],["qr-code","QR"]])}</td></tr>`).join("")}
+ </tbody></table></div>${PAGER("عرض 5 من 318 فاتورة")}</div>`;
+
+S.finZatca=()=>`
+ ${IDEA("بيئة الربط بقت 3 كروت واضحة (تجربة ← محاكاة ← فعلي) والشهادة ليها عدّاد بالأيام الباقية وتنبيه قبل الانتهاء — بدل حقول تقنية من غير شرح.")}
+ ${HEAD("ربط ZATCA","الفوترة الإلكترونية — المرحلة الثانية (الربط والتكامل).",B("primary","save","حفظ"),["finTax","الضريبة و ZATCA"])}
+ ${txTabs("finZatca")}
+ <div class="fx-env">${[["code","وضع المطوّر","للتجربة الداخلية — الفواتير مش بتتبعت",0],["flask-conical","وضع المحاكاة","بيئة الهيئة التجريبية — محتاج OTP",0],["shield-check","الوضع الفعلي","الفواتير بتتبعت للهيئة رسمياً — محتاج OTP",1]].map(e=>`<label class="cx-rcard${e[3]?" on":""}">${X(e[0])}<b>${e[1]}</b><small>${e[2]}</small>${e[3]?TAG("g","مفعّل"):""}</label>`).join("")}</div>
+ <div class="grid-2 wide-l">
+  ${SEC("building-2","بيانات المنشأة",`<div class="fgrid">${FLD("الاسم الضريبي",INP("","مكتب الريادة للاستقدام"),1)}${FLD("الرقم الضريبي",INP("","310245881600003",1),1,"15 رقم يبدأ بـ 3")}${FLD("السجل التجاري",INP("","7012458816",1),1)}${FLD("المدينة",INP("","الرياض"))}${FLD("الحي",INP("","العليا"))}${FLD("الشارع",INP("","طريق الملك فهد"))}${FLD("رقم المبنى",INP("","8228",1))}${FLD("الرمز البريدي",INP("","12214",1))}${FLD("اسم الفرع",INP("","الفرع الرئيسي"))}</div>`)}
+  <div>
+   <div class="card sec fx-cert"><div class="sec-h">${X("badge-check")}<b>شهادة التوقيع</b></div><div class="ring"><svg viewBox="0 0 36 36"><circle cx="18" cy="18" r="15.9" class="bg"/><circle cx="18" cy="18" r="15.9" class="fg" stroke-dasharray="58 100"/></svg><div><b class="num">212</b><small>يوم باقي</small></div></div>
+    ${KV([["تاريخ الإصدار",'<span class="num">2026-06-17</span>'],["تاريخ الانتهاء",'<span class="num">2027-06-16</span>'],["رقم طلب الشهادة",'<span class="num">1234567890123</span>']])}
+    <div class="fgrid one">${FLD("رمز OTP",INP("من بوابة فاتورة","",1),0,"مطلوب لإصدار أو تجديد الشهادة")}</div><div class="cx-right">${B("ghost","refresh-cw","تجديد الشهادة")}</div></div>
+   <div class="cx-info">${X("bell")}<span>هيوصلك تنبيه قبل انتهاء الشهادة بـ 30 يوم، وتاني قبلها بـ 7 أيام.</span></div></div>
+ </div>`;
+
+Object.assign(T,{finDash:{ar:"لوحة المالية",en:"Finance dashboard"},finRequests:{ar:"الطلبات المالية",en:"Finance requests"},finRequestAdd:{ar:"طلب مالي جديد",en:"New finance request"},finRequestShow:{ar:"FR-0418",en:"Request details"},
+ finAssets:{ar:"الأصول الثابتة",en:"Fixed assets"},finAssetShow:{ar:"AS-014",en:"Asset details"},finCommissions:{ar:"العمولات",en:"Commissions"},finCommissionShow:{ar:"عمولات المسوق",en:"Marketer commissions"},finCommissionRules:{ar:"قواعد العمولات",en:"Commission rules"},
+ finTax:{ar:"الضريبة و ZATCA",en:"Tax & ZATCA"},finZatca:{ar:"ربط ZATCA",en:"ZATCA link"}});
 Object.keys(S).forEach(k=>{screens[k]=S[k]});
 })();
 /* ===== multipage boot ===== */

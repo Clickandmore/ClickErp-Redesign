@@ -66,7 +66,7 @@
 
 ---
 
-## المالية — مرجع
+## المالية — ✅ v1.5 (`finDash` · `finRequests*` · `finAssets*` · `finCommission*` · `finTax` · `finZatca`)
 
 | شاشتنا | الكود |
 |---|---|
