@@ -3,86 +3,127 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="design-version" content="v1.3">
+<meta name="design-version" content="v1.3.1">
 <title>تسجيل الدخول — Click ERP</title>
 <link rel="stylesheet" href="assets/clickerp.bundle.css">
 </head>
 <body dir="rtl">
-<!-- Screen: login · v1.3 -->
-<section id="login" class="">
-  <div class="lg-form">
-    <div class="lang lang-fixed"><button data-l="ar" class="on">AR</button><button data-l="en">EN</button></div>
-    <div class="lg-card">
-    <div class="lg-top">
-      <img src="assets/logo-light-bg.png" alt="Click &amp; More">
-    </div>
-    <div class="h-row" data-signin="">
-      <h1 data-ar="تسجيل الدخول" data-en="Sign in">تسجيل الدخول</h1>
-      <span class="rl" data-rl=""><i data-lucide="building-2"></i><span>دخول الموظفين والإدارة</span></span>
-    </div>
-    <p class="lg-sub hidden" data-ar="" data-en=""></p>
-    <div data-signin="">
-    <div class="field">
-      <label data-ar="البريد الإلكتروني أو اسم المستخدم" data-en="Email or username">اسم المستخدم أو البريد الإلكتروني</label>
-      <div class="inp"><i data-lucide="mail"></i><input type="text" data-user-input="" data-ar-ph="name@clickerp.sa" data-en-ph="name@clickerp.sa" placeholder="name@clickerp.sa"></div>
-    </div>
-    <div class="field">
-      <label data-ar="كلمة المرور" data-en="Password">كلمة المرور</label>
-      <div class="inp"><i data-lucide="lock"></i><input type="password" data-ar-ph="••••••••" data-en-ph="••••••••" placeholder="••••••••"><span class="eye"><i data-lucide="eye"></i></span></div>
-    </div>
-    <div class="row-between">
-      <label class="check"><input type="checkbox"><span data-ar="تذكرني" data-en="Remember me">تذكرني</span></label>
-      <a href="#" data-forgot="" data-ar="نسيت كلمة المرور؟" data-en="Forgot password?">نسيت كلمة المرور؟</a>
-    </div>
-    <button class="btn btn-primary btn-block" data-login="" data-ar="تسجيل الدخول" data-en="Sign in">تسجيل الدخول</button>
-    <div class="alt">
-      <div class="or"><span data-ar="أو" data-en="or">أو</span></div>
-      <button class="btn btn-ghost btn-block2" data-role-toggle=""><i data-lucide="arrow-left-right"></i><span data-alt-txt="">دخول الوكلاء الخارجيين</span></button>
-    </div>
-    </div>
-    <div data-reset="" class="hidden">
-      <div class="h-row"><h1 data-ar="إعادة تعيين كلمة المرور" data-en="Reset password">إعادة تعيين كلمة المرور</h1></div>
-      <div class="note"><i data-lucide="info"></i><span data-ar="أدخل بريدك المسجّل وسنرسل لك رابط إعادة التعيين صالحاً لمدة 30 دقيقة." data-en="Enter your registered email and we’ll send a reset link valid for 30 minutes.">أدخل بريدك المسجّل وسنرسل لك رابط إعادة التعيين صالحاً لمدة 30 دقيقة.</span></div>
-      <div class="field">
-        <label data-ar="البريد الإلكتروني" data-en="Email">البريد الإلكتروني</label>
-        <div class="inp"><i data-lucide="mail"></i><input type="email" data-ar-ph="name@clickerp.sa" data-en-ph="name@clickerp.sa" placeholder="name@clickerp.sa"></div>
+<!-- Screen: login · v1.3.1 · خطوة 1: المعرّف، خطوة 2: كلمة المرور أو رمز تحقق -->
+<section id="login" class="lx">
+  <div class="lx-form">
+    <div class="lx-head"><div class="lang"><button data-l="ar" class="on">AR</button><button data-l="en">EN</button></div></div>
+    <div class="lx-body">
+      <button class="hidden" data-role-toggle="" aria-hidden="true" tabindex="-1"></button>
+      <div class="lx-brand"><!-- شعار المكتب (العميل): في النظام بيكون صورة الشعار المرفوعة من الإعدادات --><div class="org-logo" role="img" aria-label="شعار مكتب الريادة للاستقدام"><svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="16" fill="#16233f"/><path d="M40 14c-9 2-15 9-15 18v18" stroke="#7ab648" stroke-width="5" stroke-linecap="round" fill="none"/><path d="M25 32c0-7 6-12 13-12" stroke="#fff" stroke-width="5" stroke-linecap="round" fill="none"/><circle cx="44" cy="46" r="5" fill="#7ab648"/></svg></div><div class="org-name"><b>مكتب الريادة</b><small>للاستقدام</small></div></div>
+      <!-- الخطوة 1: المعرّف -->
+      <form data-step="1" onsubmit="return false">
+        <div class="lx-title">
+          <span class="lx-badge hidden" data-agent-badge=""><i data-lucide="globe"></i>بوابة الوكلاء الخارجيين</span>
+          <h1 data-title="">تسجيل الدخول</h1>
+          <p>أدخل الجوال أو البريد أو اسم المستخدم للمتابعة</p>
+        </div>
+        <div class="field">
+          <label for="lg-user">الجوال أو البريد أو اسم المستخدم</label>
+          <div class="inp"><i data-lucide="user-round"></i><input id="lg-user" type="text" data-user-input="" autocomplete="username" placeholder="05XXXXXXXX أو name@office.sa" autofocus></div>
+        </div>
+        <button class="btn btn-primary btn-block" data-go-next="" type="submit"><span>متابعة</span><i data-lucide="arrow-left"></i></button>
+      </form>
+      <!-- الخطوة 2: اختيار طريقة الدخول -->
+      <div data-step="2" class="hidden">
+        <div class="lx-title"><h1>تسجيل الدخول</h1></div>
+        <button type="button" class="who" data-back=""><span class="av" data-who-av="">م</span><span><b data-who="">—</b><small data-who-role="">حساب موظف</small></span><em>تغيير</em></button>
+        <div class="mseg" role="tablist" aria-label="طريقة الدخول">
+          <button type="button" class="on" data-way="pw" role="tab"><i data-lucide="key-round"></i>كلمة المرور</button>
+          <button type="button" data-way="otp" role="tab"><i data-lucide="message-square-text"></i>رمز لمرة واحدة</button>
+        </div>
+        <form data-pane="pw" onsubmit="return false">
+          <div class="field">
+            <label for="lg-pass"><span>كلمة المرور</span><a href="states/login--reset.html">نسيت كلمة المرور؟</a></label>
+            <div class="inp"><i data-lucide="lock"></i><input id="lg-pass" type="password" autocomplete="current-password" placeholder="••••••••"><span class="eye" data-eye="" role="button" title="إظهار كلمة المرور"><i data-lucide="eye"></i></span></div>
+          </div>
+          <label class="check"><input id="lg-remember" type="checkbox" checked><span>تذكرني على هذا الجهاز</span></label>
+          <button class="btn btn-primary btn-block" data-login="" type="submit"><span>تسجيل الدخول</span><i data-lucide="arrow-left"></i></button>
+        </form>
+        <div data-pane="otp" class="hidden">
+          <p class="otp-to">هنبعت رمز من 6 أرقام إلى <b data-otp-to="">05•••••640</b> وصالح لمدة 5 دقائق.</p>
+          <a class="btn btn-primary btn-block" href="states/login--sending.html"><span>إرسال الرمز</span><i data-lucide="send"></i></a>
+        </div>
       </div>
-      <button class="btn btn-primary btn-block" data-ar="إرسال رابط الاستعادة" data-en="Send reset link">إرسال رابط الاستعادة</button>
-      <div style="text-align:center"><a class="back" href="#" data-back=""><i data-lucide="arrow-right"></i><span data-ar="الرجوع لتسجيل الدخول" data-en="Back to sign in">الرجوع لتسجيل الدخول</span></a></div>
+      <button type="button" class="lx-agent" data-agent-switch=""><span class="ai" data-agent-ic=""><i data-lucide="globe"></i></span><span class="at"><b data-agent-t="">وكيل خارجي؟</b><small data-agent-s="">ادخل من بوابة الوكلاء لمتابعة السير والعقود</small></span><i data-lucide="chevron-left"></i></button>
+      <button type="button" class="lx-demo" data-demo=""><i data-lucide="play-circle"></i>دخول تجريبي بأي دور</button>
     </div>
-    <div class="support">
-      <span data-ar="تواجه مشكلة في الدخول؟" data-en="Trouble signing in?">تواجه مشكلة في الدخول؟</span>
-      <a class="sup" href="#" data-support="" title="920001234 · support@clickerp.sa"><i data-lucide="life-buoy"></i><span data-ar="تواصل مع الدعم الفني" data-en="Contact support">تواصل مع الدعم الفني</span></a>
+    <div class="lx-foot">
+      <a class="pwb" href="https://clickandmore.sa" title="ClickERP — Click &amp; More"><small>Powered by</small><img src="assets/logo-light-tight.png" alt="Click &amp; More"><span class="sep"></span><b>Click<em>ERP</em></b></a>
+      <nav><a href="#" data-support="">الدعم الفني</a><a href="#">الخصوصية</a><details class="st-pick"><summary><i data-lucide="layers"></i>معاينة الحالات</summary><nav><a href="login.html" class="on">تسجيل الدخول (كلمة المرور)</a><a href="states/login--otp.html">رمز التحقق</a><a href="states/login--sending.html">جارٍ الإرسال</a><a href="states/login--otperr.html">رمز خاطئ</a><a href="states/login--2fa.html">التحقق بخطوتين</a><a href="states/login--err.html">بيانات خاطئة</a><a href="states/login--locked.html">قفل مؤقت</a><a href="states/login--reset.html">استعادة كلمة المرور</a><a href="states/login--newpw.html">كلمة مرور جديدة</a><a href="states/login--done.html">نجاح التغيير</a><a href="states/login--first.html">أول دخول</a><a href="states/login--branch.html">اختيار الفرع</a><a href="states/login--suspended.html">اشتراك منتهٍ</a><a href="states/login--stopped.html">حساب موقوف</a></nav></details></nav>
     </div>
-    </div>
-    <div class="lg-foot"><span class="cr"><img src="assets/logo-light-bg.png" alt="Click ERP"><span data-ar="جميع الحقوق محفوظة © 2026" data-en="© 2026 — All rights reserved">جميع الحقوق محفوظة © 2026</span></span><a href="#" data-ar="سياسة الخصوصية" data-en="Privacy policy">سياسة الخصوصية</a></div>
   </div>
-  <div class="lg-art">
-    <div class="slot"><img src="assets/login-photo.webp" alt=""></div>
-    <div class="scrim"></div>
-    <div class="cap">
-      <h2 data-art-t="" data-ar="منصة واحدة لإدارة العقود والعمليات والعملاء" data-en="One platform for contracts, operations and clients">منصة واحدة لإدارة العقود والعمليات والعملاء</h2>
-      <p data-art-s="" data-ar="متابعة لحظية لمراحل العقود، الطلبات، الإيواء والمالية من مكان واحد." data-en="Live tracking of contract stages, orders, housing and finance in one place.">متابعة لحظية لمراحل العقود، الطلبات، الإيواء والمالية من مكان واحد.</p>
-    </div>
+  <div class="lx-art">
+    <img src="assets/login-photo.webp" alt="">
+    <div class="lx-cap"><h2 data-art-t="">منصة واحدة لإدارة العقود والعمليات والعملاء</h2><p data-art-s="">متابعة لحظية لمراحل العقود، الطلبات، الإيواء والمالية من مكان واحد.</p></div>
   </div>
 </section>
 <div class="ov hidden" data-sup-modal="">
   <div class="modal">
-    <div class="modal-h">
-      <h3 data-ar="الدعم الفني" data-en="Technical support">الدعم الفني</h3>
-      <button class="icon-btn" data-sup-close=""><i data-lucide="x"></i></button>
-    </div>
-    <p class="ms" data-ar="اختر طريقة التواصل المناسبة لك، فريق الدعم متاح يومياً." data-en="Pick a channel — our team is available daily.">اختر طريقة التواصل المناسبة لك، فريق الدعم متاح يومياً.</p>
+    <div class="modal-h"><h3>الدعم الفني</h3><button class="icon-btn" data-sup-close=""><i data-lucide="x"></i></button></div>
+    <p class="ms">اختر طريقة التواصل المناسبة لك، فريق الدعم متاح يومياً.</p>
     <div class="sup-list">
-      <a class="sup-item" href="#"><span class="si"><i data-lucide="message-circle"></i></span><span><b data-ar="محادثة مباشرة" data-en="Live chat">محادثة مباشرة</b><small data-ar="متاح الآن · 8ص – 10م" data-en="Online now · 8am – 10pm">متاح الآن · 8ص – 10م</small></span><span class="go"><i data-lucide="chevron-left"></i></span></a>
-      <a class="sup-item" href="tel:920001234"><span class="si"><i data-lucide="phone"></i></span><span><b class="num">920001234</b><small data-ar="الاتصال الهاتفي" data-en="Phone line">الاتصال الهاتفي</small></span><span class="go"><i data-lucide="chevron-left"></i></span></a>
-      <a class="sup-item" href="mailto:support@clickerp.sa"><span class="si"><i data-lucide="mail"></i></span><span><b>support@clickerp.sa</b><small data-ar="رد خلال 24 ساعة" data-en="Reply within 24h">رد خلال 24 ساعة</small></span><span class="go"><i data-lucide="chevron-left"></i></span></a>
+      <a class="sup-item" href="#"><span class="si"><i data-lucide="message-circle"></i></span><span><b>محادثة مباشرة</b><small>متاح الآن · 8ص – 10م</small></span><span class="go"><i data-lucide="chevron-left"></i></span></a>
+      <a class="sup-item" href="tel:920001234"><span class="si"><i data-lucide="phone"></i></span><span><b class="num">920001234</b><small>الاتصال الهاتفي</small></span><span class="go"><i data-lucide="chevron-left"></i></span></a>
+      <a class="sup-item" href="mailto:support@clickerp.sa"><span class="si"><i data-lucide="mail"></i></span><span><b>support@clickerp.sa</b><small>رد خلال 24 ساعة</small></span><span class="go"><i data-lucide="chevron-left"></i></span></a>
     </div>
   </div>
 </div>
-<script>window.CERP_PAGE="login";window.CERP_PAGES=["dashboard","reports","report","contracts","cvs","cvAdd","cvShow","cvEdit","clients","followups","polls","visitors","clArchive","clientShow","clientAdd","contractShow","contractAdd","invoices","contractEdit","housing","housingShow","housingAdd","transfer","transferShow","transferAdd","transferOverview","finAccounts","finEntries","finBonds","finReports","finReport","finSales","finSaleAdd","finPurchases","finReturns","finBanks","finBoxes","finTransfers","finChecksIn","finChecksOut","finItems","finStock","finInventory","finClients","finSuppliers","finAgents","finCenters","finSettings","finAdd","finShow","finCentersTree","rental","rentalShow","rentalAdd","rentalInvoices","rentalSettings","rentalTerms","orders","orderShow"];</script>
+<div class="ov hidden" data-demo-modal="">
+  <div class="modal demo-m">
+    <div class="modal-h"><h3>دخول تجريبي</h3><button class="icon-btn" data-demo-close=""><i data-lucide="x"></i></button></div>
+    <p class="ms">اختار دور وهتدخل على الشاشة بتاعته على طول. البيانات وهمية للعرض بس.</p>
+    <div class="ulist"><a class="u" href="dashboard.html#owner" data-as="owner@demo.sa"><span class="av" style="background:#7ab648">م</span><span class="ut"><b>المالك / رئيس المجلس</b><small>لوحة التحكم · صورة الشركة</small></span><i data-lucide="chevron-left"></i></a><a class="u" href="dashboard.html#sales" data-as="sales@demo.sa"><span class="av" style="background:#9ec4ff">س</span><span class="ut"><b>مدير المبيعات</b><small>لوحة التحكم · المبيعات</small></span><i data-lucide="chevron-left"></i></a><a class="u" href="dashboard.html#foreign" data-as="foreign@demo.sa"><span class="av" style="background:#f2c879">ع</span><span class="ut"><b>العلاقات الخارجية</b><small>لوحة التحكم · الوكلاء والسفارات</small></span><i data-lucide="chevron-left"></i></a><a class="u" href="dashboard.html#ops" data-as="ops@demo.sa"><span class="av" style="background:#c9b3ff">ش</span><span class="ut"><b>مشرف العمليات</b><small>لوحة التحكم · التشغيل</small></span><i data-lucide="chevron-left"></i></a><a class="u" href="finEntries.html" data-as="finance@demo.sa"><span class="av" style="background:#8fe0c6">ح</span><span class="ut"><b>المحاسب</b><small>القيود اليومية</small></span><i data-lucide="chevron-left"></i></a><a class="u" href="clients.html" data-as="care@demo.sa"><span class="av" style="background:#ffb3a8">خ</span><span class="ut"><b>خدمة العملاء</b><small>إدارة العملاء</small></span><i data-lucide="chevron-left"></i></a><a class="u" href="rental.html" data-as="hourly@demo.sa"><span class="av" style="background:#ffd27a">ت</span><span class="ut"><b>مشرف التأجير بالساعة</b><small>عقود التأجير</small></span><i data-lucide="chevron-left"></i></a><a class="u" href="cvs.html" data-as="agent@demo.sa"><span class="av" style="background:#b8c4d9">و</span><span class="ut"><b>وكيل خارجي</b><small>السير الذاتية</small></span><i data-lucide="chevron-left"></i></a></div>
+  </div>
+</div>
+<script>window.CERP_PAGE="login";window.CERP_PAGES=["dashboard","reports","report","contracts","cvs","cvAdd","cvShow","cvEdit","clients","followups","polls","visitors","clArchive","clientShow","clientAdd","contractShow","contractAdd","invoices","contractEdit","housing","housingShow","housingAdd","transfer","transferShow","transferAdd","transferOverview","finAccounts","finEntries","finBonds","finReports","finReport","finSales","finSaleAdd","finPurchases","finReturns","finBanks","finBoxes","finTransfers","finChecksIn","finChecksOut","finItems","finStock","finInventory","finClients","finSuppliers","finAgents","finCenters","finSettings","finAdd","finShow","finCentersTree","rental","rentalShow","rentalAdd","rentalInvoices","rentalSettings","rentalTerms","orders","orderShow","tplList","tplForm","tplShow","tplReport","coupons","couponForm","couponShow","couponBulk","couponReport","couponSettings","delegations","delAdd","delShow","trips","tripShow","agents","agentShow","hb-board","hb-visits","hb-schedule","hb-tracking","hb-alerts","hb-clients","hb-services","hb-zones","hbNew","hbVisit"];</script>
 <script src="https://unpkg.com/lucide@0.451.0/dist/umd/lucide.min.js"></script>
 <script src="assets/clickerp.bundle.js"></script>
 <script>lucide.createIcons({attrs:{"stroke-width":1.8}});</script>
+<script>
+/* v1.3.1: دخول على خطوتين + نوع الحساب تلقائي + دخول تجريبي */
+(function(){
+var q=function(s){return document.querySelector(s)},qa=function(s){return document.querySelectorAll(s)};
+var u=q('#lg-user');
+function isAgent(v){return /^agent|@agent|وكيل/i.test(v)}
+function setRole(r){if(typeof ROLE!=='undefined'&&ROLE!==r)q('[data-role-toggle]').click()}
+function step(n){qa('[data-step]').forEach(function(f){f.classList.toggle('hidden',f.dataset.step!==String(n))});
+  var f=q(n===2?'#lg-pass':'#lg-user');if(n===2){q('[data-way=pw]').click()}if(f)setTimeout(function(){f.focus()},30)}
+var AGENT=false;
+qa('[data-way]').forEach(function(w){w.addEventListener('click',function(){var k=w.dataset.way;
+  qa('[data-way]').forEach(function(x){x.classList.toggle('on',x===w)});
+  qa('[data-pane]').forEach(function(p){p.classList.toggle('hidden',p.dataset.pane!==k)})})});
+function agentMode(on){AGENT=on;setRole(on?'agent':'staff');
+  q('[data-agent-badge]').classList.toggle('hidden',!on);
+  q('[data-title]').textContent=on?'دخول الوكلاء':'تسجيل الدخول';
+  q('[data-agent-t]').textContent=on?'موظف أو إدارة؟':'وكيل خارجي؟';
+  q('[data-agent-s]').textContent=on?'ارجع لدخول الموظفين والإدارة':'ادخل من بوابة الوكلاء لمتابعة السير والعقود';
+  q('[data-agent-ic]').innerHTML='<i data-lucide="'+(on?'building-2':'globe')+'"></i>';
+  q('.lx-agent').classList.toggle('on',on);lucide.createIcons({attrs:{"stroke-width":1.8}});step(1)}
+q('[data-agent-switch]').addEventListener('click',function(){agentMode(!AGENT)});
+function next(){
+  var v=u.value.trim();var inp=u.closest('.inp');
+  if(!v){inp.classList.add('err');u.focus();return}inp.classList.remove('err');
+  var ag=AGENT||isAgent(v);setRole(ag?'agent':'staff');
+  q('[data-who]').textContent=v;q('[data-who-av]').textContent=(v.replace(/[^\p{L}]/gu,'')[0]||'م').toUpperCase();
+  var ph=/^\+?\d/.test(v);
+  q('[data-who-role]').textContent=ag?'حساب وكيل خارجي':(ph?'رقم جوال':'حساب موظف');
+  q('[data-otp-to]').textContent=ph?v.replace(/^(\d{2})\d+(\d{3})$/,'$1•••••$2'):(v.indexOf('@')>0?v:'05•••••640');
+  step(2)}
+q('form[data-step="1"]').addEventListener('submit',function(e){e.preventDefault();next()});
+u.addEventListener('input',function(){u.closest('.inp').classList.remove('err')});
+q('[data-back]').addEventListener('click',function(){step(1)});
+q('[data-eye]').addEventListener('click',function(){var p=q('#lg-pass');p.type=p.type==='password'?'text':'password'});
+document.addEventListener('click',function(e){
+  if(e.target.closest('[data-demo]')){q('[data-demo-modal]').classList.remove('hidden');return}
+  if(e.target.closest('[data-demo-close]')||e.target.matches('[data-demo-modal]')){q('[data-demo-modal]').classList.add('hidden');return}
+  var s=e.target.closest('[data-support]');if(s){e.preventDefault();q('[data-sup-modal]').classList.remove('hidden')}
+  if(e.target.closest('[data-sup-close]')||e.target.matches('[data-sup-modal]'))q('[data-sup-modal]').classList.add('hidden')});
+})();
+</script>
 </body>
 </html>

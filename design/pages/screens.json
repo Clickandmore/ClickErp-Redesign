@@ -1,307 +1,522 @@
 {
- "version": "v1.3",
- "date": "2026-11-15",
- "entry": "login.html",
- "screens": [
-  {
-   "id": "login",
-   "file": "login.html",
-   "title": "تسجيل الدخول"
-  },
-  {
-   "id": "dashboard",
-   "file": "dashboard.html",
-   "title": "لوحة التحكم"
-  },
-  {
-   "id": "reports",
-   "file": "reports.html",
-   "title": "مركز التقارير"
-  },
-  {
-   "id": "report",
-   "file": "report.html",
-   "title": "تقرير"
-  },
-  {
-   "id": "contracts",
-   "file": "contracts.html",
-   "title": "عقود الاستقدام"
-  },
-  {
-   "id": "cvs",
-   "file": "cvs.html",
-   "title": "السير الذاتية"
-  },
-  {
-   "id": "cvAdd",
-   "file": "cvAdd.html",
-   "title": "إضافة سيرة ذاتية"
-  },
-  {
-   "id": "cvShow",
-   "file": "cvShow.html",
-   "title": "تفاصيل السيرة"
-  },
-  {
-   "id": "cvEdit",
-   "file": "cvEdit.html",
-   "title": "تعديل السيرة"
-  },
-  {
-   "id": "clients",
-   "file": "clients.html",
-   "title": "إدارة العملاء"
-  },
-  {
-   "id": "followups",
-   "file": "followups.html",
-   "title": "متابعة العملاء"
-  },
-  {
-   "id": "polls",
-   "file": "polls.html",
-   "title": "الاستبيانات"
-  },
-  {
-   "id": "visitors",
-   "file": "visitors.html",
-   "title": "زوار الموقع"
-  },
-  {
-   "id": "clArchive",
-   "file": "clArchive.html",
-   "title": "أرشيف العملاء"
-  },
-  {
-   "id": "clientShow",
-   "file": "clientShow.html",
-   "title": "ملف العميل"
-  },
-  {
-   "id": "clientAdd",
-   "file": "clientAdd.html",
-   "title": "إضافة عميل"
-  },
-  {
-   "id": "contractShow",
-   "file": "contractShow.html",
-   "title": "تفاصيل العقد"
-  },
-  {
-   "id": "contractAdd",
-   "file": "contractAdd.html",
-   "title": "إضافة عقد استقدام"
-  },
-  {
-   "id": "invoices",
-   "file": "invoices.html",
-   "title": "فواتير العقود"
-  },
-  {
-   "id": "contractEdit",
-   "file": "contractEdit.html",
-   "title": "تعديل العقد"
-  },
-  {
-   "id": "housing",
-   "file": "housing.html",
-   "title": "إدارة الإيواء"
-  },
-  {
-   "id": "housingShow",
-   "file": "housingShow.html",
-   "title": "تفاصيل الإيواء"
-  },
-  {
-   "id": "housingAdd",
-   "file": "housingAdd.html",
-   "title": "عقد إيواء"
-  },
-  {
-   "id": "transfer",
-   "file": "transfer.html",
-   "title": "نقل الكفالة"
-  },
-  {
-   "id": "transferShow",
-   "file": "transferShow.html",
-   "title": "تفاصيل طلب النقل"
-  },
-  {
-   "id": "transferAdd",
-   "file": "transferAdd.html",
-   "title": "طلب نقل كفالة"
-  },
-  {
-   "id": "transferOverview",
-   "file": "transferOverview.html",
-   "title": "نظرة عامة على الحالات"
-  },
-  {
-   "id": "finAccounts",
-   "file": "finAccounts.html",
-   "title": "شجرة الحسابات"
-  },
-  {
-   "id": "finEntries",
-   "file": "finEntries.html",
-   "title": "القيود اليومية"
-  },
-  {
-   "id": "finBonds",
-   "file": "finBonds.html",
-   "title": "سندات القبض والصرف"
-  },
-  {
-   "id": "finReports",
-   "file": "finReports.html",
-   "title": "التقارير المالية"
-  },
-  {
-   "id": "finReport",
-   "file": "finReport.html",
-   "title": "تقرير مالي"
-  },
-  {
-   "id": "finSales",
-   "file": "finSales.html",
-   "title": "فواتير البيع"
-  },
-  {
-   "id": "finSaleAdd",
-   "file": "finSaleAdd.html",
-   "title": "فاتورة بيع جديدة"
-  },
-  {
-   "id": "finPurchases",
-   "file": "finPurchases.html",
-   "title": "فواتير الشراء"
-  },
-  {
-   "id": "finReturns",
-   "file": "finReturns.html",
-   "title": "مرتجع المشتريات"
-  },
-  {
-   "id": "finBanks",
-   "file": "finBanks.html",
-   "title": "البنوك والحسابات البنكية"
-  },
-  {
-   "id": "finBoxes",
-   "file": "finBoxes.html",
-   "title": "الصناديق النقدية"
-  },
-  {
-   "id": "finTransfers",
-   "file": "finTransfers.html",
-   "title": "التحويل بين الحسابات"
-  },
-  {
-   "id": "finChecksIn",
-   "file": "finChecksIn.html",
-   "title": "الشيكات الواردة"
-  },
-  {
-   "id": "finChecksOut",
-   "file": "finChecksOut.html",
-   "title": "الشيكات الصادرة"
-  },
-  {
-   "id": "finItems",
-   "file": "finItems.html",
-   "title": "الأصناف"
-  },
-  {
-   "id": "finStock",
-   "file": "finStock.html",
-   "title": "أرصدة أول المدة"
-  },
-  {
-   "id": "finInventory",
-   "file": "finInventory.html",
-   "title": "الجرد"
-  },
-  {
-   "id": "finClients",
-   "file": "finClients.html",
-   "title": "العملاء الماليون"
-  },
-  {
-   "id": "finSuppliers",
-   "file": "finSuppliers.html",
-   "title": "الموردون"
-  },
-  {
-   "id": "finAgents",
-   "file": "finAgents.html",
-   "title": "الوكلاء الخارجيون"
-  },
-  {
-   "id": "finCenters",
-   "file": "finCenters.html",
-   "title": "مراكز التكلفة"
-  },
-  {
-   "id": "finSettings",
-   "file": "finSettings.html",
-   "title": "الإعدادات المحاسبية"
-  },
-  {
-   "id": "finAdd",
-   "file": "finAdd.html",
-   "title": "إضافة"
-  },
-  {
-   "id": "finShow",
-   "file": "finShow.html",
-   "title": "عرض"
-  },
-  {
-   "id": "finCentersTree",
-   "file": "finCentersTree.html",
-   "title": "شجرة مراكز التكلفة"
-  },
-  {
-   "id": "rental",
-   "file": "rental.html",
-   "title": "عقود التأجير"
-  },
-  {
-   "id": "rentalShow",
-   "file": "rentalShow.html",
-   "title": "تفاصيل عقد التأجير"
-  },
-  {
-   "id": "rentalAdd",
-   "file": "rentalAdd.html",
-   "title": "عقد تأجير"
-  },
-  {
-   "id": "rentalInvoices",
-   "file": "rentalInvoices.html",
-   "title": "فواتير التأجير"
-  },
-  {
-   "id": "rentalSettings",
-   "file": "rentalSettings.html",
-   "title": "باقات التأجير"
-  },
-  {
-   "id": "rentalTerms",
-   "file": "rentalTerms.html",
-   "title": "بنود عقد التأجير"
-  },
-  {
-   "id": "orders",
-   "file": "orders.html",
-   "title": "الطلبات والحجوزات"
-  },
-  {
-   "id": "orderShow",
-   "file": "orderShow.html",
-   "title": "تفاصيل الطلب"
-  }
- ]
+  "version": "v1.3.1",
+  "date": "2026-11-15",
+  "entry": "login.html",
+  "screens": [
+    {
+      "id": "login",
+      "file": "login.html",
+      "title": "تسجيل الدخول"
+    },
+    {
+      "id": "dashboard",
+      "file": "dashboard.html",
+      "title": "لوحة التحكم"
+    },
+    {
+      "id": "reports",
+      "file": "reports.html",
+      "title": "مركز التقارير"
+    },
+    {
+      "id": "report",
+      "file": "report.html",
+      "title": "تقرير"
+    },
+    {
+      "id": "contracts",
+      "file": "contracts.html",
+      "title": "عقود الاستقدام"
+    },
+    {
+      "id": "cvs",
+      "file": "cvs.html",
+      "title": "السير الذاتية"
+    },
+    {
+      "id": "cvAdd",
+      "file": "cvAdd.html",
+      "title": "إضافة سيرة ذاتية"
+    },
+    {
+      "id": "cvShow",
+      "file": "cvShow.html",
+      "title": "تفاصيل السيرة"
+    },
+    {
+      "id": "cvEdit",
+      "file": "cvEdit.html",
+      "title": "تعديل السيرة"
+    },
+    {
+      "id": "clients",
+      "file": "clients.html",
+      "title": "إدارة العملاء"
+    },
+    {
+      "id": "followups",
+      "file": "followups.html",
+      "title": "متابعة العملاء"
+    },
+    {
+      "id": "polls",
+      "file": "polls.html",
+      "title": "الاستبيانات"
+    },
+    {
+      "id": "visitors",
+      "file": "visitors.html",
+      "title": "زوار الموقع"
+    },
+    {
+      "id": "clArchive",
+      "file": "clArchive.html",
+      "title": "أرشيف العملاء"
+    },
+    {
+      "id": "clientShow",
+      "file": "clientShow.html",
+      "title": "ملف العميل"
+    },
+    {
+      "id": "clientAdd",
+      "file": "clientAdd.html",
+      "title": "إضافة عميل"
+    },
+    {
+      "id": "contractShow",
+      "file": "contractShow.html",
+      "title": "تفاصيل العقد"
+    },
+    {
+      "id": "contractAdd",
+      "file": "contractAdd.html",
+      "title": "إضافة عقد استقدام"
+    },
+    {
+      "id": "invoices",
+      "file": "invoices.html",
+      "title": "فواتير العقود"
+    },
+    {
+      "id": "contractEdit",
+      "file": "contractEdit.html",
+      "title": "تعديل العقد"
+    },
+    {
+      "id": "housing",
+      "file": "housing.html",
+      "title": "إدارة الإيواء"
+    },
+    {
+      "id": "housingShow",
+      "file": "housingShow.html",
+      "title": "تفاصيل الإيواء"
+    },
+    {
+      "id": "housingAdd",
+      "file": "housingAdd.html",
+      "title": "عقد إيواء"
+    },
+    {
+      "id": "transfer",
+      "file": "transfer.html",
+      "title": "نقل الكفالة"
+    },
+    {
+      "id": "transferShow",
+      "file": "transferShow.html",
+      "title": "تفاصيل طلب النقل"
+    },
+    {
+      "id": "transferAdd",
+      "file": "transferAdd.html",
+      "title": "طلب نقل كفالة"
+    },
+    {
+      "id": "transferOverview",
+      "file": "transferOverview.html",
+      "title": "نظرة عامة على الحالات"
+    },
+    {
+      "id": "finAccounts",
+      "file": "finAccounts.html",
+      "title": "شجرة الحسابات"
+    },
+    {
+      "id": "finEntries",
+      "file": "finEntries.html",
+      "title": "القيود اليومية"
+    },
+    {
+      "id": "finBonds",
+      "file": "finBonds.html",
+      "title": "سندات القبض والصرف"
+    },
+    {
+      "id": "finReports",
+      "file": "finReports.html",
+      "title": "التقارير المالية"
+    },
+    {
+      "id": "finReport",
+      "file": "finReport.html",
+      "title": "تقرير مالي"
+    },
+    {
+      "id": "finSales",
+      "file": "finSales.html",
+      "title": "فواتير البيع"
+    },
+    {
+      "id": "finSaleAdd",
+      "file": "finSaleAdd.html",
+      "title": "فاتورة بيع جديدة"
+    },
+    {
+      "id": "finPurchases",
+      "file": "finPurchases.html",
+      "title": "فواتير الشراء"
+    },
+    {
+      "id": "finReturns",
+      "file": "finReturns.html",
+      "title": "مرتجع المشتريات"
+    },
+    {
+      "id": "finBanks",
+      "file": "finBanks.html",
+      "title": "البنوك والحسابات البنكية"
+    },
+    {
+      "id": "finBoxes",
+      "file": "finBoxes.html",
+      "title": "الصناديق النقدية"
+    },
+    {
+      "id": "finTransfers",
+      "file": "finTransfers.html",
+      "title": "التحويل بين الحسابات"
+    },
+    {
+      "id": "finChecksIn",
+      "file": "finChecksIn.html",
+      "title": "الشيكات الواردة"
+    },
+    {
+      "id": "finChecksOut",
+      "file": "finChecksOut.html",
+      "title": "الشيكات الصادرة"
+    },
+    {
+      "id": "finItems",
+      "file": "finItems.html",
+      "title": "الأصناف"
+    },
+    {
+      "id": "finStock",
+      "file": "finStock.html",
+      "title": "أرصدة أول المدة"
+    },
+    {
+      "id": "finInventory",
+      "file": "finInventory.html",
+      "title": "الجرد"
+    },
+    {
+      "id": "finClients",
+      "file": "finClients.html",
+      "title": "العملاء الماليون"
+    },
+    {
+      "id": "finSuppliers",
+      "file": "finSuppliers.html",
+      "title": "الموردون"
+    },
+    {
+      "id": "finAgents",
+      "file": "finAgents.html",
+      "title": "الوكلاء الخارجيون"
+    },
+    {
+      "id": "finCenters",
+      "file": "finCenters.html",
+      "title": "مراكز التكلفة"
+    },
+    {
+      "id": "finSettings",
+      "file": "finSettings.html",
+      "title": "الإعدادات المحاسبية"
+    },
+    {
+      "id": "finAdd",
+      "file": "finAdd.html",
+      "title": "إضافة"
+    },
+    {
+      "id": "finShow",
+      "file": "finShow.html",
+      "title": "عرض"
+    },
+    {
+      "id": "finCentersTree",
+      "file": "finCentersTree.html",
+      "title": "شجرة مراكز التكلفة"
+    },
+    {
+      "id": "rental",
+      "file": "rental.html",
+      "title": "عقود التأجير"
+    },
+    {
+      "id": "rentalShow",
+      "file": "rentalShow.html",
+      "title": "تفاصيل عقد التأجير"
+    },
+    {
+      "id": "rentalAdd",
+      "file": "rentalAdd.html",
+      "title": "عقد تأجير"
+    },
+    {
+      "id": "rentalInvoices",
+      "file": "rentalInvoices.html",
+      "title": "فواتير التأجير"
+    },
+    {
+      "id": "rentalSettings",
+      "file": "rentalSettings.html",
+      "title": "باقات التأجير"
+    },
+    {
+      "id": "rentalTerms",
+      "file": "rentalTerms.html",
+      "title": "بنود عقد التأجير"
+    },
+    {
+      "id": "orders",
+      "file": "orders.html",
+      "title": "الطلبات والحجوزات"
+    },
+    {
+      "id": "orderShow",
+      "file": "orderShow.html",
+      "title": "تفاصيل الطلب"
+    },
+    {
+      "id": "coupons",
+      "file": "coupons.html",
+      "title": "كوبونات الخصم"
+    },
+    {
+      "id": "couponForm",
+      "file": "couponForm.html",
+      "title": "كوبون جديد / تعديل"
+    },
+    {
+      "id": "couponShow",
+      "file": "couponShow.html",
+      "title": "تفاصيل الكوبون"
+    },
+    {
+      "id": "couponBulk",
+      "file": "couponBulk.html",
+      "title": "توليد أكواد بالجملة"
+    },
+    {
+      "id": "couponReport",
+      "file": "couponReport.html",
+      "title": "تقرير الكوبونات"
+    },
+    {
+      "id": "couponSettings",
+      "file": "couponSettings.html",
+      "title": "إعدادات الكوبونات"
+    },
+    {
+      "id": "tplList",
+      "file": "tplList.html",
+      "title": "قالب: قائمة"
+    },
+    {
+      "id": "tplForm",
+      "file": "tplForm.html",
+      "title": "قالب: فورم"
+    },
+    {
+      "id": "tplShow",
+      "file": "tplShow.html",
+      "title": "قالب: تفاصيل بتبويبات"
+    },
+    {
+      "id": "tplReport",
+      "file": "tplReport.html",
+      "title": "قالب: تقرير"
+    },
+    {
+      "id": "delegations",
+      "file": "delegations.html",
+      "title": "تفاويض الإنجاز"
+    },
+    {
+      "id": "delAdd",
+      "file": "delAdd.html",
+      "title": "إضافة تفويض"
+    },
+    {
+      "id": "delShow",
+      "file": "delShow.html",
+      "title": "تفاصيل التفويض"
+    },
+    {
+      "id": "trips",
+      "file": "trips.html",
+      "title": "الرحلات"
+    },
+    {
+      "id": "tripShow",
+      "file": "tripShow.html",
+      "title": "تفاصيل الرحلة"
+    },
+    {
+      "id": "agents",
+      "file": "agents.html",
+      "title": "الوكلاء الخارجيون"
+    },
+    {
+      "id": "agentShow",
+      "file": "agentShow.html",
+      "title": "ملف المكتب"
+    },
+    {
+      "id": "hb-board",
+      "file": "hb-board.html",
+      "title": "التأجير بالساعة: لوحة الطلبات"
+    },
+    {
+      "id": "hbNew",
+      "file": "hbNew.html",
+      "title": "إنشاء طلب بالساعة"
+    },
+    {
+      "id": "hb-visits",
+      "file": "hb-visits.html",
+      "title": "الزيارات"
+    },
+    {
+      "id": "hbVisit",
+      "file": "hbVisit.html",
+      "title": "تفاصيل الزيارة"
+    },
+    {
+      "id": "hb-schedule",
+      "file": "hb-schedule.html",
+      "title": "الجدول والفرق"
+    },
+    {
+      "id": "hb-tracking",
+      "file": "hb-tracking.html",
+      "title": "التتبع والمسارات"
+    },
+    {
+      "id": "hb-alerts",
+      "file": "hb-alerts.html",
+      "title": "البلاغات"
+    },
+    {
+      "id": "hb-clients",
+      "file": "hb-clients.html",
+      "title": "عملاء الساعات"
+    },
+    {
+      "id": "hb-services",
+      "file": "hb-services.html",
+      "title": "الخدمات والباقات"
+    },
+    {
+      "id": "hb-zones",
+      "file": "hb-zones.html",
+      "title": "المدن والمناطق"
+    }
+  ],
+  "states": [
+    {
+      "id": "login--otp",
+      "screen": "login",
+      "file": "states/login--otp.html",
+      "title": "الدخول — رمز التحقق"
+    },
+    {
+      "id": "login--sending",
+      "screen": "login",
+      "file": "states/login--sending.html",
+      "title": "الدخول — جارٍ الإرسال"
+    },
+    {
+      "id": "login--otperr",
+      "screen": "login",
+      "file": "states/login--otperr.html",
+      "title": "الدخول — رمز خاطئ"
+    },
+    {
+      "id": "login--2fa",
+      "screen": "login",
+      "file": "states/login--2fa.html",
+      "title": "الدخول — التحقق بخطوتين"
+    },
+    {
+      "id": "login--err",
+      "screen": "login",
+      "file": "states/login--err.html",
+      "title": "الدخول — بيانات خاطئة"
+    },
+    {
+      "id": "login--locked",
+      "screen": "login",
+      "file": "states/login--locked.html",
+      "title": "الدخول — قفل مؤقت"
+    },
+    {
+      "id": "login--reset",
+      "screen": "login",
+      "file": "states/login--reset.html",
+      "title": "الدخول — استعادة كلمة المرور"
+    },
+    {
+      "id": "login--newpw",
+      "screen": "login",
+      "file": "states/login--newpw.html",
+      "title": "الدخول — كلمة مرور جديدة"
+    },
+    {
+      "id": "login--done",
+      "screen": "login",
+      "file": "states/login--done.html",
+      "title": "الدخول — نجاح التغيير"
+    },
+    {
+      "id": "login--first",
+      "screen": "login",
+      "file": "states/login--first.html",
+      "title": "الدخول — أول دخول"
+    },
+    {
+      "id": "login--branch",
+      "screen": "login",
+      "file": "states/login--branch.html",
+      "title": "الدخول — اختيار الفرع"
+    },
+    {
+      "id": "login--suspended",
+      "screen": "login",
+      "file": "states/login--suspended.html",
+      "title": "الدخول — اشتراك منتهٍ"
+    },
+    {
+      "id": "login--stopped",
+      "screen": "login",
+      "file": "states/login--stopped.html",
+      "title": "الدخول — حساب موقوف"
+    }
+  ]
 }
