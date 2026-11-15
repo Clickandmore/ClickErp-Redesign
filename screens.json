@@ -1,5 +1,5 @@
 {
-  "version": "v1.5",
+  "version": "v1.6",
   "date": "2026-11-16",
   "entry": "login.html",
   "screens": [
@@ -537,6 +537,66 @@
       "id": "finZatca",
       "file": "finZatca.html",
       "title": "ربط ZATCA"
+    },
+    {
+      "id": "hrDash",
+      "file": "hrDash.html",
+      "title": "لوحة الموارد البشرية"
+    },
+    {
+      "id": "hrEmployees",
+      "file": "hrEmployees.html",
+      "title": "الموظفون"
+    },
+    {
+      "id": "hrEmployeeShow",
+      "file": "hrEmployeeShow.html",
+      "title": "ملف الموظف"
+    },
+    {
+      "id": "hrEmployeeAdd",
+      "file": "hrEmployeeAdd.html",
+      "title": "إضافة موظف"
+    },
+    {
+      "id": "hrWorkers",
+      "file": "hrWorkers.html",
+      "title": "العاملات"
+    },
+    {
+      "id": "hrAttendance",
+      "file": "hrAttendance.html",
+      "title": "الحضور والانصراف"
+    },
+    {
+      "id": "hrRequests",
+      "file": "hrRequests.html",
+      "title": "طلبات الموظفين"
+    },
+    {
+      "id": "hrCustody",
+      "file": "hrCustody.html",
+      "title": "عهد الموظفين"
+    },
+    {
+      "id": "hrSanctions",
+      "file": "hrSanctions.html",
+      "title": "الجزاءات"
+    },
+    {
+      "id": "hrPayroll",
+      "file": "hrPayroll.html",
+      "title": "الرواتب"
+    },
+    {
+      "id": "hrPayrollRun",
+      "file": "hrPayrollRun.html",
+      "title": "مسير رواتب العاملات"
+    },
+    {
+      "id": "hrDaily",
+      "file": "hrDaily.html",
+      "title": "التقارير اليومية"
     }
   ],
   "states": [
