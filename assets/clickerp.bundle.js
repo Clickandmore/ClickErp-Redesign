@@ -4586,16 +4586,16 @@ W.hourlyw=["زيارات اليوم","الزيارات ماشية في معاد�
 W.reps=["تقارير تخص دورك","أفتح أنهي تقرير؟","REPORTS_VIEW",()=>{
  const r=(ROLES[PERSONA]||ROLES.owner).r.map(id=>reports.find(x=>x[0]===id)).filter(Boolean);
  const mine=[["file-text","العقود المتأخرة — PLATINUM","تقريري المحفوظ · كل أحد 7 ص"],["wallet","المستحقات فوق 60 يوم","تقريري المحفوظ"]];
- return card("تقارير تخصك","حسب صلاحياتك، والتقارير اللي حفظتها",`<div class="hm-list">${r.map(x=>`<div><span class="ni n">${X(x[1])}</span><b>${x[2]}</b>${B("ghost sm","","عرض",`data-report="${x[0]}"`)}</div>`).join("")}${mine.map(x=>`<div><span class="ni g">${X("bookmark")}</span><b>${x[1]}<small>${x[2]}</small></b>${B("ghost sm","","عرض",'data-go="reports"')}</div>`).join("")}</div>`,more("reports","مركز التقارير"))}];
+ return card("تقارير تخصك","حسب صلاحياتك، والتقارير اللي حفظتها",`<div class="hm-list">${r.map(x=>`<a href="#" class="hm-lr" data-report="${x[0]}"><span class="ni n">${X(x[1])}</span><b>${x[2]}</b>${X("chevron-left")}</a>`).join("")}${mine.map(x=>`<a href="#" class="hm-lr" data-go="reports"><span class="ni g">${X("bookmark")}</span><b>${x[1]}<small>${x[2]}</small></b>${X("chevron-left")}</a>`).join("")}</div>`,more("reports","مركز التقارير"))}];
 
 /* pulse: one plain sentence per module + 3 figures. Numbers must match the module's own dashboard (finDash, hrDash …) */
 const PULSE={
  fin:{st:"g",go:"finDash",gl:"لوحة المالية",v:`كسبانين <b class="g">86,400 ر.س</b> هذا الشهر بعد المصروفات، والسيولة تكفي <b>2.4 شهر</b> تشغيل.`,f:[["السيولة","612,300",""],["لينا عند العملاء","184,600","r"],["علينا للمكاتب","96,750",""]]},
  ops:{st:"r",go:"recDash",gl:"لوحة الاستقدام",v:`<b>38</b> عقد استقدام شغالين، و<b class="r">18</b> منهم عدّوا المدة المسموحة لمرحلتهم. أغلبهم في مرحلة التذاكر.`,f:[["وصول النهارده","2",""],["تذاكر جاهزة","13",""],["تحت الضمان","2",""]]},
- rent:{st:"a",go:"rental",gl:"عقود التأجير",v:`<b>13</b> عقد تأجير نشط، و<b class="a">3</b> منها متأخرة في الدفع. و<b>17</b> معاملة نقل خدمات، <b class="a">4</b> منها في فترة التجربة.`,f:[["عقود تنتهي هذا الشهر","2",""],["فواتير مستحقة","3","r"],["تجربة تنتهي هذا الأسبوع","4","a"]]},
+ rent:{st:"a",go:"rental",gl:"عقود التأجير",v:`<b>13</b> عقد تأجير نشط، و<b class="a">3</b> منها متأخرة في الدفع. و<b>17</b> معاملة نقل خدمات، <b class="a">4</b> منها في فترة التجربة.`,f:[["تنتهي هذا الشهر","2",""],["فواتير مستحقة","3","r"],["في فترة التجربة","4","a"]]},
  ext:{st:"a",go:"agents",gl:"المكاتب",v:`<b>26</b> طلب عند المكاتب الخارجية، و<b class="a">4</b> منهم من غير رد. أقدمهم من 6 أيام.`,f:[["سير جديدة","14",""],["مدة الوصول","42 يوم",""],["مكاتب نشطة","22",""]]},
  crm:{st:"r",go:"clients",gl:"العملاء",v:`<b class="r">2</b> شكوى عاجلة مستنية رد، و<b>9</b> متابعات النهارده منهم <b class="a">3</b> متأخرة.`,f:[["عملاء جدد","6",""],["طلبات جديدة","7",""],["محادثات بدون رد","12","a"]]},
- hr:{st:"a",go:"hrDash",gl:"لوحة الموارد",v:`<b>36 من 42</b> حاضرين النهارده، و<b class="a">7</b> طلبات موظفين مستنية قرار.`,f:[["متأخرين","3","a"],["غياب بدون إذن","1","r"],["وثائق قربت تنتهي","4",""]]},
+ hr:{st:"a",go:"hrDash",gl:"لوحة الموارد",v:`<b>36 من 42</b> حاضرين النهارده، و<b class="a">7</b> طلبات موظفين مستنية قرار.`,f:[["متأخرين","3","a"],["غياب بدون إذن","1","r"],["وثائق تنتهي قريب","4",""]]},
  hourly:{st:"r",go:"hb-board",gl:"لوحة الزيارات",v:`<b>14</b> زيارة النهارده، و<b class="r">2</b> منهم السواق متأخر عليهم أكتر من 20 دقيقة.`,f:[["جارية الآن","5",""],["تحصيل اليوم","3,450",""],["مع الطاقم","1,200","a"]]},
  self:{st:"g",go:"hrEmployeeShow",gl:"ملفي",v:`حاضر من <b>07:58 ص</b>، ورصيد إجازاتك <b>9 أيام</b>. طلب السلفة بتاعك عند الموارد البشرية للمراجعة.`,f:[["حضور الشهر","14 من 15",""],["تأخير الشهر","1","a"],["راتب نوفمبر","27 نوفمبر",""]]}
 };
@@ -4650,8 +4650,8 @@ const todoCard=P=>{
  <div class="hm-tf"><a href="#" data-go="${tab==="me"?"tcMy":"tcTeam"}">${tab==="me"?X("sun")+"كل مهامي في «يومي»":X("users")+"متابعة الفريق"}</a></div></div>`;
 };
 
-const pulseCard=k=>{const m=MODS[k],p=PULSE[k];return `<div class="card hm-pc ${p.st}" data-go="${p.go}" role="link"><div class="ph"><span class="ni n">${X(m.i)}</span><b>${m.n}</b>${TAG(p.st,p.st==="r"?"محتاج تدخل":p.st==="a"?"متابعة":"تمام")}${X("arrow-up-left")}</div>
- <p class="pv">${p.v}</p><div class="pf">${p.f.map(f=>`<div><small>${f[0]}</small><b class="num ${f[2]}">${f[1]}</b></div>`).join("")}</div><span class="po">افتح ${p.gl}${X("arrow-left")}</span></div>`};
+const pulseCard=k=>{const m=MODS[k],p=PULSE[k],st={r:"محتاج تدخل",a:"محتاج متابعة",g:"ماشي تمام"}[p.st];return `<a href="#" class="card hm-pc" data-go="${p.go}"><div class="ph"><span class="ni n">${X(m.i)}</span><b>${m.n}</b><span class="hm-st ${p.st}"><i></i>${st}</span></div>
+ <p class="pv">${p.v}</p><div class="pf">${p.f.map(f=>`<div><b class="num ${f[2]}">${f[1]}</b><small>${f[0]}</small></div>`).join("")}</div><span class="po">افتح ${p.gl}${X("arrow-left")}</span></a>`};
 
 const grid=ids=>{const h=ids.map(id=>W[id][3]());const half=h.map((x,i)=>x.includes("hm-w wide")?-1:i).filter(i=>i>-1);if(half.length%2)h[half[half.length-1]]=h[half[half.length-1]].replace("hm-w ","hm-w wide ");return `<div class="hm-grid">${h.join("")}</div>`};
 const secHead=(icon,title,sub,go,gl)=>`<div class="hm-sec"><span class="ni n">${X(icon)}</span><div><h2>${title}</h2><small>${sub}</small></div>${go?`<a href="#" class="btn btn-ghost sm" data-go="${go}">${gl}${X("arrow-left")}</a>`:""}</div>`;
@@ -6018,6 +6018,266 @@ screens.tcShare=()=>`${BOARD("c","BUG-0147")}
 const oCard=screens.tcCard;
 screens.tcCard=()=>oCard().replace('<button class="md-ic" title="نسخ الرابط">',`<button class="md-sh" data-go="tcShare">${X("share-2")}مشاركة</button><button class="md-ic" title="نسخ الرابط">`).replace('<div class="md-tabs">',`<div class="sh-act">${X("share-2")}<span>آخر مشاركة: واتساب لـ فهد العتيبي (العميل) · امبارح 18:20 · <b>شافها</b> ورد «تمام مستنيين»</span>${NEWT}</div><div class="md-tabs">`);
 Object.assign(T,{tcShare:{ar:"مشاركة المهمة",en:"Share task"}});
+})();
+/* ===== v1.21 — Live task board: drag & drop, task dialog, multi-assignee, timers, comments, copy link, real WhatsApp / email share ===== */
+(()=>{
+const {X,B}=window.CXH;
+const {tcTabs,PPL}=window.TCX;
+const {av,TI,PI,CL,COL,K}=window.KBX;
+const ME="أحمد سمير",LS="cerp-board-v2",TODAY=new Date("2026-11-16T09:00:00");
+const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const STN={new:"جديد",doing:"قيد التنفيذ",qa:"اختبار داخلي",ready:"جاهز للنشر",client:"بانتظار قبول العميل",hold:"معلّق",closed:"مغلق"};
+const SCOL=Object.fromEntries(COL.map(c=>[c[0],c[2]]));
+const PRN={urgent:"طارئ",high:"مهم",medium:"متوسط",low:"منخفض"};
+const CLIENTS=["مكتب الريادة","مؤسسة سواعد","مكتب الأمانة","مكتب نجد","داخلي"];
+const CONTACT={"مكتب الريادة":["فهد العتيبي",""],"مؤسسة سواعد":["هيا العنزي",""],"مكتب الأمانة":["خالد المطيري",""],"مكتب نجد":["نورة الحربي",""]};
+const MON=["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
+const dfmt=d=>{if(!d)return "";const x=new Date(d+"T00:00:00");return `${x.getDate()} ${MON[x.getMonth()].slice(0,3)}`};
+const dcls=t=>{if(!t.due)return "";if(t.status==="closed"||t.status==="ready")return "done";const x=new Date(t.due+"T23:59:59");if(x<TODAY)return "late";return (x-TODAY)/864e5<=2?"soon":""};
+const now=()=>{const d=new Date();return `اليوم ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`};
+
+/* ---------- seed from the design data, with several people per task ---------- */
+const seed=()=>K.map(r=>{const n=r[12]?r[12].split("/").map(Number):null;const day=parseInt(r[9]);
+ const t={k:r[0],type:r[1],title:r[2],client:r[3],product:r[4],status:r[5],prio:r[6],as:r[7]?[r[7]]:[],rv:r[8]||"",due:day?`2026-11-${String(day).padStart(2,"0")}`:"",size:r[11],
+  ck:n?Array.from({length:n[1]},(_,i)=>({t:["إعادة إنتاج المشكلة","التعديل في الكود","اختبار الحالة الأساسية","اختبار الحالات الحدّية","مراجعة الكود","تحديث التوثيق"][i]||`بند ${i+1}`,d:i<n[0]})):[],
+  cm:r[13]?[{w:r[7]||"سارة نبيل",at:"امبارح 16:40",x:"آخر تحديث: الشغل ماشي، فاضل الاختبار."}]:[],
+  act:[{w:"سارة نبيل",at:"12 نوفمبر",x:"أنشأت المهمة"}],live:[],alert:r[16]||"",alertCls:r[17]||"",desc:"",spent:{}};
+ return t});
+const extra=T=>{const g=k=>T.find(t=>t.k===k);
+ const a=g("UPD-0812");if(a){a.as=["أحمد سمير","يوسف حسن"];a.live=["أحمد سمير"];a.spent={"أحمد سمير":72,"يوسف حسن":40};a.desc="فلتر بالفرع في تقرير التحصيل، والتصدير يحترم الفلتر."}
+ const b=g("DATA-0061");if(b){b.as=["منى عادل","كريم فتحي"];b.live=["منى عادل"];b.spent={"منى عادل":34}}
+ const c=g("BUG-0147");if(c){c.desc="الكوبون بيتخصم مرة من الإجمالي ومرة من صافي العمولة. المتوقع: يتخصم مرة واحدة من أساس العمولة.";c.spent={"أحمد سمير":186};c.cm=[{w:"منى عادل",at:"من ساعة",x:"اختبرت كوبون النسبة — العمولة طلعت صح 1,150 ر.س."},{w:"أحمد سمير",at:"امبارح 16:40",x:"الإصلاح على نسخة الاختبار."}]}
+ const d=g("OPS-0033");if(d){d.as=["كريم فتحي","أحمد سمير"];d.live=["كريم فتحي"]}
+ return T};
+let TS;try{TS=JSON.parse(localStorage.getItem(LS))}catch(e){}
+if(!Array.isArray(TS))TS=extra(seed());
+const save=()=>{try{localStorage.setItem(LS,JSON.stringify(TS))}catch(e){}};
+const get=k=>TS.find(t=>t.k===k);
+const UI={q:"",ppl:[],qf:"",dense:"c",group:"none",open:null,share:null,create:false,addcol:null,unfold:{},drag:null,client:false};
+
+/* ---------- helpers ---------- */
+const avs=(list,max)=>{max=max||3;if(!list.length)return `<span class="kb-av none" title="من غير مسؤول">${X("user-plus")}</span>`;return `<span class="lb-avs">${list.slice(0,max).map(n=>av(n)).join("")}${list.length>max?`<span class="kb-av more">+${list.length-max}</span>`:""}</span>`};
+const vis=t=>{if(t.status==="closed"&&!UI.unfold.closed)return true;
+ const q=UI.q.trim();if(q&&!(t.k+" "+t.title+" "+t.client).includes(q))return false;
+ if(UI.ppl.length&&!UI.ppl.some(p=>p==="none"?!t.as.length:t.as.includes(p)))return false;
+ if(UI.qf==="mine"&&!t.as.includes(ME))return false;if(UI.qf==="late"&&dcls(t)!=="late")return false;if(UI.qf==="client"&&t.status!=="client")return false;
+ if(UI.qf==="urgent"&&t.prio!=="urgent")return false;if(UI.qf==="review"&&t.rv!==ME)return false;return true};
+const link=k=>`${location.href.split("#")[0]}#task=${k}`;
+const toast=(m,ic)=>{let el=document.querySelector(".lb-toast");if(!el){el=document.createElement("div");el.className="lb-toast";document.body.appendChild(el)}el.innerHTML=`${X(ic||"check-circle-2")}<span>${m}</span>`;el.classList.add("on");if(window.lucide)lucide.createIcons({attrs:{"stroke-width":1.8}});clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove("on"),2600)};
+const copy=txt=>{const ok=()=>toast("اتنسخ الرابط — الصقه في أي مكان","link");if(navigator.clipboard&&window.isSecureContext)navigator.clipboard.writeText(txt).then(ok,()=>fb());else fb();function fb(){const a=document.createElement("textarea");a.value=txt;document.body.appendChild(a);a.select();try{document.execCommand("copy");ok()}catch(e){toast("ماقدرناش ننسخ — "+txt,"alert-triangle")}a.remove()}};
+const log=(t,x)=>{t.act.unshift({w:ME,at:now(),x})};
+
+/* ---------- card ---------- */
+const card=t=>{const ty=TI[t.type]||TI.UPD,p=PI[t.prio],dc=dcls(t),chk=t.ck.length?[t.ck.filter(c=>c.d).length,t.ck.length]:null;
+ return `<div class="km lb-c${t.live.length?" live":""}${UI.dense==="d"?" det":""}" draggable="true" data-k="${t.k}" style="--c:${CL[t.client]||"#5f6c80"}" title="${esc(t.client)}">
+ ${UI.dense==="d"?`<div class="kb-ct"><span class="kb-cl" style="--c:${CL[t.client]||"#5f6c80"}">${esc(t.client)}</span><span class="kb-pd">${esc(t.product||"")}</span></div>`:""}
+ <b class="km-t">${esc(t.title)}</b>
+ ${UI.dense==="d"&&t.alert?`<span class="kb-al ${t.alertCls}">${X("alert-circle")}${esc(t.alert)}</span>`:""}
+ ${UI.dense==="d"&&chk?`<div class="kb-pr"><span class="tc-bar"><i style="width:${chk[0]/chk[1]*100}%"></i></span><small class="num">${chk[0]}/${chk[1]}</small></div>`:""}
+ ${t.live.length&&UI.dense==="d"?`<span class="kb-live"><i></i>${t.live.map(n=>n.split(" ")[0]).join(" و")} شغال${t.live.length>1?"ين":""}</span>`:""}
+ <div class="km-f"><span class="kb-ty ${ty[1]}" title="${ty[2]}">${X(ty[0])}</span><span class="kb-key num">${t.k}</span><span class="kb-pi ${p[1]}" title="${p[2]}">${X(p[0])}</span>${t.due?`<span class="kb-due ${dc}">${dfmt(t.due)}</span>`:""}${UI.dense!=="d"&&t.alert?`<span class="km-al ${t.alertCls||"a"}" title="${esc(t.alert)}">${X("alert-circle")}</span>`:""}${t.live.length?`<span class="km-lv" title="${t.live.join("، ")} شغال"></span>`:""}${UI.dense!=="d"&&t.cm.length?`<span class="kb-mt">${X("message-square")}${t.cm.length}</span>`:""}
+  <span class="kb-sp"></span><button class="km-sh" data-share="${t.k}" title="مشاركة على واتساب أو إيميل">${X("share-2")}</button>${avs(t.as)}</div></div>`};
+
+/* ---------- toolbar + board ---------- */
+const LOADN=n=>TS.filter(t=>t.status!=="closed"&&t.as.includes(n)).length;
+const bar=()=>`<div class="kb-bar">
+ <div class="inp kb-q">${X("search")}<input data-q value="${esc(UI.q)}" placeholder="ابحث في اللوحة… ( / )"></div>
+ <div class="kb-ppl">${PPL.map(n=>`<button class="${UI.ppl.includes(n)?"on":""}" data-pf="${n}" title="${n} · ${LOADN(n)} مهام مفتوحة">${av(n,TS.some(t=>t.live.includes(n))?"on-live":"")}<em class="num">${LOADN(n)}</em></button>`).join("")}<button class="kb-none${UI.ppl.includes("none")?" on":""}" data-pf="none" title="من غير مسؤول">${X("user-x")}<em class="num">${TS.filter(t=>!t.as.length&&t.status!=="closed").length}</em></button></div>
+ <div class="kb-qf">${[["mine","مهامي",""],["late","متأخرة","r"],["client","مستني العميل","a"],["urgent","طارئ","r"],["review","المراجعة عندي",""]].map(c=>`<button class="${UI.qf===c[0]?"on":""}" data-qf="${c[0]}">${c[2]?`<i class="d ${c[2]}"></i>`:""}${c[1]}</button>`).join("")}</div>
+ <span class="kb-sp"></span>
+ <div class="kb-dens">${[["c","rows-2","مختصر"],["d","rows-4","مفصّل"]].map(d=>`<button class="${UI.dense===d[0]?"on":""}" data-dense="${d[0]}">${X(d[1])}${d[2]}</button>`).join("")}</div>
+ <div class="kb-grp">${X("rows-3")}<small>تجميع</small>${[["none","بدون"],["person","الموظف"]].map(g=>`<button class="${UI.group===g[0]?"on":""}" data-grp="${g[0]}">${g[1]}</button>`).join("")}</div>
+ ${B("primary","plus","مهمة",'data-new="1"')}</div>`;
+const col=c=>{const it=TS.filter(t=>t.status===c[0]&&vis(t));
+ if((c[0]==="closed"||c[0]==="hold")&&!UI.unfold[c[0]])return `<div class="kb-fold lb-drop" data-col="${c[0]}" data-unfold="${c[0]}" style="--s:${c[2]}" title="افتح العمود"><span class="num">${TS.filter(t=>t.status===c[0]).length}</span><b>${c[1]}</b>${X("chevrons-left")}</div>`;
+ const wip=c[0]==="doing"?[TS.filter(t=>t.status==="doing").length,4]:null;
+ return `<div class="kb-col lb-drop" data-col="${c[0]}" style="--s:${c[2]}"><div class="kb-ch"><b>${c[1]}</b><span class="num kb-n">${it.length}</span>${wip?`<span class="kb-wip${wip[0]>=wip[1]?" full":""}" title="حد العمل الجاري">${wip[0]} / ${wip[1]}</span>`:""}${UI.unfold[c[0]]?`<button class="kb-more" data-fold="${c[0]}" title="اطوي">${X("chevrons-right")}</button>`:""}</div>
+  ${UI.addcol===c[0]?`<div class="kb-new"><textarea rows="2" data-newin="${c[0]}" placeholder="إيه المطلوب؟ Enter للحفظ · Esc للإلغاء"></textarea><div><small class="tc-sub">هتتسند لك · بعد 3 أيام عمل</small><span class="kb-sp"></span>${B("primary sm","","إضافة",`data-newgo="${c[0]}"`)}</div></div>`:""}
+  <div class="kb-cb">${it.map(card).join("")}${it.length?"":`<div class="kb-empty">${X("inbox")}اسحب مهمة هنا</div>`}</div>
+  ${c[0]==="closed"?"":`<button class="kb-add" data-addcol="${c[0]}">${X("plus")}مهمة</button>`}</div>`};
+const lanes=()=>{const L=["none",...PPL];const C=COL.filter(c=>["new","doing","qa","ready","client"].includes(c[0]));
+ return `<div class="kb-lanes"><div class="kb-lh"><span></span>${C.map(c=>`<div style="--s:${c[2]}"><b>${c[1]}</b></div>`).join("")}</div>${L.map(p=>{const it=TS.filter(t=>t.status!=="closed"&&t.status!=="hold"&&vis(t)&&(p==="none"?!t.as.length:t.as.includes(p)));if(!it.length&&p!=="none")return "";
+  return `<div class="kb-lane${p==="none"?" warn":""}"><div class="kb-lt">${p==="none"?`<span class="kb-av none">${X("user-x")}</span><b>من غير مسؤول</b>`:`${av(p)}<b>${p}</b>`}<small class="num">${it.length} مهام</small></div><div class="kb-lr">${C.map(c=>`<div class="kb-lc lb-drop" data-col="${c[0]}">${it.filter(t=>t.status===c[0]).map(card).join("")}</div>`).join("")}</div></div>`}).join("")}</div>`};
+const app=()=>`<div class="kb-head"><div><small class="kb-bc">مركز المهام / لوحة المهام</small><h1>لوحة المهام <span class="num">· ${TS.filter(t=>t.status!=="closed").length} مهمة مفتوحة</span></h1></div>${tcTabs("tcBoard")}</div>
+ ${bar()}
+ ${UI.group==="person"?lanes():`<div class="kb-board${UI.dense==="d"?"":" compact"}">${COL.map(col).join("")}</div>`}
+ <div class="lb-foot"><span>${X("save")}التعديلات بتتحفظ في المتصفح ده · اسحب الكارت بين الأعمدة · اضغط عليه يفتح</span><button data-reset="1">${X("rotate-ccw")}رجّع البيانات التجريبية</button></div>`;
+
+/* ---------- task dialog ---------- */
+const sel=(f,opts,v)=>`<select data-f="${f}">${opts.map(o=>`<option value="${esc(o[0])}" ${o[0]===v?"selected":""}>${esc(o[1])}</option>`).join("")}</select>`;
+const modal=()=>{const t=get(UI.open);if(!t)return "";const ty=TI[t.type]||TI.UPD,dc=dcls(t),done=t.ck.filter(c=>c.d).length,cl=UI.client;
+ const tot=Object.values(t.spent||{}).reduce((a,b)=>a+b,0);
+ return `<div class="md-ov lb-ov" data-close="1"><div class="md lb-md" role="dialog" aria-label="${t.k}">
+ <div class="md-top"><span class="kb-ty ${ty[1]}">${X(ty[0])}</span><b class="num">${t.k}</b><span class="md-bc">${esc(t.client)} <i>/</i> ${esc(t.product||"")}</span>
+  <span class="kb-sp"></span>${cl?`<span class="lb-cv">${X("eye")}عرض العميل — من غير التكلفة والتعليقات الداخلية</span>`:`<span class="lb-st" style="--s:${SCOL[t.status]}">${sel("status",Object.entries(STN),t.status)}</span>
+  <button class="md-sh" data-share="${t.k}">${X("share-2")}مشاركة</button><span class="md-sep"></span>
+  <button class="md-ic" data-nav="-1" title="اللي قبلها (K)">${X("chevron-right")}</button><button class="md-ic" data-nav="1" title="اللي بعدها (J)">${X("chevron-left")}</button><button class="md-ic" data-copy="${t.k}" title="نسخ الرابط">${X("link")}</button>`}<button class="md-ic" data-close="1" title="قفل (Esc)">${X("x")}</button></div>
+ <div class="md-body"><div class="md-main">
+  <h2 class="md-tt" ${cl?"":`contenteditable="true" data-title="1"`}>${esc(t.title)}</h2>
+  <div class="md-path">${["new","doing","qa","ready","client","closed"].map((s,i,a)=>`<span class="${a.indexOf(t.status)>i?"done":t.status===s?"now":""}">${STN[s]}</span>`).join("")}${t.status==="hold"?`<span class="now" style="background:var(--red)">معلّق</span>`:""}</div>
+  ${t.alert?`<div class="kb-al ${t.alertCls||"a"}">${X("alert-circle")}${esc(t.alert)}${cl?"":`<button class="lb-x" data-clearalert="1">${X("x")}</button>`}</div>`:""}
+  <div class="md-sec"><h4>${X("align-right")}الوصف</h4>${cl?`<div class="md-desc">${esc(t.desc)||"—"}</div>`:`<textarea class="lb-desc" data-desc="1" rows="3" placeholder="اكتب المطلوب والنتيجة المتوقعة…">${esc(t.desc)}</textarea>`}</div>
+  <div class="md-sec"><h4>${X("list-checks")}قائمة التحقق <small class="num">${done} / ${t.ck.length}</small></h4>${t.ck.length?`<span class="tc-bar"><i style="width:${done/t.ck.length*100}%"></i></span>`:""}
+   <div class="md-ck">${t.ck.map((c,i)=>`<label class="${c.d?"on":""}"><input type="checkbox" data-ck="${i}" ${c.d?"checked":""} ${cl?"disabled":""}>${esc(c.t)}${cl?"":`<button class="lb-x" data-ckrm="${i}" title="شيل">${X("x")}</button>`}</label>`).join("")}</div>
+   ${cl?"":`<div class="lb-row"><input data-ckadd placeholder="أضف بند واضغط Enter"></div>`}</div>
+  ${cl?`<div class="lb-client">${X("message-square")}<div><b>عندك تعليق أو موافقة؟</b><textarea rows="2" data-cm placeholder="اكتب ردّك — هيوصل للفريق"></textarea><div>${B("primary sm","check","موافق على التسليم",'data-cmsend="موافق على التسليم ✓"')}${B("ghost sm","send","إرسال الرد",'data-cmsend="1"')}</div></div></div>`:`
+  <div class="md-sec"><h4>${X("messages-square")}التعليقات والنشاط</h4>
+   <div class="md-cm">${t.cm.map(c=>`<div>${av(c.w)}<div><b>${esc(c.w)} <small>${esc(c.at)}</small></b><p>${esc(c.x)}</p></div></div>`).join("")}
+   <div class="md-comp">${av(ME)}<div><textarea rows="2" data-cm placeholder="اكتب تعليق… Ctrl+Enter للإرسال"></textarea><div><span class="kb-sp"></span>${B("primary sm","send","إرسال",'data-cmsend="1"')}</div></div></div></div>
+   <div class="lb-act">${t.act.slice(0,6).map(a=>`<div>${X("dot")}<span><b>${esc(a.w)}</b> ${esc(a.x)}</span><em>${esc(a.at)}</em></div>`).join("")}</div></div>`}
+ </div><aside class="md-side">
+  ${cl?"":`<div class="md-timer lb-team"><div class="lb-th"><b>${X("users")}شغالين عليها</b><small class="num">${tot?`${Math.floor(tot/60)}:${String(tot%60).padStart(2,"0")} إجمالي`:""}</small></div>
+   ${t.as.map(n=>`<div class="lb-m">${av(n)}<span><b>${n}</b><small>${t.live.includes(n)?`<i class="lb-on"></i>شغال دلوقتي`:"مش شغال دلوقتي"} · <span class="num">${Math.floor((t.spent[n]||0)/60)}:${String((t.spent[n]||0)%60).padStart(2,"0")}</span></small></span><button class="lb-x" data-rmas="${n}" title="شيله من المهمة">${X("x")}</button></div>`).join("")||`<small class="tc-sub">مفيش حد عليها لسه</small>`}
+   <div class="lb-add"><select data-addas><option value="">+ ضيف حد يشتغل عليها</option>${PPL.filter(n=>!t.as.includes(n)).map(n=>`<option>${n}</option>`).join("")}</select></div>
+   <button class="btn ${t.live.includes(ME)?"btn-red":"btn-primary"}" data-timer="1">${X(t.live.includes(ME)?"square":"play")}${t.live.includes(ME)?"وقّف المؤقت بتاعي":"ابدأ المؤقت بتاعي"}</button></div>`}
+  <div class="md-fs">
+   <div class="md-f"><span>${X("user-check")}المراجِع</span>${cl?`<button>${esc(t.rv||"—")}</button>`:sel("rv",[["","—"],...PPL.map(n=>[n,n])],t.rv)}</div>
+   <div class="md-f"><span>${X("flag")}الأولوية</span>${cl?`<button>${PRN[t.prio]}</button>`:sel("prio",Object.entries(PRN),t.prio)}</div>
+   <div class="md-f"><span>${X("calendar")}الاستحقاق</span>${cl?`<button>${dfmt(t.due)||"—"}</button>`:`<input type="date" data-f="due" value="${t.due}" class="lb-date ${dc}">`}</div>
+   <div class="md-f"><span>${X("building-2")}العميل</span>${cl?`<button>${esc(t.client)}</button>`:sel("client",CLIENTS.map(c=>[c,c]),t.client)}</div>
+   <div class="md-f"><span>${X("hourglass")}الحجم</span>${cl?`<button>${esc(t.size)}</button>`:sel("size",["ربع ساعة","ساعة","ساعتين","نص يوم","يوم"].map(s=>[s,s]),t.size)}</div>
+  </div>
+  ${cl?"":`<div class="md-acts"><button data-share="${t.k}">${X("share-2")}مشاركة على واتساب / إيميل</button><button data-copy="${t.k}">${X("link")}نسخ الرابط</button><button data-copyc="${t.k}">${X("globe")}نسخ رابط العميل</button><button data-dup="${t.k}">${X("copy")}تكرار</button><button data-arch="${t.k}">${X("archive")}قفل وأرشفة</button></div>`}
+ </aside></div>
+ <div class="md-kbd"><span><kbd>Esc</kbd> قفل</span><span><kbd>J</kbd> <kbd>K</kbd> اللي بعدها/قبلها</span><span><kbd>Ctrl</kbd><kbd>Enter</kbd> إرسال التعليق</span></div></div></div>`};
+
+/* ---------- share dialog (real WhatsApp / mailto / clipboard) ---------- */
+const SH={to:[],ch:{wa:1,mail:0},inc:{st:1,due:1,desc:1,ck:1,cm:0},lt:"client",msg:""};
+const shText=t=>{const l=SH.lt==="client"?link(t.k)+"&v=client":link(t.k);const p=[];
+ if(SH.msg.trim())p.push(SH.msg.trim(),"");p.push(`📌 ${t.k} — ${t.title}`);
+ if(SH.inc.st)p.push(`الحالة: ${STN[t.status]}`);if(SH.inc.due&&t.due)p.push(`التسليم: ${dfmt(t.due)}`);
+ if(SH.inc.ck&&t.ck.length)p.push(`التقدّم: ${t.ck.filter(c=>c.d).length}/${t.ck.length} بنود`);
+ if(SH.inc.desc&&t.desc)p.push("",t.desc);if(SH.inc.cm&&t.cm[0])p.push("",`آخر تحديث (${t.cm[0].w}): ${t.cm[0].x}`);
+ p.push("",`افتح المهمة: ${l}`);return p.join("\n")};
+const shModal=()=>{const t=get(UI.share);if(!t)return "";const txt=shText(t),c=CONTACT[t.client];
+ const sug=[...(c?[[c[0]+" — "+t.client,"client"]]:[]),...t.as.map(n=>[n,"team"]),...(t.rv?[[t.rv,"team"]]:[])].filter((s,i,a)=>a.findIndex(x=>x[0]===s[0])===i&&!SH.to.includes(s[0]));
+ return `<div class="md-ov lb-ov" data-shclose="1" style="z-index:1100"><div class="md sh-md" role="dialog" aria-label="مشاركة ${t.k}">
+ <div class="md-top"><span class="kb-ty ${(TI[t.type]||TI.UPD)[1]}">${X((TI[t.type]||TI.UPD)[0])}</span><b class="num">${t.k}</b><b>مشاركة المهمة</b><span class="md-bc">${esc(t.title)}</span><span class="kb-sp"></span><button class="md-ic" data-shclose="1">${X("x")}</button></div>
+ <div class="sh-b"><div class="sh-f">
+  <div class="fld"><label>لمين؟</label><div class="am-rc">${SH.to.map((r,i)=>`<span>${/@/.test(r)?X("mail"):/^\+?\d[\d\s]{6,}$/.test(r)?X("phone"):X("user")}${esc(r)}<i data-shrm="${i}">${X("x")}</i></span>`).join("")}<input data-shto placeholder="اكتب رقم واتساب (9665…) أو إيميل واضغط Enter"></div>
+   ${sug.length?`<div class="sh-sug"><small>مقترح:</small>${sug.map(s=>`<button data-shsug="${esc(s[0])}">${X(s[1]==="client"?"building-2":"user")}${esc(s[0])}</button>`).join("")}</div>`:""}</div>
+  <div class="fld"><label>القناة</label><div class="am-chs">${[["wa","phone","واتساب","#1f9d55"],["mail","mail","إيميل","#c8862a"]].map(c=>`<label class="${SH.ch[c[0]]?"on":""}" data-shch="${c[0]}"><span class="am-ch" style="--c:${c[3]}">${X(c[1])}</span>${c[2]}</label>`).join("")}</div></div>
+  <div class="fld"><label>تبعت إيه؟</label><div class="sh-inc">${[["st","الحالة"],["due","موعد التسليم"],["desc","الوصف"],["ck","تقدّم البنود"],["cm","آخر تعليق"]].map(i=>`<label class="${SH.inc[i[0]]?"on":""}" data-shinc="${i[0]}"><input type="checkbox" ${SH.inc[i[0]]?"checked":""}>${i[1]}</label>`).join("")}<label class="int"><input type="checkbox" disabled>الوقت والتكلفة<em>داخلي بس</em></label></div></div>
+  <div class="fld"><label>الرابط</label><div class="sh-lnk">${[["team","shield","للفريق بس","لازم يدخل على Click"],["client","globe","رابط للعميل","يشوف المهمة ويرد من غير التكلفة والتعليقات الداخلية"]].map(o=>`<label class="${SH.lt===o[0]?"on":""}" data-shlt="${o[0]}">${X(o[1])}<span><b>${o[2]}</b><small>${o[3]}</small></span></label>`).join("")}</div></div>
+  <div class="fld"><label>رسالة</label><textarea rows="2" data-shmsg placeholder="مثلاً: أهلاً أستاذ فهد، دي آخر حالة…">${esc(SH.msg)}</textarea></div>
+ </div><div class="sh-p"><small>اللي هيتبعت بالظبط</small><div class="cx-phone"><div class="cx-msg in tpl"><p class="lb-pre">${esc(txt)}</p><small>Click ERP</small></div></div></div></div>
+ <div class="md-foot"><span class="tc-sub">${X("history")}هتتسجل في نشاط المهمة</span><span class="kb-sp"></span>${B("ghost","copy","نسخ الرسالة",'data-shcopy="1"')}${SH.ch.wa?B("primary","phone","افتح واتساب",'data-shwa="1" style="background:#1f9d55;border-color:#1f9d55"'):""}${SH.ch.mail?B("primary","mail","افتح الإيميل",'data-shmail="1"'):""}</div></div></div>`};
+
+/* ---------- create dialog ---------- */
+const NEWS={as:[ME],type:"UPD",client:"مؤسسة سواعد",prio:"medium",due:"2026-11-19",title:""};
+const newModal=()=>`<div class="md-ov lb-ov" data-ncclose="1"><div class="md sm" role="dialog" aria-label="مهمة جديدة">
+ <div class="md-top"><b>مهمة جديدة</b><span class="md-bc">في عمود «جديد»</span><span class="kb-sp"></span><button class="md-ic" data-ncclose="1">${X("x")}</button></div>
+ <div class="mn-b"><input class="mn-t" data-nct value="${esc(NEWS.title)}" placeholder="اسم المهمة — جرّب: فلتر المندوب #سواعد @منى !مهم">
+  <div class="mn-props"><span class="mn-p set">${X("tag")}<select data-ncf="type">${Object.keys(TI).map(k=>`<option ${k===NEWS.type?"selected":""}>${k}</option>`).join("")}</select></span>
+   <span class="mn-p set">${X("building-2")}<select data-ncf="client">${CLIENTS.map(c=>`<option ${c===NEWS.client?"selected":""}>${c}</option>`).join("")}</select></span>
+   <span class="mn-p set">${X("flag")}<select data-ncf="prio">${Object.entries(PRN).map(p=>`<option value="${p[0]}" ${p[0]===NEWS.prio?"selected":""}>${p[1]}</option>`).join("")}</select></span>
+   <span class="mn-p set">${X("calendar")}<input type="date" data-ncf="due" value="${NEWS.due}"></span></div>
+  <div class="lb-who"><small>مين هيشتغل عليها؟ (أكتر من واحد عادي)</small><div>${PPL.map(n=>`<button class="${NEWS.as.includes(n)?"on":""}" data-ncas="${n}">${av(n)}${n.split(" ")[0]}</button>`).join("")}</div></div>
+  <div class="mn-hint">${X("info")}<span><kbd>#</kbd> العميل · <kbd>@</kbd> حد من الفريق · <kbd>!طارئ</kbd> <kbd>!مهم</kbd> · BUG/SUP في الأول للنوع</span></div></div>
+ <div class="md-foot"><span class="kb-sp"></span>${B("ghost","","إلغاء",'data-ncclose="1"')}${B("primary","plus","إنشاء <kbd>Ctrl</kbd><kbd>Enter</kbd>",'data-ncgo="1"')}</div></div></div>`;
+const parse=s=>{let t=s;const r={};
+ const m1=t.match(/^(BUG|UPD|DATA|OPS|MTG|SUP)\s+/i);if(m1){r.type=m1[1].toUpperCase();t=t.replace(m1[0],"")}
+ t=t.replace(/#(\S+)/g,(m,x)=>{const c=CLIENTS.find(c=>c.includes(x));if(c)r.client=c;return ""});
+ t=t.replace(/@(\S+)/g,(m,x)=>{const p=PPL.find(p=>p.startsWith(x)||p.includes(x));if(p)(r.as=r.as||[]).push(p);return ""});
+ t=t.replace(/!(طارئ|مهم|متوسط|منخفض)/g,(m,x)=>{r.prio={طارئ:"urgent",مهم:"high",متوسط:"medium",منخفض:"low"}[x];return ""});
+ r.title=t.replace(/\s+/g," ").trim();return r};
+const nextKey=type=>{const n=Math.max(0,...TS.filter(t=>t.type===type).map(t=>parseInt(t.k.split("-")[1])||0))+1;return `${type}-${String(n).padStart(4,"0")}`};
+const create=(o)=>{const t={k:nextKey(o.type||"UPD"),type:o.type||"UPD",title:o.title,client:o.client||"داخلي",product:"Click ERP",status:o.status||"new",prio:o.prio||"medium",as:o.as&&o.as.length?o.as:[ME],rv:"",due:o.due||"2026-11-19",size:"ساعة",ck:[],cm:[],act:[{w:ME,at:now(),x:"أنشأت المهمة"}],live:[],alert:"",alertCls:"",desc:"",spent:{}};TS.unshift(t);save();return t};
+
+/* ---------- mount / render ---------- */
+const paint=()=>{const a=document.getElementById("lbApp");if(a)a.innerHTML=app();
+ let m=document.getElementById("lbM");if(!m){m=document.createElement("div");m.id="lbM";document.body.appendChild(m)}
+ m.innerHTML=(UI.open?modal():"")+(UI.share?shModal():"")+(UI.create?newModal():"");
+ document.body.classList.toggle("lb-lock",!!(UI.open||UI.share||UI.create));
+ if(window.lucide)lucide.createIcons({attrs:{"stroke-width":1.8}})};
+const setHash=()=>{const h=UI.open?`#task=${UI.open}${UI.client?"&v=client":""}`:"";if(location.hash!==h)history.replaceState(null,"",location.pathname+location.search+h)};
+const openT=k=>{UI.open=k;setHash();paint()};
+screens.tcBoard=()=>{setTimeout(()=>{const m=location.hash.match(/task=([A-Z]+-\d+)/);if(m&&get(m[1])&&!UI.open){UI.open=m[1];UI.client=/v=client/.test(location.hash)}const sh=location.hash.match(/share=([A-Z]+-\d+)/);if(sh&&get(sh[1])){UI.share=sh[1];SH.to=["فهد العتيبي — "+get(sh[1]).client]}paint()},0);return `<div id="lbApp">${app()}</div>`};
+
+/* ---------- events ---------- */
+const onBoard=()=>window.CERP_PAGE==="tcBoard";
+document.addEventListener("click",e=>{if(!onBoard())return;const g=s=>e.target.closest(s);let el;
+ if((el=g("[data-share]"))){e.preventDefault();e.stopPropagation();UI.share=el.dataset.share;SH.to=[];SH.msg="";paint();return}
+ if((el=g("[data-copy]"))){copy(link(el.dataset.copy));const t=get(el.dataset.copy);if(t){log(t,"نسخ رابط المهمة");save()}return}
+ if((el=g("[data-copyc]"))){copy(link(el.dataset.copyc)+"&v=client");return}
+ if(UI.share){
+  if((el=g("[data-shrm]"))){SH.to.splice(+el.dataset.shrm,1);paint();return}
+  if((el=g("[data-shsug]"))){SH.to.push(el.dataset.shsug);paint();return}
+  if((el=g("[data-shch]"))){e.preventDefault();SH.ch[el.dataset.shch]=SH.ch[el.dataset.shch]?0:1;paint();return}
+  if((el=g("[data-shinc]"))){e.preventDefault();SH.inc[el.dataset.shinc]=SH.inc[el.dataset.shinc]?0:1;paint();return}
+  if((el=g("[data-shlt]"))){SH.lt=el.dataset.shlt;paint();return}
+  const t=get(UI.share);
+  if(g("[data-shcopy]")){copy(shText(t));return}
+  if(g("[data-shwa]")){const ph=(SH.to.find(r=>/^\+?\d[\d\s]{6,}$/.test(r))||"").replace(/\D/g,"");window.open(`https://wa.me/${ph}?text=${encodeURIComponent(shText(t))}`,"_blank");log(t,`شاركها على واتساب${SH.to.length?" مع "+SH.to.join("، "):""}`);save();toast(ph?"اتفتح واتساب على الرقم":"اتفتح واتساب — اختار المحادثة","phone");return}
+  if(g("[data-shmail]")){const em=SH.to.filter(r=>/@/.test(r)).join(",");location.href=`mailto:${em}?subject=${encodeURIComponent(t.k+" — "+t.title)}&body=${encodeURIComponent(shText(t))}`;log(t,`شاركها بالإيميل${em?" مع "+em:""}`);save();toast("اتفتح برنامج الإيميل","mail");return}
+  if(g("[data-shclose]")&&(e.target.closest(".md")===null||g(".md-ic[data-shclose]"))){UI.share=null;paint();return}
+  return}
+ if(UI.create){
+  if((el=g("[data-ncas]"))){const n=el.dataset.ncas,i=NEWS.as.indexOf(n);i<0?NEWS.as.push(n):NEWS.as.splice(i,1);paint();return}
+  if(g("[data-ncgo]")){doCreate();return}
+  if(g("[data-ncclose]")&&(e.target.closest(".md")===null||g(".md-ic[data-ncclose],.btn[data-ncclose]"))){UI.create=false;paint();return}
+  return}
+ if(UI.open){const t=get(UI.open);
+  if((el=g("[data-nav]"))){const v=TS.filter(x=>x.status!=="closed"&&vis(x));const i=v.findIndex(x=>x.k===UI.open);const n=v[(i+ +el.dataset.nav+v.length)%v.length];if(n)openT(n.k);return}
+  if((el=g("[data-rmas]"))){t.as=t.as.filter(n=>n!==el.dataset.rmas);t.live=t.live.filter(n=>n!==el.dataset.rmas);log(t,`شال ${el.dataset.rmas} من المهمة`);save();paint();return}
+  if(g("[data-timer]")){if(t.live.includes(ME)){t.live=t.live.filter(n=>n!==ME);t.spent[ME]=(t.spent[ME]||0)+15;log(t,"وقّف المؤقت");toast("وقّفت المؤقت — اتسجل على المهمة","square")}else{TS.forEach(x=>{if(x.live.includes(ME)&&x.k!==t.k){x.live=x.live.filter(n=>n!==ME)}});t.live.push(ME);if(!t.as.includes(ME))t.as.push(ME);if(t.status==="new")t.status="doing";log(t,"شغّل المؤقت");toast("المؤقت شغال على "+t.k+" — مؤقت واحد بس في نفس الوقت","timer")}save();paint();return}
+  if((el=g("[data-ckrm]"))){e.preventDefault();t.ck.splice(+el.dataset.ckrm,1);save();paint();return}
+  if(g("[data-clearalert]")){t.alert="";save();paint();return}
+  if(g("[data-cmsend]")){const ta=document.querySelector("[data-cm]");const v=g("[data-cmsend]").dataset.cmsend;const x=v!=="1"?v:(ta&&ta.value.trim());if(x){t.cm.push({w:UI.client?(CONTACT[t.client]||["العميل"])[0]+" (العميل)":ME,at:now(),x});log(t,UI.client?"العميل رد على المهمة":"علّق");save();paint();toast(UI.client?"وصل ردّك للفريق":"اتضاف التعليق","message-square")}return}
+  if((el=g("[data-dup]"))){const n=create({type:t.type,title:t.title+" (نسخة)",client:t.client,prio:t.prio,as:[...t.as],due:t.due});toast("اتعملت "+n.k,"copy");openT(n.k);return}
+  if((el=g("[data-arch]"))){t.status="closed";t.live=[];log(t,"قفل المهمة");save();UI.open=null;setHash();paint();toast(t.k+" اتقفلت واتنقلت للأرشيف","archive");return}
+  if(g("[data-close]")&&(!e.target.closest(".md")||g(".md-ic[data-close]"))){UI.open=null;UI.client=false;setHash();paint();return}
+  return}
+ if((el=g("[data-pf]"))){const p=el.dataset.pf,i=UI.ppl.indexOf(p);i<0?UI.ppl.push(p):UI.ppl.splice(i,1);paint();return}
+ if((el=g("[data-qf]"))){UI.qf=UI.qf===el.dataset.qf?"":el.dataset.qf;paint();return}
+ if((el=g("[data-dense]"))){UI.dense=el.dataset.dense;paint();return}
+ if((el=g("[data-grp]"))){UI.group=el.dataset.grp;paint();return}
+ if((el=g("[data-unfold]"))){UI.unfold[el.dataset.unfold]=1;paint();return}
+ if((el=g("[data-fold]"))){delete UI.unfold[el.dataset.fold];paint();return}
+ if((el=g("[data-addcol]"))){UI.addcol=el.dataset.addcol;paint();setTimeout(()=>{const x=document.querySelector("[data-newin]");if(x)x.focus()},10);return}
+ if((el=g("[data-newgo]"))){quickAdd(el.dataset.newgo);return}
+ if(g("[data-new]")){UI.create=true;NEWS.title="";NEWS.as=[ME];paint();setTimeout(()=>{const x=document.querySelector("[data-nct]");if(x)x.focus()},10);return}
+ if(g("[data-reset]")){if(confirm("ترجع كل البيانات التجريبية زي الأول؟")){TS=extra(seed());save();paint();toast("رجعت البيانات التجريبية","rotate-ccw")}return}
+ if((el=g(".lb-c"))){openT(el.dataset.k);return}
+},true);
+const quickAdd=colk=>{const x=document.querySelector("[data-newin]");const v=x&&x.value.trim();if(!v)return;const p=parse(v);const t=create({...p,status:colk});UI.addcol=null;paint();toast(`اتعملت ${t.k} في «${STN[colk]}»`,"plus")};
+const doCreate=()=>{const x=document.querySelector("[data-nct]");const p=parse((x&&x.value)||"");if(!p.title){toast("اكتب اسم المهمة الأول","alert-triangle");return}const t=create({type:p.type||NEWS.type,title:p.title,client:p.client||NEWS.client,prio:p.prio||NEWS.prio,due:NEWS.due,as:[...new Set([...(p.as||[]),...NEWS.as])]});UI.create=false;paint();toast(`اتعملت ${t.k} — ${t.as.join(" و")}`,"plus")};
+document.addEventListener("change",e=>{if(!onBoard())return;const el=e.target;
+ if(UI.create&&el.dataset.ncf){NEWS[el.dataset.ncf]=el.value;return}
+ const t=UI.open&&get(UI.open);if(!t)return;
+ if(el.dataset.f){const f=el.dataset.f,old=t[f];t[f]=el.value;if(f==="status"){log(t,`نقلها من «${STN[old]}» لـ «${STN[el.value]}»`);if(el.value==="closed")t.live=[]}else log(t,`غيّر ${{rv:"المراجِع",prio:"الأولوية",due:"الاستحقاق",client:"العميل",size:"الحجم"}[f]||f}`);save();paint();return}
+ if(el.dataset.ck!=null){t.ck[+el.dataset.ck].d=el.checked;save();paint();return}
+ if(el.hasAttribute("data-addas")&&el.value){t.as.push(el.value);log(t,`ضاف ${el.value} على المهمة`);save();paint();toast(`${el.value} بقى شغال معاك على ${t.k}`,"user-plus");return}
+ if(el.hasAttribute("data-desc")){t.desc=el.value;save();return}
+});
+document.addEventListener("input",e=>{if(!onBoard())return;const el=e.target;
+ if(el.hasAttribute("data-q")){UI.q=el.value;const p=el.selectionStart;paint();const n=document.querySelector("[data-q]");if(n){n.focus();n.setSelectionRange(p,p)}}
+ if(el.hasAttribute("data-shmsg")){SH.msg=el.value;const pre=document.querySelector(".lb-pre");if(pre)pre.textContent=shText(get(UI.share))}
+});
+document.addEventListener("focusout",e=>{if(!onBoard())return;const el=e.target;if(el.dataset&&el.dataset.title&&UI.open){const t=get(UI.open);const v=el.textContent.trim();if(v&&v!==t.title){t.title=v;log(t,"عدّل العنوان");save();paint()}}});
+document.addEventListener("keydown",e=>{if(!onBoard())return;const el=e.target;
+ if(el.hasAttribute&&el.hasAttribute("data-newin")){if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();quickAdd(el.dataset.newin)}if(e.key==="Escape"){UI.addcol=null;paint()}return}
+ if(el.hasAttribute&&el.hasAttribute("data-ckadd")&&e.key==="Enter"){const t=get(UI.open);if(el.value.trim()){t.ck.push({t:el.value.trim(),d:false});save();paint();setTimeout(()=>{const x=document.querySelector("[data-ckadd]");if(x)x.focus()},10)}return}
+ if(el.hasAttribute&&el.hasAttribute("data-shto")&&e.key==="Enter"){e.preventDefault();if(el.value.trim()){SH.to.push(el.value.trim());paint();setTimeout(()=>{const x=document.querySelector("[data-shto]");if(x)x.focus()},10)}return}
+ if(el.hasAttribute&&el.hasAttribute("data-cm")&&e.key==="Enter"&&(e.ctrlKey||e.metaKey)){e.preventDefault();document.querySelector("[data-cmsend]").click();return}
+ if(el.hasAttribute&&el.hasAttribute("data-nct")&&e.key==="Enter"){e.preventDefault();doCreate();return}
+ if(el.dataset&&el.dataset.title&&e.key==="Enter"){e.preventDefault();el.blur();return}
+ if(e.key==="Escape"){if(UI.share){UI.share=null}else if(UI.create){UI.create=false}else if(UI.open){UI.open=null;UI.client=false;setHash()}paint();return}
+ const typing=/INPUT|TEXTAREA|SELECT/.test(el.tagName)||el.isContentEditable;if(typing)return;
+ if(e.key==="/"){e.preventDefault();const q=document.querySelector("[data-q]");if(q)q.focus()}
+ if((e.key==="n"||e.key==="ى")&&!UI.open){UI.create=true;NEWS.title="";paint();setTimeout(()=>{const x=document.querySelector("[data-nct]");if(x)x.focus()},10)}
+ if(UI.open&&(e.key==="j"||e.key==="k")){const b=document.querySelector(`[data-nav="${e.key==="j"?1:-1}"]`);if(b)b.click()}
+});
+/* drag & drop */
+document.addEventListener("dragstart",e=>{if(!onBoard())return;const c=e.target.closest&&e.target.closest(".lb-c");if(!c)return;UI.drag=c.dataset.k;c.classList.add("drag");e.dataTransfer.effectAllowed="move";try{e.dataTransfer.setData("text/plain",UI.drag)}catch(x){}});
+document.addEventListener("dragend",()=>{document.querySelectorAll(".lb-c.drag,.lb-drop.over").forEach(x=>x.classList.remove("drag","over"))});
+document.addEventListener("dragover",e=>{if(!onBoard()||!UI.drag)return;const d=e.target.closest&&e.target.closest(".lb-drop");if(!d)return;e.preventDefault();document.querySelectorAll(".lb-drop.over").forEach(x=>x!==d&&x.classList.remove("over"));d.classList.add("over")});
+document.addEventListener("drop",e=>{if(!onBoard()||!UI.drag)return;const d=e.target.closest&&e.target.closest(".lb-drop");if(!d)return;e.preventDefault();const t=get(UI.drag),to=d.dataset.col;UI.drag=null;if(!t||t.status===to){paint();return}
+ if(to==="hold"){const r=prompt("سبب التعليق؟ (إلزامي)");if(!r){paint();return}t.alert="معلّق: "+r;t.alertCls="n"}
+ if(to==="closed"){t.live=[]}
+ if(to==="client"){t.alert="مستني العميل — متابعة بعد 3 أيام عمل";t.alertCls="a"}
+ const from=t.status;t.status=to;log(t,`نقلها من «${STN[from]}» لـ «${STN[to]}»`);save();paint();
+ const wip=TS.filter(x=>x.status==="doing").length;toast(`${t.k} ← ${STN[to]}${to==="doing"&&wip>4?" · «قيد التنفيذ» عدّى الحد":""}`,"move")});
 })();
 (function(){var P=window.CERP_PAGE;if(!P)return;var PAGES=window.CERP_PAGES||[];
 if(P==="login"){renderLogin();return}
