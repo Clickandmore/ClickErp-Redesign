@@ -29,3 +29,5 @@ build/
 *.log
 Thumbs.db
 
+docs/features/خطة الاستغناء عن Trello وTime Doctor والانتقال إلى Click.pdf
+.gitignore
