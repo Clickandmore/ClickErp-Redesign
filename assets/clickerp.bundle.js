@@ -5917,30 +5917,48 @@ const locate=()=>{
   e=>{G={s:"denied",why:e.code===1?"رفضت إذن الموقع":"ماقدرناش نحدد المكان"};inject()},{enableHighAccuracy:true,timeout:12000,maximumAge:0});
 };
 const site=id=>SITES.find(s=>s[0]===id);
-const CK=mode=>{const s=G.site?site(G.site):null;
- const line={idle:`<div class="ck-loc idle">${X("crosshair")}<div><b>محتاجين نتأكد إنك في موقع عمل</b><small>بناخد مكانك مرة واحدة من الموبايل أو المتصفح، وبنقارنه بمواقع العمل المسموحة ليك.</small></div>${B("primary","locate-fixed","حدد مكاني",'data-ckloc="1"')}</div>`,
-  locating:`<div class="ck-loc wait"><span class="ck-spin"></span><div><b>بنحدد مكانك…</b><small>لو المتصفح سألك، اختار «السماح».</small></div></div>`,
-  in:s?`<div class="ck-loc in">${X("check-circle-2")}<div><b>انت في ${s[2]}</b><small>على بُعد <span class="num">${fmtD(G.d)}</span> · دقة الموقع <span class="num">±${G.acc} م</span> · النطاق <span class="num">${s[6]} م</span></small></div><button class="ck-re" data-ckloc="1" title="حدّد تاني">${X("rotate-cw")}</button></div>`:"",
-  out:s?`<div class="ck-loc out">${X("map-pin-off")}<div><b>انت برّه مواقع العمل</b><small>أقرب موقع: ${s[2]} على بُعد <span class="num">${fmtD(G.d)}</span> · دقة <span class="num">±${G.acc} م</span></small></div><button class="ck-re" data-ckloc="1" title="حدّد تاني">${X("rotate-cw")}</button></div>`:"",
-  denied:`<div class="ck-loc no">${X("alert-triangle")}<div><b>${G.why||"الموقع مش متاح"}</b><small>فعّل الموقع من إعدادات المتصفح وحاول تاني، أو سجّل من غير موقع (بيروح للمدير يعتمده).</small></div>${B("ghost sm","rotate-cw","حاول تاني",'data-ckloc="1"')}</div>`}[G.s];
- const chips=SITES.map(x=>{const on=G.site===x[0]&&G.s==="in";const d=G.lat!=null&&x[4]!=null?hav(G.lat,G.lng,x[4],x[5]):null;
-  return `<div class="ck-site${on?" on":""}${x[0]==="home"?" rem":""}"><span>${X(x[1])}</span><div><b>${x[2]}</b><small>${x[3]} · ${x[0]==="home"?x[8]:`نطاق ${x[6]} م`}${d!=null?` · <span class="num">${fmtD(d)}</span>`:""}</small></div>${on?`<em>${X("check")}</em>`:""}</div>`}).join("");
- const act=G.s==="in"?`<button class="btn btn-primary ck-go" data-attin="1">${X("log-in")}سجّل حضوري · <span class="num">09:02</span></button>`
-  :G.s==="out"||G.s==="denied"?`<div class="ck-why"><label>سبب التسجيل برّه مواقع العمل <i class="rq">*</i></label><select><option>زيارة عميل (اختار المهمة)</option><option>مأمورية — في الطريق</option><option>عن بعد — يوم متوافق عليه</option><option>تاني…</option></select><small>${X("user-check")}هيتسجل بموقعك الحالي ويروح للمدير يعتمده.</small></div><button class="btn btn-primary ck-go amber" data-attin="1">${X("log-in")}سجّل وابعت للاعتماد</button>`
-  :`<button class="btn btn-primary ck-go" data-ckloc="1">${X("locate-fixed")}حدد مكاني وسجّل حضوري</button>`;
- return `<div class="ck ${mode}">
-  <div class="ck-h"><span class="ck-ic">${X("fingerprint")}</span><div><b>تسجيل الحضور</b><small>الاثنين 16 نوفمبر · دوامك <span class="num">09:00 – 17:00</span></small></div><span class="ck-shift">${X("clock")}<span class="num">09:02</span> · متأخر دقيقتين</span>${mode==="pop"?`<button class="md-ic" data-ckpop="1">${X("x")}</button>`:""}</div>
-  ${line}
-  <div class="ck-sites"><small>مواقع العمل المسموحة ليك النهارده</small><div>${chips}</div></div>
-  <div class="ck-a">${act}${G.s==="in"?`<button class="btn btn-ghost" data-attin="1">${X("home")}عن بعد</button>`:""}</div>
-  <small class="ck-priv">${X("shield-check")}الموقع بيتاخد مرة وقت الحضور ومرة وقت الانصراف بس — مش بنتابعك طول اليوم.${G.lat!=null?` <span class="num" dir="ltr">(${G.lat.toFixed(4)}, ${G.lng.toFixed(4)})</span>`:""}</small>
+/* v1.22 — compact check-in strip. Work mode: site | remote (no location needed) */
+const MKEY="cerp-att-mode",TKEY="cerp-att-task",T0KEY="cerp-att-t0";
+const lsg=(k,d)=>{try{return localStorage.getItem(k)||d}catch(e){return d}};
+const lss=(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}};
+/* employee work arrangement (from HR profile): hybrid = can pick; remote = always remote, never asked for location */
+const WM=/^#att-remote/.test(location.hash)?"remote":"hybrid";
+let MODE=WM==="remote"?"remote":lsg(MKEY,"site");
+const MYT=[["UPD-0812","إضافة فلتر الفرع في تقرير التحصيل"],["DATA-0059","تصحيح أرصدة أول المدة بعد الترحيل"],["BUG-0147","تقرير العمولات بيحسب الكوبون مرتين"],["","من غير مهمة دلوقتي — هختار بعدين"]];
+const CK=mode=>{const s=G.site?site(G.site):null,rem=MODE==="remote";
+ const re=`<button class="ck2-re" data-ckloc="1" title="حدّد تاني">${X("rotate-cw")}</button>`;
+ const stt=rem?["g","home",`<b>عن بعد</b><small>مش محتاجين موقعك · المهم المؤقت يشتغل</small>`]
+  :{idle:["n","crosshair",`<b>هنتأكد إنك في موقع عمل</b><small>مرة واحدة دلوقتي ومرة وقت الانصراف</small>`],
+   locating:["b","",`<b>بنحدد مكانك…</b><small>لو المتصفح سألك، اختار «السماح»</small>`],
+   in:["g","check-circle-2",s?`<b>${s[2]}</b><small>على بُعد <span class="num">${fmtD(G.d)}</span> · دقة <span class="num">±${G.acc} م</span></small>${re}`:""],
+   out:["a","map-pin-off",s?`<b>برّه مواقع العمل</b><small>أقرب موقع: ${s[2]} · <span class="num">${fmtD(G.d)}</span></small>${re}`:""],
+   denied:["r","alert-triangle",`<b>${G.why||"الموقع مش متاح"}</b><small>فعّله من المتصفح، أو سجّل بسبب ويروح للمدير يعتمده</small>${re}`]}[G.s];
+ const st=`<div class="ck2-st ${stt[0]}">${stt[1]?X(stt[1]):`<span class="ck-spin"></span>`}<div>${stt[2]}</div></div>`;
+ const seg=WM==="hybrid"?`<div class="ck2-seg" role="tablist" aria-label="هتشتغل منين النهارده">${[["site","map-pin","في موقع العمل"],["remote","home","عن بعد"]].map(o=>`<button role="tab" aria-selected="${MODE===o[0]}" class="${MODE===o[0]?"on":""}" data-ckmode="${o[0]}">${X(o[1])}${o[2]}</button>`).join("")}</div>`:`<span class="ck2-tag">${X("home")}موظف عن بعد</span>`;
+ const task=`<label class="ck2-task">${X("timer")}<span>المؤقت على</span><select data-cktask>${MYT.map(t=>`<option value="${t[0]}"${lsg(TKEY,"UPD-0812")===t[0]?" selected":""}>${t[0]?t[0]+" · "+t[1]:t[1]}</option>`).join("")}</select></label>`;
+ const why=!rem&&(G.s==="out"||G.s==="denied")?`<label class="ck2-why">${X("message-square")}<span>السبب <i class="rq">*</i></span><select><option>زيارة عميل (اختار المهمة)</option><option>مأمورية — في الطريق</option><option>تاني…</option></select></label>`:"";
+ const go=rem?`<button class="btn btn-primary ck2-go" data-attin="1">${X("play")}سجّل حضوري وابدأ المؤقت</button>`
+  :G.s==="in"?`<button class="btn btn-primary ck2-go" data-attin="1">${X("log-in")}سجّل حضوري · <span class="num">09:02</span></button>`
+  :G.s==="out"||G.s==="denied"?`<button class="btn btn-primary ck2-go amber" data-attin="1">${X("send")}سجّل وابعت للاعتماد</button>`
+  :G.s==="locating"?`<button class="btn btn-primary ck2-go" disabled>${X("locate-fixed")}بنحدد مكانك…</button>`
+  :`<button class="btn btn-primary ck2-go" data-ckloc="1">${X("locate-fixed")}حدد مكاني وسجّل</button>`;
+ const sites=rem?"":`<details class="ck2-more"><summary>${X("map-pinned")}مواقع العمل المسموحة ليك النهارده <span class="num">(${SITES.filter(x=>x[4]!=null).length})</span>${X("chevron-down")}</summary><div>${SITES.filter(x=>x[4]!=null).map(x=>{const on=G.site===x[0]&&G.s==="in";const d=G.lat!=null?hav(G.lat,G.lng,x[4],x[5]):null;
+   return `<span class="ck2-chip${on?" on":""}">${X(on?"check":x[1])}<b>${x[2]}</b><small>${d!=null?`<span class="num">${fmtD(d)}</span>`:`نطاق <span class="num">${x[6]}</span> م`}</small></span>`}).join("")}</div><small class="ck2-priv">${X("shield-check")}الموقع بيتاخد عند الحضور والانصراف بس — مش بنتابعك طول اليوم.</small></details>`;
+ return `<div class="ck2 ${mode}">
+  <div class="ck2-row">
+   <span class="ck2-ic">${X("fingerprint")}</span>
+   <div class="ck2-t"><b>سجّل حضورك</b><small>دوامك <span class="num">09:00 – 17:00</span> · <em>${X("clock")}متأخر <span class="num">2</span> د</em></small></div>
+   ${seg}${st}${rem?task:why}${go}
+   ${mode==="pop"?`<button class="md-ic ck2-x" data-ckpop="1" title="قفل">${X("x")}</button>`:""}
+  </div>${sites}
  </div>`};
 
 /* ---------- top-bar widget ---------- */
 const SEG=[[9.03,9.97,"a"],[9.97,10.1,"i"],[10.1,12.5,"a"],[12.5,13,"m"],[13,13.47,"w"],[13.47,14.3,"a"],[14.3,14.42,"i"],[14.42,14.7,"a"]];
 const pc=h=>((h-9)/(18-9)*100).toFixed(2);
-const POP=`<div class="tw-pop" role="dialog">
- <div class="tw-ph"><div><b>الاثنين 16 نوفمبر</b><small>${X("map-pin")}المكتب الرئيسي · بالموقع · 18 م</small></div><span class="tw-st g"><i></i>نشط دلوقتي</span></div>
+const clk=()=>{const t0=+lsg(T0KEY,0);const x=t0?Math.max(0,Math.floor((Date.now()-t0)/1000)):4360;return [Math.floor(x/3600),Math.floor(x%3600/60),x%60].map(v=>String(v).padStart(2,"0")).join(":")};
+const POP=()=>`<div class="tw-pop" role="dialog">
+ <div class="tw-ph"><div><b>الاثنين 16 نوفمبر</b><small>${lsg(MKEY,"site")==="remote"?`${X("home")}عن بعد · من غير موقع`:`${X("map-pin")}المكتب الرئيسي · بالموقع · 18 م`}</small></div><span class="tw-st g"><i></i>نشط دلوقتي</span></div>
  <div class="tw-k">${[["الحضور","5:40",""],["على مهام","5:00",""],["نشط","4:52","g"],["خامل","0:38","a"]].map(k=>`<div><small>${k[0]}</small><b class="num ${k[2]}">${k[1]}</b></div>`).join("")}</div>
  <div class="tw-bar">${SEG.map(s=>`<i class="${s[2]}" style="left:${pc(s[0])}%;width:${(pc(s[1])-pc(s[0])).toFixed(2)}%"></i>`).join("")}</div>
  <div class="tw-ax"><span class="num">09</span><span class="num">12</span><span class="num">15</span><span class="num">18</span></div>
@@ -5952,7 +5970,7 @@ const POP=`<div class="tw-pop" role="dialog">
 const W=()=>st()==="out"
  ?`<div class="tw-att out"><button class="tw-in" data-ckpop="1">${X("log-in")}<span><b>سجّل حضورك</b><small>${X("clock")}دوامك بدأ 09:00</small></span></button>${CKPOP?`<div class="tw-pop ckp">${CK("pop")}</div>`:""}</div>`
  :`<div class="tw-att in"><button class="tw-main" data-attpop="1" title="نشاطك النهارده"><span class="tw-dot"></span><span><b>حاضر <span class="num">09:02</span></b><small>نشط · <span class="num">5:40</span></small></span>${X("chevron-down")}</button>
-   <span class="tw-tm" title="المؤقت شغال على UPD-0812">${X("timer")}<b class="num">UPD-0812</b><span class="num" data-twclock>01:12:40</span><button title="إيقاف المؤقت">${X("square")}</button></span>${OPEN?POP:""}</div>`;
+   ${(()=>{const t=lsg(TKEY,"UPD-0812");return `<span class="tw-tm" title="${t?"المؤقت شغال على "+t:"المؤقت شغال — اختار مهمة"}">${X("timer")}<b class="num">${t||"من غير مهمة"}</b><span class="num" data-twclock>${clk()}</span>`})()}<button title="إيقاف المؤقت">${X("square")}</button></span>${OPEN?POP():""}</div>`;
 const SHOWBAN=c=>/^(tc|hrAttendance)/.test(c)&&!/^(tcSettings|tcGeo|tcMigrate|tcVault|tcArchive|tcSpecs|tcQALib|tcAdmin|tcRemind|tcCheckin)$/.test(c);
 const inject=()=>{
  const tr=document.querySelector("#app .top-right");if(!tr)return;
@@ -5960,21 +5978,23 @@ const inject=()=>{
  const tc=tr.querySelector(".tclock");if(tc)tc.style.display="none";
  const w=document.createElement("div");w.innerHTML=W();tr.prepend(w.firstElementChild);
  const pg=document.querySelector("#app .page");
- if(pg){pg.querySelectorAll(".ck.ban").forEach(e=>e.remove());
+ if(pg){pg.querySelectorAll(".ck2.ban").forEach(e=>e.remove());
   if(st()==="out"&&SHOWBAN(window.CERP_PAGE||"")){const b=document.createElement("div");b.innerHTML=CK("ban");pg.prepend(b.firstElementChild)}}
  if(window.lucide)lucide.createIcons({attrs:{"stroke-width":1.8}});
 };
 const oRN=window.renderNav;
 window.renderNav=function(c){const r=oRN.apply(this,arguments);setTimeout(inject,0);return r};
+document.addEventListener("change",e=>{const t=e.target.closest("[data-cktask]");if(t)lss(TKEY,t.value)});
 document.addEventListener("click",e=>{
  if(e.target.closest("[data-ckloc]")){e.preventDefault();locate();return}
- if(e.target.closest("[data-attin]")){e.preventDefault();setSt("in");OPEN=false;CKPOP=false;inject();return}
- if(e.target.closest("[data-attout]")){e.preventDefault();setSt("out");OPEN=false;G={s:"idle"};inject();return}
+ if(e.target.closest("[data-ckmode]")){e.preventDefault();MODE=e.target.closest("[data-ckmode]").dataset.ckmode;lss(MKEY,MODE);inject();return}
+ if(e.target.closest("[data-attin]")){e.preventDefault();lss(MKEY,MODE);lss(T0KEY,String(Date.now()));setSt("in");OPEN=false;CKPOP=false;inject();return}
+ if(e.target.closest("[data-attout]")){e.preventDefault();setSt("out");lss(T0KEY,"");OPEN=false;G={s:"idle"};inject();return}
  if(e.target.closest("[data-attpop]")){e.preventDefault();OPEN=!OPEN;inject();return}
  if(e.target.closest("[data-ckpop]")){e.preventDefault();CKPOP=!CKPOP;inject();return}
  if((OPEN||CKPOP)&&!e.target.closest(".tw-att")){OPEN=false;CKPOP=false;inject()}
 });
-setInterval(()=>{const el=document.querySelector("[data-twclock]");if(!el)return;const p=el.textContent.split(":").map(Number);let s=p[0]*3600+p[1]*60+p[2]+1;el.textContent=[Math.floor(s/3600),Math.floor(s%3600/60),s%60].map(x=>String(x).padStart(2,"0")).join(":")},1000);
+setInterval(()=>{const el=document.querySelector("[data-twclock]");if(!el)return;if(+lsg(T0KEY,0)){el.textContent=clk();return}const p=el.textContent.split(":").map(Number);let s=p[0]*3600+p[1]*60+p[2]+1;el.textContent=[Math.floor(s/3600),Math.floor(s%3600/60),s%60].map(x=>String(x).padStart(2,"0")).join(":")},1000);
 
 /* ---------- مواقع العمل (replaces «نطاقات الحضور») ---------- */
 screens.tcGeo=()=>`

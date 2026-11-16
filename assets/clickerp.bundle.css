@@ -4454,3 +4454,49 @@ a.hm-pc:hover .po{color:var(--navy)}
 .hm-pc .pf>div,.hm-pc .pf>div:first-child{padding-inline:12px}
 .hm-pc .pf small{white-space:normal;overflow:visible;line-height:1.4}
 .hm-mini>div::after{display:none}
+/* ===== v1.22 — compact check-in strip (ck2-*): one row, remote needs no location ===== */
+.ck2{background:#fff;border:1px solid var(--line);border-radius:14px;padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+.ck2.ban{margin-bottom:16px;border-inline-start:4px solid var(--green)}
+.ck2.pop{border:0;padding:2px}
+.ck2-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ck2-ic{width:36px;height:36px;border-radius:10px;background:var(--green-soft);color:var(--green-d);display:grid;place-items:center;flex:none}.ck2-ic svg{width:19px;height:19px}
+.ck2-t{min-width:150px}.ck2-t b{display:block;font-size:15px;color:var(--ink);line-height:1.3}
+.ck2-t small{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);white-space:nowrap}
+.ck2-t em{display:inline-flex;align-items:center;gap:3px;font-style:normal;font-weight:700;color:var(--amber)}.ck2-t em svg{width:12px;height:12px}
+.ck2-seg{display:inline-flex;background:var(--bg);border-radius:10px;padding:3px;gap:2px;flex:none}
+.ck2-seg button{display:inline-flex;align-items:center;gap:5px;height:32px;padding:0 11px;border-radius:8px;font:inherit;font-size:13px;font-weight:600;color:var(--muted);white-space:nowrap}
+.ck2-seg button svg{width:14px;height:14px}
+.ck2-seg button.on{background:#fff;color:var(--navy);box-shadow:0 1px 3px rgba(15,23,42,.12)}
+.ck2-tag{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;font-weight:700;color:var(--green-d);background:var(--green-soft);border-radius:999px;padding:4px 10px}.ck2-tag svg{width:13px;height:13px}
+.ck2-st{flex:1;min-width:220px;display:flex;align-items:center;gap:9px;border-radius:10px;padding:6px 10px;min-height:44px}
+.ck2-st>svg{width:19px;height:19px;flex:none}.ck2-st>div{flex:1;min-width:0;display:flex;align-items:center;gap:4px 10px;flex-wrap:wrap}
+.ck2-st b{font-size:13.5px}.ck2-st small{font-size:12px;opacity:.85}
+.ck2-st.n{background:var(--bg)}.ck2-st.n>svg{color:var(--navy)}.ck2-st.n small{color:var(--muted)}
+.ck2-st.b{background:var(--blue-soft);color:var(--blue)}
+.ck2-st.g{background:var(--green-soft);color:#2f5a14}.ck2-st.g>svg{color:var(--green-d)}
+.ck2-st.a{background:var(--amber-soft);color:#7a5413}.ck2-st.a>svg{color:var(--amber)}
+.ck2-st.r{background:var(--red-soft);color:var(--red)}
+.ck2-re{margin-inline-start:auto;width:28px;height:28px;border-radius:7px;display:grid;place-items:center;background:rgba(255,255,255,.75);color:inherit}.ck2-re svg{width:14px;height:14px}
+.ck2-task,.ck2-why{display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:var(--muted)}
+.ck2-task>svg,.ck2-why>svg{width:15px;height:15px;color:var(--navy)}
+.ck2-task select,.ck2-why select{height:38px;max-width:260px;border:1px solid var(--line);border-radius:9px;padding:0 8px;font:inherit;font-size:13px;color:var(--ink);background:#fff}
+.ck2-why small{font-weight:400}
+.ck2-go{height:42px;font-size:14px;padding:0 16px;white-space:nowrap;flex:none}
+.ck2-go.amber{background:var(--amber);border-color:var(--amber)}
+.ck2-go[disabled]{opacity:.6;cursor:progress}
+.ck2-more summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:var(--muted);padding:2px 4px}
+.ck2-more summary::-webkit-details-marker{display:none}
+.ck2-more summary svg{width:14px;height:14px}.ck2-more summary svg:last-child{transition:transform .15s}
+.ck2-more[open] summary svg:last-child{transform:rotate(180deg)}
+.ck2-more>div{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
+.ck2-chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;padding:4px 10px;font-size:12.5px}
+.ck2-chip svg{width:13px;height:13px;color:var(--navy)}.ck2-chip b{color:var(--ink);font-weight:600}.ck2-chip small{color:var(--muted);font-size:11.5px}
+.ck2-chip.on{border-color:var(--green);background:#f6fbf1}.ck2-chip.on svg{color:var(--green-d)}
+.ck2-priv{display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--muted)}.ck2-priv svg{width:12px;height:12px;color:var(--green-d)}
+.ck2.pop .ck2-t{flex:1}.ck2.pop .ck2-x{order:-1}
+.ck2.pop .ck2-seg,.ck2.pop .ck2-st,.ck2.pop .ck2-task,.ck2.pop .ck2-why,.ck2.pop .ck2-go{flex-basis:100%}
+.ck2.pop .ck2-seg button{flex:1;justify-content:center}
+.ck2.pop .ck2-task select,.ck2.pop .ck2-why select{flex:1;max-width:none}
+.ck2.pop .ck2-go{justify-content:center}
+@media (max-width:760px){.ck2-st,.ck2-go,.ck2-task,.ck2-why{flex-basis:100%}.ck2-go{justify-content:center}.ck2-task select,.ck2-why select{flex:1;max-width:none}}
+.ck2-why>span{white-space:nowrap}
