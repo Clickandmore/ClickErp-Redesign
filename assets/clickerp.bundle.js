@@ -3347,7 +3347,7 @@ const DEPTS=[
  {id:"all",i:"layout-dashboard",ar:"الرئيسية",en:"Home",s:"الرئيسية",d:"لوحة التحكم والتقارير والشاشات المثبتة",items:[
   A("dashboard","layout-dashboard","لوحة التحكم","Dashboard"),A("reports","folder-open","مركز التقارير","Reports centre")]},
  {id:"ops",i:"briefcase",ar:"العمليات",en:"Operations",s:"العمليات",d:"الاستقدام والتأشيرات والتأجير ونقل الخدمات",items:[
-  H("الاستقدام"),A("orders","shopping-cart","الطلبات","Orders","121"),A("cvs","files","السير الذاتية","CVs"),
+  H("الاستقدام"),A("recDash","gauge","لوحة الاستقدام","Recruitment dashboard"),A("orders","shopping-cart","الطلبات","Orders","121"),A("cvs","files","السير الذاتية","CVs"),
   A("contracts","file-text","عقود الاستقدام","Recruitment contracts","115"),A("invoices","receipt","فواتير العقود","Contract invoices"),
   A("delegations","file-signature","تفاويض الإنجاز","Mandates"),A("trips","plane","الرحلات","Trips"),A("agents","handshake","الوكلاء الخارجيون","External agents"),
   H("تأشيرات الشركة"),A("visaDash","gauge","لوحة متابعة التأشيرات","Visa dashboard"),A("visaRequests","file-plus-2","طلبات التأشيرات","Visa requests"),A("visaBalance","wallet-cards","رصيد التأشيرات","Visa balance"),
@@ -4454,7 +4454,7 @@ const S={};
 /* ---------------- Home: built from the modules the employee can see (v1.14) ---------------- */
 /* modules = view permissions in ClickERP (rec_contracts_view, clients_view …). The home shows one section per module the employee can open. */
 const MODS={
- ops:{n:"العمليات",i:"briefcase",p:"rec_contracts_view",go:"contracts",m:["38","عقد تحت التشغيل"],a:["r","18 متأخر عن مدته"],l:"أغلبها في التذاكر · 64 في الإيواء"},
+ ops:{n:"الاستقدام",i:"file-text",p:"rec_contracts_view",go:"recDash",m:["38","عقد تحت التشغيل"],a:["r","18 متأخر عن مدته"],l:"أغلبها في التذاكر · 64 في الإيواء"},
  ext:{n:"المكاتب الخارجية",i:"globe",p:"DASHBOARD_OFFICES_STATISTICS",go:"agents",m:["26","طلب عند المكاتب"],a:["a","4 بدون رد"],l:"14 سيرة وصلت هذا الأسبوع"},
  crm:{n:"العملاء",i:"users",p:"clients_view",go:"clients",m:["241","عميل · 6 جدد هذا الأسبوع"],a:["r","2 شكوى عاجلة"],l:"9 متابعات النهارده · 3 متأخرة"},
  fin:{n:"المالية",i:"wallet",p:"FINANCE_REPORTS",go:"finReport",m:["144,450","صافي الشهر"],a:["r","184,600 لم تُحصّل"],l:"التزامات 30 يوم: 236,900"},
@@ -4463,7 +4463,7 @@ const MODS={
 };
 /* sample employees for the preview. mods = what their permissions open; sec = sections in order [module, widgets] */
 const ROLES={
- owner:{n:"المالك / رئيس مجلس الإدارة",nm:"عبدالعزيز",av:"ع",mods:["fin","ops","crm","ext","hr","hourly"],sup:"كل الإدارات",
+ owner:{n:"المالك / رئيس مجلس الإدارة",nm:"عبدالعزيز",av:"ع",mods:["fin","ops","rent","hourly","crm","hr"],sup:"كل الإدارات",
   k:[["scale","صافي الشهر","144,450","الإيرادات 412,800 − المصروفات 268,350","g","+12% عن أكتوبر","finReport"],
      ["calendar-clock","التزامات خلال 30 يوم","236,900","رواتب، شيكات، وكلاء، ضريبة","a","أقربها بعد 4 أيام","finChecksOut"],
      ["file-text","عقود تحت التشغيل","38","9 عقود جديدة هذا الشهر","r","18 متأخرة","contracts"],
@@ -4473,7 +4473,7 @@ const ROLES={
       ["receipt","توقيع الشيك الصادر #4471","18,500 ر.س · مؤسسة السكن","a","بعد 4 أيام","مراجعة","finChecksOut"],
       ["banknote","الموافقة على سلفة علي ناصر","2,000 ر.س على 4 أشهر","n","النهارده","مراجعة","hrRequests"]],
   team:[["علي ناصر","مشرف العمليات",12,5,"CN-2026-0084 متأخر في التذاكر 21 يوم"],["سارة القحطاني","مبيعات",9,3,"3 متابعات متأخرة من أمس"],["نوف الحربي","خدمة العملاء",5,2,"شكوى #000148 عاجلة من 26 ساعة"],["خالد المطيري","محاسب",6,1,"قيد مستني الاعتماد من 3 أيام"],["فهد الدوسري","التأجير بالساعة",4,1,"توريد متأخر 3 أيام"]]},
- ops:{n:"مشرف العمليات",nm:"علي",av:"ع",mods:["ops","ext"],sup:"فريق العمليات · 3 موظفين",
+ ops:{n:"مشرف العمليات",nm:"علي",av:"ع",mods:["ops","rent"],sup:"فريق العمليات · 3 موظفين",
   k:[["file-text","عقود تحت التشغيل","38","موزعة على 7 مراحل","n","","contracts"],["timer-off","متأخرة عن مدتها","18","أغلبها في مرحلة التذاكر","r","11 عند المكاتب","contracts"],["home","داخل الإيواء","64","13 جاهز للنقل","n","","housing"],["plane","رحلات هذا الأسبوع","6","4 وصول · 2 ترحيل","a","2 بدون تأكيد حجز","trips"]],
   sec:[["ops",["pipe","delays","housing"]],["ext",["ext"]]],r:["ops","housing","register"],
   me:[["plane","تأكيد حجز الرحلة — CN-2026-0079","ميري جوي · عند مكتب PLATINUM","r","متأخر 13 يوم","مراسلة المكتب","contractShow"],
@@ -4591,13 +4591,15 @@ W.reps=["تقارير تخص دورك","أفتح أنهي تقرير؟","REPORTS
 /* pulse: one plain sentence per module + 3 figures. Numbers must match the module's own dashboard (finDash, hrDash …) */
 const PULSE={
  fin:{st:"g",go:"finDash",gl:"لوحة المالية",v:`كسبانين <b class="g">86,400 ر.س</b> هذا الشهر بعد المصروفات، والسيولة تكفي <b>2.4 شهر</b> تشغيل.`,f:[["السيولة","612,300",""],["لينا عند العملاء","184,600","r"],["علينا للمكاتب","96,750",""]]},
- ops:{st:"r",go:"contracts",gl:"العقود",v:`<b>38</b> عقد شغالين، و<b class="r">18</b> منهم عدّوا المدة المسموحة لمرحلتهم. أغلبهم في مرحلة التذاكر.`,f:[["وصول النهارده","2",""],["تذاكر جاهزة","13",""],["تحت الضمان","2",""]]},
+ ops:{st:"r",go:"recDash",gl:"لوحة الاستقدام",v:`<b>38</b> عقد استقدام شغالين، و<b class="r">18</b> منهم عدّوا المدة المسموحة لمرحلتهم. أغلبهم في مرحلة التذاكر.`,f:[["وصول النهارده","2",""],["تذاكر جاهزة","13",""],["تحت الضمان","2",""]]},
+ rent:{st:"a",go:"rental",gl:"عقود التأجير",v:`<b>13</b> عقد تأجير نشط، و<b class="a">3</b> منها متأخرة في الدفع. و<b>17</b> معاملة نقل خدمات، <b class="a">4</b> منها في فترة التجربة.`,f:[["عقود تنتهي هذا الشهر","2",""],["فواتير مستحقة","3","r"],["تجربة تنتهي هذا الأسبوع","4","a"]]},
  ext:{st:"a",go:"agents",gl:"المكاتب",v:`<b>26</b> طلب عند المكاتب الخارجية، و<b class="a">4</b> منهم من غير رد. أقدمهم من 6 أيام.`,f:[["سير جديدة","14",""],["مدة الوصول","42 يوم",""],["مكاتب نشطة","22",""]]},
  crm:{st:"r",go:"clients",gl:"العملاء",v:`<b class="r">2</b> شكوى عاجلة مستنية رد، و<b>9</b> متابعات النهارده منهم <b class="a">3</b> متأخرة.`,f:[["عملاء جدد","6",""],["طلبات جديدة","7",""],["محادثات بدون رد","12","a"]]},
  hr:{st:"a",go:"hrDash",gl:"لوحة الموارد",v:`<b>36 من 42</b> حاضرين النهارده، و<b class="a">7</b> طلبات موظفين مستنية قرار.`,f:[["متأخرين","3","a"],["غياب بدون إذن","1","r"],["وثائق قربت تنتهي","4",""]]},
  hourly:{st:"r",go:"hb-board",gl:"لوحة الزيارات",v:`<b>14</b> زيارة النهارده، و<b class="r">2</b> منهم السواق متأخر عليهم أكتر من 20 دقيقة.`,f:[["جارية الآن","5",""],["تحصيل اليوم","3,450",""],["مع الطاقم","1,200","a"]]},
  self:{st:"g",go:"hrEmployeeShow",gl:"ملفي",v:`حاضر من <b>07:58 ص</b>، ورصيد إجازاتك <b>9 أيام</b>. طلب السلفة بتاعك عند الموارد البشرية للمراجعة.`,f:[["حضور الشهر","14 من 15",""],["تأخير الشهر","1","a"],["راتب نوفمبر","27 نوفمبر",""]]}
 };
+MODS.rent={n:"التأجير ونقل الخدمات",i:"repeat",p:"rent_contract_view",go:"rental"};
 MODS.self={n:"حسابي",i:"user-round",p:"",go:"hrEmployeeShow"};
 W.myreq=["طلباتي","طلباتي وصلت لفين؟","",()=>card("طلباتي","الإجازات والسلف والأذونات",`
  <div class="hm-list">${[["banknote","سلفة 2,000 ر.س على 4 أشهر","عند الموارد البشرية للمراجعة · من يومين","a","تحت المراجعة"],["calendar-days","إجازة 3 أيام · 3–5 أكتوبر","اتوافق عليها · رصيدك بعدها 9 أيام","g","اتوافق"],["clock","إذن خروج ساعتين · الخميس","محتاج تكمل السبب","n","مسودة"]].map(x=>`<div><span class="ni ${x[3]==="g"?"g":x[3]==="a"?"a":"n"}">${X(x[0])}</span><b>${x[1]}<small>${x[2]}</small></b>${TAG(x[3],x[4])}</div>`).join("")}</div>
@@ -4608,8 +4610,7 @@ ROLES.self={n:"موظف (من غير صلاحيات إدارية)",nm:"ياسر"
      ["clock","تأكيد إذن خروج الخميس","الموارد البشرية محتاجة السبب","n","بكرة","فتح","hrRequests"]]};
 if(!personas.self)personas.self={ar:ROLES.self.n,en:ROLES.self.n,h:{ar:"",en:""},s:{ar:"",en:""},k:[],a:[],r:[]};
 /* details below the pulse */
-ROLES.owner.sec=[["fin",["opsum","oblig"],"الفلوس"],["ops",["pipe","delays"],"التشغيل"]];
-ROLES.finance.sec=[["fin",["opsum","oblig","recv"]]];
+Object.keys(ROLES).forEach(k=>{if(k!=="self")ROLES[k].sec=[]});
 ROLES.hr.k=[];
 W.opsum=["الملخص المالي التشغيلي","كم بعنا، كم حصّلنا، كم باقي، وكم علينا للمكاتب؟","finance_module",()=>card("الملخص المالي التشغيلي","من أول السنة لحد النهارده · فواتير التأجير والاستقدام والتفاويض ونقل الخدمات",`
  <div class="hm-flow">${[["بعنا","2,846,300","فواتير الفترة",""],["حصّلنا","2,661,700","93.5% من المبيعات","g"],["لسه عند العملاء","184,600","أقدم دين 112 يوم","r"],["علينا للمكاتب","96,750","مستحقات 4 مكاتب","a"]].map((x,i)=>`<div class="${x[3]}"><small>${x[0]}</small><b class="num">${x[1]}</b><span>${x[2]}</span></div>${i<3?`<i>${X("chevron-left")}</i>`:""}`).join("")}</div>
@@ -4621,10 +4622,10 @@ const P_=()=>ROLES[PERSONA]||ROLES.owner;
 const secName=s=>s[2]||MODS[s[0]].n;
 const homeSecs=P=>[["pulse",P.mods[0]==="self"?"حسابي":"نبض الشركة","جملة لكل إدارة: الوضع إيه، وأهم 3 أرقام",""],["todo","مطلوب منك","المهام والطلبات اللي عليك",""],
  ...P.sec.map(s=>[s[0],"تفاصيل "+secName(s),"الكروت: "+s[1].map(w=>W[w][0]).join("، "),MODS[s[0]].p]),
- ["more","للمتابعة","الجديد من آخر دخول، والتقارير اللي تخصك",""],...(P.mods.includes("fin")?[["ana","التحليل","الإيرادات والمصروفات آخر 6 شهور","FINANCE_REPORTS"]]:[])];
+ ["more","للمتابعة","الجديد من آخر دخول، والتقارير اللي تخصك",""]];
 
 const custPanel=()=>{
- const P=P_(),secs=homeSecs(P),lock=Object.keys(MODS).filter(m=>m!=="self"&&!P.mods.includes(m));
+ const P=P_(),secs=homeSecs(P),lock=Object.keys(MODS).filter(m=>m!=="self"&&MODS[m].p&&!P.mods.includes(m));
  const row=(s,st)=>`<div class="hm-cr ${st}">${st==="lock"?X("lock"):X("grip-vertical")}<div><b>${s[1]}</b><small>${st==="lock"?`محتاج صلاحية <span class="num" dir="ltr">${s[3]}</span>`:s[2]}</small></div>${st==="lock"?"":SW(true)}</div>`;
  return `<div class="ov" data-hc-ov><div class="drawer"><div class="hm-ch"><div><h3>تخصيص الرئيسية</h3><p>${P.nm} · ${P.n}</p></div><button class="icon-btn" data-hc-x>${X("x")}</button></div>
  <div class="hm-cseg"><button class="${HCMODE==="me"?"on":""}" data-hcmode="me">رئيسيتي أنا</button><button class="${HCMODE==="role"?"on":""}" data-hcmode="role">الترتيب الافتراضي ${TAG("n","مدير النظام")}</button></div>
@@ -4649,8 +4650,8 @@ const todoCard=P=>{
  <div class="hm-tf"><a href="#" data-go="${tab==="me"?"tcMy":"tcTeam"}">${tab==="me"?X("sun")+"كل مهامي في «يومي»":X("users")+"متابعة الفريق"}</a></div></div>`;
 };
 
-const pulseCard=k=>{const m=MODS[k],p=PULSE[k];return `<div class="card hm-pc ${p.st}"><div class="ph"><span class="ni n">${X(m.i)}</span><b>${m.n}</b>${TAG(p.st,p.st==="r"?"محتاج تدخل":p.st==="a"?"متابعة":"تمام")}<a href="#" data-go="${p.go}" title="افتح ${p.gl}">${X("arrow-up-left")}</a></div>
- <p class="pv">${p.v}</p><div class="pf">${p.f.map(f=>`<div><small>${f[0]}</small><b class="num ${f[2]}">${f[1]}</b></div>`).join("")}</div></div>`};
+const pulseCard=k=>{const m=MODS[k],p=PULSE[k];return `<div class="card hm-pc ${p.st}" data-go="${p.go}" role="link"><div class="ph"><span class="ni n">${X(m.i)}</span><b>${m.n}</b>${TAG(p.st,p.st==="r"?"محتاج تدخل":p.st==="a"?"متابعة":"تمام")}${X("arrow-up-left")}</div>
+ <p class="pv">${p.v}</p><div class="pf">${p.f.map(f=>`<div><small>${f[0]}</small><b class="num ${f[2]}">${f[1]}</b></div>`).join("")}</div><span class="po">افتح ${p.gl}${X("arrow-left")}</span></div>`};
 
 const grid=ids=>{const h=ids.map(id=>W[id][3]());const half=h.map((x,i)=>x.includes("hm-w wide")?-1:i).filter(i=>i>-1);if(half.length%2)h[half[half.length-1]]=h[half[half.length-1]].replace("hm-w ","hm-w wide ");return `<div class="hm-grid">${h.join("")}</div>`};
 const secHead=(icon,title,sub,go,gl)=>`<div class="hm-sec"><span class="ni n">${X(icon)}</span><div><h2>${title}</h2><small>${sub}</small></div>${go?`<a href="#" class="btn btn-ghost sm" data-go="${go}">${gl}${X("arrow-left")}</a>`:""}</div>`;
@@ -4659,20 +4660,31 @@ S.dashboard=()=>{
  const P=P_(),many=P.mods.length>2,self=P.mods[0]==="self";
  const hi=new Date().getHours()<12?"صباح الخير":"مساء الخير";
  const pv=`<div class="hm-pvw"><button class="hm-pvb" data-hpv="1">${X("eye")}<span>معاينة كـ: <b>${P.nm}</b> · ${P.n}</span>${X("chevron-down")}</button>${HPV?`<div class="hm-pvm">${Object.keys(ROLES).map(k=>{const r=ROLES[k];return `<button class="${k===PERSONA?"on":""}" data-persona="${k}"><span class="av">${r.av}</span><span><b>${r.nm} · ${r.n}</b><small>${r.mods.map(m=>MODS[m].n).join("، ")}${r.sup?" · مشرف":""}</small></span></button>`}).join("")}</div>`:""}</div>`;
- const one=P.mods.length===1;
- const details=P.sec.map((s,i)=>(one&&i===0?"":secHead(MODS[s[0]].i,secName(s),s[2]?"التفاصيل":"حسب صلاحياتك في "+MODS[s[0]].n,PULSE[s[0]].go,PULSE[s[0]].gl))+grid(s[1])).join("");
+ const details=P.sec.map(s=>secHead(MODS[s[0]].i,secName(s),"","","")+grid(s[1])).join("");
  const pulse=`<div class="hm-pulse ${P.mods.length===1?"one":""}">${P.mods.map(pulseCard).join("")}</div>`;
  return `
  <div class="hm-head"><div><small>${hi} يا ${P.nm} · الاثنين 16 نوفمبر · محدّث 10:24</small><h1>${self?"يومك":many?"الشركة النهارده":"شغلك النهارده"}</h1></div>
   <div class="hm-ha">${pv}${many?`<button class="pill">${X("building-2")}<span>كل الفروع</span>${X("chevron-down")}</button>`:""}${B("ghost sm","layout-grid","تخصيص",'data-hcust="1"')}<button class="icon-btn hm-ib ${HIDEA?"on":""}" data-hidea="1" title="ليه الشكل ده؟">${X("lightbulb")}</button></div></div>
- ${HIDEA?IDEA("بدل ما الرئيسية تبقى أرقام وإحصائيات، بقت إجابة على سؤالين: «الشغل ماشي إزاي؟» و«إيه المطلوب مني؟». كل إدارة ليك صلاحيتها بتكتب لك جملة واحدة عن حالها، وجنبها 3 أرقام، ونفس الأرقام دي هي اللي في لوحتها. يعني رقم المالية هنا هو هو رقم لوحة المالية، عشان مفيش رقمين مختلفين لنفس الحاجة. وعلى الجنب «مطلوب منك»: المسند ليك بالاسم، ولو إنت مشرف بتشوف متأخرات فريقك. التفاصيل والرسوم البيانية بعد كده لمن يحب يتعمق."):""}
- <div class="hm-main"><div>${secHead(self?"user-round":"activity",self?"إنت فين النهارده؟":"الشغل ماشي إزاي؟",self?"حضورك وإجازاتك وراتبك":"جملة واحدة لكل إدارة من اللي ليك صلاحيتها","","")}${pulse}${one?`<div class="hm-in">${details}</div>`:""}</div><aside>${todoCard(P)}</aside></div>
- ${one?"":details}
- ${self?"":secHead("bell-dot","للمتابعة","الجديد من آخر دخول، والتقارير اللي تخصك","","")+`<div class="hm-grid">${W.news[3]()}${W.reps[3]()}</div>`}
- ${P.mods.includes("fin")?`<div class="hm-ana ${HANA?"open":""}"><button data-hana="1">${X("bar-chart-3")}<span><b>التحليل</b><small>الإيرادات والمصروفات آخر 6 شهور، وتوزيع الإيرادات</small></span>${X(HANA?"chevron-up":"chevron-down")}</button>${HANA?W.fin[3]():""}</div>`:""}
+ ${HIDEA?IDEA("الرئيسية عامة ومش تبع موديول. بتجاوب على سؤالين: «الشغل ماشي إزاي؟» و«إيه المطلوب مني؟». كل إدارة ليك صلاحيتها بتكتب لك جملة واحدة عن حالها وجنبها 3 أرقام، وهي نفس أرقام لوحة الإدارة دي. ولو عايز التفاصيل (مراحل العقود، التأخيرات، المكاتب، الفلوس) بتدوس على الكارت وتروح للوحة الإدارة نفسها: لوحة الاستقدام، لوحة المالية، لوحة الموارد… كده الرئيسية ما بتتملاش بتفاصيل موديول واحد."):""}
+ <div class="hm-main"><div>${secHead(self?"user-round":"activity",self?"إنت فين النهارده؟":"الشغل ماشي إزاي؟",self?"حضورك وإجازاتك وراتبك":"جملة واحدة لكل إدارة من اللي ليك صلاحيتها، ودوس على الكارت عشان تروح للوحتها","","")}${pulse}
+  ${self?`<div class="hm-in">${details}</div>`:`${secHead("bell-dot","للمتابعة","الجديد من آخر دخول، والتقارير اللي تخصك","","")}<div class="hm-grid">${W.news[3]()}${W.reps[3]()}</div>`}</div>
+  <aside>${todoCard(P)}</aside></div>
  ${HCUST?custPanel():""}`;
 };
 
+/* ---------------- لوحة الاستقدام (admin/dashboard-new + v2/home: the recruitment blocks, each once) ---------------- */
+S.recDash=()=>`
+ ${HEAD("لوحة الاستقدام","العقود والطلبات والمكاتب الخارجية والوصول · محدّث 10:24",`<button class="pill">${X("building-2")}<span>كل الفروع</span>${X("chevron-down")}</button>`+B("ghost","shopping-cart","الطلبات",'data-go="orders"')+B("primary","plus","عقد جديد",'data-go="contractAdd"'))}
+ ${IDEA("كل اللي يخص الاستقدام بقى هنا، والرئيسية فيها جملة واحدة عنه بس. في ClickERP مراحل العقود كانت بتتكرر 3 مرات في نفس الشاشة، وساعات بأرقام مختلفة. هنا بتظهر مرة واحدة في «مسار العقود»، وكل مرحلة جنبها عدد المتأخر فيها، وبعدها «التأخيرات» بتقول المتأخر عند مين.")}
+ <div class="card rd-verdict"><p><b class="num">38</b> عقد استقدام شغالين، و<b class="num r">18</b> منهم عدّوا المدة المسموحة لمرحلتهم: <b class="num">11</b> عند المكاتب الخارجية و<b class="num">7</b> عند موظفينا. أغلب التأخير في مرحلة التذاكر.</p>
+  <div class="rd-k">${[["file-text","تحت التشغيل","38","9 جديدة هذا الشهر","","contracts"],["timer-off","متأخرة عن مدتها","18","11 عند المكاتب","r","contracts"],["plane-landing","وصول هذا الأسبوع","4","2 النهارده","","trips"],["shield-check","تحت الضمان","2","ينتهي خلال 90 يوم","","contracts"]].map(k=>`<a href="#" data-go="${k[5]}" class="${k[4]}"><small>${X(k[0])}${k[1]}</small><b class="num">${k[2]}</b><span>${k[3]}</span></a>`).join("")}</div></div>
+ <div class="hm-grid rd-grid">${W.pipe[3]()}${W.delays[3]()}
+  ${card("طلبات الاستقدام (الحجوزات)","هذا الشهر",`<div class="hm-mini">${[["جديدة",7,"a"],["تحت الإجراء",13,"n"],["مكتملة",96,"g"],["ملغاة",5,"r"]].map(x=>`<div class="${x[2]}"><b class="num">${x[1]}</b><small>${x[0]}</small></div>`).join("")}</div>
+   <div class="hm-list">${[["ORD-0431 · عبدالله السبيعي","عاملة منزلية · الفلبين · الدفعة الأولى وصلت","a","مستني العقد"],["ORD-0428 · نورة الحربي","طباخة · إندونيسيا · محتاجة ترشيح سير","n","ترشيح"]].map(x=>`<div><b>${x[0]}<small>${x[1]}</small></b>${TAG(x[2],x[3])}</div>`).join("")}</div>`,more("orders","كل الطلبات"),"wide")}
+  ${card("الوصول والرحلات","الأسبوع ده",`<div class="hm-list">${[["plane-landing","SV-872 · النهارده 4:30 م","عاملتين · PLATINUM BROTHERS","g","مؤكدة"],["plane-landing","EK-819 · الأربعاء 11:10 ص","سائق خاص · Supreme Link","a","بدون تأكيد حجز"],["plane-takeoff","ترحيل · الخميس","عاملة واحدة · مرحلة الترحيل","n","ترحيل"]].map(x=>`<div><span class="ni ${x[3]==="g"?"g":x[3]==="a"?"a":"n"}">${X(x[0])}</span><b>${x[1]}<small>${x[2]}</small></b>${TAG(x[3],x[4])}</div>`).join("")}</div>`,more("trips","الرحلات"))}
+  ${W.housing[3]()}
+  ${W.ext[3]().replace("hm-w ","hm-w wide ")}
+ </div>`;
 /* ---------------- Reports centre ---------------- */
 let RCTAB="all",RCSCHED=false,RCSAVE=false;
 /* catalogue — names from ReportExportService::definitions() + finance/HR/visa packages */
@@ -4801,8 +4813,11 @@ document.addEventListener("click",e=>{
  if(hit){e.preventDefault();e.stopImmediatePropagation();render()}
 },true);
 
-Object.assign(T,{dashboard:{ar:"الرئيسية",en:"Home"},reports:{ar:"مركز التقارير",en:"Reports centre"}});
+Object.assign(T,{dashboard:{ar:"الرئيسية",en:"Home"},reports:{ar:"مركز التقارير",en:"Reports centre"},recDash:{ar:"لوحة الاستقدام",en:"Recruitment dashboard"}});
+window.CERP_PAGES=(window.CERP_PAGES||[]).concat(["recDash"]);
 Object.keys(S).forEach(k=>{screens[k]=S[k]});
+/* لوحة المالية: «الملخص المالي التشغيلي» (in ClickERP it's a strip on finance.home linking to finance.operational-summary) */
+if(screens.finDash){const _fd=screens.finDash;screens.finDash=()=>_fd().replace('<div class="grid-2 wide-l">',W.opsum[3]()+'<div class="grid-2 wide-l">')}
 })();
 /* ===== multipage boot ===== */
 /* ===== v1.10 — Task center (مركز المهام) from ClickERP2 packages/hr task_center ===== */
