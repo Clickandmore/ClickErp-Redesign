@@ -494,6 +494,11 @@
       "title": "لوحة المالية"
     },
     {
+      "id": "finDashGen",
+      "file": "finDashGen.html",
+      "title": "لوحة المالية — نظام عام"
+    },
+    {
       "id": "finRequests",
       "file": "finRequests.html",
       "title": "الطلبات المالية"

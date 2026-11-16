@@ -3373,7 +3373,7 @@ const DEPTS=[
   A("setHome","layout-grid","كل الإعدادات","All settings"),A("setGeneral","sliders-horizontal","العامة","General"),A("coupons","ticket-percent","كوبونات الخصم","Coupons"),A("setSite","globe","موقع المكتب","Office website"),A("setRecruit","files","الاستقدام والسير","Recruitment & CVs"),A("setRental","repeat","التأجير","Rental"),
   A("setUsers","shield-check","المستخدمون والصلاحيات","Users & roles"),A("setBranches","git-branch","الفروع","Branches"),A("setLists","list","القوائم المرجعية","Reference lists"),A("setMessages","bell","الرسائل والإشعارات","Messages & notifications"),
   A("setIntegrations","plug","التكاملات","Integrations"),A("setImport","upload","استيراد البيانات","Data import"),A("setAi","sparkles","المساعد الذكي","AI assistant"),A("setSupport","life-buoy","الدعم","Support"),A("setDev","code","المطوّر (Super Admin)","Developer")]}];
-const SUBS={setDev:["saSubscription","saModules","saEmployees","saDesigns","saUpdates","saUpdateForm","saBackups","saScheduler","saRecovery","saInvoices","saInvoiceFix","saMcp","saMoyasar","saTestAccounts"],tcMy:["tcPolicy","tcClose"],tcBoard:["tcTask","tcForm","tcList","tcLanes","tcBoardD","tcCard","tcNew","tcCardQA","tcShare"],tcQA:["tcQALib"],tcAdmin:["tcRemind"],hrAttendance:["tcCheckin","tcGeo"],tcTeam:["tcMember","tcShots","tcSessions"],tcHours:["tcAttend"],tcSettings:["tcMigrate"],contracts:["contractShow","contractAdd","contractEdit"],cvs:["cvAdd","cvShow","cvEdit"],clients:["clientShow","clientAdd"],orders:["orderShow"],
+const SUBS={finDash:["finDashGen"],setDev:["saSubscription","saModules","saEmployees","saDesigns","saUpdates","saUpdateForm","saBackups","saScheduler","saRecovery","saInvoices","saInvoiceFix","saMcp","saMoyasar","saTestAccounts"],tcMy:["tcPolicy","tcClose"],tcBoard:["tcTask","tcForm","tcList","tcLanes","tcBoardD","tcCard","tcNew","tcCardQA","tcShare"],tcQA:["tcQALib"],tcAdmin:["tcRemind"],hrAttendance:["tcCheckin","tcGeo"],tcTeam:["tcMember","tcShots","tcSessions"],tcHours:["tcAttend"],tcSettings:["tcMigrate"],contracts:["contractShow","contractAdd","contractEdit"],cvs:["cvAdd","cvShow","cvEdit"],clients:["clientShow","clientAdd"],orders:["orderShow"],
  rental:["rentalShow","rentalAdd"],housing:["housingShow","housingAdd"],transfer:["transferShow","transferAdd"],
  reports:["report"],finSales:["finSaleAdd","finBonds","finReturns"],finBanks:["finBoxes","finTransfers","finChecksIn","finChecksOut"],finClients:["finSuppliers","finAgents"],
  finCenters:["finCentersTree"],finReports:["finReport"],finItems:["finStock","finInventory"],finEntries:["finAdd","finShow"],finAccounts:["finSettings"],clArchive:[],delegations:["delAdd","delShow"],trips:["tripShow"],agents:["agentShow"],"hb-board":["hbNew"],"hb-visits":["hbVisit"],coupons:["couponForm","couponShow","couponBulk","couponReport","couponSettings"],claims:["claimAdd","claimShow","claimTypes"],absconding:["abscShow"],campaigns:["campaignNew"],finRequests:["finRequestAdd","finRequestShow"],finAssets:["finAssetShow"],finCommissions:["finCommissionShow","finCommissionRules"],finTax:["finZatca"],hrEmployees:["hrEmployeeShow","hrEmployeeAdd"],hrPayroll:["hrPayrollRun"],setUsers:["setRoles"],visaRequests:["visaAdd","visaShow"]};
@@ -5468,8 +5468,152 @@ document.addEventListener("input",e=>{
 Object.assign(T,{dashboard:{ar:"الرئيسية",en:"Home"},reports:{ar:"مركز التقارير",en:"Reports centre"},recDash:{ar:"لوحة الاستقدام",en:"Recruitment dashboard"}});
 window.CERP_PAGES=(window.CERP_PAGES||[]).concat(["recDash"]);
 Object.keys(S).forEach(k=>{screens[k]=S[k]});
-/* لوحة المالية: «الملخص المالي التشغيلي» (in ClickERP it's a strip on finance.home linking to finance.operational-summary) */
-if(screens.finDash){const _fd=screens.finDash;screens.finDash=()=>_fd().replace('<div class="grid-2 wide-l">',W.opsum[3]()+'<div class="grid-2 wide-l">')}
+/* ===== v1.31 — لوحة المالية: نسختين حسب نوع البرنامج =====
+   finDash    = نظام الاستقدام: FV/home.blade.php + الملخص المالي التشغيلي (OperationalSummaryService::report/headline)
+                — المبيعات حسب النشاط، الذمم وأعمارها لكل نشاط، التكاليف البنكية لمساند، التفاويض الرجالية، استحقاقات المكاتب الخارجية.
+   finDashGen = نظام عام: نفس home.blade.php من غير القسم التشغيلي (@if SystemModuleManager::isEnabled('operations'))
+                + الحركة اليومية 14 يوم (financeDailyChart) + المتوقع مقابل الفعلي (PerformanceDashboardController) + ضريبة/شيكات/مخزون.
+   الأرقام نفس الرئيسية وتقارير v1.29: نوفمبر 412,800 / 326,400 / +86,400 · السيولة 612,300 · العملاء 184,600 · المكاتب 96,750 */
+{
+const fN=v=>Math.round(v).toLocaleString("en-US");
+const fS=v=>(v>0?"+":v<0?"−":"")+fN(Math.abs(v));
+const CUR=`<small class="cur">ر.س</small>`;
+const MON=["ديس","ينا","فبر","مار","أبر","ماي","يون","يول","أغس","سبت","أكت","نوف"];
+const REVM=[298000,268000,281000,276000,305000,322000,330000,318000,361000,372000,388000,412800];
+const EXPM=[241000,231000,238000,242000,259000,268000,276000,270000,288000,290000,301000,326400];
+const BANKS_=[["مصرف الراجحي","جاري · ••4410",284500],["البنك الأهلي","جاري · ••0921",176200],["بنك الرياض","حساب مساند · ••7713",92600],["الخزنة الرئيسية","نقدي",41000],["خزنة فرع جدة","نقدي",18000]];
+
+/* program-type switch (SuperAdmin «نوع البرنامج»: نظام الاستقدام / نظام عام) */
+const MODE=on=>`<div class="fd-mode" role="tablist" aria-label="نوع البرنامج"><span>${X("layers")}شكل اللوحة حسب نوع البرنامج</span>${[["finDash","نظام الاستقدام"],["finDashGen","نظام عام"]].map(m=>`<a href="#" role="tab" data-go="${m[0]}" class="${m[0]===on?"on":""}"${m[0]===on?' aria-selected="true"':""}>${m[1]}</a>`).join("")}</div>`;
+const PIPE=(items,seps)=>`<div class="fd-pipe">${items.map((x,i)=>`<div class="${x[2]}"><small>${x[0]}</small><b class="num">${x[1]}</b></div>`+(i<items.length-1?`<i class="op">${seps[i]}</i>`:"")).join("")}</div>`;
+const SECH=(n,ic,title,sub,link)=>`<div class="fd-sh"><span class="fd-shn num">${n}</span><div><h2>${title}</h2><p>${sub}</p></div>${link||""}</div>`;
+const RK=(k,txt)=>`<button class="btn btn-ghost sm" data-rkey="${k}">${txt}${X("chevron-left")}</button>`;
+const KPI=(ic,label,v,sub,cls,delta,rk)=>`<div class="card fd-kpi ${cls||""}"${rk?` data-rkey="${rk}" role="button" tabindex="0"`:""}><div class="fd-kl">${X(ic)}<span>${label}</span>${delta?`<em class="${delta[1]}">${delta[0]}</em>`:""}</div><div class="fd-kv"><b class="num">${v}</b>${CUR}</div><small>${sub}</small></div>`;
+const LIST=(rows,max)=>`<div class="fd-list">${rows.map(r=>`<div class="fd-li"${r[4]?` data-rkey="${r[4]}" role="button" tabindex="0"`:""}><div class="fd-lt"><b title="${r[0]}">${r[0]}</b><small>${r[1]}</small></div><b class="num ${r[3]||""}">${fN(r[2])}</b><span class="fd-track"><i style="width:${Math.max(3,Math.round(r[2]/max*100))}%"></i></span></div>`).join("")}</div>`;
+const card2=(title,sub,inner,extra,cls)=>`<div class="card flush fd-c ${cls||""}"><div class="card-h pad"><div><h3>${title}</h3><p>${sub}</p></div>${extra||""}</div>${inner}</div>`;
+
+/* monthly income vs expenses: current month outlined, values on hover */
+const PERF=()=>{const mx=Math.max(...REVM,...EXPM)*1.08;
+ return `<div class="fd-bars" role="img" aria-label="الإيرادات والمصروفات آخر 12 شهر">${MON.map((m,i)=>`<div class="fd-bc${i===11?" now":""}" title="${m}: إيرادات ${fN(REVM[i])} · مصروفات ${fN(EXPM[i])} · صافي ${fS(REVM[i]-EXPM[i])}"><div class="fd-bp"><i class="in" style="height:${REVM[i]/mx*100}%"></i><i class="out" style="height:${EXPM[i]/mx*100}%"></i></div><small>${m}</small></div>`).join("")}</div>
+ <div class="fd-leg"><span><i class="in"></i>الإيرادات</span><span><i class="out"></i>المصروفات</span><span class="fd-leg-n">الشهر الحالي محدد بإطار · مرّر على أي شهر تشوف أرقامه</span></div>
+ <div class="fd-mini">${[["إيرادات الشهر","412,800","↑ 12% عن أكتوبر","g"],["مصروفات الشهر","326,400","↑ 8% عن أكتوبر","a"],["صافي الشهر","+86,400","هامش 20.9%","g"],["نتيجة اليوم","+6,120","14 قيد معتمد",""]].map(m=>`<div><small>${m[0]}</small><b class="num">${m[1]}</b><em class="${m[3]}">${m[2]}</em></div>`).join("")}</div>`};
+
+const ENTRIES=(rows)=>card2("أحدث القيود المعتمدة",`14 قيد النهارده · <a href="#" data-go="finEntries">3 قيود معلّقة محتاجة مراجعة</a>`,`<div class="tw"><table><thead><tr><th>القيد</th><th>البيان</th><th>المصدر</th><th>المبلغ</th><th>بواسطة</th><th>الوقت</th></tr></thead><tbody>
+ ${rows.map(r=>`<tr><td class="num"><b>${r[0]}</b></td><td>${r[1]}</td><td>${TAG("n",r[2])}</td><td class="num"><b>${r[3]}</b></td><td>${r[4]}</td><td class="num">${r[5]}</td></tr>`).join("")}</tbody></table></div>`,more("finEntries","كل القيود"));
+
+const IO=(rows)=>`<div class="fd-io">${rows.map(m=>`<div class="${m[2]}">${X(m[3])}<small>${m[0]}</small><b class="num">${m[1]}</b></div>`).join("")}</div>`;
+
+/* ---------- recruitment: operational summary data (YTD 1 Jan → today) ---------- */
+const ACT=[["rental","تأجير",1120400,"#16233f"],["recruitment","استقدام",1402600,"#7ab648"],["delegations","تفاويض رجالية",186300,"#c8862a"],["sponsorship","نقل كفالة",137000,"#8fa0ba"]];
+const W11=[.82,.86,.84,.9,.93,.95,.92,1.02,1.05,1.1,1.16];
+const ACTM=ACT.map((a,ai)=>{const w=W11.map((x,i)=>x*(1+((i*7+ai*3)%5-2)*.025));const s=w.reduce((p,x)=>p+x,0);const out=w.map(x=>Math.round(a[2]*x/s/50)*50);out[10]+=a[2]-out.reduce((p,x)=>p+x,0);return out});
+const RECV=[["recruitment","فواتير الاستقدام غير المحصّلة",112400,[58300,27600,16300,10200],"9 فواتير · 7 عملاء",112,"client-trial-balance"],
+ ["rental","عملاء عقود التأجير — مفوترون ولم يسددوا",58950,[31600,13100,8850,5400],"14 مستند · 11 عميل",96,"client-trial-balance"],
+ ["sponsorship","فواتير نقل الكفالة غير المحصّلة",13250,[8500,3200,950,600],"3 فواتير · 3 عملاء",104,"client-trial-balance"]];
+const AGE=["حتى 30 يوم","31–60","61–90","+90"];
+const OFF=[["PLATINUM BROTHERS","الفلبين",32600,0,18,"45 يوم"],["Al Noor Manpower","إثيوبيا",24150,0,14,"12 يوم"],["Supreme Link Ltd","أوغندا",21800,0,9,"112 يوم"],["Gulf Bridge Agency","بنغلاديش",18200,0,11,"8 أيام"],["Jakarta Care Agency","إندونيسيا",0,6400,9,"21 يوم"]];
+
+const salesChart=()=>{const tot=W11.map((_,i)=>ACTM.reduce((p,a)=>p+a[i],0));const mx=Math.max(...tot)*1.06;
+ return `<div class="fd-stk" role="img" aria-label="المبيعات الشهرية حسب النشاط">${MON.slice(1).map((m,i)=>`<div class="fd-sc${i===10?" now":""}" title="${m}: ${ACT.map((a,ai)=>`${a[1]} ${fN(ACTM[ai][i])}`).join(" · ")} — الإجمالي ${fN(tot[i])}"><div class="fd-sp">${ACT.map((a,ai)=>`<i style="height:${ACTM[ai][i]/mx*100}%;background:${a[3]}"></i>`).join("")}</div><small>${m}</small></div>`).join("")}</div>
+ <div class="fd-acts">${ACT.map(a=>`<div><i style="background:${a[3]}"></i><span>${a[1]}</span><b class="num">${fN(a[2])}</b><small class="num">${(a[2]/2846300*100).toFixed(1)}%</small></div>`).join("")}</div>`};
+
+S.finDash=()=>`
+ ${HEAD("لوحة المالية","المركز المالي والتشغيلي · محدّث حتى اليوم 10:24",B("ghost","file-plus-2","قيد يومية",'data-go="finAdd"')+B("ghost","arrow-down-left","سند قبض")+B("primary","arrow-up-right","سند صرف"))}
+ ${MODE("finDash")}
+ <div class="fx-hero card"><div class="fx-hero-t"><small>نوفمبر لحد النهارده</small><h2>المكتب كسبان <b class="num g">+86,400 ر.س</b> بعد المصروفات، والسيولة المتاحة تكفي <b>~ 2.4 شهر</b> تشغيل.</h2><p>من أول السنة فوترنا <b class="num">2,846,300</b> وحصّلنا <b class="num">93.5%</b> منها. لسه عند العملاء <b class="num">184,600 ر.س</b> (أغلبها فواتير استقدام)، وعلينا للمكاتب الخارجية <b class="num">96,750 ر.س</b>.</p></div>
+  <div class="fx-todo"><b>محتاج منك النهارده</b>${[["inbox","a","5 طلبات مالية بانتظار اعتمادك","finRequests"],["landmark","r","3 حوالات مساند لسه ما اترحّلتش بنكياً — 52,800 ر.س","#musaned"],["file-clock","a","4 قيود تكلفة تفاويض مش معتمدة — الصافي باين أعلى من حقيقته","#deleg"],["globe","r","مستحقات PLATINUM BROTHERS بقالها 45 يوم — 32,600 ر.س","#offices"],["alarm-clock","n","7 فواتير عملاء متأخرة أكتر من 30 يوم","#recv"]].map(t=>`<a href="#" ${t[3][0]==="#"?`data-fdjump="${t[3].slice(1)}"`:`data-go="${t[3]}"`} class="${t[1]}">${X(t[0])}<span>${t[2]}</span>${X("chevron-left")}</a>`).join("")}</div></div>
+ <div class="fd-kpis">
+  ${KPI("wallet","السيولة المتاحة","612,300","في 6 حسابات بنكية ونقدية","",null,"treasury-and-banks-balances")}
+  ${KPI("user-clock","ذمم العملاء","184,600","على 21 عميل · أقدم دين 112 يوم","r",["↑ 4%","r"],"client-trial-balance")}
+  ${KPI("globe","مستحقات المكاتب الخارجية","96,750","لـ 4 مكاتب · مدفوع مقدماً 6,400","a",null,"suppliers-balances")}
+  ${KPI("trending-up","نتيجة الشهر","+86,400","من 214 قيد معتمد","g",["↑ 18%","g"],"incomeList")}
+ </div>
+
+ ${SECH(1,"chart-pie","الملخص المالي التشغيلي","من أول السنة لحد النهارده · مبني على الفواتير وتاريخ إصدارها، مش على قيود الإيراد",`<button class="btn btn-ghost sm" data-go="finReports">${X("file-spreadsheet")}التقرير كامل</button>`)}
+ <div class="card fd-flow">${[["بعنا","2,846,300","قيمة فواتير الفترة · 1,214 فاتورة",""],["حصّلنا","2,661,700","93.5% من المبيعات","g"],["لسه عند العملاء","184,600","26 مستند · أقدم دين 112 يوم","r"],["علينا للمكاتب","96,750","رصيد حسابات 4 مكاتب في الأستاذ","a"]].map((x,i)=>`<div class="${x[3]}"><small>${x[0]}</small><b class="num">${x[1]}</b><span>${x[2]}</span></div>${i<3?`<i>${X("chevron-left")}</i>`:""}`).join("")}
+  <div class="fd-rate"><span>نسبة التحصيل</span><span class="fd-track"><i style="width:93.5%"></i></span><b class="num">93.5%</b></div></div>
+ <div class="fd-g2">
+  ${card2("المبيعات حسب النشاط","قيمة الفواتير الصادرة كل شهر — تأجير، استقدام، تفاويض، نقل كفالة",salesChart(),RK("sales-analysis","تحليل المبيعات"))}
+  <div id="fd-recv">${card2("الذمم حسب النشاط","مين عليه فلوس، من أنهي نشاط، ومن إمتى",`<div class="fd-recv">${RECV.map(r=>`<div class="fd-rv" data-rkey="${r[6]}" role="button" tabindex="0"><div class="fd-rvh"><div><b>${r[1]}</b><small>${r[4]} · أقدم دين <span class="num">${r[5]}</span> يوم</small></div><b class="num">${fN(r[2])}</b></div><div class="fd-age">${r[3].map((v,i)=>`<i class="a${i}" style="flex:${v}" title="${AGE[i]}: ${fN(v)}"></i>`).join("")}</div></div>`).join("")}
+   <div class="fd-agel">${AGE.map((a,i)=>`<span><i class="a${i}"></i>${a} <b class="num">${fN(RECV.reduce((p,r)=>p+r[3][i],0))}</b></span>`).join("")}</div></div>`,RK("client-trial-balance","ميزان العملاء"))}</div>
+ </div>
+ <div class="fd-g3">
+  <div id="fd-musaned">${card2("التكاليف البنكية لمساند","اللي دفعه العميل عبر مساند، واللي وصلنا، والمحتجز",`
+   ${PIPE([["دفع العميل","1,689,600",""],["المحوّل إلينا","1,681,150","g"]],[X("arrow-left")])}
+   <div class="fd-kvs">${[["الحوالات / العقود","96 / 96"],["التكاليف البنكية قبل الضريبة","8,450"],["ضريبة المصروف","1,268"],["صافي التكاليف البنكية","7,182"],["نسبة التكاليف البنكية","0.50%"]].map(k=>`<div><span>${k[0]}</span><b class="num">${k[1]}</b></div>`).join("")}</div>
+   <div class="fd-warn r">${X("triangle-alert")}<span><b class="num">3</b> حوالات غير مرحّلة بنكياً بقيمة <b class="num">52,800 ر.س</b> — قيد التحويل البنكي لسه ما اتعملش.</span></div>`,`<button class="btn btn-ghost sm">ترحيل</button>`)}</div>
+  <div id="fd-deleg">${card2("التفاويض الرجالية","تفاويض الإنجاز للعمالة الرجالية: الإيراد من الفاتورة، والتكلفة من القيد المعتمد",`
+   ${PIPE([["الإيراد","186,300",""],["التكلفة المعتمدة","121,650","a"],["الصافي","64,650","g"]],["−","="])}
+   <div class="fd-kvs">${[["عدد التفاويض","69"],["متوسط الإيراد للتفويض","2,700"],["هامش التفاويض","34.7%"]].map(k=>`<div><span>${k[0]}</span><b class="num">${k[1]}</b></div>`).join("")}</div>
+   ${LIST([["سائق خاص","31 تفويض","83,700"],["عامل منزلي","22 تفويض","59,400"],["حارس","9 تفاويض","24,300"],["مزارع","7 تفاويض","18,900"]].map(r=>[r[0],r[1],+r[2].replace(/,/g,"")]),83700)}
+   <div class="fd-warn a">${X("file-clock")}<span><b class="num">4</b> قيود تكلفة غير معتمدة (<b class="num">7,200 ر.س</b>) — الصافي باين أعلى من حقيقته لحد ما تتعتمد.</span></div>`,RK("profitability","الربحية"))}</div>
+  <div id="fd-offices">${card2("استحقاقات المكاتب الخارجية","رصيد حساب كل مكتب في الأستاذ (دائن − مدين) ونشاط الفترة",`
+   <div class="fd-offs">${OFF.map(o=>`<div class="fd-off" data-rkey="suppliers-balances" role="button" tabindex="0"><div><b title="${o[0]}">${o[0]}</b><small>${o[1]} · ${o[4]} عقد هذه السنة · آخر إرسال من ${o[5]}</small></div>${o[2]?`<b class="num a">${fN(o[2])}</b>`:`<span class="fd-pre"><b class="num">${fN(o[3])}</b><small>مدفوع مقدماً</small></span>`}</div>`).join("")}</div>
+   <div class="fd-tot"><span>المستحق للمكاتب</span><b class="num">96,750 ر.س</b><span class="sub">تكلفة عقود السنة <b class="num">$ 158,400</b> · 61 عقد</span></div>
+   <div class="fd-warn n">${X("unlink")}<span>مكتبين من غير حساب مالي مرتبط — رصيدهم مش داخل في الرقم ده. <a href="#" data-go="agents">اربطهم</a></span></div>`,RK("suppliers-balances","أرصدة الوكلاء"))}</div>
+ </div>
+
+ ${SECH(2,"book-open","الدفاتر — الشهر ده","من القيود المعتمدة في الأستاذ: الإيراد والمصروف، والفلوس فين، ومين عليه")}
+ <div class="fd-g2 wide">
+  ${card2("الأداء المالي الشهري","الإيرادات مقابل المصروفات — آخر 12 شهر",PERF(),RK("incomeList","قائمة الدخل"))}
+  ${card2("فين الفلوس؟","612,300 ر.س في البنوك والخزن",LIST(BANKS_.map(b=>[b[0],b[1],b[2],"","treasury-and-banks-balances"]),284500),RK("treasury-and-banks-balances","البنوك والخزن"))}
+ </div>
+ <div class="fd-g3">
+  ${card2("أكبر أرصدة العملاء","اللي عليهم أكتر",LIST([["شركة نجد للمقاولات","استقدام · 3 فواتير · أقدمها 74 يوم",42300,"r"],["فهد العتيبي","تأجير · INV-9919 · 38 يوم",19200],["هيا العنزي","استقدام · فاتورة واحدة · 33 يوم",15900],["نورة الحربي","استقدام · CN-0597 · 21 يوم",12400],["عبدالله الدوسري","نقل كفالة · 2 فاتورة",9250]].map(r=>[...r.slice(0,4),"client-trial-balance"]),42300),RK("client-trial-balance","كل العملاء"))}
+  ${card2("التحصيل والمدفوعات","حركة السندات — مش إيراد ولا مصروف",IO([["تحصيل اليوم","24,300","g","arrow-down-left"],["مدفوعات اليوم","8,900","a","arrow-up-right"],["تحصيل الشهر","356,100","g","arrow-down-left"],["مدفوعات الشهر","271,700","a","arrow-up-right"]]),more("finBonds","حركة النقدية"))}
+  ${card2("فواتير الشهر حسب النشاط","نوفمبر · قبل الضريبة",LIST([["استقدام","38 فاتورة",286400],["تأجير","27 فاتورة",98150],["نقل كفالة","9 فواتير",28250]].map(r=>[...r,"","bill-sales-report"]),286400),RK("bill-sales-report","فواتير المبيعات"))}
+ </div>
+ ${ENTRIES([["JE-24118","تحصيل فاتورة INV-9921 — منيرة الشهري","سند قبض","9,250","سارة القحطاني","10:12"],["JE-24117","سداد مساند — طلب FR-0412","طلب مالي","2,875","خالد المطيري","09:40"],["JE-24116","تكلفة تفويض — DL-0040","تفاويض","1,750","آلي","09:02"],["JE-24115","حوالة PLATINUM BROTHERS — دفعة نوفمبر","مكاتب خارجية","18,000","خالد المطيري","08:30"],["JE-24114","إهلاك شهري — أصول نوفمبر","إهلاك","4,120","آلي","08:00"]])}`;
+
+/* ---------- general system ---------- */
+const DAYS=["3","4","5","6","7","8","9","10","11","12","13","14","15","16"];
+const DIN=[18200,22400,9800,0,26100,19400,24800,21300,17600,0,23900,28400,19700,24300];
+const DOUT=[12600,8400,15200,0,9800,21300,7600,11800,9400,0,14100,8800,16300,8900];
+const daily=()=>{const mx=Math.max(...DIN,...DOUT)*1.1;return `<div class="fd-bars sm" role="img" aria-label="الحركة اليومية آخر 14 يوم">${DAYS.map((d,i)=>`<div class="fd-bc${i===13?" now":""}${!DIN[i]&&!DOUT[i]?" off":""}" title="${d} نوفمبر: إيرادات ${fN(DIN[i])} · مصروفات ${fN(DOUT[i])}"><div class="fd-bp"><i class="in" style="height:${DIN[i]/mx*100}%"></i><i class="out" style="height:${DOUT[i]/mx*100}%"></i></div><small class="num">${d}</small></div>`).join("")}</div>
+ <div class="fd-leg"><span><i class="in"></i>الإيرادات</span><span><i class="out"></i>المصروفات</span><span class="fd-leg-n">الجمعة من غير حركة</span></div>
+ <div class="fd-mini two">${[["متوسط إيراد اليوم","19,700","أيام العمل بس"],["أعلى يوم","28,400","السبت 14 نوفمبر"]].map(m=>`<div><small>${m[0]}</small><b class="num">${m[1]}</b><em>${m[2]}</em></div>`).join("")}</div>`};
+const EXP_=[["الإيرادات المتكررة","اشتراكات وعقود صيانة شهرية",142000,128500],["المصروفات المتكررة","إيجار، رواتب، اشتراكات أنظمة",188000,191400]];
+
+S.finDashGen=()=>`
+ ${HEAD("لوحة المالية","المركز المالي · محدّث حتى اليوم 10:24",B("ghost","shopping-cart","المشتريات",'data-go="finPurchases"')+B("ghost","file-plus-2","قيد يومية",'data-go="finAdd"')+B("ghost","arrow-down-left","سند قبض")+B("primary","arrow-up-right","سند صرف"))}
+ ${MODE("finDashGen")}
+ <div class="fx-hero card"><div class="fx-hero-t"><small>نوفمبر لحد النهارده</small><h2>الشركة كسبانة <b class="num g">+86,400 ر.س</b> بعد المصروفات، والسيولة المتاحة تكفي <b>~ 2.4 شهر</b> تشغيل.</h2><p>الإيرادات أعلى من أكتوبر بـ <b class="num">12%</b> والمصروفات بـ <b class="num">8%</b>. لينا عند العملاء <b class="num">184,600 ر.س</b>، وعلينا للموردين <b class="num">96,750 ر.س</b>، وضريبة الربع الرابع المتوقعة <b class="num">39,690 ر.س</b>.</p></div>
+  <div class="fx-todo"><b>محتاج منك النهارده</b>${[["file-check","a","3 قيود معلّقة محتاجة مراجعة","finEntries"],["alarm-clock","r","7 فواتير عملاء متأخرة أكتر من 30 يوم","finClients"],["banknote","a","شيكين صادرين مستحقين الأسبوع ده — 27,300 ر.س","finChecksOut"],["package-x","n","6 أصناف تحت الحد الأدنى في المخزن","finStock"],["badge-check","n","إقرار ضريبة الربع الرابع قبل 31 يناير","finTax"]].map(t=>`<a href="#" data-go="${t[3]}" class="${t[1]}">${X(t[0])}<span>${t[2]}</span>${X("chevron-left")}</a>`).join("")}</div></div>
+ <div class="fd-kpis">
+  ${KPI("wallet","السيولة المتاحة","612,300","في 6 حسابات بنكية ونقدية","",null,"treasury-and-banks-balances")}
+  ${KPI("user-clock","ذمم العملاء","184,600","على 41 عميل · 7 فواتير متأخرة","r",["↑ 4%","r"],"client-trial-balance")}
+  ${KPI("truck","مستحقات الموردين","96,750","لـ 12 مورد · مقدمات 6,400","a",null,"suppliers-balances")}
+  ${KPI("trending-up","نتيجة الشهر","+86,400","من 214 قيد معتمد","g",["↑ 18%","g"],"incomeList")}
+ </div>
+ <div class="fd-g2 wide">
+  ${card2("الأداء المالي الشهري","الإيرادات والمصروفات المعترف بها — آخر 12 شهر",PERF(),RK("incomeList","قائمة الدخل"))}
+  ${card2("الحركة اليومية","آخر 14 يوم",daily())}
+ </div>
+ <div class="fd-g3">
+  ${card2("المبيعات والمشتريات","نوفمبر لحد النهارده",`<div class="fd-kvs big">${[["فواتير المبيعات","412,800","74 فاتورة"],["المشتريات","148,200","23 فاتورة"],["مرتجع المبيعات","6,350","3 إشعارات"],["مجمل الربح","258,250","62.6%"]].map(k=>`<div><span>${k[0]}<small>${k[2]}</small></span><b class="num">${k[1]}</b></div>`).join("")}</div>`,RK("sales-analysis","تحليل المبيعات"))}
+  ${card2("ضريبة القيمة المضافة","الربع الرابع · أكتوبر – ديسمبر",`${PIPE([["ضريبة المخرجات","61,920",""],["ضريبة المدخلات","22,230","a"],["الصافي المستحق","39,690","r"]],["−","="])}
+   <div class="fd-due">${X("calendar-clock")}<span>آخر موعد للإقرار <b class="num">31 يناير 2027</b> · باقي <b class="num">75</b> يوم</span></div>
+   <div class="fd-warn n">${X("badge-check")}<span>كل فواتير الربع اتبعتت لـ ZATCA ما عدا <b class="num">2</b>. <a href="#" data-go="finZatca">راجعهم</a></span></div>`,RK("tax-invoice-statement","بيان الفواتير الضريبية"))}
+  ${card2("الشيكات","المستحق خلال 7 أيام",`<div class="fd-chk">${[["arrow-down-left","g","واردة",3,"46,500","finChecksIn"],["arrow-up-right","a","صادرة",2,"27,300","finChecksOut"],["rotate-ccw","r","مرتجعة هذا الشهر",1,"8,000","finChecksIn"]].map(c=>`<a href="#" data-go="${c[5]}" class="${c[1]}">${X(c[0])}<span><b>${c[2]}</b><small class="num">${c[3]} شيك</small></span><b class="num">${c[4]}</b></a>`).join("")}</div>`,more("finChecksIn","كل الشيكات"))}
+ </div>
+ <div class="fd-g3">
+  ${card2("فين الفلوس؟","612,300 ر.س في البنوك والخزن",LIST(BANKS_.map(b=>[b[0],b[1].replace("حساب مساند","جاري"),b[2],"","treasury-and-banks-balances"]),284500),RK("treasury-and-banks-balances","البنوك والخزن"))}
+  ${card2("أكبر أرصدة العملاء","اللي عليهم أكتر",LIST([["شركة نجد للمقاولات","3 فواتير · أقدمها 74 يوم",42300,"r"],["مؤسسة الوفاء التجارية","INV-9919 · 38 يوم",19200],["شركة المدار للتجارة","فاتورة واحدة · 33 يوم",15900],["مجموعة السهم الطبية","فاتورتين · 21 يوم",12400],["مطاعم البيت الشامي","فاتورة جزئية",9250]].map(r=>[...r.slice(0,4),"client-trial-balance"]),42300),RK("client-trial-balance","كل العملاء"))}
+  ${card2("أكبر أرصدة الموردين","اللي لهم عندنا",LIST([["مؤسسة التوريدات الحديثة","مورد خامات · 30 يوم",32600],["شركة الأفق للتجهيزات","مورد معدات",24150],["مطبعة الجودة","مورد خدمات",21800],["شركة النقل السريع","شحن وتوصيل",18200]].map(r=>[...r,"","suppliers-balances"]),32600),RK("suppliers-balances","كل الموردين"))}
+ </div>
+ <div class="fd-g2">
+  ${card2("المتوقع مقابل الفعلي","البنود المتكررة لشهر نوفمبر — من لوحة متابعة الحسابات",`<div class="fd-exp">${EXP_.map((e,i)=>`<div><div class="fd-rvh"><div><b>${e[0]}</b><small>${e[1]}</small></div><b class="num ${i?"r":"g"}">${Math.round(e[3]/e[2]*100)}%</b></div><div class="fd-vs"><span class="fd-track"><i class="${i?"out":""}" style="width:${Math.min(100,e[3]/e[2]*100)}%"></i></span></div><small class="num">فعلي ${fN(e[3])} من متوقع ${fN(e[2])}${i?" · زيادة "+fN(e[3]-e[2]):" · باقي "+fN(e[2]-e[3])}</small></div>`).join("")}</div>`,RK("profitability","الربحية"))}
+  ${card2("المخزون","قيمة الأصناف في المخازن بالتكلفة",`<div class="fd-kvs big">${[["قيمة المخزون","318,400","3 مخازن · 412 صنف"],["تحت الحد الأدنى","6 أصناف","محتاجين أمر شراء"],["راكد +90 يوم","24,700","17 صنف"]].map(k=>`<div><span>${k[0]}<small>${k[2]}</small></span><b class="num">${k[1]}</b></div>`).join("")}</div>`,RK("store-balances","أرصدة المخازن"))}
+ </div>
+ ${ENTRIES([["JE-24118","تحصيل فاتورة INV-9921 — شركة المدار للتجارة","سند قبض","9,250","سارة القحطاني","10:12"],["JE-24117","فاتورة مشتريات PUR-0388 — مؤسسة التوريدات الحديثة","مشتريات","12,640","خالد المطيري","09:40"],["JE-24116","إيجار المستودع — نوفمبر","سند صرف","8,500","خالد المطيري","09:02"],["JE-24115","إهلاك شهري — أصول نوفمبر","إهلاك","4,120","آلي","08:00"]])}`;
+
+screens.finDash=S.finDash;screens.finDashGen=S.finDashGen;
+Object.assign(T,{finDashGen:{ar:"لوحة المالية — نظام عام",en:"Finance dashboard (general)"}});
+window.CERP_PAGES=(window.CERP_PAGES||[]).concat(["finDashGen"]);
+/* todo links that point inside the page scroll to their card */
+document.addEventListener("click",e=>{const j=e.target.closest("[data-fdjump]");if(!j)return;e.preventDefault();const t=document.getElementById("fd-"+j.dataset.fdjump);if(t){t.scrollIntoView({behavior:"smooth",block:"center"});t.classList.remove("fd-flash");void t.offsetWidth;t.classList.add("fd-flash")}});
+document.addEventListener("keydown",e=>{if((e.key==="Enter"||e.key===" ")&&e.target.matches&&e.target.matches('[data-rkey][role="button"]')){e.preventDefault();e.target.click()}});
+}
 })();
 /* ===== multipage boot ===== */
 /* ===== v1.10 — Task center (مركز المهام) from ClickERP2 packages/hr task_center ===== */

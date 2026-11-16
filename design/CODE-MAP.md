@@ -70,7 +70,8 @@
 
 | شاشتنا | الكود |
 |---|---|
-| `finDash` | `FV/home.blade.php` · `HomeService` |
+| `finDash` | `FV/home.blade.php` · `HomeService` · `FV/operational_summary/index.blade.php` · `OperationalSummaryService` (نظام الاستقدام) |
+| `finDashGen` | `FV/home.blade.php` من غير قسم `operations` · `HomeService` (daily) · `PerformanceDashboardController` (المتوقع مقابل الفعلي) — نظام عام |
 | `finRequests` | `ING/financial_requests/*` · `FinancialRequestController` · `lang/ar/financial_requests.php` |
 | `finAssets` | `FV/principles/*` + مواقع، نقل، إهلاك يدوي ومجموعات، بيع |
 | `finCommissions` | `resources/views/commissions/*` · `routes/ingaz.php:1097-1121` |
