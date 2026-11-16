@@ -4463,11 +4463,11 @@ const MODS={
 };
 /* sample employees for the preview. mods = what their permissions open; sec = sections in order [module, widgets] */
 const ROLES={
- owner:{n:"المالك / رئيس مجلس الإدارة",nm:"عبدالعزيز",av:"ع",mods:["fin","ops","rent","hourly","crm","hr"],sup:"كل الإدارات",
-  k:[["scale","صافي الشهر","+86,400","الإيرادات 412,800 − المصروفات 326,400","n","زي أكتوبر تقريباً","finReport"],
-     ["calendar-clock","التزامات خلال 30 يوم","236,900","رواتب، شيكات، وكلاء، ضريبة","a","أقربها بعد 4 أيام","finChecksOut"],
-     ["file-text","عقود تحت التشغيل","38","9 عقود جديدة هذا الشهر","r","18 متأخرة","contracts"],
-     ["globe","طلبات عند المكاتب","26","14 سيرة وصلت هذا الأسبوع","a","4 بدون رد","agents"]],
+ owner:{n:"المالك / رئيس مجلس الإدارة",nm:"عبدالعزيز",av:"ع",mods:["ops","ext","rent","hourly","crm","hr","fin"],sup:"كل الإدارات",
+  k:[["file-text","عقود تحت التشغيل","38","9 عقود جديدة هذا الشهر","r","18 متأخرة","contracts"],
+     ["globe","طلبات عند المكاتب","26","14 سيرة وصلت هذا الأسبوع","a","4 بدون رد","agents"],
+     ["scale","صافي الشهر","+86,400","الإيرادات 412,800 − المصروفات 326,400","n","زي أكتوبر تقريباً","finReport"],
+     ["calendar-clock","التزامات خلال 30 يوم","236,900","رواتب، شيكات، وكلاء، ضريبة","a","أقربها بعد 4 أيام","finChecksOut"]],
   sec:[["tiles"],["fin",["oblig","recv"],"الفلوس"],["ops",["pipe","delays"],"التشغيل"]],r:["volume","finance","types"],
   me:[["file-check-2","اعتماد طلب صرف — مستحقات PLATINUM BROTHERS","32,600 ر.س · طلبه خالد المطيري","r","متأخر يومين","اعتماد","finRequestShow"],
       ["receipt","توقيع الشيك الصادر #4471","18,500 ر.س · مؤسسة السكن","a","بعد 4 أيام","مراجعة","finChecksOut"],
@@ -4668,11 +4668,11 @@ const dvT=s=>`data-tip="${String(s).replace(/"/g,"&quot;")}"`;
 /* a mini visual under each KPI (owner only — other roles keep the plain tile) */
 const KVIZ={
  owner:[
+  ()=>`<div class="dv-seg"><i style="flex:20;background:var(--navy)" ${dvT("في الموعد · 20 عقد")}></i><i style="flex:18;background:var(--red)" ${dvT("متأخر عن مدته · 18 عقد")}></i></div><small class="dv-kc"><span class="dv-dot" style="--c:var(--navy)"></span>20 في الموعد <span class="dv-dot" style="--c:var(--red)"></span>18 متأخر</small>`,
+  ()=>`<div class="dv-seg"><i style="flex:22;background:var(--navy)" ${dvT("ردّوا · 22 طلب")}></i><i style="flex:4;background:var(--amber)" ${dvT("من غير رد · 4 طلبات")}></i></div><small class="dv-kc"><span class="dv-dot" style="--c:var(--navy)"></span>22 ردّوا <span class="dv-dot" style="--c:var(--amber)"></span>4 من غير رد</small>`,
   ()=>{const v=DV.months.map(m=>m[1]-m[2]),mx=Math.max(...v),mn=Math.min(...v),w=120,h=34,pt=v.map((x,i)=>[w-i*(w/(v.length-1)),h-4-(x-mn)/(mx-mn||1)*(h-10)]);
    return `<svg class="dv-spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><polyline points="${pt.map(p=>p.join(",")).join(" ")}" fill="none" stroke="var(--green-d)" stroke-width="2" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>${pt.map((p,i)=>`<circle cx="${p[0]}" cy="${p[1]}" r="${i===v.length-1?3.2:0}" fill="var(--green-d)"/>`).join("")}</svg><small class="dv-kc">صافي آخر 6 شهور</small>`},
-  ()=>`<div class="dv-seg">${[["رواتب",96000,"#16233f"],["ضريبة",68000,"#4a6fa5"],["مكاتب خارجية",54400,"#9aa7bb"],["شيكات",18500,"#c9d3e2"]].map(x=>`<i style="flex:${x[1]};background:${x[2]}" ${dvT(`${x[0]} · ${dvF(x[1])} ر.س`)}></i>`).join("")}</div><small class="dv-kc">رواتب 96K · ضريبة 68K · مكاتب 54K · شيكات 18.5K</small>`,
-  ()=>`<div class="dv-seg"><i style="flex:20;background:var(--navy)" ${dvT("في الموعد · 20 عقد")}></i><i style="flex:18;background:var(--red)" ${dvT("متأخر عن مدته · 18 عقد")}></i></div><small class="dv-kc"><span class="dv-dot" style="--c:var(--navy)"></span>20 في الموعد <span class="dv-dot" style="--c:var(--red)"></span>18 متأخر</small>`,
-  ()=>`<div class="dv-seg"><i style="flex:22;background:var(--navy)" ${dvT("ردّوا · 22 طلب")}></i><i style="flex:4;background:var(--amber)" ${dvT("من غير رد · 4 طلبات")}></i></div><small class="dv-kc"><span class="dv-dot" style="--c:var(--navy)"></span>22 ردّوا <span class="dv-dot" style="--c:var(--amber)"></span>4 من غير رد</small>`]
+  ()=>`<div class="dv-seg">${[["رواتب",96000,"#16233f"],["ضريبة",68000,"#4a6fa5"],["مكاتب خارجية",54400,"#9aa7bb"],["شيكات",18500,"#c9d3e2"]].map(x=>`<i style="flex:${x[1]};background:${x[2]}" ${dvT(`${x[0]} · ${dvF(x[1])} ر.س`)}></i>`).join("")}</div><small class="dv-kc">رواتب 96K · ضريبة 68K · مكاتب 54K · شيكات 18.5K</small>`]
 };
 const dvKpis=P=>{const vz=KVIZ[PERSONA]||[];return (P.k&&P.k.length)?`<div class="dv-kpis">${P.k.map((k,i)=>`<a href="#" class="card dv-kpi" data-go="${k[6]}"><div class="dv-kh"><span class="ni n">${X(k[0])}</span><span>${k[1]}</span>${k[5]?`<em class="${k[4]}">${k[5]}</em>`:""}</div><b class="num">${k[2]}</b><small>${k[3]}</small>${vz[i]?`<div class="dv-kv">${vz[i]()}</div>`:""}</a>`).join("")}</div>`:""};
 
@@ -4710,6 +4710,15 @@ if(!window.__dvTip){window.__dvTip=1;let el;
   el.innerHTML=t.getAttribute("data-tip");el.classList.add("on");const r=el.getBoundingClientRect();
   el.style.left=Math.min(innerWidth-r.width-8,Math.max(8,e.clientX-r.width/2))+"px";el.style.top=(e.clientY-r.height-14<8?e.clientY+18:e.clientY-r.height-14)+"px"});}
 
+/* v1.30 — owner glimpse: every operational department first, then what it adds up to in money */
+MODS.rent.m=["13","عقد تأجير نشط"];MODS.rent.a=["a","3 متأخرة في الدفع"];
+const dvGlance=P=>{const op=P.mods.filter(k=>k!=="fin"&&MODS[k]&&MODS[k].m),f=P.mods.includes("fin"),lbl={r:"محتاج تدخل",a:"محتاج متابعة",g:"ماشي تمام"};
+ const tile=k=>{const m=MODS[k],p=PULSE[k]||{st:"g",go:m.go};return `<a href="#" class="dv-gt" data-go="${p.go||m.go}"><div class="dv-gh"><span class="ni n">${X(m.i)}</span><b>${m.n}</b><span class="hm-st ${p.st}" title="${lbl[p.st]}"><i></i></span></div><div class="dv-gv"><b class="num">${m.m[0]}</b><small>${m.m[1]}</small></div>${m.a?`<span class="tag ${m.a[0]}">${m.a[1]}</span>`:""}</a>`};
+ return `<div class="card flush dv-gl">
+  <div class="dv-gg"><div class="dv-glh"><span class="dv-gn num">1</span><b>التشغيل</b><small>${op.length} إدارات · الشغل الجاري النهارده</small></div><div class="dv-gts">${op.map(tile).join("")}</div></div>
+  ${f?`<div class="dv-gg fin"><div class="dv-glh"><span class="dv-gn num">2</span><b>المالية</b><small>نتيجة الشغل ده بالفلوس · هذا الشهر</small></div><a href="#" class="dv-gf" data-go="finDash">${[["صافي الشهر","+86,400","g"],...PULSE.fin.f].map(x=>`<div><b class="num ${x[2]}">${x[1]}</b><small>${x[0]}</small></div>`).join("")}<span class="dv-gc">${X("chevron-left")}</span></a></div>`:""}
+ </div>`};
+
 S.dashboard=()=>{
  const P=P_(),many=P.mods.length>2,self=P.mods[0]==="self";
  const hi=new Date().getHours()<12?"صباح الخير":"مساء الخير";
@@ -4720,12 +4729,13 @@ S.dashboard=()=>{
  const fin=P.mods.includes("fin"),ops=P.mods.includes("ops");
  const body=self?`${secHead("user-round","إنت فين النهارده؟","حضورك وإجازاتك وراتبك","","")}${pulse}<div class="hm-in">${details}</div>`
   :many?`
+  ${secHead("eye","لمحة","التشغيل الأول، وبعده الفلوس · دوس على أي إدارة عشان تروح للوحتها","","")}${dvGlance(P)}
+  ${ops?`${secHead("file-text","التشغيل","كل عقد في أي مرحلة، وفين التأخير","recDash","لوحة الاستقدام")}
+  <div class="hm-grid">${card("مسار عقود الاستقدام","38 عقد تحت التشغيل · 18 عدّوا المدة المسموحة لمرحلتهم",dvPipe(),more("contracts","كل العقود"),"wide")}</div>`:""}
   ${fin?`${secHead("wallet","الفلوس","دخلنا كام، وصرفنا كام، والفلوس فين","finDash","لوحة المالية")}
   <div class="hm-grid">${card("الإيرادات والمصروفات","آخر 6 شهور · بالألف ر.س",dvFin(),`<div class="hm-legend dv-lg0"><span><i class="in"></i>إيرادات</span><span><i class="out"></i>مصروفات</span></div>`,"wide")}
    ${card("الإيراد جاي منين؟","نوفمبر · حسب نوع الخدمة",dvDonut(),more("finReport","التفاصيل"))}
    ${card("المستحقات على العملاء","184,600 ر.س · حسب عمرها",dvAging(),more("finClients","كشف العملاء"))}</div>`:""}
-  ${ops?`${secHead("file-text","التشغيل","كل عقد في أي مرحلة، وفين التأخير","recDash","لوحة الاستقدام")}
-  <div class="hm-grid">${card("مسار عقود الاستقدام","38 عقد تحت التشغيل · 18 عدّوا المدة المسموحة لمرحلتهم",dvPipe(),more("contracts","كل العقود"),"wide")}</div>`:""}
   ${secHead("activity","حال كل إدارة","جملة واحدة وأهم 3 أرقام · الأولوية للي محتاج تدخل","reports","كل المؤشرات التشغيلية").replace('data-go="reports"','data-go="reports" data-rcind="1"')}${dvStatus(P)}
   ${follow}`
   :`${secHead("activity","الشغل ماشي إزاي؟","جملة واحدة لكل إدارة من اللي ليك صلاحيتها، ودوس على الكارت عشان تروح للوحتها","","")}${pulse}${homeInd()}${follow}`;

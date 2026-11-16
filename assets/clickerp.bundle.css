@@ -5075,3 +5075,29 @@ button.rp-k:hover{border-color:var(--navy)}
 .rp-note{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);margin:0 2px 14px}.rp-note svg{width:15px;height:15px}
 @media (max-width:900px){.rp-tr{grid-template-columns:1fr}}
 .rp-col.ctx{opacity:.45}.rp-col.ctx:hover{opacity:1}
+
+/* v1.30 owner glimpse — operations first, then finance */
+.dv-gl{margin-bottom:22px}
+.dv-gg{padding:14px 16px 16px}
+.dv-gg.fin{border-top:1px dashed var(--line);background:linear-gradient(var(--bg),var(--surface) 70%)}
+.dv-glh{display:flex;align-items:baseline;gap:8px;margin-bottom:10px}
+.dv-glh b{font-size:14px;color:var(--navy)}.dv-glh small{font-size:12px;color:var(--muted)}
+.dv-gn{align-self:center;display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--navy);color:#fff;font-size:11px;font-weight:700}
+.dv-gg.fin .dv-gn{background:var(--green-d)}
+.dv-gts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.dv-gt{display:flex;flex-direction:column;gap:8px;padding:12px;border:1px solid var(--line-2);border-radius:var(--r-s);color:inherit;text-decoration:none;background:var(--surface);transition:border-color .15s,box-shadow .15s}
+.dv-gt:hover{border-color:var(--navy);box-shadow:var(--shadow)}
+.dv-gh{display:flex;align-items:center;gap:8px;min-width:0}
+.dv-gh .ni{width:26px;height:26px;flex:none}.dv-gh .ni svg{width:14px;height:14px}
+.dv-gh b{font-size:12.5px;color:var(--body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dv-gv b{display:block;font-size:20px;font-weight:800;color:var(--navy);line-height:1.1}
+.dv-gv small{display:block;font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dv-gt .tag{align-self:flex-start}
+.dv-gf{display:grid;grid-template-columns:repeat(4,minmax(0,1fr)) 18px;align-items:center;background:var(--surface);border:1px solid var(--line-2);border-radius:var(--r-s);padding:10px 4px;color:inherit;text-decoration:none}
+.dv-gf:hover{border-color:var(--green-d)}
+.dv-gf>div{text-align:center;padding-inline:6px;border-inline-start:1px solid var(--line)}.dv-gf>div:first-child{border:0}
+.dv-gf b{display:block;font-size:16px;font-weight:800;color:var(--navy)}.dv-gf b.r{color:var(--red)}.dv-gf b.g{color:var(--green-d)}
+.dv-gf small{display:block;font-size:11px;color:var(--muted)}
+.dv-gc svg{width:16px;height:16px;color:var(--muted-2)}
+@media (max-width:1100px){.dv-gts{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:640px){.dv-gts{grid-template-columns:1fr}.dv-gf{grid-template-columns:repeat(2,minmax(0,1fr))}.dv-gf>div{padding:6px}.dv-gc{display:none}}
