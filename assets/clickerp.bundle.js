@@ -5059,9 +5059,214 @@ RDEF.offices={...RDEF.recruitment_contracts,t:"المكاتب الخارجية",
  gcols:[["عقود",R=>R.length],["شغالة",R=>R.filter(r=>!["completed","back","refunded"].includes(r.stage)).length],["متأخرة",R=>R.filter(r=>r.late).length,"r"],["مرتجع",R=>R.filter(r=>r.stage==="back").length,"r"],["نسبة الإرجاع",R=>R.length?Math.round(R.filter(r=>r.stage==="back").length/R.length*100):0,"",0,"%"],["متوسط الوصول",R=>{const a=R.filter(r=>r.arrival);return a.length?Math.round(a.reduce((x,r)=>x+rpDiff(r.date,r.arrival),0)/a.length):0},"",0,"يوم"]],
  charts:[{t:"bars",ti:"العقود حسب المكتب",dim:"office"},{t:"bars",ti:"متوسط أيام الوصول",dim:"office",metric:R=>{const a=R.filter(r=>r.arrival);return a.length?Math.round(a.reduce((x,r)=>x+rpDiff(r.date,r.arrival),0)/a.length):0},unit:"يوم",warn:60}]};
 
+/* ===== v1.29 — Finance reports on the runner: one double-entry ledger built from invoices, receipts and expenses =====
+   accounts/codes from the finance package tree (acTree); monthly revenue/expenses = DV (home), receivables = BALANCES (184,600) */
+const fRng=(s=>()=>{s|=0;s=s+0x6D2B79F5|0;let t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296})(4108);
+const fPick=a=>a[Math.floor(fRng()*a.length)];
+const r50=v=>Math.round(v/50)*50;
+const splitSum=(total,n,lo=0.6)=>{const w=Array.from({length:n},()=>lo+fRng());const s=w.reduce((a,x)=>a+x,0);const out=w.map(x=>r50(total*x/s));out[n-1]+=total-out.reduce((a,x)=>a+x,0);return out};
+const fDay=(y,m)=>rpD(y,m,1+Math.floor(fRng()*(y===2026&&m===11?16:28)));
+/* chart of accounts (leaf) — [code, name, type, nature, group code, group name] */
+const ACCS=[["1101","الصندوق الرئيسي","assets","d","11","الأصول المتداولة"],["110201","بنك الراجحي — 1122","assets","d","11","الأصول المتداولة"],["110202","بنك الأهلي — 4408","assets","d","11","الأصول المتداولة"],
+ ["110301","عملاء الاستقدام","assets","d","11","الأصول المتداولة"],["110302","عملاء التأجير","assets","d","11","الأصول المتداولة"],["110303","عملاء نقل الكفالة","assets","d","11","الأصول المتداولة"],
+ ...OFFS.map((o,i)=>[`21010${i+1}`,o[0],"liabilities","c","21","الخصوم المتداولة"]),["2102","ضريبة القيمة المضافة","liabilities","c","21","الخصوم المتداولة"],
+ ["31","رأس المال","equity","c","31","رأس المال"],
+ ["4101","إيرادات عقود الاستقدام","revenue","c","41","إيرادات النشاط"],["4102","إيرادات عقود التأجير","revenue","c","41","إيرادات النشاط"],["4103","إيرادات نقل الكفالة","revenue","c","41","إيرادات النشاط"],
+ ["5101","مصروف إعاشة الإيواء","expenses","d","51","مصروفات تشغيلية"],["5102","تذاكر وسفر","expenses","d","51","مصروفات تشغيلية"],["5103","تأشيرات ورسوم حكومية","expenses","d","51","مصروفات تشغيلية"],["5104","فحوصات طبية","expenses","d","51","مصروفات تشغيلية"],["5105","تكلفة المكاتب الخارجية","expenses","d","51","مصروفات تشغيلية"],
+ ["5201","رواتب وأجور","expenses","d","52","مصروفات إدارية"],["5202","إيجارات","expenses","d","52","مصروفات إدارية"],["5203","اتصالات وأنظمة","expenses","d","52","مصروفات إدارية"]];
+const ACC=Object.fromEntries(ACCS.map(a=>[a[0],a]));
+const ACT_L={assets:"الأصول",liabilities:"الخصوم",equity:"حقوق الملكية",revenue:"الإيرادات",expenses:"المصروفات"};
+const ACT_O=["assets","liabilities","equity","revenue","expenses"];
+const SRV=[["rec","استقدام","4101","110301",[13000,19500],0.62],["rent","تأجير","4102","110302",[2400,4600],0.45],["trans","نقل كفالة","4103","110303",[1800,3800],0.2]];
+const SRV_L={rec:"استقدام",rent:"تأجير",trans:"نقل كفالة"};
+const REV_M=[268000,281000,276000,305000,322000,330000,318000,361000,372000,388000,412800];
+const EXP_M=[231000,238000,242000,259000,268000,276000,270000,288000,290000,301000,326400];
+const BANKS=[["110201",7],["110202",2.6],["1101",0.4]];
+const LEDGER=[],INVOICES=[],PURCH=[];let jn=1;
+const post=(date,doc,type,desc,party,br,lines)=>{const id=`JV-${String(jn++).padStart(5,"0")}`;lines.forEach(([acc,dr,cr])=>{if(dr||cr)LEDGER.push({id,date,acc,dr:dr||0,cr:cr||0,doc,type,desc,party:party||"",br})})};
+/* opening balances */
+post("2025-12-31","OB-2026","قيد افتتاحي","أرصدة أول المدة","", "الفرع الرئيسي",[["1101",85000,0],["110201",640000,0],["110202",310000,0],["31",0,1035000]]);
+/* sales invoices + receipts */
+let invN=1;
+REV_M.forEach((tot,mi)=>{const m=mi+1;const parts=m===11?[286400,98150,28250]:[r50(tot*0.69),r50(tot*0.24)];if(m!==11)parts.push(tot-parts[0]-parts[1]);
+ SRV.forEach((s,si)=>{const avg=(s[4][0]+s[4][1])/2;const n=Math.max(1,Math.round(parts[si]/avg));splitSum(parts[si],n).forEach(net=>{
+  const date=fDay(2026,m);const vat=Math.round(net*0.15);INVOICES.push({id:`INV-2026-${String(invN++).padStart(4,"0")}`,date,client:fPick(NAMES),srv:s[0],net,vat,gross:net+vat,paid:net+vat,cost:r50(net*(s[5]+(fRng()-0.5)*0.12)),mkt:rpW(MKTS),br:rpW(BR)})})})});
+/* unpaid parts = the client balances report (BALANCES) */
+BALANCES.forEach(b=>{const m=b.date.slice(0,7);const c=INVOICES.filter(i=>i.date.slice(0,7)===m&&!i.link&&i.gross>=b.remaining);const inv=c.find(i=>i.srv==="rec")||c[0]||INVOICES.find(i=>!i.link&&i.gross>=b.remaining&&i.date<=b.date);
+ inv.link=b.id;inv.client=b.client;inv.date=b.date;inv.paid=inv.gross-b.remaining;inv.mkt=b.mkt;inv.br=b.br;b.total=inv.gross;b.paid=inv.paid});
+INVOICES.sort((a,b)=>a.date<b.date?-1:1);
+INVOICES.forEach(i=>{i.rem=i.gross-i.paid;i.status=!i.rem?"paid":i.paid?"part":"open";const s=SRV.find(x=>x[0]===i.srv);
+ post(i.date,i.id,"فاتورة مبيعات",`فاتورة ${SRV_L[i.srv]} — ${i.client}`,i.client,i.br,[[s[3],i.gross,0],[s[2],0,i.net],["2102",0,i.vat]]);
+ if(i.paid){let pd=rpAdd(i.date,Math.floor(fRng()*6));if(pd>RP_TODAY)pd=RP_TODAY;const bank=rpW(BANKS);i.paidOn=pd;i.bank=bank;
+  post(pd,i.id.replace("INV","RB"),"سند قبض",`تحصيل ${i.id} — ${i.client}`,i.client,i.br,[[bank,i.paid,0],[s[3],0,i.paid]])}});
+/* expenses: fixed + variable, agents through their payable account */
+let pN=1;const PAYEE={"5101":["مورد الإعاشة — التموينات المتحدة"],"5102":["طيران ناس","الخطوط السعودية","طيران أديل"],"5103":["منصة مساند","المديرية العامة للجوازات"],"5104":["مستوصف الشفاء","مختبرات البرج"],"5201":["رواتب الموظفين"],"5202":["مالك مقر الإيواء"],"5203":["STC","مزود نظام ClickERP"]};
+const VATABLE={"5102":1,"5104":1,"5203":1,"5202":0};
+const addExp=(date,acc,amount,payee,method,party)=>{const vat=VATABLE[acc]?Math.round(amount*0.15):0;const id=`PV-2026-${String(pN++).padStart(4,"0")}`;const br=rpW(BR);
+ PURCH.push({id,date,acc,cat:ACC[acc][1],payee,net:amount,vat,gross:amount+vat,method,br});
+ if(party){post(date,id,"فاتورة مشتريات",`${ACC[acc][1]} — ${payee}`,payee,br,[[acc,amount,0],[party,0,amount]])}
+ else post(date,id,"سند صرف",`${ACC[acc][1]} — ${payee}`,payee,br,[[acc,amount,0],...(vat?[["2102",vat,0]]:[]),[method,0,amount+vat]])};
+EXP_M.forEach((tot,mi)=>{const m=mi+1,y=2026;const rest=tot-152000;
+ addExp(rpD(y,m,1),"5202",32000,"مالك مقر الإيواء","110201");addExp(rpD(y,m,m===11?10:5),"5203",8000,fPick(PAYEE["5203"]),"110202");
+ if(m<11)addExp(rpD(y,m,27),"5201",112000,"رواتب الموظفين","110201");else addExp(rpD(y,m,15),"5201",112000,"رواتب الموظفين","110201");
+ const sp=[["5101",.15,4,"1101"],["5102",.25,3,"110201"],["5103",.28,3,"110201"],["5104",.07,2,"1101"]];let used=0;
+ sp.forEach(([acc,w,n,meth])=>{const amt=r50(rest*w);used+=amt;splitSum(amt,n).forEach(a=>addExp(fDay(y,m),acc,a,fPick(PAYEE[acc]),meth))});
+ const ag=rest-used;splitSum(ag,3).forEach(a=>{const oi=Math.floor(fRng()*OFFS.length);addExp(fDay(y,m),"5105",a,OFFS[oi][0],"",`21010${oi+1}`)})});
+/* paying the external offices (most of it) */
+OFFS.forEach((o,i)=>{const code=`21010${i+1}`;const due=LEDGER.filter(l=>l.acc===code).reduce((a,l)=>a+l.cr-l.dr,0);let left=r50(due*0.82);
+ [3,6,9,11].forEach((m,k)=>{if(left<=0)return;const amt=k===3?left:r50(left*0.3);left-=amt;const d=rpD(2026,m,m===11?12:20);post(d,`PB-2026-${String(pN++).padStart(4,"0")}`,"سند صرف",`دفعة للمكتب — ${o[0]}`,o[0],"الفرع الرئيسي",[[code,amt,0],["110201",0,amt]])})});
+LEDGER.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:a.id<b.id?-1:1);
+LEDGER.forEach(l=>{const a=ACC[l.acc];l.type2=a[2];l.grp=a[4]});
+const VATL=[...INVOICES.map(i=>({id:i.id,date:i.date,party:i.client,kind:"out",taxable:i.net,vat:i.vat,gross:i.gross})),...PURCH.filter(p=>p.vat).map(p=>({id:p.id,date:p.date,party:p.payee,kind:"in",taxable:p.net,vat:p.vat,gross:p.gross}))];
+/* financial requests (packages/finance financial_requests) */
+const FR_L={pending:"مستني الاعتماد",approved:"معتمد — مستني الصرف",paid:"اتصرف",rejected:"مرفوض"};const FR_T={pending:"a",approved:"n",paid:"g",rejected:"r"};
+const FREQ=(()=>{const T=[["عهدة نقدية",1500,6000],["سلفة موظف",1000,5000],["استرداد لعميل",2000,9000],["مصروف تشغيلي",300,3000],["دفعة مكتب خارجي",8000,30000]];const out=[];
+ for(let i=0;i<46;i++){const t=fPick(T);const age=Math.floor(fRng()*150);const st=age<6?(fRng()<0.7?"pending":"approved"):age<12?fRng()<0.5?"approved":"paid":fRng()<0.88?"paid":"rejected";
+  out.push({id:`FR-${String(320-i)}`,date:rpAdd(RP_TODAY,-age),type:t[0],amount:r50(t[1]+fRng()*(t[2]-t[1])),by:rpW(MKTS),st,br:rpW(BR),approver:st==="pending"?"":"المدير المالي",age})}return out})();
+/* store balances (finance stores) */
+const STORE=[["زي العاملات (طقم)","مستودع الإيواء",46,85,30],["مراتب وأسرّة","مستودع الإيواء",12,640,10],["مستلزمات نظافة (كرتونة)","مستودع الإيواء",18,120,25],["أدوات مطبخ (طقم)","مستودع الإيواء",9,210,5],["شرائح جوال","المكتب الرئيسي",64,25,40],["حقائب سفر","المكتب الرئيسي",14,95,20],["ملفات وأوراق عقود (رزمة)","المكتب الرئيسي",32,48,15],["كروت هوية مؤقتة","المكتب الرئيسي",120,6,50]].map((s,i)=>({id:`IT-${101+i}`,date:"2026-11-01",item:s[0],wh:s[1],qty:s[2],cost:s[3],value:s[2]*s[3],min:s[4],low:s[2]<s[4],out:Math.floor(fRng()*s[2]*0.6),inq:Math.floor(fRng()*s[2]*0.5)}));
+
+/* ---- ledger math ---- */
+const nat=(acc,dr,cr)=>ACC[acc][3]==="d"?dr-cr:cr-dr;
+const fMoney=v=>`<span class="num ${v<0?"r":""}">${v<0?"(":""}${rpN(Math.abs(v))}${v<0?")":""}</span>`;
+const fDC=v=>v>0?[fMoney(v),""]:v<0?["",fMoney(-v)]:["",""];
+const inRange=(l,[a,b])=>!a||(l.date>=a&&l.date<=b);
+const before=(l,[a])=>a&&l.date<a;
+const sumBy=(R,range,key)=>{const m=new Map();R.forEach(l=>{const k=key(l);if(!m.has(k))m.set(k,{o:0,dr:0,cr:0});const x=m.get(k);if(before(l,range))x.o+=l.dr-l.cr;else if(inRange(l,range)){x.dr+=l.dr;x.cr+=l.cr}});m.forEach(x=>x.c=x.o+x.dr-x.cr);return m};
+const goStmt=(acc,party)=>`data-rkey="account-statement" data-rpreset='${JSON.stringify({f:{acc,...(party?{party}:{})},per:RS.per,from:RS.from,to:RS.to})}'`;
+const fCard=(title,sub,inner,extra="")=>`<div class="card flush rp-tbl"><div class="rp-th"><div class="rp-cht"><b>${title}</b>${sub?`<small>${sub}</small>`:""}</div>${extra}</div>${inner}</div>`;
+const lvSeg=(views)=>`<div class="rp-vw"><span>المستوى</span><div class="seg">${views.map(v=>`<button class="${RS.view===v[0]?"on":""}" data-rpview="${v[0]}">${v[1]}</button>`).join("")}</div></div>`;
+/* trial balance / accounts balances */
+const tbBody=(R,range,balOnly)=>{
+ const m=sumBy(R,range,l=>l.acc);const lv=RS.view;
+ let rows=ACT_O.flatMap(t=>ACCS.filter(a=>a[2]===t&&m.has(a[0])).map(a=>({k:a[0],n:a[1],t,g:a[4],gn:a[5],...m.get(a[0])})));
+ if(lv!=="leaf"){const key=lv==="l2"?(r=>r.g):(r=>r.t);const g=new Map();rows.forEach(r=>{const k=key(r);if(!g.has(k))g.set(k,{k,n:lv==="l2"?r.gn:ACT_L[r.t],t:r.t,o:0,dr:0,cr:0,c:0});const x=g.get(k);["o","dr","cr","c"].forEach(f=>x[f]+=r[f])});rows=[...g.values()]}
+ if(RS.q)rows=rows.filter(r=>(r.k+r.n).includes(RS.q));
+ const T=rows.reduce((a,r)=>{const[od,oc]=[Math.max(r.o,0),Math.max(-r.o,0)],[cd,cc]=[Math.max(r.c,0),Math.max(-r.c,0)];a.od+=od;a.oc+=oc;a.dr+=r.dr;a.cr+=r.cr;a.cd+=cd;a.cc+=cc;return a},{od:0,oc:0,dr:0,cr:0,cd:0,cc:0});
+ const ok=Math.abs(T.cd-T.cc)<1;
+ const head=balOnly?`<tr><th>الكود</th><th>الحساب</th><th>النوع</th><th>الرصيد</th><th>طبيعته</th><th></th></tr>`:`<tr><th rowspan="2">الكود</th><th rowspan="2">الحساب</th><th colspan="2" class="c">أول المدة</th><th colspan="2" class="c">حركة الفترة</th><th colspan="2" class="c">الرصيد الختامي</th><th rowspan="2"></th></tr><tr><th>مدين</th><th>دائن</th><th>مدين</th><th>دائن</th><th>مدين</th><th>دائن</th></tr>`;
+ const tr=r=>{const drill=lv==="leaf"?`${goStmt(r.k)} class="rp-click"`:"";const g=lv==="leaf"?`<span class="rp-go">كشف الحساب${X("arrow-left")}</span>`:"";
+  if(balOnly){const nv=ACC[r.k]?nat(r.k,Math.max(r.c,0),Math.max(-r.c,0)):r.c;return `<tr ${drill}><td class="num">${r.k}</td><td><b>${r.n}</b></td><td>${ACT_L[r.t]}</td><td>${fMoney(Math.abs(r.c))}</td><td>${r.c>=0?TAG("n","مدين"):TAG("g","دائن")}</td><td class="act">${g}</td></tr>`}
+  const [od,oc]=fDC(r.o),[cd,cc]=fDC(r.c);return `<tr ${drill}><td class="num">${r.k}</td><td><b>${r.n}</b></td><td>${od}</td><td>${oc}</td><td>${r.dr?fMoney(r.dr):""}</td><td>${r.cr?fMoney(r.cr):""}</td><td><b>${cd}</b></td><td><b>${cc}</b></td><td class="act">${g}</td></tr>`};
+ const foot=balOnly?`<tr><td colspan="3"><b>الإجمالي</b></td><td colspan="3">${fMoney(T.cd)} مدين · ${fMoney(T.cc)} دائن</td></tr>`:`<tr><td colspan="2"><b>الإجمالي</b></td><td><b>${fMoney(T.od)}</b></td><td><b>${fMoney(T.oc)}</b></td><td><b>${fMoney(T.dr)}</b></td><td><b>${fMoney(T.cr)}</b></td><td><b>${fMoney(T.cd)}</b></td><td><b>${fMoney(T.cc)}</b></td><td></td></tr>`;
+ return fCard(balOnly?"أرصدة الحسابات":"ميزان المراجعة",`${ok?"✓ متزن: المدين = الدائن":"⚠ غير متزن بفرق "+rpN(Math.abs(T.cd-T.cc))} · اضغط على أي حساب يفتح كشفه`,`<div class="tw"><table class="rp-t rp-g rp-fin">${`<thead>${head}</thead>`}<tbody>${rows.map(tr).join("")||`<tr><td colspan="9" class="rp-empty">مفيش حركة</td></tr>`}</tbody><tfoot>${foot}</tfoot></table></div>`,lvSeg([["leaf","تفصيلي"],["l2","المجموعات"],["l1","الحسابات الرئيسية"]]))};
+/* party balances (clients / external offices) */
+const partyBody=(R,range,title,accs)=>{const m=sumBy(R.filter(l=>accs.includes(l.acc)&&l.party),range,l=>l.party+"|"+l.acc);
+ let rows=[...m.entries()].map(([k,v])=>{const [p,acc]=k.split("|");const s=ACC[acc][3]==="d"?1:-1;return {p,acc,o:v.o*s,dr:v.dr,cr:v.cr,c:v.c*s}}).filter(r=>r.o||r.dr||r.cr);
+ if(RS.q)rows=rows.filter(r=>r.p.includes(RS.q));
+ const sk={c:r=>r.c,dr:r=>r.dr,cr:r=>r.cr,o:r=>r.o,p:r=>r.p}[RS.sort||"c"]||(r=>r.c);rows.sort((a,b)=>{const x=sk(a),y=sk(b);return (x>y?1:x<y?-1:0)*RS.dir});
+ const T=rows.reduce((a,r)=>({o:a.o+r.o,dr:a.dr+r.dr,cr:a.cr+r.cr,c:a.c+r.c}),{o:0,dr:0,cr:0,c:0});
+ const th=(k,l)=>`<th><button data-rpsort="${k}" class="${(RS.sort||"c")===k?"on":""}">${l}${X((RS.sort||"c")===k?(RS.dir>0?"arrow-up":"arrow-down"):"arrow-up-down")}</button></th>`;
+ return fCard(title,`${rows.length} طرف · اضغط على أي سطر يفتح كشف حسابه`,`<div class="tw"><table class="rp-t rp-g rp-fin"><thead><tr>${th("p","الطرف")}<th>الحساب</th>${th("o","أول المدة")}${th("dr","مدين")}${th("cr","دائن")}${th("c","الرصيد")}<th></th></tr></thead>
+  <tbody>${rows.slice(0,RS.n).map(r=>`<tr ${goStmt(r.acc,r.p)} class="rp-click"><td><b>${r.p}</b></td><td><small class="hm-sm">${ACC[r.acc][1]}</small></td><td>${fMoney(r.o)}</td><td>${fMoney(r.dr)}</td><td>${fMoney(r.cr)}</td><td><b>${fMoney(r.c)}</b></td><td class="act"><span class="rp-go">كشف الحساب${X("arrow-left")}</span></td></tr>`).join("")}</tbody>
+  <tfoot><tr><td colspan="2"><b>الإجمالي</b></td><td><b>${fMoney(T.o)}</b></td><td><b>${fMoney(T.dr)}</b></td><td><b>${fMoney(T.cr)}</b></td><td><b>${fMoney(T.c)}</b></td><td></td></tr></tfoot></table></div>
+  <div class="tfoot rp-foot"><span>عارض <b class="num">${Math.min(RS.n,rows.length)}</b> من <b class="num">${rows.length}</b></span>${rows.length>RS.n?B("ghost sm","chevrons-down","اعرض 25 كمان",'data-rpmore="1"'):""}</div>`)};
+/* account statement with running balance */
+const stmtBody=(R,range)=>{const acc=RS.f.acc;if(!acc)return `<div class="card rp-empty">اختار حساب من فوق</div>`;
+ const L=R.filter(l=>l.acc===acc);const open=L.filter(l=>before(l,range)).reduce((a,l)=>a+nat(acc,l.dr,l.cr),0);
+ let rows=L.filter(l=>inRange(l,range));if(RS.q)rows=rows.filter(l=>(l.doc+l.desc+l.party).includes(RS.q));
+ let bal=open;const lines=rows.map(l=>{bal+=nat(acc,l.dr,l.cr);return {...l,bal}});
+ const dr=rows.reduce((a,l)=>a+l.dr,0),cr=rows.reduce((a,l)=>a+l.cr,0);const shown=lines.slice(-Math.max(RS.n,15));
+ return fCard(`كشف حساب: ${ACC[acc][1]}`,`<span class="num">${acc}</span> · طبيعته ${ACC[acc][3]==="d"?"مدين":"دائن"}${RS.f.party?` · الطرف: ${RS.f.party}`:""}`,`<div class="tw"><table class="rp-t rp-fin"><thead><tr><th>التاريخ</th><th>المستند</th><th>النوع</th><th>البيان</th><th>مدين</th><th>دائن</th><th>الرصيد</th></tr></thead>
+  <tbody><tr class="rp-ob"><td colspan="6"><b>رصيد أول المدة</b></td><td><b>${fMoney(open)}</b></td></tr>
+  ${lines.length>shown.length?`<tr class="rp-ob"><td colspan="7"><button class="rp-more" data-rpmore="1">${X("chevrons-up")}فيه ${lines.length-shown.length} حركة أقدم — اعرضهم</button></td></tr>`:""}
+  ${shown.map(l=>`<tr><td class="num">${rpDate(l.date)}</td><td class="num"><b>${l.doc}</b></td><td>${l.type}</td><td>${l.desc}</td><td>${l.dr?fMoney(l.dr):""}</td><td>${l.cr?fMoney(l.cr):""}</td><td><b>${fMoney(l.bal)}</b></td></tr>`).join("")||`<tr><td colspan="7" class="rp-empty">مفيش حركة في الفترة دي</td></tr>`}</tbody>
+  <tfoot><tr><td colspan="4"><b>الإجمالي · ${rows.length} حركة</b></td><td><b>${fMoney(dr)}</b></td><td><b>${fMoney(cr)}</b></td><td><b>${fMoney(bal)}</b></td></tr></tfoot></table></div>`)};
+/* income statement */
+const isBody=(R,range,P,prev)=>{const per=(rows,rg)=>{const m={};rows.forEach(l=>{if(!inRange(l,rg)||(l.type2!=="revenue"&&l.type2!=="expenses"))return;m[l.acc]=(m[l.acc]||0)+nat(l.acc,l.dr,l.cr)});return m};
+ const cur=per(R,range),pv=prev?per(R,prev):null;const rev=ACCS.filter(a=>a[2]==="revenue").reduce((s,a)=>s+(cur[a[0]]||0),0);
+ const line=(a)=>{const v=cur[a[0]]||0,p=pv?pv[a[0]]||0:null;return `<tr ${goStmt(a[0])} class="rp-click"><td class="num">${a[0]}</td><td>${a[1]}</td><td>${fMoney(v)}</td><td><small class="hm-sm num">${rev?Math.round(v/rev*1000)/10:0}%</small></td>${pv?`<td>${fMoney(p)}</td><td>${p?`<small class="num ${(v>p)===(a[2]==="revenue")?"g":"r"}">${v>p?"+":""}${Math.round((v-p)/Math.abs(p)*100)}%</small>`:""}</td>`:""}<td class="act"><span class="rp-go">كشف الحساب${X("arrow-left")}</span></td></tr>`};
+ const sec=(t)=>{const groups=[...new Set(ACCS.filter(a=>a[2]===t).map(a=>a[4]))];let tot=0,ptot=0;
+  const body=groups.map(g=>{const as=ACCS.filter(a=>a[4]===g&&a[2]===t);const s=as.reduce((x,a)=>x+(cur[a[0]]||0),0),ps=pv?as.reduce((x,a)=>x+(pv[a[0]]||0),0):0;tot+=s;ptot+=ps;
+   return `<tr class="rp-is-g"><td colspan="2"><b>${as[0][5]}</b></td><td><b>${fMoney(s)}</b></td><td></td>${pv?`<td><b>${fMoney(ps)}</b></td><td></td>`:""}<td></td></tr>${as.map(line).join("")}`}).join("");
+  return [body,tot,ptot]};
+ const [rb,rt,rpt]=sec("revenue"),[eb,et,ept]=sec("expenses");const net=rt-et,pnet=rpt-ept;
+ const cols=pv?`<th>الفترة اللي فاتت</th><th>التغيير</th>`:"";const sp=pv?6:4;
+ return fCard("قائمة الدخل",`من ${rpDate(range[0]||"2026-01-01")} لـ ${rpDate(range[1]||RP_TODAY)} · اضغط على أي حساب يفتح كشفه`,`<div class="tw"><table class="rp-t rp-fin rp-is"><thead><tr><th>الكود</th><th>البند</th><th>المبلغ</th><th>من الإيرادات</th>${cols}<th></th></tr></thead><tbody>
+  <tr class="rp-is-h"><td colspan="${sp+1}">الإيرادات</td></tr>${rb}<tr class="rp-is-t"><td colspan="2">إجمالي الإيرادات</td><td>${fMoney(rt)}</td><td></td>${pv?`<td>${fMoney(rpt)}</td><td></td>`:""}<td></td></tr>
+  <tr class="rp-is-h"><td colspan="${sp+1}">المصروفات</td></tr>${eb}<tr class="rp-is-t"><td colspan="2">إجمالي المصروفات</td><td>${fMoney(et)}</td><td><small class="num">${rt?Math.round(et/rt*1000)/10:0}%</small></td>${pv?`<td>${fMoney(ept)}</td><td></td>`:""}<td></td></tr>
+  <tr class="rp-is-n ${net<0?"neg":""}"><td colspan="2">${net<0?"صافي الخسارة":"صافي الربح"}</td><td>${fMoney(net)}</td><td><small class="num">${rt?Math.round(net/rt*1000)/10:0}%</small></td>${pv?`<td>${fMoney(pnet)}</td><td></td>`:""}<td></td></tr></tbody></table></div>`)};
+/* treasury & banks */
+const trBody=(R,range)=>{const accs=["110201","110202","1101"];const m=sumBy(R.filter(l=>accs.includes(l.acc)),range,l=>l.acc);
+ const tot=accs.reduce((a,k)=>a+(m.get(k)?.c||0),0);
+ return `<div class="rp-tr">${accs.map(k=>{const v=m.get(k)||{o:0,dr:0,cr:0,c:0};return `<button class="card rp-trc" ${goStmt(k)}><small>${ACC[k][1]}</small><b class="num">${rpN(v.c)} <em>ر.س</em></b>
+  <div class="rp-trl"><span>أول المدة <i class="num">${rpN(v.o)}</i></span><span class="g">داخل <i class="num">+${rpN(v.dr)}</i></span><span class="r">خارج <i class="num">−${rpN(v.cr)}</i></span></div>
+  <div class="in-bar"><i style="flex:${v.dr||1};background:var(--green)"></i><i style="flex:${v.cr||1};background:var(--red)"></i></div><span class="rp-go" style="opacity:1">كشف الحساب${X("arrow-left")}</span></button>`}).join("")}</div>
+  <p class="rp-note">${X("info")}<span>إجمالي الفلوس في الخزن والبنوك: <b class="num">${rpN(tot)} ر.س</b></span></p>`};
+/* dims for the ledger */
+const LDIMS={acc:{l:"الحساب",g:l=>l.acc,o:()=>ACCS.map(a=>[a[0],`${a[0]} · ${a[1]}`])},party:{l:"الطرف",g:l=>l.party,o:()=>[...new Set(LEDGER.map(l=>l.party).filter(Boolean))].sort().map(p=>[p,p])},type:{l:"نوع المستند",g:l=>l.type,o:()=>[...new Set(LEDGER.map(l=>l.type))].map(t=>[t,t])},br:CDIMS.br,type2:{l:"نوع الحساب",g:l=>l.type2,o:()=>ACT_O.map(t=>[t,ACT_L[t]])}};
+const ledK=(range,R,accs,lbl)=>{const L=R.filter(l=>accs(l));const o=L.filter(l=>before(l,range)).reduce((a,l)=>a+l.dr-l.cr,0);const p=L.filter(l=>inRange(l,range));return {o,dr:p.reduce((a,l)=>a+l.dr,0),cr:p.reduce((a,l)=>a+l.cr,0)}};
+const INV_ST={paid:"مدفوعة",part:"مدفوعة جزئياً",open:"غير مدفوعة"},INV_T={paid:"g",part:"a",open:"r"};
+const IDIMS={srv:{l:"الخدمة",g:r=>r.srv,o:()=>SRV.map(s=>[s[0],s[1]])},status:{l:"حالة السداد",g:r=>r.status,o:()=>Object.keys(INV_ST).map(k=>[k,INV_ST[k]])},mkt:CDIMS.mkt,br:CDIMS.br,month:{l:"الشهر",g:r=>r.date.slice(0,7),o:()=>Array.from({length:11},(_,i)=>[`2026-${String(i+1).padStart(2,"0")}`,`${RP_MON[i]} 2026`])}};
+const sumF=f=>R=>R.reduce((a,r)=>a+r[f],0);
+const invCols=[["id","رقم الفاتورة",r=>`<b class="num">${r.id}</b>`,r=>r.id,1],["date","التاريخ",r=>`<span class="num">${rpDate(r.date)}</span>`,r=>r.date,1],["client","العميل",r=>r.client,r=>r.client,1],["srv","الخدمة",r=>SRV_L[r.srv],r=>r.srv,1],["net","قبل الضريبة",r=>`<span class="num">${rpN(r.net)}</span>`,r=>r.net,1],["vat","الضريبة 15%",r=>`<span class="num">${rpN(r.vat)}</span>`,r=>r.vat,1],["gross","الإجمالي",r=>`<b class="num">${rpN(r.gross)}</b>`,r=>r.gross,1],["paid","المحصّل",r=>`<span class="num">${rpN(r.paid)}</span>`,r=>r.paid,0],["rem","المتبقي",r=>r.rem?`<span class="num r">${rpN(r.rem)}</span>`:"—",r=>r.rem,1],["status","السداد",r=>TAG(INV_T[r.status],INV_ST[r.status]),r=>r.status,1],["mkt","الموظف",r=>r.mkt,r=>r.mkt,0],["br","الفرع",r=>r.br,r=>r.br,0],["paidOn","تاريخ التحصيل",r=>r.paidOn?`<span class="num">${rpDate(r.paidOn)}</span>`:"—",r=>r.paidOn||"",0]];
+
+Object.assign(RDEF,{
+ incomeList:{t:"قائمة الدخل",q:"كسبنا كام بعد المصروفات؟",src:()=>LEDGER,allDates:1,dateTypes:[["date","تاريخ القيد"]],per:"month",dims:{br:CDIMS.br},quick:["br"],views:[["rows","—"]],search:l=>l.desc,ph:"بحث في البيان",
+  kpis:(R,rg)=>{const p=R.filter(l=>inRange(l,rg));const rv=p.filter(l=>l.type2==="revenue").reduce((a,l)=>a+l.cr-l.dr,0),ex=p.filter(l=>l.type2==="expenses").reduce((a,l)=>a+l.dr-l.cr,0);return [["الإيرادات",rv,"ر.س",null,"",1],["المصروفات",ex,"ر.س",null,"lo",1],["صافي الربح",rv-ex,"ر.س",null,rv-ex<0?"r":"",1],["هامش الربح",rv?(rv-ex)/rv*100:0,"%",null,"",0,1]]},
+  body:(R,rg,P,pv)=>isBody(R,rg,P,pv),charts:[{t:"mm",ti:"الإيرادات والمصروفات حسب الشهر",series:[["الإيرادات",R=>R.filter(l=>l.type2==="revenue").reduce((a,l)=>a+l.cr-l.dr,0),"var(--navy)"],["المصروفات",R=>R.filter(l=>l.type2==="expenses").reduce((a,l)=>a+l.dr-l.cr,0),"#c9d3e2"]]}],cols:[],gcols:[]},
+ "trail-balance":{t:"ميزان المراجعة",q:"الأرصدة كلها متزنة؟",src:()=>LEDGER,allDates:1,dateTypes:[["date","تاريخ القيد"]],per:"year",defView:"leaf",dims:{type2:LDIMS.type2,br:CDIMS.br},quick:["type2","br"],views:[["leaf","تفصيلي"]],search:l=>l.acc+" "+ACC[l.acc][1],ph:"كود أو اسم الحساب",
+  kpis:(R,rg)=>{const p=R.filter(l=>inRange(l,rg));const d=p.reduce((a,l)=>a+l.dr,0),c=p.reduce((a,l)=>a+l.cr,0);return [["حركة مدينة",d,"ر.س",null,"",1],["حركة دائنة",c,"ر.س",null,"",1],["الفرق",Math.abs(d-c),d===c?"متزن ✓":"راجع القيود",null,d===c?"":"r",0],["حسابات عليها حركة",new Set(p.map(l=>l.acc)).size,"حساب",null]]},
+  body:(R,rg)=>tbBody(R,rg,0),cols:[],gcols:[]},
+ "accounts-balances":{t:"أرصدة الحسابات",q:"رصيد كل حساب في الشجرة",src:()=>LEDGER,allDates:1,dateTypes:[["date","تاريخ القيد"]],per:"all",defView:"leaf",dims:{type2:LDIMS.type2,br:CDIMS.br},quick:["type2"],views:[["leaf","تفصيلي"]],search:l=>l.acc+" "+ACC[l.acc][1],ph:"كود أو اسم الحساب",
+  kpis:(R,rg)=>{const k=(t)=>R.filter(l=>l.type2===t&&(!rg[1]||l.date<=rg[1])).reduce((a,l)=>a+nat(l.acc,l.dr,l.cr),0);return [["الأصول",k("assets"),"ر.س",["type2","assets"],"",1],["الخصوم",k("liabilities"),"ر.س",["type2","liabilities"],"",1],["حقوق الملكية",k("equity"),"ر.س",["type2","equity"],"",1],["صافي الربح لحد دلوقتي",k("revenue")-k("expenses"),"ر.س",null,"",1]]},
+  body:(R,rg)=>tbBody(R,rg,1),cols:[],gcols:[]},
+ "account-statement":{ownQ:1,t:"كشف حساب",q:"حركة حساب معيّن في فترة",src:()=>LEDGER,allDates:1,dateTypes:[["date","تاريخ القيد"]],per:"q",defF:{acc:"110201"},dims:{acc:LDIMS.acc,party:LDIMS.party,type:LDIMS.type,br:CDIMS.br},quick:["acc","party"],views:[["rows","—"]],search:()=>"",ph:"رقم المستند أو البيان",
+  kpis:(R,rg)=>{const acc=RS.f.acc;if(!acc)return [];const L=R.filter(l=>l.acc===acc);const o=L.filter(l=>before(l,rg)).reduce((a,l)=>a+nat(acc,l.dr,l.cr),0);const p=L.filter(l=>inRange(l,rg));const d=p.reduce((a,l)=>a+l.dr,0),c=p.reduce((a,l)=>a+l.cr,0);return [["رصيد أول المدة",o,"ر.س",null,"",1],["إجمالي المدين",d,"ر.س",null,"",1],["إجمالي الدائن",c,"ر.س",null,"",1],["الرصيد الختامي",o+nat(acc,d,c),"ر.س",null,"",1]]},
+  body:(R,rg)=>stmtBody(R,rg),cols:[],gcols:[]},
+ "client-trial-balance":{t:"ميزان مراجعة العملاء",q:"مدين ودائن كل عميل في الفترة",src:()=>LEDGER,allDates:1,dateTypes:[["date","تاريخ القيد"]],per:"year",dims:{acc:{l:"حساب العملاء",g:l=>l.acc,o:()=>ACCS.filter(a=>a[0].startsWith("1103")).map(a=>[a[0],a[1]])},br:CDIMS.br},quick:["acc"],views:[["rows","—"]],search:l=>l.party,ph:"اسم العميل",
+  kpis:(R,rg)=>{const k=ledK(rg,R,l=>l.acc.startsWith("1103"));return [["مبيعات آجلة (مدين)",k.dr,"ر.س",null,"",1],["تحصيل (دائن)",k.cr,"ر.س",null,"",1],["المستحق على العملاء",k.o+k.dr-k.cr,"ر.س",null,"r",1],["نسبة التحصيل",k.dr?k.cr/k.dr*100:0,"%",null,"",0,1]]},
+  body:(R,rg)=>partyBody(R,rg,"أرصدة العملاء في الفترة",ACCS.filter(a=>a[0].startsWith("1103")).map(a=>a[0])),cols:[],gcols:[]},
+ "suppliers-balances":{t:"أرصدة الوكلاء الخارجيين",q:"علينا كام ولمين؟",src:()=>LEDGER,allDates:1,dateTypes:[["date","تاريخ القيد"]],per:"all",dims:{br:CDIMS.br},quick:[],views:[["rows","—"]],search:l=>l.party,ph:"اسم المكتب",
+  kpis:(R,rg)=>{const k=ledK(rg,R,l=>l.acc.startsWith("2101"));return [["المستحق للمكاتب",-(k.o+k.dr-k.cr),"ر.س",null,"r",1],["فواتير المكاتب",k.cr,"ر.س",null,"",1],["المدفوع",k.dr,"ر.س",null,"",1],["عدد المكاتب",OFFS.length,"مكتب",null]]},
+  body:(R,rg)=>partyBody(R,rg,"رصيد كل مكتب",ACCS.filter(a=>a[0].startsWith("2101")).map(a=>a[0])),cols:[],gcols:[]},
+ "treasury-and-banks-balances":{t:"أرصدة الخزن والبنوك",q:"معانا كام فلوس دلوقتي؟",src:()=>LEDGER,allDates:1,dateTypes:[["date","تاريخ القيد"]],per:"month",dims:{br:CDIMS.br},quick:[],views:[["rows","—"]],search:()=>"",ph:"—",
+  kpis:(R,rg)=>{const k=ledK(rg,R,l=>["110201","110202","1101"].includes(l.acc));return [["الرصيد دلوقتي",k.o+k.dr-k.cr,"ر.س",null,"",1],["دخل في الفترة",k.dr,"ر.س",null,"",1],["خرج في الفترة",k.cr,"ر.س",null,"lo",1],["صافي الحركة",k.dr-k.cr,"ر.س",null,k.dr-k.cr<0?"r":"",1]]},
+  body:(R,rg)=>trBody(R,rg),charts:[{t:"mm",ti:"الداخل والخارج حسب الشهر",series:[["داخل",R=>R.filter(l=>["110201","110202","1101"].includes(l.acc)&&!l.type.includes("افتتاحي")).reduce((a,l)=>a+l.dr,0),"var(--green)"],["خارج",R=>R.filter(l=>["110201","110202","1101"].includes(l.acc)).reduce((a,l)=>a+l.cr,0),"#e7a3a3"]]}],cols:[],gcols:[]},
+ profitability:{t:"الربحية",q:"أنهي خدمة وأنهي عقد بيكسب أكتر؟",src:()=>INVOICES,dateTypes:[["date","تاريخ الفاتورة"]],per:"year",defView:"srv",dims:IDIMS,quick:["srv","mkt"],views:[["srv","الخدمة"],["month","الشهر"],["mkt","الموظفين"],["br","الفروع"],["rows","الفواتير"]],search:r=>r.id+" "+r.client,ph:"رقم الفاتورة أو العميل",
+  kpis:R=>{const rv=R.reduce((a,r)=>a+r.net,0),c=R.reduce((a,r)=>a+r.cost,0);return [["الإيرادات",rv,"ر.س",null,"",1],["التكلفة المباشرة",c,"ر.س",null,"lo",1],["مجمل الربح",rv-c,"ر.س",null,"",1],["هامش مجمل الربح",rv?(rv-c)/rv*100:0,"%",null,"",0,1]]},
+  charts:[{t:"bars",ti:"مجمل الربح حسب الخدمة",dim:"srv",metric:R=>R.reduce((a,r)=>a+r.net-r.cost,0),money:1},{t:"bars",ti:"الهامش حسب الموظف",dim:"mkt",metric:R=>{const v=R.reduce((a,r)=>a+r.net,0);return v?Math.round(R.reduce((a,r)=>a+r.net-r.cost,0)/v*100):0},unit:"%"}],
+  cols:[...invCols.slice(0,4),["net","الإيراد",r=>`<span class="num">${rpN(r.net)}</span>`,r=>r.net,1],["cost","التكلفة",r=>`<span class="num">${rpN(r.cost)}</span>`,r=>r.cost,1],["gp","مجمل الربح",r=>`<b class="num">${rpN(r.net-r.cost)}</b>`,r=>r.net-r.cost,1],["mg","الهامش",r=>`<span class="num">${Math.round((r.net-r.cost)/r.net*100)}%</span>`,r=>(r.net-r.cost)/r.net,1]],
+  gcols:[["فواتير",R=>R.length],["الإيراد",sumF("net"),"",1],["التكلفة",sumF("cost"),"",1],["مجمل الربح",R=>R.reduce((a,r)=>a+r.net-r.cost,0),"",1],["الهامش",R=>{const v=R.reduce((a,r)=>a+r.net,0);return v?Math.round(R.reduce((a,r)=>a+r.net-r.cost,0)/v*100):0},"",0,"%"]]},
+ "sales-analysis":{t:"تحليل المبيعات",q:"المبيعات طالعة ولا نازلة، ومن أنهي خدمة؟",src:()=>INVOICES,dateTypes:[["date","تاريخ الفاتورة"]],per:"year",defView:"month",dims:IDIMS,quick:["srv","br"],views:[["month","الشهر"],["srv","الخدمة"],["mkt","الموظفين"],["br","الفروع"],["rows","الفواتير"]],search:r=>r.id+" "+r.client,ph:"رقم الفاتورة أو العميل",
+  kpis:R=>[["المبيعات قبل الضريبة",R.reduce((a,r)=>a+r.net,0),"ر.س",null,"",1],["عدد الفواتير",R.length,"فاتورة",null],["متوسط الفاتورة",R.length?R.reduce((a,r)=>a+r.net,0)/R.length:0,"ر.س",null,"",1],["غير محصّل",R.reduce((a,r)=>a+r.rem,0),"ر.س",["status","open"],"r",1]],
+  charts:[{t:"mm",ti:"المبيعات حسب الشهر",series:SRV.map((s,i)=>[s[1],R=>R.filter(r=>r.srv===s[0]).reduce((a,r)=>a+r.net,0),["var(--navy)","var(--green)","#9aa7bb"][i]]),stack:1},{t:"bars",ti:"حسب الخدمة",dim:"srv",metric:sumF("net"),money:1}],
+  cols:invCols,gcols:[["فواتير",R=>R.length],["قبل الضريبة",sumF("net"),"",1],["الضريبة",sumF("vat"),"",1],["الإجمالي",sumF("gross"),"",1],["غير محصّل",sumF("rem"),"r",1]]},
+ "bill-sales-report":{t:"تقرير فواتير المبيعات",q:"كل فاتورة اتطلعت وحالتها",src:()=>INVOICES,dateTypes:[["date","تاريخ الفاتورة"],["paidOn","تاريخ التحصيل"]],per:"month",dims:IDIMS,quick:["status","srv"],views:[["rows","الفواتير"],["status","حالة السداد"],["srv","الخدمة"],["mkt","الموظفين"]],search:r=>r.id+" "+r.client,ph:"رقم الفاتورة أو العميل",
+  kpis:R=>[["فواتير",R.length,"",null],["الإجمالي شامل الضريبة",R.reduce((a,r)=>a+r.gross,0),"ر.س",null,"",1],["المحصّل",R.reduce((a,r)=>a+r.paid,0),"ر.س",["status","paid"],"",1],["المتبقي",R.reduce((a,r)=>a+r.rem,0),"ر.س",["status","open"],"r",1]],
+  charts:[{t:"bars",ti:"حسب حالة السداد",dim:"status"},{t:"months",ti:"الفواتير حسب الشهر"}],cols:invCols,gcols:[["فواتير",R=>R.length],["الإجمالي",sumF("gross"),"",1],["المحصّل",sumF("paid"),"",1],["المتبقي",sumF("rem"),"r",1]]},
+ "tax-invoice-statement":{t:"بيان الفواتير الضريبية",q:"ضريبة الربع كام؟",src:()=>VATL,dateTypes:[["date","تاريخ الفاتورة"]],per:"year",defView:"quarter",
+  dims:{kind:{l:"النوع",g:r=>r.kind,o:()=>[["out","مبيعات (مخرجات)"],["in","مشتريات (مدخلات)"]]},quarter:{l:"الربع",g:r=>"Q"+Math.ceil(+r.date.slice(5,7)/3),o:()=>[["Q1","الربع الأول"],["Q2","الربع الثاني"],["Q3","الربع الثالث"],["Q4","الربع الرابع"]]}},quick:["kind","quarter"],
+  views:[["quarter","الربع"],["kind","النوع"],["rows","الفواتير"]],search:r=>r.id+" "+r.party,ph:"رقم الفاتورة أو الطرف",
+  kpis:R=>{const o=R.filter(r=>r.kind==="out").reduce((a,r)=>a+r.vat,0),i=R.filter(r=>r.kind==="in").reduce((a,r)=>a+r.vat,0);return [["ضريبة المخرجات",o,"ر.س",["kind","out"],"",1],["ضريبة المدخلات",i,"ر.س",["kind","in"],"",1],["الصافي المستحق للزكاة والضريبة",o-i,"ر.س",null,"r",1],["فواتير",R.length,"",null]]},
+  charts:[{t:"bars",ti:"الضريبة حسب الربع",dim:"quarter",metric:R=>R.reduce((a,r)=>a+(r.kind==="out"?r.vat:-r.vat),0),money:1}],
+  cols:[["id","رقم الفاتورة",r=>`<b class="num">${r.id}</b>`,r=>r.id,1],["date","التاريخ",r=>`<span class="num">${rpDate(r.date)}</span>`,r=>r.date,1],["party","الطرف",r=>r.party,r=>r.party,1],["kind","النوع",r=>r.kind==="out"?TAG("n","مبيعات"):TAG("a","مشتريات"),r=>r.kind,1],["taxable","الخاضع للضريبة",r=>`<span class="num">${rpN(r.taxable)}</span>`,r=>r.taxable,1],["vat","الضريبة",r=>`<b class="num">${rpN(r.vat)}</b>`,r=>r.vat,1],["gross","الإجمالي",r=>`<span class="num">${rpN(r.gross)}</span>`,r=>r.gross,1]],
+  gcols:[["فواتير",R=>R.length],["مخرجات",R=>R.filter(r=>r.kind==="out").reduce((a,r)=>a+r.vat,0),"",1],["مدخلات",R=>R.filter(r=>r.kind==="in").reduce((a,r)=>a+r.vat,0),"",1],["الصافي",R=>R.reduce((a,r)=>a+(r.kind==="out"?r.vat:-r.vat),0),"r",1]]},
+ "purchases-analysis":{t:"تحليل المشتريات",q:"بنصرف على إيه أكتر؟",src:()=>PURCH,dateTypes:[["date","تاريخ المستند"]],per:"year",defView:"cat",
+  dims:{cat:{l:"البند",g:r=>r.cat,o:()=>[...new Set(PURCH.map(p=>p.cat))].map(c=>[c,c])},payee:{l:"المورد",g:r=>r.payee,o:()=>[...new Set(PURCH.map(p=>p.payee))].sort().map(c=>[c,c])},method:{l:"طريقة الدفع",g:r=>r.method||"آجل",o:()=>[["110201","بنك الراجحي"],["110202","بنك الأهلي"],["1101","الصندوق"],["آجل","آجل (على حساب المكتب)"]]},br:CDIMS.br},quick:["cat","payee"],
+  views:[["cat","البند"],["payee","المورد"],["method","طريقة الدفع"],["rows","المستندات"]],search:r=>r.id+" "+r.payee,ph:"رقم المستند أو المورد",
+  kpis:R=>{const t=R.reduce((a,r)=>a+r.net,0);const top=Object.entries(R.reduce((m,r)=>(m[r.cat]=(m[r.cat]||0)+r.net,m),{})).sort((a,b)=>b[1]-a[1])[0];return [["إجمالي المصروف",t,"ر.س",null,"lo",1],["مستندات",R.length,"",null],["أكبر بند",top?top[1]:0,top?top[0]:"",null,"",1],["ضريبة مدخلات",R.reduce((a,r)=>a+r.vat,0),"ر.س",null,"",1]]},
+  charts:[{t:"bars",ti:"حسب البند",dim:"cat",metric:sumF("net"),money:1},{t:"mm",ti:"المصروف حسب الشهر",series:[["المصروف",sumF("net"),"var(--navy)"]]}],
+  cols:[["id","المستند",r=>`<b class="num">${r.id}</b>`,r=>r.id,1],["date","التاريخ",r=>`<span class="num">${rpDate(r.date)}</span>`,r=>r.date,1],["cat","البند",r=>r.cat,r=>r.cat,1],["payee","المورد",r=>r.payee,r=>r.payee,1],["net","المبلغ",r=>`<span class="num">${rpN(r.net)}</span>`,r=>r.net,1],["vat","الضريبة",r=>r.vat?`<span class="num">${rpN(r.vat)}</span>`:"—",r=>r.vat,1],["method","الدفع",r=>r.method?ACC[r.method][1]:TAG("a","آجل"),r=>r.method,1],["br","الفرع",r=>r.br,r=>r.br,0]],
+  gcols:[["مستندات",R=>R.length],["المبلغ",sumF("net"),"",1],["الضريبة",sumF("vat"),"",1],["من الإجمالي",R=>{const t=PURCH.reduce((a,r)=>a+r.net,0);return Math.round(R.reduce((a,r)=>a+r.net,0)/t*100)},"",0,"%"]]},
+ financial_requests:{t:"الطلبات المالية",q:"إيه الطلبات المستنية اعتماد؟",src:()=>FREQ,dateTypes:[["date","تاريخ الطلب"]],per:"q",
+  dims:{st:{l:"الحالة",g:r=>r.st,o:()=>Object.keys(FR_L).map(k=>[k,FR_L[k]])},type:{l:"النوع",g:r=>r.type,o:()=>[...new Set(FREQ.map(r=>r.type))].map(t=>[t,t])},by:{l:"مقدّم الطلب",g:r=>r.by,o:()=>MKTS.map(m=>[m[0],m[0]])},br:CDIMS.br},quick:["st","type"],
+  views:[["rows","الطلبات"],["st","الحالة"],["type","النوع"],["by","مقدّم الطلب"]],search:r=>r.id+" "+r.type+" "+r.by,ph:"رقم الطلب أو النوع",
+  kpis:R=>[["مستنية اعتماد",R.filter(r=>r.st==="pending").length,"",["st","pending"],"a"],["معتمدة ومستنية صرف",R.filter(r=>r.st==="approved").length,"",["st","approved"]],["اتصرف",R.filter(r=>r.st==="paid").reduce((a,r)=>a+r.amount,0),"ر.س",["st","paid"],"",1],["مرفوضة",R.filter(r=>r.st==="rejected").length,"",["st","rejected"],"r"]],
+  charts:[{t:"bars",ti:"المبالغ حسب النوع",dim:"type",metric:R=>R.reduce((a,r)=>a+r.amount,0),money:1},{t:"bars",ti:"حسب الحالة",dim:"st"}],
+  cols:[["id","رقم الطلب",r=>`<b class="num">${r.id}</b>`,r=>r.id,1],["date","التاريخ",r=>`<span class="num">${rpDate(r.date)}</span>`,r=>r.date,1],["type","النوع",r=>r.type,r=>r.type,1],["by","مقدّم الطلب",r=>r.by,r=>r.by,1],["amount","المبلغ",r=>`<b class="num">${rpN(r.amount)}</b>`,r=>r.amount,1],["st","الحالة",r=>TAG(FR_T[r.st],FR_L[r.st])+(r.st==="pending"&&r.age>2?` <small class="rp-late">من ${r.age} يوم</small>`:""),r=>r.st,1],["approver","اعتمده",r=>r.approver||"—",r=>r.approver,0],["br","الفرع",r=>r.br,r=>r.br,0]],
+  gcols:[["طلبات",R=>R.length],["المبلغ",R=>R.reduce((a,r)=>a+r.amount,0),"",1],["مستنية",R=>R.filter(r=>r.st==="pending").length,"a"],["مرفوضة",R=>R.filter(r=>r.st==="rejected").length,"r"]]},
+ "store-balances":{t:"أرصدة المخازن",q:"المخزون بكام وفين؟",src:()=>STORE,dateTypes:[["date","تاريخ الجرد"]],per:"all",dims:{wh:{l:"المستودع",g:r=>r.wh,o:()=>[["مستودع الإيواء","مستودع الإيواء"],["المكتب الرئيسي","المكتب الرئيسي"]]},low:{l:"الكمية",g:r=>r.low?"low":"ok",o:()=>[["low","تحت الحد الأدنى"],["ok","كافية"]]}},quick:["wh","low"],
+  views:[["rows","الأصناف"],["wh","المستودع"]],search:r=>r.item,ph:"اسم الصنف",
+  kpis:R=>[["قيمة المخزون",R.reduce((a,r)=>a+r.value,0),"ر.س",null,"",1],["أصناف",R.length,"",null],["تحت الحد الأدنى",R.filter(r=>r.low).length,"محتاجة طلب",["low","low"],"r"],["صرف الشهر ده",R.reduce((a,r)=>a+r.out*r.cost,0),"ر.س",null,"",1]],
+  charts:[{t:"bars",ti:"القيمة حسب الصنف",dim:"wh",metric:R=>R.reduce((a,r)=>a+r.value,0),money:1}],
+  cols:[["item","الصنف",r=>`<b>${r.item}</b>`,r=>r.item,1],["wh","المستودع",r=>r.wh,r=>r.wh,1],["qty","الكمية",r=>`<span class="num ${r.low?"r":""}">${r.qty}</span>`,r=>r.qty,1],["min","الحد الأدنى",r=>`<span class="num">${r.min}</span>`,r=>r.min,1],["cost","تكلفة الوحدة",r=>`<span class="num">${rpN(r.cost)}</span>`,r=>r.cost,1],["value","القيمة",r=>`<b class="num">${rpN(r.value)}</b>`,r=>r.value,1],["inq","وارد الشهر",r=>`<span class="num">${r.inq}</span>`,r=>r.inq,0],["out","منصرف الشهر",r=>`<span class="num">${r.out}</span>`,r=>r.out,0],["low","الحالة",r=>r.low?TAG("r","تحت الحد الأدنى"):TAG("g","كافية"),r=>r.low?1:0,1]],
+  gcols:[["أصناف",R=>R.length],["القيمة",sumF("value"),"",1],["تحت الحد",R=>R.filter(r=>r.low).length,"r"]]}
+});
+
 /* ---- state ---- */
 let RKEY="recruitment_contracts",RS=null;
-const rpInit=(k,preset)=>{const d=RDEF[k];RKEY=k;RS={f:{},per:d.per,from:"",to:"",dt:d.dateTypes[0][0],view:d.defView||"rows",q:"",cmp:false,sort:null,dir:-1,cols:d.cols.filter(c=>c[4]).map(c=>c[0]),n:15,add:false,colp:false,open:null,...(preset||{})}};
+const rpInit=(k,preset)=>{const d=RDEF[k];RKEY=k;RS={f:{...(d.defF||{})},per:d.per,from:"",to:"",dt:d.dateTypes[0][0],view:d.defView||"rows",q:"",cmp:false,sort:null,dir:-1,cols:d.cols.filter(c=>c[4]).map(c=>c[0]),n:15,add:false,colp:false,open:null,...(preset||{})}};
 const PERS=[["month","الشهر ده"],["last","الشهر اللي فات"],["q","آخر 3 شهور"],["year","السنة دي"],["pyear","السنة اللي فاتت"],["all","كل الفترات"],["custom","مخصص"]];
 const rpRange=(p)=>{const y=+RP_TODAY.slice(0,4),m=+RP_TODAY.slice(5,7);
  if(p==="month")return [rpD(y,m,1),RP_TODAY];if(p==="last")return [rpD(y,m-1,1),rpAdd(rpD(y,m,1),-1)];if(p==="q")return [rpD(y,m-2,1),RP_TODAY];
@@ -5070,9 +5275,9 @@ const rpPrev=([a,b])=>{if(!a)return null;if(RS.per==="year"||RS.per==="pyear")re
  if(RS.per==="month"||RS.per==="last"){const d=new Date(a+"T00:00:00Z");d.setUTCMonth(d.getUTCMonth()-1);const pa=d.toISOString().slice(0,10);return [pa,rpAdd(pa,rpDiff(a,b))]}
  const n=rpDiff(a,b)+1;return [rpAdd(a,-n),rpAdd(a,-1)]};
 const rpRows=(range)=>{const d=RDEF[RKEY];const [a,b]=range;const dt=RS.dt;
- return d.src().filter(r=>{if(a){const v=r[dt];if(!v||v<a||v>b)return false}
+ return d.src().filter(r=>{if(a&&!d.allDates){const v=r[dt];if(!v||v<a||v>b)return false}
   for(const k in RS.f){if(RS.f[k]!==""&&d.dims[k].g(r)!==RS.f[k])return false}
-  if(RS.q&&!d.search(r).includes(RS.q))return false;return true})};
+  if(RS.q&&!d.ownQ&&!d.search(r).includes(RS.q))return false;return true})};
 const rpFmt=(v,money,dec)=>dec?(Math.round(v*10)/10).toLocaleString("en-US"):rpN(v);
 const rpDelta=(c,p,good)=>{if(p==null)return "";if(!p)return c?`<span class="rp-dl n">جديد عن الفترة اللي فاتت</span>`:`<span class="rp-dl n">زي الفترة اللي فاتت</span>`;const d=Math.round((c-p)/p*100);if(!d)return `<span class="rp-dl n">زي الفترة اللي فاتت</span>`;
  const up=d>0;const bad=good==="r"||good==="lo"?up:!up;return `<span class="rp-dl ${bad?"bad":"good"}">${X(up?"trending-up":"trending-down")}${up?"+":""}${d}% عن الفترة اللي فاتت <i class="num">(${rpFmt(p)})</i></span>`};
@@ -5089,17 +5294,23 @@ const rpChartMonths=(R)=>{const [a,b]=rpRange(RS.per);const yr=(b||RP_TODAY).sli
  for(let i=1;i<=12;i++){const k=`${yr}-${String(i).padStart(2,"0")}`;if(k>RP_TODAY.slice(0,7))break;if(a&&k<a.slice(0,7))continue;ms.push([k,R.filter(r=>(r[RS.dt]||"").startsWith(k)).length])}
  if(!ms.length)return `<p class="rp-empty">مفيش بيانات</p>`;const max=Math.max(1,...ms.map(m=>m[1]));
  return `<div class="rp-cols">${ms.map(m=>`<button class="rp-col" data-rpmonth="${m[0]}" ${dvT(`${RP_MON[+m[0].slice(5)-1]} ${m[0].slice(0,4)} · ${m[1]} — اضغط تشوف الشهر ده بس`)}><b class="num">${m[1]||""}</b><i style="height:${Math.max(m[1]?4:1,m[1]/max*100)}%"></i><span>${RP_MON[+m[0].slice(5)-1]}</span></button>`).join("")}</div>`};
+const rpChartMM=(c,R)=>{const [a,b]=rpRange(RS.per);const end=(b||RP_TODAY).slice(0,7);const d=RDEF[RKEY];
+ let start=a?a.slice(0,7):end.slice(0,4)+"-01";const ctx=d.allDates&&a&&rpDiff(a,b||RP_TODAY)<80;if(ctx){const dt=new Date(end+"-01T00:00:00Z");dt.setUTCMonth(dt.getUTCMonth()-5);start=dt.toISOString().slice(0,7)}
+ const ms=[];for(let dt=new Date(start+"-01T00:00:00Z");dt.toISOString().slice(0,7)<=end;dt.setUTCMonth(dt.getUTCMonth()+1)){const k=dt.toISOString().slice(0,7);const rr=R.filter(r=>(r[RS.dt]||"").startsWith(k));ms.push([k,c.series.map(s=>s[1](rr)),!a||(k>=a.slice(0,7)&&k<=(b||RP_TODAY).slice(0,7))])}
+ if(!ms.length)return `<p class="rp-empty">مفيش بيانات</p>`;const max=Math.max(1,...ms.map(m=>c.stack?m[1].reduce((x,y)=>x+y,0):Math.max(...m[1])));
+ return `<div class="rp-cols mm">${ms.map(m=>`<button class="rp-col ${m[2]?"":"ctx"}" data-rpmonth="${m[0]}" ${dvT(`${RP_MON[+m[0].slice(5)-1]} · ${c.series.map((s,i)=>`${s[0]}: ${rpN(m[1][i])}`).join(" · ")}`)}><b class="num">${ms.length<=6?rpN(c.stack?m[1].reduce((x,y)=>x+y,0):m[1][0]):""}</b><span class="rp-stk ${c.stack?"st":""}">${c.series.map((s,i)=>`<i style="height:${Math.max(m[1][i]?2:0,m[1][i]/max*100)}%;background:${s[2]}"></i>`).join("")}</span><span>${RP_MON[+m[0].slice(5)-1]}</span></button>`).join("")}</div>
+ <div class="in-lg rp-lg">${c.series.map(s=>`<span><i style="background:${s[2]}"></i>${s[0]}</span>`).join("")}</div>`};
 const rpChip=(k)=>{const d=RDEF[RKEY];const dim=d.dims[k];return `<label class="rp-chip ${RS.f[k]?"set":""}"><span>${dim.l}</span><select data-rpf="${k}"><option value="">الكل</option>${dim.o().map(([v,l])=>`<option value="${v}" ${RS.f[k]===v?"selected":""}>${l}</option>`).join("")}</select>${d.quick.includes(k)&&!RS.f[k]?"":`<button data-rprm="${k}" title="شيل الفلتر">${X("x")}</button>`}</label>`};
 const rpView=()=>{
  const d=RDEF[RKEY];if(!RS)rpInit(RKEY);
  const range=rpRange(RS.per);const R=rpRows(range);const prev=RS.cmp?rpPrev(range):null;const P=prev?rpRows(prev):null;
  const shown=[...new Set([...d.quick,...Object.keys(RS.f)])];const avail=Object.keys(d.dims).filter(k=>!shown.includes(k));
- const K=d.kpis(R),KP=P?d.kpis(P):null;
+ const K=d.kpis(R,range),KP=P?d.kpis(P,prev):null;
  const nf=Object.values(RS.f).filter(v=>v!=="").length+(RS.q?1:0);
  const perL=PERS.find(p=>p[0]===RS.per)[1];
  /* table */
- let table;const col=(k)=>d.cols.find(c=>c[0]===k);
- if(RS.view==="rows"){
+ let table="";const col=(k)=>d.cols.find(c=>c[0]===k);
+ if(d.body){}else if(RS.view==="rows"){
   const cs=RS.cols.map(col).filter(Boolean);let rows=R.slice();
   if(RS.sort){const c=col(RS.sort);if(c)rows.sort((x,y)=>{const a=c[3](x),b=c[3](y);return (a>b?1:a<b?-1:0)*RS.dir})}
   table=`<div class="tw"><table class="rp-t"><thead><tr>${cs.map(c=>`<th><button data-rpsort="${c[0]}" class="${RS.sort===c[0]?"on":""}">${c[1]}${X(RS.sort===c[0]?(RS.dir>0?"arrow-up":"arrow-down"):"arrow-up-down")}</button></th>`).join("")}</tr></thead>
@@ -5120,7 +5331,7 @@ const rpView=()=>{
    ${B("ghost","bookmark","حفظ في تقاريري",'data-rvsave="1"')}${B("primary","calendar-clock","جدولة",'data-rsched="1"')}</div></div>
  <div class="card rp-ctl">
   <div class="rp-r1">
-   <div class="rp-q">${X("search")}<input data-rpq value="${RS.q}" placeholder="${d.ph}"></div>
+   ${d.ph==="—"?`<div style="flex:1"></div>`:`<div class="rp-q">${X("search")}<input data-rpq value="${RS.q}" placeholder="${d.ph}"></div>`}
    <div class="rp-per"><span>${X("calendar")}الفترة</span><select data-rpper>${PERS.map(p=>`<option value="${p[0]}" ${RS.per===p[0]?"selected":""}>${p[1]}</option>`).join("")}</select>
     ${RS.per==="custom"?`<input type="date" data-rpfrom value="${range[0]}"><span>لـ</span><input type="date" data-rpto value="${range[1]}">`:""}
     ${d.dateTypes.length>1?`<span class="rp-on">على</span><select data-rpdt>${d.dateTypes.map(t=>`<option value="${t[0]}" ${RS.dt===t[0]?"selected":""}>${t[1]}</option>`).join("")}</select>`:""}</div>
@@ -5131,11 +5342,12 @@ const rpView=()=>{
    ${nf?`<button class="rp-clear" data-rpreset="1">${X("rotate-ccw")}امسح الفلاتر</button>`:""}</div>
  </div>
  <div class="rp-kpis">${K.map((k,i)=>`<${k[3]?"button":"div"} class="card rp-k ${k[4]||""} ${k[3]&&RS.f[k[3][0]]===k[3][1]?"on":""}" ${k[3]?`data-rpdrill="${k[3][0]}|${k[3][1]}" title="اضغط تشوف دول بس"`:""}><small>${k[0]}</small><b class="num">${rpFmt(k[1],k[5],k[6])}<em>${k[2]&&(k[5]||k[6])?" "+k[2]:""}</em></b>${KP?rpDelta(k[1],KP[i][1],k[4]):`<span class="rp-sub">${k[5]||k[6]?"":k[2]}${k[3]?` ${X("filter")}`:""}</span>`}</${k[3]?"button":"div"}>`).join("")}</div>
- <div class="rp-charts">${d.charts.map(c=>`<div class="card rp-ch"><div class="rp-cht"><b>${c.ti}</b><small>${c.t==="months"?"اضغط على شهر تشوفه لوحده":"اضغط على أي عمود يفلتر الجدول"}</small></div>${c.t==="months"?rpChartMonths(R):rpChartBars(c,R)}</div>`).join("")}</div>
+ ${d.charts&&d.charts.length?`<div class="rp-charts ${d.charts.length===1?"one":""}">${d.charts.map(c=>`<div class="card rp-ch"><div class="rp-cht"><b>${c.ti}</b><small>${c.t==="months"||c.t==="mm"?"اضغط على شهر تشوفه لوحده":"اضغط على أي عمود يفلتر الجدول"}</small></div>${c.t==="months"?rpChartMonths(R):c.t==="mm"?rpChartMM(c,R):rpChartBars(c,R)}</div>`).join("")}</div>`:""}
+ ${d.body?d.body(R,range,P,prev)+(RS.open?rpDrawer():""):`
  <div class="card flush rp-tbl">
   <div class="rp-th"><div class="rp-vw"><span>اعرض حسب</span><div class="seg">${d.views.map(v=>`<button class="${RS.view===v[0]?"on":""}" data-rpview="${v[0]}">${v[1]}</button>`).join("")}</div></div>
    <div class="rp-ta">${RS.view==="rows"?`<div class="rp-addw">${B("ghost sm","columns-3",`الأعمدة (${RS.cols.length} من ${d.cols.length})`,'data-rpcolp="1"')}${RS.colp?`<div class="rp-pop rp-colp"><b>الأعمدة وترتيبها</b>${[...RS.cols.map(col),...d.cols.filter(c=>!RS.cols.includes(c[0]))].map(c=>{const on=RS.cols.includes(c[0]);const i=RS.cols.indexOf(c[0]);return `<div class="rp-ci ${on?"":"off"}"><button data-rpcol="${c[0]}" class="rp-cb">${X(on?"square-check":"square")}<span>${c[1]}</span></button>${on?`<button data-rpmv="${c[0]}|-1" ${i===0?"disabled":""}>${X("chevron-up")}</button><button data-rpmv="${c[0]}|1" ${i===RS.cols.length-1?"disabled":""}>${X("chevron-down")}</button>`:""}</div>`}).join("")}<small class="fhint">الترتيب ده بيتحفظ مع «حفظ في تقاريري» وبيطلع بيه في Excel.</small></div>`:""}</div>`:`<small class="hm-sm">اضغط على أي صف تشوف تفاصيله</small>`}</div></div>
-  ${table}</div>${RS.open?rpDrawer():""}`};
+  ${table}</div>${RS.open?rpDrawer():""}`}`};
 const rpDrawer=()=>{const r=CONTRACTS.find(x=>x.id===RS.open);if(!r)return "";
  const kv=(l,v)=>`<div class="rp-kv"><span>${l}</span><b>${v||"—"}</b></div>`;
  const path=["new","msaned","tafwed","taffez","tazker","arrival","warranty","completed"];const ix=path.indexOf(r.stage);
@@ -5198,7 +5410,7 @@ const saveModal=()=>`<div class="ov" data-rv-ov><div class="modal rc-modal"><div
  <div class="fld"><label>اللي هيتحفظ</label><div class="rc-fl">${["المرحلة: التذكرة","المكتب: PLATINUM","متأخر فقط","9 أعمدة"].map(f=>`<span>${f}</span>`).join("")}</div></div>
  <div class="fld"><label>مين يشوفه</label><div class="cx-seg2"><button class="on">أنا بس</button><button>دور: مشرف العمليات</button><button>أشخاص…</button></div><small class="fhint">اللي متشارك معاه يشوف البيانات حسب صلاحياته هو، مش صلاحياتك.</small></div></div>
  <div class="rc-mf">${B("ghost","","إلغاء",'data-rv-x="1"')}${B("primary","bookmark","حفظ",'data-rv-x="1"')}</div></div></div>`;
-const rpSaveModal=()=>{if(!RS)return saveModal();const d=RDEF[RKEY];const fl=[`الفترة: ${PERS.find(p=>p[0]===RS.per)[1]}`,...Object.keys(RS.f).filter(k=>RS.f[k]!=="").map(k=>`${d.dims[k].l}: ${d.dims[k].o().find(o=>o[0]===RS.f[k])[1]}`),...(RS.q?[`بحث: ${RS.q}`]:[]),RS.view==="rows"?`${RS.cols.length} أعمدة`:`حسب ${d.views.find(v=>v[0]===RS.view)[1]}`];
+const rpSaveModal=()=>{if(!RS)return saveModal();const d=RDEF[RKEY];const fl=[`الفترة: ${PERS.find(p=>p[0]===RS.per)[1]}`,...Object.keys(RS.f).filter(k=>RS.f[k]!=="").map(k=>`${d.dims[k].l}: ${d.dims[k].o().find(o=>o[0]===RS.f[k])[1]}`),...(RS.q?[`بحث: ${RS.q}`]:[]),RS.view==="rows"?`${RS.cols.length} أعمدة`:`حسب ${(d.views.find(v=>v[0]===RS.view)||[0,RS.view])[1]}`];
  return saveModal().replace(/(<label>اللي هيتحفظ<\/label><div class="rc-fl">)[\s\S]*?(<\/div>)/,`$1${fl.map(f=>`<span>${f}</span>`).join("")}$2`)};
 S.report=()=>{
  if(RKEY&&RDEF[RKEY])return rpView()+(RCSAVE?rpSaveModal():"")+(RCSCHED?schedModal():"");
