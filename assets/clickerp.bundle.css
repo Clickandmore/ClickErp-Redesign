@@ -4413,7 +4413,7 @@ body.lb-lock{overflow:hidden}
 .am-rc>span i{cursor:pointer}
 .md-top>.lb-st{display:inline-flex}
 .lb-m>span.kb-av{flex:none}.lb-m>span:not(.kb-av){flex:1}
-/* v1.21 — calmer, simpler cards */
+/* v1.20.1 — calmer, simpler cards */
 a.hm-pc{text-decoration:none;color:inherit;border-top:1px solid var(--line)!important;gap:14px}
 a.hm-pc:hover{border-color:var(--navy)!important;transform:translateY(-1px);box-shadow:var(--shadow)}
 .hm-st{margin-inline-start:auto;display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:var(--muted);white-space:nowrap}
