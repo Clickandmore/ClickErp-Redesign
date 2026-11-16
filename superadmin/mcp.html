@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="design-version" content="v1.25">
+<title>المساعد الذكي (MCP) — Super Admin · Click ERP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Reem+Kufi:wght@500;700&family=Noto+Kufi+Arabic:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/sa.css">
+</head>
+<body data-page="mcp">
+<!-- Screen: mcp · dev-superadmin.mcp.* (SuperAdminMcpController) · mcp.blade.php + partials/mcp-log-table.blade.php
+     التبويبات: نظرة عامة · الموظفون · الأدوات · الاتصالات · السجل · الإعدادات -->
+<main class="sa-content">
+
+  <div class="sa-page-header">
+    <div>
+      <h1 class="sa-page-title">المساعد الذكي (MCP)</h1>
+      <p class="sa-page-desc">ربط ClickERP بمساعدات الذكاء الاصطناعي بصلاحيات كل موظف.</p>
+      <div class="sa-page-chips">
+        <span class="sa-badge sa-badge--success"><i data-lucide="badge-check"></i>الاشتراك ساري</span>
+        <span class="sa-badge sa-badge--success"><i data-lucide="server"></i>الخادم يعمل</span>
+        <span class="sa-badge sa-badge--success"><i data-lucide="key-round"></i>OAuth</span>
+        <span class="sa-badge sa-badge--brand"><i data-lucide="users"></i>الوصول: المحددون فقط</span>
+        <span class="sa-badge sa-badge--warning"><i data-lucide="pencil"></i>الكتابة مفعّلة</span>
+      </div>
+    </div>
+    <div class="sa-page-header-end"><button class="btn" data-sa-toast="بدأ تنزيل السجل"><i data-lucide="file-down"></i>تصدير السجل CSV</button></div>
+  </div>
+
+  <div class="sa-tabs" role="tablist">
+    <a class="sa-tab is-active" href="#overview" data-sa-tab="overview"><i data-lucide="layout-grid"></i>نظرة عامة</a>
+    <a class="sa-tab" href="#admins" data-sa-tab="admins"><i data-lucide="users"></i>الموظفون <span class="sa-badge num">8</span></a>
+    <a class="sa-tab" href="#tools" data-sa-tab="tools"><i data-lucide="wrench"></i>الأدوات</a>
+    <a class="sa-tab" href="#clients" data-sa-tab="clients"><i data-lucide="plug"></i>الاتصالات <span class="sa-badge num">7</span></a>
+    <a class="sa-tab" href="#logs" data-sa-tab="logs"><i data-lucide="scroll-text"></i>السجل</a>
+    <a class="sa-tab" href="#settings" data-sa-tab="settings"><i data-lucide="settings"></i>الإعدادات</a>
+  </div>
+
+  <!-- نظرة عامة -->
+  <div class="sa-stack" data-sa-panel="overview">
+    <div class="sa-grid-4">
+      <div class="sa-kpi"><span class="sa-kpi-label"><i data-lucide="plug"></i>اتصالات فعّالة</span><b class="sa-kpi-value num">7</b></div>
+      <div class="sa-kpi"><span class="sa-kpi-label"><i data-lucide="users"></i>موظفون مفعّلون</span><b class="sa-kpi-value num">8</b></div>
+      <div class="sa-kpi"><span class="sa-kpi-label"><i data-lucide="activity"></i>استدعاءات اليوم</span><b class="sa-kpi-value num">312</b></div>
+      <div class="sa-kpi"><span class="sa-kpi-label"><i data-lucide="ban"></i>مرفوضة / أخطاء اليوم</span><b class="sa-kpi-value is-warning num">4 / 1</b></div>
+    </div>
+    <div class="sa-grid-2">
+      <section class="sa-card">
+        <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="list-checks"></i></span><div><h2 class="sa-card-title">جاهزية التشغيل</h2><p class="sa-card-desc">5 شروط لازم يتحققوا عشان المساعد يشتغل.</p></div></div><span class="sa-badge sa-badge--success num">5 من 5</span></div>
+        <div class="sa-checks">
+          <div class="sa-check"><i data-lucide="check-circle-2"></i>الاشتراك ساري<small>مدفوع · ينتهي 31 مارس 2027</small></div>
+          <div class="sa-check"><i data-lucide="check-circle-2"></i>الخادم مفعّل</div>
+          <div class="sa-check"><i data-lucide="check-circle-2"></i>APP_URL على https<small class="sa-mono">alriyada.clickerp.sa</small></div>
+          <div class="sa-check"><i data-lucide="check-circle-2"></i>OAuth مفعّل</div>
+          <div class="sa-check"><i data-lucide="check-circle-2"></i>موظف واحد مفعّل على الأقل<small>8 موظفين</small></div>
+        </div>
+      </section>
+      <section class="sa-card">
+        <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="bar-chart-3"></i></span><div><h2 class="sa-card-title">الاستدعاءات — آخر 14 يوم</h2></div></div></div>
+        <div class="sa-bars"><i style="height:36%"></i><i style="height:55%"></i><i style="height:48%"></i><i style="height:64%"></i><i style="height:27%"></i><i style="height:18%"></i><i style="height:73%"></i><i style="height:79%"></i><i style="height:70%"></i><i style="height:91%"></i><i style="height:85%"></i><i style="height:42%"></i><i style="height:88%"></i><i style="height:95%"></i></div>
+      </section>
+    </div>
+    <section class="sa-card">
+      <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="wrench"></i></span><div><h2 class="sa-card-title">أكثر الأدوات استخدامًا</h2></div></div></div>
+      <div class="sa-rank">
+        <div class="sa-rank-row"><code>search_contracts</code><span class="sa-badge">قراءة</span><div class="sa-meter"><i style="width:96%"></i></div><em class="num">96</em></div>
+        <div class="sa-rank-row"><code>get_client</code><span class="sa-badge">قراءة</span><div class="sa-meter"><i style="width:71%"></i></div><em class="num">71</em></div>
+        <div class="sa-rank-row"><code>list_cvs</code><span class="sa-badge">قراءة</span><div class="sa-meter"><i style="width:54%"></i></div><em class="num">54</em></div>
+        <div class="sa-rank-row"><code>create_followup</code><span class="sa-badge sa-badge--warning">كتابة</span><div class="sa-meter is-warning"><i style="width:22%"></i></div><em class="num">22</em></div>
+        <div class="sa-rank-row"><code>finance_summary</code><span class="sa-badge">قراءة</span><div class="sa-meter"><i style="width:18%"></i></div><em class="num">18</em></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- الموظفون -->
+  <section class="sa-card sa-card--flush" data-sa-panel="admins" hidden>
+    <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="users"></i></span><div><h2 class="sa-card-title">الموظفون المسموح لهم</h2><p class="sa-card-desc">كل موظف بيشوف من المساعد بس اللي صلاحياته بتسمح بيه.</p></div></div><button class="btn btn-sm"><i data-lucide="user-plus"></i>إضافة موظف</button></div>
+    <div class="sa-table-wrap"><table class="sa-table">
+      <thead><tr><th>الموظف</th><th>الكتابة</th><th>اتصالات</th><th>آخر استخدام</th><th class="is-end"></th></tr></thead>
+      <tbody>
+        <tr><td><div class="sa-person"><span class="sa-person-av">ف</span><b>فهد العتيبي</b></div></td><td><button class="sa-switch is-on"></button></td><td class="num">3</td><td>من 10 دقايق</td><td class="is-end"><button class="btn btn-ghost btn-sm" data-sa-confirm="هتتقطع كل اتصالات فهد العتيبي.">قطع الاتصالات</button></td></tr>
+        <tr><td><div class="sa-person"><span class="sa-person-av">س</span><b>سارة القحطاني</b></div></td><td><button class="sa-switch"></button></td><td class="num">2</td><td>اليوم 11:02</td><td class="is-end"><button class="btn btn-ghost btn-sm" data-sa-confirm="هتتقطع كل اتصالات سارة القحطاني.">قطع الاتصالات</button></td></tr>
+        <tr><td><div class="sa-person"><span class="sa-person-av">خ</span><b>خالد المطيري</b></div></td><td><button class="sa-switch"></button></td><td class="num">1</td><td>أمس</td><td class="is-end"><button class="btn btn-ghost btn-sm" data-sa-confirm="هتتقطع كل اتصالات خالد المطيري.">قطع الاتصالات</button></td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <!-- الأدوات -->
+  <section class="sa-card" data-sa-panel="tools" hidden>
+    <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="wrench"></i></span><div><h2 class="sa-card-title">الأدوات المتاحة للمساعد</h2><p class="sa-card-desc">أدوات الكتابة بتعرض معاينة الأول وبتطلب موافقة الموظف.</p></div></div></div>
+    <div class="sa-modules">
+      <div class="sa-module is-on"><span class="sa-module-icon"><i data-lucide="search"></i></span><span class="sa-module-body"><b class="sa-module-name sa-mono">search_contracts</b><small class="sa-module-sub">قراءة</small></span><button class="sa-switch is-on"></button></div>
+      <div class="sa-module is-on"><span class="sa-module-icon"><i data-lucide="user"></i></span><span class="sa-module-body"><b class="sa-module-name sa-mono">get_client</b><small class="sa-module-sub">قراءة</small></span><button class="sa-switch is-on"></button></div>
+      <div class="sa-module is-on"><span class="sa-module-icon"><i data-lucide="file-user"></i></span><span class="sa-module-body"><b class="sa-module-name sa-mono">list_cvs</b><small class="sa-module-sub">قراءة</small></span><button class="sa-switch is-on"></button></div>
+      <div class="sa-module is-on"><span class="sa-module-icon"><i data-lucide="pencil"></i></span><span class="sa-module-body"><b class="sa-module-name sa-mono">create_followup</b><small class="sa-module-sub">كتابة</small></span><button class="sa-switch is-on"></button></div>
+      <div class="sa-module"><span class="sa-module-icon"><i data-lucide="send"></i></span><span class="sa-module-body"><b class="sa-module-name sa-mono">send_customer_message</b><small class="sa-module-sub">كتابة</small></span><button class="sa-switch"></button></div>
+      <div class="sa-module is-on"><span class="sa-module-icon"><i data-lucide="wallet"></i></span><span class="sa-module-body"><b class="sa-module-name sa-mono">finance_summary</b><small class="sa-module-sub">قراءة</small></span><button class="sa-switch is-on"></button></div>
+    </div>
+  </section>
+
+  <!-- الاتصالات -->
+  <section class="sa-card sa-card--flush" data-sa-panel="clients" hidden>
+    <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="plug"></i></span><div><h2 class="sa-card-title">الاتصالات الفعّالة (OAuth)</h2></div></div></div>
+    <div class="sa-table-wrap"><table class="sa-table">
+      <thead><tr><th>العميل</th><th>الموظف</th><th>من</th><th class="is-end"></th></tr></thead>
+      <tbody>
+        <tr><td><b>Claude</b><small>claude.ai</small></td><td>فهد العتيبي</td><td>3 نوفمبر</td><td class="is-end"><button class="btn btn-ghost btn-sm" data-sa-confirm="هيتلغي الاتصال ده.">إلغاء</button></td></tr>
+        <tr><td><b>Claude Code</b><small>CLI</small></td><td>فهد العتيبي</td><td>10 نوفمبر</td><td class="is-end"><button class="btn btn-ghost btn-sm" data-sa-confirm="هيتلغي الاتصال ده.">إلغاء</button></td></tr>
+        <tr><td><b>Claude</b><small>claude.ai</small></td><td>سارة القحطاني</td><td>أمس</td><td class="is-end"><button class="btn btn-ghost btn-sm" data-sa-confirm="هيتلغي الاتصال ده.">إلغاء</button></td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <!-- السجل -->
+  <section class="sa-card sa-card--flush" data-sa-panel="logs" hidden>
+    <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="scroll-text"></i></span><div><h2 class="sa-card-title">سجل الاستدعاءات</h2></div></div><button class="btn btn-sm" data-sa-toast="بدأ التنزيل"><i data-lucide="file-down"></i>CSV</button></div>
+    <div class="sa-table-wrap"><table class="sa-table">
+      <thead><tr><th>الوقت</th><th>الموظف</th><th>الأداة</th><th>النتيجة</th></tr></thead>
+      <tbody>
+        <tr><td class="num">14:12</td><td>فهد العتيبي</td><td><code>search_contracts</code></td><td><span class="sa-badge sa-badge--success">نجح</span></td></tr>
+        <tr><td class="num">14:05</td><td>سارة القحطاني</td><td><code>create_followup</code></td><td><span class="sa-badge sa-badge--danger">مرفوض — الكتابة مقفولة</span></td></tr>
+        <tr><td class="num">13:58</td><td>فهد العتيبي</td><td><code>get_client</code></td><td><span class="sa-badge sa-badge--success">نجح</span></td></tr>
+        <tr><td class="num">13:40</td><td>خالد المطيري</td><td><code>finance_summary</code></td><td><span class="sa-badge sa-badge--warning">بلا نتائج</span></td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <!-- الإعدادات -->
+  <section class="sa-card" data-sa-panel="settings" hidden>
+    <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="settings"></i></span><div><h2 class="sa-card-title">الإعدادات والحماية</h2></div></div></div>
+    <div class="sa-setting"><span><b>تشغيل خادم MCP</b></span><button class="sa-switch is-on"></button></div>
+    <div class="sa-setting"><span><b>السماح بأدوات الكتابة</b><small>كل إضافة بتعدي على معاينة وموافقة.</small></span><button class="sa-switch is-on"></button></div>
+    <div class="sa-setting"><span><b>إخفاء أرقام الهوية والجوال جزئيًا</b></span><button class="sa-switch is-on"></button></div>
+    <div class="sa-form-grid" style="margin-top:10px">
+      <div class="sa-field"><label>الوصول</label><select class="sa-select"><option>الموظفون المحددون فقط</option><option>كل الموظفين</option></select></div>
+      <div class="sa-field"><label>نهاية الاشتراك</label><input class="sa-input" type="date" value="2027-03-31"></div>
+    </div>
+    <div class="sa-card-foot"><button class="btn btn-primary btn-sm" data-sa-toast="اتحفظت الإعدادات"><i data-lucide="save"></i>حفظ</button></div>
+  </section>
+
+</main>
+<script src="https://unpkg.com/lucide@0.451.0/dist/umd/lucide.min.js"></script>
+<script src="assets/sa.js"></script>
+</body>
+</html>

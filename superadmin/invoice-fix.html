@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="design-version" content="v1.25">
+<title>تعديل فاتورة — Super Admin · Click ERP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Reem+Kufi:wght@500;700&family=Noto+Kufi+Arabic:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/sa.css">
+</head>
+<body data-page="invoice-fix">
+<!-- Screen: invoice-fix · invoice-corrections.show + preview + update · invoice-correction.blade.php -->
+<main class="sa-content">
+
+  <div class="sa-page-header">
+    <div>
+      <a class="sa-back" href="invoices.html"><i data-lucide="arrow-right"></i>تصحيح الفواتير</a>
+      <h1 class="sa-page-title"><span class="sa-mono" style="font-size:26px">INV-9915</span><span class="sa-badge sa-badge--warning">غير مسددة</span></h1>
+      <p class="sa-page-desc">العقد CN-2026-0112 · التفويض D-4466 · الفرع الرئيسي · الإجمالي الحالي 11,500 ر.س</p>
+    </div>
+    <div class="sa-page-header-end"><a class="btn" href="invoices.html">إلغاء</a><button class="btn btn-primary" data-sa-confirm="هتتحفظ القيم المعروضة وهتتحدث 3 قيود محاسبية. متأكد؟"><i data-lucide="save"></i>حفظ وتحديث القيود</button></div>
+  </div>
+
+  <div class="sa-layout">
+    <section class="sa-card">
+      <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="file-pen"></i></span><div><h2 class="sa-card-title">التعديل</h2></div></div></div>
+      <div class="sa-form-grid">
+        <div class="sa-field"><label>تاريخ الفاتورة</label><input class="sa-input" type="date" value="2026-10-28"></div>
+        <div class="sa-field"><label>عدد المستقدمين في التأشيرة</label><input class="sa-input" type="number" value="1"></div>
+      </div>
+      <div class="sa-table-wrap" style="margin-top:16px"><table class="sa-table">
+        <thead><tr><th>البند</th><th>سعر الوحدة</th><th>الكمية</th><th>الإجمالي</th><th>ضريبة</th></tr></thead>
+        <tbody>
+          <tr><td>رسوم الاستقدام</td><td><input dir="ltr" value="8,000"></td><td><input dir="ltr" value="1"></td><td class="num">8,000</td><td><input type="checkbox" checked style="width:auto;height:auto"></td></tr>
+          <tr><td>تذكرة الطيران</td><td><input dir="ltr" value="1,500"></td><td><input dir="ltr" value="1"></td><td class="num">1,500</td><td><input type="checkbox" style="width:auto;height:auto"></td></tr>
+          <tr><td>الكشف الطبي</td><td><input dir="ltr" value="500"></td><td><input dir="ltr" value="1"></td><td class="num">500</td><td><input type="checkbox" checked style="width:auto;height:auto"></td></tr>
+        </tbody>
+      </table></div>
+      <div class="sa-form-grid" style="margin-top:16px">
+        <div class="sa-field"><label>الخصم (ر.س)</label><input class="sa-input" dir="ltr" value="500"></div>
+      </div>
+      <div class="sa-alert sa-alert--warning" style="margin-top:16px"><i data-lucide="info"></i><span>لو الإجمالي الجديد عدّى المسدد، الفاتورة هترجع «غير مسددة».</span></div>
+    </section>
+
+    <aside class="sa-layout-side">
+      <section class="sa-card">
+        <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="git-compare"></i></span><div><h2 class="sa-card-title">معاينة التعديل</h2></div></div></div>
+        <div class="sa-compare"><div><small>قبل</small><b class="num">11,500</b></div><i data-lucide="arrow-left"></i><div><small>بعد</small><b class="num">10,350</b></div><div class="is-diff"><small>الفرق</small><b class="num">−1,150</b></div></div>
+        <div class="sa-summary" style="margin-top:10px">
+          <div class="sa-summary-row">مجموع البنود<b class="num">10,000 ← 10,000</b></div>
+          <div class="sa-summary-row">الخصم<b class="num">0 ← 500</b></div>
+          <div class="sa-summary-row">الضريبة (15%)<b class="num">1,500 ← 850</b></div>
+          <div class="sa-summary-row">الإجمالي المستحق<b class="num">11,500 ← 10,350</b></div>
+        </div>
+      </section>
+      <section class="sa-card">
+        <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="book-open"></i></span><div><h2 class="sa-card-title">القيود المحاسبية المرتبطة</h2></div></div></div>
+        <div class="sa-status-list">
+          <div class="sa-status-row"><span class="sa-dot sa-dot--warning"></span><b>1210 العملاء</b><small class="num">مدين 11,500 ← 10,350</small></div>
+          <div class="sa-status-row"><span class="sa-dot sa-dot--warning"></span><b>4110 إيرادات الاستقدام</b><small class="num">دائن 10,000 ← 9,500</small></div>
+          <div class="sa-status-row"><span class="sa-dot sa-dot--warning"></span><b>2310 ضريبة القيمة المضافة</b><small class="num">دائن 1,500 ← 850</small></div>
+          <div class="sa-status-row"><span class="sa-dot"></span><b>1110 الصندوق</b><small>لا يتأثر</small></div>
+        </div>
+      </section>
+    </aside>
+  </div>
+
+</main>
+<script src="https://unpkg.com/lucide@0.451.0/dist/umd/lucide.min.js"></script>
+<script src="assets/sa.js"></script>
+</body>
+</html>

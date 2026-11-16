@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="design-version" content="v1.25">
+<title>تصحيح الفواتير — Super Admin · Click ERP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Reem+Kufi:wght@500;700&family=Noto+Kufi+Arabic:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/sa.css">
+</head>
+<body data-page="invoices">
+<!-- Screen: invoices · dev-superadmin.invoice-corrections.index (SuperAdminInvoiceCorrectionController@index) · invoice-correction.blade.php -->
+<main class="sa-content">
+
+  <div class="sa-page-header">
+    <div>
+      <h1 class="sa-page-title">تصحيح الفواتير</h1>
+      <p class="sa-page-desc">تعديل بنود فاتورة صادرة وتاريخها مع تحديث القيود المحاسبية المرتبطة بها.</p>
+    </div>
+  </div>
+
+  <section class="sa-card">
+    <div class="sa-filters">
+      <div class="sa-field"><label>البحث بواسطة</label><select class="sa-select"><option>رقم الفاتورة</option><option>رقم العقد</option><option>رقم التفويض</option></select></div>
+      <div class="sa-field is-grow"><label>الرقم</label><input class="sa-input" dir="ltr" value="CN-2026-0115"></div>
+      <button class="btn btn-primary"><i data-lucide="search"></i>بحث</button>
+    </div>
+  </section>
+
+  <section class="sa-card sa-card--flush">
+    <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="file-text"></i></span><div><h2 class="sa-card-title">النتائج</h2><p class="sa-card-desc">جنب كل فاتورة: ينفع تتعدل ولا لأ، والسبب.</p></div></div><span class="sa-card-meta">آخر 100 نتيجة</span></div>
+    <div class="sa-table-wrap"><table class="sa-table">
+      <thead><tr><th>الفاتورة</th><th>العقد / التفويض</th><th>التاريخ</th><th>الإجمالي</th><th>الحالة</th><th>ينفع تتعدل؟</th><th class="is-end"></th></tr></thead>
+      <tbody>
+        <tr><td><b class="sa-mono">INV-9919</b></td><td class="num">CN-2026-0115<small>D-4471</small></td><td class="num">2026-11-02</td><td class="num">19,200</td><td><span class="sa-badge sa-badge--success">مسددة</span></td><td><span class="sa-badge sa-badge--success">ينفع</span></td><td class="is-end"><a class="btn btn-sm" href="invoice-fix.html"><i data-lucide="file-pen"></i>جلب وتعديل</a></td></tr>
+        <tr><td><b class="sa-mono">INV-9915</b></td><td class="num">CN-2026-0112<small>D-4466</small></td><td class="num">2026-10-28</td><td class="num">11,500</td><td><span class="sa-badge sa-badge--warning">غير مسددة</span></td><td><span class="sa-badge sa-badge--success">ينفع</span></td><td class="is-end"><a class="btn btn-sm" href="invoice-fix.html"><i data-lucide="file-pen"></i>جلب وتعديل</a></td></tr>
+        <tr><td><b class="sa-mono">INV-9870</b></td><td class="num">CN-2026-0098<small>—</small></td><td class="num">2026-09-14</td><td class="num">16,100</td><td><span class="sa-badge sa-badge--success">مسددة</span></td><td><span class="sa-badge sa-badge--danger">مرسلة لـ ZATCA</span></td><td class="is-end"></td></tr>
+        <tr><td><b class="sa-mono">INV-9802</b></td><td class="num">CN-2026-0071<small>D-4310</small></td><td class="num">2026-06-30</td><td class="num">14,950</td><td><span class="sa-badge sa-badge--success">مسددة</span></td><td><span class="sa-badge sa-badge--danger">الفترة المالية مقفولة</span></td><td class="is-end"></td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section class="sa-card">
+    <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="shield"></i></span><div><h2 class="sa-card-title">إمتى يتمنع تعديل الفاتورة؟</h2><p class="sa-card-desc">القواعد التسعة اللي بيطبقها النظام قبل الحفظ.</p></div></div></div>
+    <div class="sa-rules">
+      <div class="sa-rule"><i data-lucide="circle-slash"></i><span><b>ZATCA:</b> الفاتورة اتبعتت أو اتقبلت</span></div>
+      <div class="sa-rule"><i data-lucide="circle-slash"></i><span><b>الإشعارات الدائنة:</b> عليها إشعار دائن</span></div>
+      <div class="sa-rule"><i data-lucide="circle-slash"></i><span><b>الفترة المالية:</b> مقفولة</span></div>
+      <div class="sa-rule"><i data-lucide="circle-slash"></i><span><b>القيود:</b> قيد مرحّل يدويًا</span></div>
+      <div class="sa-rule"><i data-lucide="circle-slash"></i><span><b>مساند:</b> مرتبطة بتحويل مساند</span></div>
+      <div class="sa-rule"><i data-lucide="circle-slash"></i><span><b>نسخة المبيعات:</b> متعدّلة في المالية</span></div>
+      <div class="sa-rule"><i data-lucide="circle-slash"></i><span><b>نوع الفاتورة:</b> غير مدعوم</span></div>
+      <div class="sa-rule"><i data-lucide="circle-slash"></i><span><b>القيم:</b> الإجمالي بالسالب أو صفر</span></div>
+      <div class="sa-rule"><i data-lucide="circle-slash"></i><span><b>المعاينة:</b> لازم تعاين قبل الحفظ</span></div>
+    </div>
+  </section>
+
+</main>
+<script src="https://unpkg.com/lucide@0.451.0/dist/umd/lucide.min.js"></script>
+<script src="assets/sa.js"></script>
+</body>
+</html>

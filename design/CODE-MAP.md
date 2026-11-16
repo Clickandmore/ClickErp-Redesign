@@ -157,7 +157,10 @@
 - **المراقبة:** لقطات من المتصفح (مشاركة الشاشة) والمؤقت شغال بس · حذف لقطة بسبب بيخصم مدتها · جلسات RustDesk بموافقة الموظف (مهلة 15 دقيقة).
 - **الصلاحيات المنفصلة:** اعتماد الوقت، اللقطات، طلب جلسة، متابعة الفريق، الإعدادات.
 
-## Super Admin — ✅ v1.10 (`setDev` · `sa*`)
+## Super Admin — ✅ v1.25 منطقة منفصلة `superadmin/` (كانت v1.10 `setDev` · `sa*`)
+
+**الهيكل:** قالب ClickERP نفسه (`admin/superadmin/layouts/app` + `partials/sidebar|topbar`) وأنماط `public/css/dev-super-admin.css`. شرح الملفات في `superadmin/README.md`. الشاشات: login · index (جديد) · subscription · employees · modules · designs · updates · update-form · backups · scheduler · recovery · test-accounts · hourly · moyasar · invoices · invoice-fix · mcp.
+
 
 **المصدر: ClickERP2** — `DevSuperAdminController` · `SuperAdminMcpController` · `SuperAdminInvoiceCorrectionController` · `DashboardDesignsController` · `DevSystemUpdatesController` · `MoyasarSettingsController`.
 - **نوع البرنامج:** نظام الاستقدام / نظام عام — التغيير بعبارة تأكيد + كلمة مرور + سبب، ومش بيمسح بيانات. «نظام عام» بيقفل شاشات المالية الخاصة بالاستقدام (فواتير العقود، مساند، الوكلاء، الملخص التشغيلي) وبيخبي صلاحياتها.

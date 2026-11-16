@@ -675,7 +675,7 @@
     },
     {
       "id": "setDev",
-      "file": "setDev.html",
+      "file": "superadmin/login.html",
       "title": "Super Admin — نظرة عامة"
     },
     {
@@ -790,77 +790,77 @@
     },
     {
       "id": "saLogin",
-      "file": "saLogin.html",
+      "file": "superadmin/login.html",
       "title": "Super Admin — تسجيل الدخول"
     },
     {
       "id": "saSubscription",
-      "file": "saSubscription.html",
+      "file": "superadmin/subscription.html",
       "title": "العميل والاشتراك"
     },
     {
       "id": "saModules",
-      "file": "saModules.html",
+      "file": "superadmin/modules.html",
       "title": "الموديلات ونوع البرنامج"
     },
     {
       "id": "saEmployees",
-      "file": "saEmployees.html",
+      "file": "superadmin/employees.html",
       "title": "الدخول كموظف"
     },
     {
       "id": "saDesigns",
-      "file": "saDesigns.html",
+      "file": "superadmin/designs.html",
       "title": "تصاميم لوحة التحكم"
     },
     {
       "id": "saUpdates",
-      "file": "saUpdates.html",
+      "file": "superadmin/updates.html",
       "title": "تحديثات النظام"
     },
     {
       "id": "saUpdateForm",
-      "file": "saUpdateForm.html",
+      "file": "superadmin/update-form.html",
       "title": "تحديث جديد"
     },
     {
       "id": "saBackups",
-      "file": "saBackups.html",
+      "file": "superadmin/backups.html",
       "title": "النسخ الاحتياطية"
     },
     {
       "id": "saScheduler",
-      "file": "saScheduler.html",
+      "file": "superadmin/scheduler.html",
       "title": "المهام المجدولة"
     },
     {
       "id": "saRecovery",
-      "file": "saRecovery.html",
+      "file": "superadmin/recovery.html",
       "title": "الاستعادة والفحص"
     },
     {
       "id": "saInvoices",
-      "file": "saInvoices.html",
+      "file": "superadmin/invoices.html",
       "title": "تصحيح الفواتير"
     },
     {
       "id": "saInvoiceFix",
-      "file": "saInvoiceFix.html",
+      "file": "superadmin/invoice-fix.html",
       "title": "تصحيح فاتورة — تعديل ومعاينة"
     },
     {
       "id": "saMcp",
-      "file": "saMcp.html",
+      "file": "superadmin/mcp.html",
       "title": "المساعد الذكي (MCP)"
     },
     {
       "id": "saMoyasar",
-      "file": "saMoyasar.html",
+      "file": "superadmin/moyasar.html",
       "title": "بوابة ميسر"
     },
     {
       "id": "saTestAccounts",
-      "file": "saTestAccounts.html",
+      "file": "superadmin/test-accounts.html",
       "title": "حسابات اختبار التطبيقات"
     },
     {

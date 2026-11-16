@@ -45,12 +45,13 @@
 
 /* ---------- 2) base ---------- */
 *, *::before, *::after { box-sizing: border-box; }
-html, body { margin: 0; }
+[hidden] { display: none !important; }
+html, body { margin: 0; overflow-x: hidden; }
 body { background: var(--bg); color: var(--text); font-family: var(--font-body); font-size: 14px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
 h1, h2, h3, h4, p { margin: 0; }
 a { color: var(--sa-navy-600); }
 button, input, select, textarea { font: inherit; color: inherit; }
-code, .sa-mono { font-family: var(--font-mono); font-size: 12.5px; direction: ltr; unicode-bidi: isolate; }
+code, .sa-mono { font-family: var(--font-mono); font-size: 12.5px; unicode-bidi: plaintext; }
 .num { font-variant-numeric: tabular-nums; }
 svg.lucide { width: 18px; height: 18px; flex: 0 0 auto; stroke-width: 1.8; }
 :focus-visible { outline: none; box-shadow: var(--focus); border-radius: var(--r-sm); }
@@ -341,7 +342,7 @@ input[type="color"].sa-input { padding: 4px; height: 42px; }
 
 /* تأكيد العمليات الحساسة: عبارة + كلمة مرور */
 .sa-confirm { display: grid; gap: 14px; padding: 16px; border: 1px solid var(--danger-line); border-radius: var(--r-md); background: var(--danger-bg); }
-.sa-confirm-head { display: flex; align-items: center; gap: 8px; color: var(--danger); font-size: 13px; font-weight: 600; }
+.sa-confirm-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; color: var(--danger); font-size: 13px; font-weight: 600; }
 .sa-confirm code { padding: 1px 6px; border-radius: 4px; background: #fff; color: var(--danger); }
 
 /* خطوات العملية الحساسة 1-2-3 */
@@ -467,8 +468,8 @@ input[type="color"].sa-input { padding: 4px; height: 42px; }
 .sa-auth .btn-primary { min-height: 46px; width: 100%; }
 .sa-auth-foot { color: var(--faint); font-size: 12px; text-align: center; }
 .sa-pass { position: relative; }
-.sa-pass .sa-input { padding-inline-end: 44px; }
-.sa-pass button { position: absolute; inset-inline-end: 6px; top: 50%; transform: translateY(-50%); width: 32px; height: 32px; display: grid; place-items: center; border: 0; border-radius: var(--r-sm); background: none; color: var(--muted); cursor: pointer; }
+.sa-pass .sa-input { padding-left: 44px; }
+.sa-pass button { position: absolute; left: 6px; top: 50%; transform: translateY(-50%); width: 32px; height: 32px; display: grid; place-items: center; border: 0; border-radius: var(--r-sm); background: none; color: var(--muted); cursor: pointer; }
 .sa-auth-panel { position: relative; display: flex; flex-direction: column; justify-content: center; gap: 22px; padding: 56px 64px; color: var(--sa-ivory); overflow: hidden; }
 .sa-auth-panel h2 { font-family: var(--font-display); font-size: 34px; line-height: 1.4; color: #fff; }
 .sa-auth-panel p { max-width: 460px; color: #B8C4D8; font-size: 14.5px; line-height: 1.9; }
