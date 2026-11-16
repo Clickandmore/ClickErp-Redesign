@@ -4765,7 +4765,7 @@ const CAT=[
   ["types","sponsorship_transfers","نقل الكفالة","مين في فترة التجربة ومين اتنقل؟",0,0,1],
   ["trips","travel_trips","رحلات الاستقدام","إيه الرحلات الجاية والمكتملة؟",0,0,1],
   ["trips","deportation_travel","الترحيل","مين في مرحلة الترحيل؟",0,0,1],
-  ["register","escape_reports","بلاغات الهروب","كام بلاغ مفتوح وفي أنهي عقود؟",0,0,0],
+  ["register","escape_reports","بلاغات الهروب","كام بلاغ مفتوح وفي أنهي عقود؟",0,0,0,0,0,"absconding"],
   ["finance","musaned_invoices","فواتير نقل مساند","فواتير نقل الخدمات اتدفعت ولا لسه؟",0,0,0],
   ["volume","branches","تقرير الفروع","كل فرع شغال قد إيه مقارنة بالباقي؟",0,0,0]]],
  ["ext","المكاتب الخارجية والتأشيرات","globe","المكاتب والسير وطلبات التأشيرة",[
@@ -4774,7 +4774,7 @@ const CAT=[
   ["volume","visa","تقارير التأشيرات","8 تقارير لطلبات التأشيرة",0,0,0,["المدفوعات","الاستهلاك","الإلغاءات","قريبة الانتهاء","دورة الطلب","مستحقات الوكلاء","التكلفة الكاملة","تقييم الوكلاء"]]]],
  ["crm","العملاء والخدمة","users","العملاء والشكاوى والعروض",[
   ["people","clients","العملاء","مين عنده طلبات ومين لأ؟",0,0,1],
-  ["register","complaints","الشكاوى","كام شكوى ومتوسط وقت الحل؟",0,0,1],
+  ["register","complaints","الشكاوى","كام شكوى ومتوسط وقت الحل؟",0,0,1,0,0,"claims"],
   ["people","duplicate_phones","أرقام العملاء المكررة","مين متسجل أكتر من مرة بنفس الرقم؟",0,0,0],
   ["volume","coupons","الكوبونات","كام كوبون اتستخدم ووفّر كام؟",0,0,0]]],
  ["rent","التأجير","home","الإيجار الشهري والتأجير بالساعة",[
@@ -4798,9 +4798,9 @@ const CAT=[
   ["finance","bill-sales-report","تقرير فواتير المبيعات","كل فاتورة اتطلعت وحالتها",0,0,0],
   ["finance","tax-invoice-statement","بيان الفواتير الضريبية","ضريبة الربع كام؟",0,1,0]]],
  ["hr","الموارد البشرية","user-cog","الرواتب والإجازات والعمل اليومي والمهام",[
-  ["register","payrolls","مسيّر الرواتب","رواتب الشهر بالتفصيل",0,0,0],
-  ["register","employeeVacationBalance","أرصدة الإجازات","كل موظف فاضله كام يوم؟",0,0,0],
-  ["register","daily-work-reports","تقارير العمل اليومية","كل موظف عمل إيه؟",0,0,0],
+  ["register","payrolls","مسيّر الرواتب","رواتب الشهر بالتفصيل",0,0,0,0,0,"hrPayroll"],
+  ["register","employeeVacationBalance","أرصدة الإجازات","كل موظف فاضله كام يوم؟",0,0,0,0,0,"hrRequests"],
+  ["register","daily-work-reports","تقارير العمل اليومية","كل موظف عمل إيه؟",0,0,0,0,0,"hrDaily"],
   ["register","task_center.reports","ساعات المهام والتكلفة","كل موظف اشتغل كام ساعة وعلى إيه، وتكلفتها كام؟",0,0,0,0,0,"tcHours"],
   ["register","task_center.reports.attendance","الحضور مقابل المهام","الحضور على الجهاز متطابق مع الوقت المسجل على المهام؟",0,0,0,0,0,"tcAttend"]]]
 ];
@@ -4964,6 +4964,8 @@ const OFFS=[["PLATINUM BROTHERS","الفلبين",40],["Supreme Link Ltd","أو�
 const MKTS=[["علي ناصر",4],["هند الشمري",3],["أحمد يوسف",3],["Mohameed",2]];
 const OCC=[["عاملة منزلية",60,16500],["سائق خاص",14,18000],["ممرضة منزلية",9,21000],["طباخة",10,17500],["عامل نظافة",7,15000]];
 const BR=[["الفرع الرئيسي",7],["فرع جدة",3]];
+const MAIDN={"الفلبين":["MARIA SANTOS","JOY REYES","ANA CRUZ","LIZA GARCIA","ROSE BAUTISTA","GRACE LOPEZ"],"أوغندا":["NAKATO SARAH","AKELLO GRACE","NAMULI JANE","AUMA RUTH"],"إثيوبيا":["TIGIST ALEMU","HIRUT BEKELE","MERON TADESSE","SABA GIRMA"],"بنغلاديش":["RAHIMA BEGUM","MD KARIM","SHAHIDA AKTER","MD RAHMAN"],"كينيا":["WANJIKU MARY","ACHIENG ROSE","NJERI ANN","AKINYI JOY"],"الهند":["SUNITA DEVI","RAJ KUMAR","PRIYA NAIR","ANIL SINGH"]};
+const RELG={"الفلبين":[["مسيحية",8],["مسلمة",2]],"أوغندا":[["مسلمة",5],["مسيحية",5]],"إثيوبيا":[["مسلمة",6],["مسيحية",4]],"بنغلاديش":[["مسلمة",10]],"كينيا":[["مسيحية",7],["مسلمة",3]],"الهند":[["مسلمة",5],["هندوسية",5]]};
 const STG_L={new:"عقد جديد",msaned:"توثيق مساند",tafwed:"التفويض",taffez:"التفييز",tazker:"التذكرة",arrival:"مرحلة الوصول",warranty:"تحت الضمان",completed:"مكتمل",back:"مرتجع",refunded:"مسترد"};
 const STG_T={new:"n",msaned:"n",tafwed:"n",taffez:"n",tazker:"n",arrival:"a",warranty:"g",completed:"g",back:"r",refunded:"r"};
 const STG_O=Object.keys(STG_L);
@@ -4974,10 +4976,13 @@ const CONTRACTS=(()=>{
  const make=(date,stage,late)=>{const o=rpW(OFFS.map(x=>[x,x[2]]));const occ=rpW(OCC.map(x=>[x,x[1]]));
   const r={id:`CN-${date.slice(0,4)}-${String(seq++).padStart(4,"0")}`,date,client:rpPick(NAMES),office:o[0],nat:o[1],occ:occ[0],mkt:rpW(MKTS),br:rpW(BR),stage,late:!!late,amount:occ[2]};
   r.days=late?18+Math.floor(rpRng()*30):2+Math.floor(rpRng()*12);
+  r.phone=`05${Math.floor(rpRng()*9)}•••••${10+Math.floor(rpRng()*89)}`;r.maid=rpPick(MAIDN[r.nat]);r.passport=`${"PEBKXN"[Math.floor(rpRng()*6)]}${Math.floor(rpRng()*9)}••••${100+Math.floor(rpRng()*899)}`;r.rel=rpW(RELG[r.nat]);
+  r.musaned=stage==="new"?null:`${Math.floor(1e5+rpRng()*9e5)}`;r.visa=["new","msaned"].includes(stage)?null:`19${Math.floor(1e6+rpRng()*9e6)}`;
   r.paid=["completed","warranty","back","refunded"].includes(stage)?r.amount:Math.round(r.amount*(stage==="new"?0.3:0.5)/50)*50;
   r.expected=rpAdd(date,60);
   if(["arrival","warranty","completed","back"].includes(stage)){let a=rpAdd(date,(late?62:34)+Math.floor(rpRng()*30));if(a>RP_TODAY)a=rpAdd(RP_TODAY,-Math.floor(rpRng()*5));if(a<date)a=rpAdd(date,3);r.arrival=a;r.delivered=stage==="arrival"?null:(rpRng()<0.9?rpAdd(a,1+Math.floor(rpRng()*4)):null)}
   else if(stage==="tazker"){r.flight=late?null:rpAdd(RP_TODAY,1+Math.floor(rpRng()*14))}
+  if(r.arrival&&stage!=="back"&&stage!=="arrival"){r.wend=rpAdd(r.arrival,90)}
   r.expected=stage==="tazker"?(late?rpAdd(RP_TODAY,-(r.days-12)):r.flight):r.arrival&&r.expected>RP_TODAY?r.arrival:r.expected;
   return r};
  const d26=mk(2026,[3,7,3,15,19,8,13,2,1,1,43]);
@@ -5011,6 +5016,7 @@ const ORDERS=(()=>{const ds=[];[4,7,4,15,19,9,14,3,2,2,42].forEach((c,i)=>{for(l
 /* ---- report definitions ---- */
 const dimsFrom=(rows,get,order,labels)=>{const s=[...new Set(rows.map(get))];if(order)s.sort((a,b)=>order.indexOf(a)-order.indexOf(b));return s.map(v=>[v,labels?labels[v]:v])};
 const stgTag=(s)=>TAG(STG_T[s],STG_L[s]);
+const wTag=(r)=>!r.wend?`<small class="hm-sm">—</small>`:r.wend>=RP_TODAY?TAG("g",`تحت الضمان · فاضل ${rpDiff(RP_TODAY,r.wend)} يوم`):TAG("n","انتهى الضمان");
 const CDIMS={
  stage:{l:"المرحلة",g:r=>r.stage,o:()=>STG_O.map(s=>[s,STG_L[s]])},
  office:{l:"المكتب",g:r=>r.office,o:()=>OFFS.map(o=>[o[0],o[0]])},
@@ -5025,14 +5031,14 @@ const RDEF={
   search:r=>r.id+" "+r.client,ph:"رقم العقد أو اسم العميل",
   kpis:R=>[["عقود في الفترة",R.length,"",null],["شغالة",R.filter(r=>!["completed","back","refunded"].includes(r.stage)).length,"قبل الإغلاق",null],["متأخرة عن مدتها",R.filter(r=>r.late).length,"عدّت مدة مرحلتها",["late","y"],"r"],["قيمة العقود",R.reduce((a,r)=>a+r.amount,0),"ر.س",null,"",1]],
   charts:[{t:"bars",ti:"حسب المرحلة",dim:"stage",late:1},{t:"months",ti:"العقود حسب الشهر"}],
-  cols:[["id","رقم العقد",r=>`<b class="num">${r.id}</b>`,r=>r.id,1],["client","العميل",r=>r.client,r=>r.client,1],["occ","المهنة",r=>r.occ,r=>r.occ,1],["nat","الجنسية",r=>r.nat,r=>r.nat,1],["office","المكتب",r=>r.office,r=>r.office,1],["stage","المرحلة",r=>stgTag(r.stage)+(r.late?` <small class="rp-late">متأخر ${r.days} يوم</small>`:""),r=>STG_O.indexOf(r.stage),1],["mkt","الموظف",r=>r.mkt,r=>r.mkt,1],["date","تاريخ العقد",r=>`<span class="num">${rpDate(r.date)}</span>`,r=>r.date,1],["amount","القيمة",r=>`<span class="num">${rpN(r.amount)}</span>`,r=>r.amount,0],["paid","المدفوع",r=>`<span class="num">${rpN(r.paid)}</span>`,r=>r.paid,0],["rem","المتبقي",r=>`<span class="num">${rpN(r.amount-r.paid)}</span>`,r=>r.amount-r.paid,0],["br","الفرع",r=>r.br,r=>r.br,0],["days","أيام في المرحلة",r=>`<span class="num">${r.days}</span>`,r=>r.days,0],["expected","الوصول المتوقع",r=>`<span class="num">${rpDate(r.expected)}</span>`,r=>r.expected,0]],
+  cols:[["id","رقم العقد",r=>`<b class="num">${r.id}</b>`,r=>r.id,1],["client","العميل",r=>r.client,r=>r.client,1],["phone","الجوال",r=>`<span class="num" dir="ltr">${r.phone}</span>`,r=>r.phone,0],["maid","العاملة",r=>`<span dir="ltr">${r.maid}</span>`,r=>r.maid,1],["passport","رقم الجواز",r=>`<span class="num" dir="ltr">${r.passport}</span>`,r=>r.passport,0],["occ","المهنة",r=>r.occ,r=>r.occ,1],["nat","الجنسية",r=>r.nat,r=>r.nat,1],["rel","الديانة",r=>r.rel,r=>r.rel,0],["office","المكتب",r=>r.office,r=>r.office,1],["stage","المرحلة",r=>stgTag(r.stage)+(r.late?` <small class="rp-late">متأخر ${r.days} يوم</small>`:""),r=>STG_O.indexOf(r.stage),1],["mkt","الموظف",r=>r.mkt,r=>r.mkt,1],["date","تاريخ العقد",r=>`<span class="num">${rpDate(r.date)}</span>`,r=>r.date,1],["amount","القيمة",r=>`<span class="num">${rpN(r.amount)}</span>`,r=>r.amount,0],["paid","المدفوع",r=>`<span class="num">${rpN(r.paid)}</span>`,r=>r.paid,0],["rem","المتبقي",r=>`<span class="num">${rpN(r.amount-r.paid)}</span>`,r=>r.amount-r.paid,0],["br","الفرع",r=>r.br,r=>r.br,0],["days","أيام في المرحلة",r=>`<span class="num">${r.days}</span>`,r=>r.days,0],["expected","الوصول المتوقع",r=>`<span class="num">${rpDate(r.expected)}</span>`,r=>r.expected,0],["warranty","حالة الضمان",wTag,r=>r.wend||"",0],["wend","انتهاء الضمان",r=>r.wend?`<span class="num">${rpDate(r.wend)}</span>`:"—",r=>r.wend||"",0],["musaned","رقم مساند",r=>r.musaned?`<span class="num">${r.musaned}</span>`:"—",r=>r.musaned||"",0],["visa","رقم التأشيرة",r=>r.visa?`<span class="num">${r.visa}</span>`:"—",r=>r.visa||"",0]],
   gcols:[["عقود",R=>R.length],["شغالة",R=>R.filter(r=>!["completed","back","refunded"].includes(r.stage)).length],["متأخرة",R=>R.filter(r=>r.late).length,"r"],["مكتملة",R=>R.filter(r=>r.stage==="completed").length],["مرتجع / مسترد",R=>R.filter(r=>r.stage==="back"||r.stage==="refunded").length],["القيمة",R=>R.reduce((a,r)=>a+r.amount,0),"",1]]},
  arrival:{t:"تقرير الوصول",q:"مين وصل ومين متأخر عن الوصول؟",src:()=>ARRIVALS,dateTypes:[["date","تاريخ العقد"],["arrival","تاريخ الوصول"],["expected","الوصول المتوقع"],["delivered","تاريخ التسليم"]],per:"year",
   dims:{bucket:{l:"الحالة",g:r=>r.bucket,o:()=>Object.keys(ARR_L).map(k=>[k,ARR_L[k]])},office:CDIMS.office,mkt:CDIMS.mkt,nat:CDIMS.nat,br:CDIMS.br,occ:CDIMS.occ},quick:["bucket","office"],
   views:[["rows","العقود"],["office","المكاتب"],["mkt","الموظفين"],["nat","الجنسية"]],search:r=>r.id+" "+r.client,ph:"رقم العقد أو اسم العميل",
   kpis:R=>{const a=R.filter(r=>r.adays!=null);return [["وصلوا",a.length,"في الفترة",null],["مستنيين",R.filter(r=>r.bucket==="waiting").length,"تذكرة محجوزة",["bucket","waiting"]],["متأخرين عن الوصول",R.filter(r=>r.bucket==="delayed").length,"عدّوا ميعاد الوصول المتوقع",["bucket","delayed"],"r"],["متوسط مدة الوصول",a.length?a.reduce((x,r)=>x+r.adays,0)/a.length:0,"يوم",null,"lo",0,1]]},
   charts:[{t:"bars",ti:"حسب الحالة",dim:"bucket"},{t:"bars",ti:"متوسط أيام الوصول لكل مكتب",dim:"office",metric:R=>{const a=R.filter(r=>r.adays!=null);return a.length?Math.round(a.reduce((x,r)=>x+r.adays,0)/a.length):0},unit:"يوم",warn:60}],
-  cols:[["id","رقم العقد",r=>`<b class="num">${r.id}</b>`,r=>r.id,1],["client","العميل",r=>r.client,r=>r.client,1],["office","المكتب",r=>r.office,r=>r.office,1],["nat","الجنسية",r=>r.nat,r=>r.nat,1],["date","تاريخ العقد",r=>`<span class="num">${rpDate(r.date)}</span>`,r=>r.date,1],["expected","الوصول المتوقع",r=>`<span class="num">${rpDate(r.expected)}</span>`,r=>r.expected,1],["arrival","الوصول الفعلي",r=>r.arrival?`<span class="num">${rpDate(r.arrival)}</span>`:r.flight?`<small class="hm-sm">رحلة ${rpDate(r.flight)}</small>`:"—",r=>r.arrival||"",1],["adays","المدة",r=>r.adays!=null?`<span class="num ${r.adays>60?"r":""}">${r.adays} يوم</span>`:"—",r=>r.adays??999,1],["bucket","الحالة",r=>TAG(ARR_T[r.bucket],ARR_L[r.bucket]),r=>r.bucket,1],["delivered","التسليم",r=>r.delivered?`<span class="num">${rpDate(r.delivered)}</span>`:"—",r=>r.delivered||"",0],["mkt","الموظف",r=>r.mkt,r=>r.mkt,0],["br","الفرع",r=>r.br,r=>r.br,0]],
+  cols:[["id","رقم العقد",r=>`<b class="num">${r.id}</b>`,r=>r.id,1],["client","العميل",r=>r.client,r=>r.client,1],["maid","العاملة",r=>`<span dir="ltr">${r.maid}</span>`,r=>r.maid,1],["office","المكتب",r=>r.office,r=>r.office,1],["nat","الجنسية",r=>r.nat,r=>r.nat,1],["date","تاريخ العقد",r=>`<span class="num">${rpDate(r.date)}</span>`,r=>r.date,1],["expected","الوصول المتوقع",r=>`<span class="num">${rpDate(r.expected)}</span>`,r=>r.expected,1],["arrival","الوصول الفعلي",r=>r.arrival?`<span class="num">${rpDate(r.arrival)}</span>`:r.flight?`<small class="hm-sm">رحلة ${rpDate(r.flight)}</small>`:"—",r=>r.arrival||"",1],["adays","المدة",r=>r.adays!=null?`<span class="num ${r.adays>60?"r":""}">${r.adays} يوم</span>`:"—",r=>r.adays??999,1],["bucket","الحالة",r=>TAG(ARR_T[r.bucket],ARR_L[r.bucket]),r=>r.bucket,1],["delivered","التسليم",r=>r.delivered?`<span class="num">${rpDate(r.delivered)}</span>`:"—",r=>r.delivered||"",0],["mkt","الموظف",r=>r.mkt,r=>r.mkt,0],["br","الفرع",r=>r.br,r=>r.br,0]],
   gcols:[["عقود",R=>R.length],["وصلوا",R=>R.filter(r=>r.adays!=null).length],["متأخرين",R=>R.filter(r=>r.bucket==="delayed").length,"r"],["ما اتسلّموش",R=>R.filter(r=>r.bucket==="undelivered").length,"a"],["متوسط الوصول",R=>{const a=R.filter(r=>r.adays!=null);return a.length?Math.round(a.reduce((x,r)=>x+r.adays,0)/a.length):0},"",0,"يوم"]]},
  orders:{t:"طلبات الاستقدام",q:"كام طلب جديد ومكتمل وملغي؟",src:()=>ORDERS,dateTypes:[["date","تاريخ الطلب"]],per:"year",
   dims:{status:{l:"الحالة",g:r=>r.status,o:()=>Object.keys(ORD_L).map(k=>[k,ORD_L[k]])},occ:CDIMS.occ,nat:CDIMS.nat,gender:{l:"الجنس",g:r=>r.gender,o:()=>[["أنثى","أنثى"],["ذكر","ذكر"]]},mkt:CDIMS.mkt,br:CDIMS.br},quick:["status","occ"],
@@ -5055,7 +5061,7 @@ RDEF.offices={...RDEF.recruitment_contracts,t:"المكاتب الخارجية",
 
 /* ---- state ---- */
 let RKEY="recruitment_contracts",RS=null;
-const rpInit=(k,preset)=>{const d=RDEF[k];RKEY=k;RS={f:{},per:d.per,from:"",to:"",dt:d.dateTypes[0][0],view:d.defView||"rows",q:"",cmp:false,sort:null,dir:-1,cols:d.cols.filter(c=>c[4]).map(c=>c[0]),n:15,add:false,colp:false,...(preset||{})}};
+const rpInit=(k,preset)=>{const d=RDEF[k];RKEY=k;RS={f:{},per:d.per,from:"",to:"",dt:d.dateTypes[0][0],view:d.defView||"rows",q:"",cmp:false,sort:null,dir:-1,cols:d.cols.filter(c=>c[4]).map(c=>c[0]),n:15,add:false,colp:false,open:null,...(preset||{})}};
 const PERS=[["month","الشهر ده"],["last","الشهر اللي فات"],["q","آخر 3 شهور"],["year","السنة دي"],["pyear","السنة اللي فاتت"],["all","كل الفترات"],["custom","مخصص"]];
 const rpRange=(p)=>{const y=+RP_TODAY.slice(0,4),m=+RP_TODAY.slice(5,7);
  if(p==="month")return [rpD(y,m,1),RP_TODAY];if(p==="last")return [rpD(y,m-1,1),rpAdd(rpD(y,m,1),-1)];if(p==="q")return [rpD(y,m-2,1),RP_TODAY];
@@ -5097,7 +5103,7 @@ const rpView=()=>{
   const cs=RS.cols.map(col).filter(Boolean);let rows=R.slice();
   if(RS.sort){const c=col(RS.sort);if(c)rows.sort((x,y)=>{const a=c[3](x),b=c[3](y);return (a>b?1:a<b?-1:0)*RS.dir})}
   table=`<div class="tw"><table class="rp-t"><thead><tr>${cs.map(c=>`<th><button data-rpsort="${c[0]}" class="${RS.sort===c[0]?"on":""}">${c[1]}${X(RS.sort===c[0]?(RS.dir>0?"arrow-up":"arrow-down"):"arrow-up-down")}</button></th>`).join("")}</tr></thead>
-   <tbody>${rows.slice(0,RS.n).map(r=>`<tr>${cs.map(c=>`<td>${c[2](r)}</td>`).join("")}</tr>`).join("")||`<tr><td colspan="${cs.length}" class="rp-empty">مفيش نتايج — شيل فلتر أو وسّع الفترة</td></tr>`}</tbody></table></div>
+   <tbody>${rows.slice(0,RS.n).map(r=>`<tr ${r.stage?`data-rpopen="${r.id}" class="rp-click ${RS.open===r.id?"on":""}"`:""}>${cs.map(c=>`<td>${c[2](r)}</td>`).join("")}</tr>`).join("")||`<tr><td colspan="${cs.length}" class="rp-empty">مفيش نتايج — شيل فلتر أو وسّع الفترة</td></tr>`}</tbody></table></div>
    <div class="tfoot rp-foot"><span>عارض <b class="num">${Math.min(RS.n,rows.length)}</b> من <b class="num">${rows.length}</b></span>${rows.length>RS.n?B("ghost sm","chevrons-down",`اعرض ${Math.min(25,rows.length-RS.n)} كمان`,'data-rpmore="1"'):""}</div>`;
  }else{
   const dim=d.dims[RS.view];const groups=dim.o().map(([v,l])=>[v,l,R.filter(r=>dim.g(r)===v)]).filter(g=>g[2].length);
@@ -5129,7 +5135,21 @@ const rpView=()=>{
  <div class="card flush rp-tbl">
   <div class="rp-th"><div class="rp-vw"><span>اعرض حسب</span><div class="seg">${d.views.map(v=>`<button class="${RS.view===v[0]?"on":""}" data-rpview="${v[0]}">${v[1]}</button>`).join("")}</div></div>
    <div class="rp-ta">${RS.view==="rows"?`<div class="rp-addw">${B("ghost sm","columns-3",`الأعمدة (${RS.cols.length} من ${d.cols.length})`,'data-rpcolp="1"')}${RS.colp?`<div class="rp-pop rp-colp"><b>الأعمدة وترتيبها</b>${[...RS.cols.map(col),...d.cols.filter(c=>!RS.cols.includes(c[0]))].map(c=>{const on=RS.cols.includes(c[0]);const i=RS.cols.indexOf(c[0]);return `<div class="rp-ci ${on?"":"off"}"><button data-rpcol="${c[0]}" class="rp-cb">${X(on?"square-check":"square")}<span>${c[1]}</span></button>${on?`<button data-rpmv="${c[0]}|-1" ${i===0?"disabled":""}>${X("chevron-up")}</button><button data-rpmv="${c[0]}|1" ${i===RS.cols.length-1?"disabled":""}>${X("chevron-down")}</button>`:""}</div>`}).join("")}<small class="fhint">الترتيب ده بيتحفظ مع «حفظ في تقاريري» وبيطلع بيه في Excel.</small></div>`:""}</div>`:`<small class="hm-sm">اضغط على أي صف تشوف تفاصيله</small>`}</div></div>
-  ${table}</div>`};
+  ${table}</div>${RS.open?rpDrawer():""}`};
+const rpDrawer=()=>{const r=CONTRACTS.find(x=>x.id===RS.open);if(!r)return "";
+ const kv=(l,v)=>`<div class="rp-kv"><span>${l}</span><b>${v||"—"}</b></div>`;
+ const path=["new","msaned","tafwed","taffez","tazker","arrival","warranty","completed"];const ix=path.indexOf(r.stage);
+ return `<div class="ov rp-ov" data-rpclose><aside class="rp-dr" role="dialog" aria-label="تفاصيل العقد">
+  <div class="rp-dh"><div><small>عقد استقدام</small><h3 class="num">${r.id}</h3><div class="rp-dt">${stgTag(r.stage)}${r.late?TAG("r",`متأخر ${r.days} يوم في المرحلة`):""}</div></div><button class="icon-btn" data-rpclose="1">${X("x")}</button></div>
+  <div class="rp-db">
+   ${ix>-1?`<div class="rp-path">${path.map((p,i)=>`<span class="${i<ix?"d":i===ix?(r.late?"l":"c"):""}"><i></i>${STG_L[p]}</span>`).join("")}</div>`:`<div class="cx-info">${X("info")}<span>العقد ${STG_L[r.stage]} — مقفول.</span></div>`}
+   <div class="rp-ds"><b>${X("user")}العميل</b>${kv("الاسم",r.client)}${kv("الجوال",`<span class="num" dir="ltr">${r.phone}</span>`)}${kv("الفرع",r.br)}${kv("المسوّق / المسؤول",r.mkt)}</div>
+   <div class="rp-ds"><b>${X("id-card")}العاملة</b>${kv("الاسم",`<span dir="ltr">${r.maid}</span>`)}${kv("الجنسية",r.nat)}${kv("المهنة",r.occ)}${kv("الديانة",r.rel)}${kv("رقم الجواز",`<span class="num" dir="ltr">${r.passport}</span>`)}${kv("المكتب الخارجي",r.office)}</div>
+   <div class="rp-ds"><b>${X("calendar")}التواريخ والأرقام</b>${kv("تاريخ العقد",rpDate(r.date))}${kv("رقم مساند",r.musaned&&`<span class="num">${r.musaned}</span>`)}${kv("رقم التأشيرة",r.visa&&`<span class="num">${r.visa}</span>`)}${kv("الوصول المتوقع",rpDate(r.expected))}${kv("الوصول الفعلي",r.arrival&&rpDate(r.arrival))}${kv("التسليم للعميل",r.delivered&&rpDate(r.delivered))}${kv("الضمان",wTag(r))}</div>
+   <div class="rp-ds"><b>${X("wallet")}المالية</b>${kv("قيمة العقد",`<span class="num">${rpN(r.amount)} ر.س</span>`)}${kv("المدفوع",`<span class="num">${rpN(r.paid)} ر.س</span>`)}${kv("المتبقي",`<span class="num ${r.amount-r.paid?"r":""}">${rpN(r.amount-r.paid)} ر.س</span>`)}</div>
+  </div>
+  <div class="rp-df">${B("ghost","chevron-right","السابق",'data-rpstep="-1"')}${B("ghost","chevron-left","التالي",'data-rpstep="1"')}<span style="flex:1"></span>${B("primary","external-link","ملف العقد كامل",`data-rcshow="${r.id}"`)}</div>
+ </aside></div>`};
 
 /* ---- events ---- */
 document.addEventListener("click",e=>{
@@ -5152,6 +5172,9 @@ document.addEventListener("click",e=>{
  else if(t=g("[data-rprm]")){delete RS.f[t.dataset.rprm];go()}
  else if(g("[data-rpreset]")){RS.f={};RS.q="";go()}
  else if(g("[data-rpmore]")){RS.n+=25;go()}
+ else if(g("button[data-rpclose]")||(e.target.matches&&e.target.matches(".rp-ov"))){RS.open=null;go()}
+ else if(t=g("[data-rpstep]")){const ids=[...document.querySelectorAll("[data-rpopen]")].map(x=>x.dataset.rpopen);const i=ids.indexOf(RS.open)+ +t.dataset.rpstep;if(i>=0&&i<ids.length){RS.open=ids[i];go()}}
+ else if(t=g("tr[data-rpopen]")){RS.open=t.dataset.rpopen;go()}
  else if(g("[data-rpcolp]")){RS.colp=!RS.colp;RS.add=false;go()}
  else if(t=g("[data-rpcol]")){const k=t.dataset.rpcol;if(RS.cols.includes(k)){if(RS.cols.length>1)RS.cols=RS.cols.filter(c=>c!==k)}else RS.cols.push(k);RS.colp=true;go()}
  else if(t=g("[data-rpmv]")){const [k,dd]=t.dataset.rpmv.split("|");const i=RS.cols.indexOf(k),j=i+ +dd;if(j>=0&&j<RS.cols.length){[RS.cols[i],RS.cols[j]]=[RS.cols[j],RS.cols[i]]}RS.colp=true;go()}
