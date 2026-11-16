@@ -6261,12 +6261,28 @@ let TS;try{TS=JSON.parse(localStorage.getItem(LS))}catch(e){}
 if(!Array.isArray(TS))TS=extra(seed());
 const save=()=>{try{localStorage.setItem(LS,JSON.stringify(TS))}catch(e){}};
 const get=k=>TS.find(t=>t.k===k);
-const CAP=25;
-const UI={more:{},q:"",ppl:[],qf:"",dense:"c",group:"none",open:null,share:null,create:false,addcol:null,unfold:{},drag:null,client:false};
+let CAP=25;
+const UI={cfg:null,cfgHi:null,cfdrag:null,more:{},q:"",ppl:[],qf:"",dense:"c",group:"none",open:null,share:null,create:false,addcol:null,unfold:{},drag:null,client:false};
+
+/* ---------- v1.26: board settings — lists (columns) and card fields, saved per user ---------- */
+const CFGK="cerp-board-cfg";
+const DEFCFG=()=>({cols:COL.map(c=>({k:c[0],name:c[1],color:c[2],wip:c[0]==="doing"?4:0,hidden:false,fold:c[0]==="hold"||c[0]==="closed",sort:"manual"})),
+ card:{type:1,key:1,prio:1,due:1,cm:1,ck:0,client:0,as:1,alert:1,stripe:1},cap:25,dense:"c",group:"none"});
+let BC;try{BC=JSON.parse(localStorage.getItem(CFGK))}catch(e){}
+if(!BC||!Array.isArray(BC.cols))BC=DEFCFG();
+const syncCols=()=>{Object.keys(STN).forEach(k=>delete STN[k]);Object.keys(SCOL).forEach(k=>delete SCOL[k]);BC.cols.forEach(c=>{STN[c.k]=c.name;SCOL[c.k]=c.color});CAP=+BC.cap||25};
+const saveCfg=()=>{try{localStorage.setItem(CFGK,JSON.stringify(BC))}catch(e){}syncCols()};
+syncCols();UI.dense=BC.dense||"c";UI.group=BC.group||"none";
+const CC=k=>BC.cols.find(c=>c.k===k);
+const VCOLS=()=>BC.cols.filter(c=>!c.hidden).map(c=>[c.k,c.name,c.color,c]);
+const CF=f=>!!BC.card[f];
+const PRK={urgent:0,high:1,medium:2,low:3};
+const sortIt=(it,s)=>s==="due"?it.slice().sort((a,b)=>(a.due||"9999")<(b.due||"9999")?-1:(a.due||"9999")>(b.due||"9999")?1:0):s==="prio"?it.slice().sort((a,b)=>PRK[a.prio]-PRK[b.prio]):it;
+const CSW=["#8a97ab","#2f5fa8","#7044b8","#0e7c66","#c8862a","#d4453c","#5f6c80","#65a034","#c2417a","#1f8fb3"];
 
 /* ---------- helpers ---------- */
 const avs=(list,max)=>{max=max||3;if(!list.length)return `<span class="kb-av none" title="من غير مسؤول">${X("user-plus")}</span>`;return `<span class="lb-avs">${list.slice(0,max).map(n=>av(n)).join("")}${list.length>max?`<span class="kb-av more">+${list.length-max}</span>`:""}</span>`};
-const vis=t=>{if(t.status==="closed"&&!UI.unfold.closed)return true;
+const vis=t=>{const cc=CC(t.status);if(cc&&cc.fold)return true;
  const q=UI.q.trim();if(q&&!(t.k+" "+t.title+" "+t.client).includes(q))return false;
  if(UI.ppl.length&&!UI.ppl.some(p=>p==="none"?!t.as.length:t.as.includes(p)))return false;
  if(UI.qf==="mine"&&!t.as.includes(ME))return false;if(UI.qf==="late"&&dcls(t)!=="late")return false;if(UI.qf==="client"&&t.status!=="client")return false;
@@ -6277,15 +6293,15 @@ const copy=txt=>{const ok=()=>toast("اتنسخ الرابط — الصقه في
 const log=(t,x)=>{t.act.unshift({w:ME,at:now(),x})};
 
 /* ---------- card ---------- */
-const card=t=>{const ty=TI[t.type]||TI.UPD,p=PI[t.prio],dc=dcls(t),chk=t.ck.length?[t.ck.filter(c=>c.d).length,t.ck.length]:null;
- return `<div class="km lb-c${t.live.length?" live":""}${UI.dense==="d"?" det":""}" draggable="true" data-k="${t.k}" style="--c:${CL[t.client]||"#5f6c80"}" title="${esc(t.client)}">
- ${UI.dense==="d"?`<div class="kb-ct"><span class="kb-cl" style="--c:${CL[t.client]||"#5f6c80"}">${esc(t.client)}</span><span class="kb-pd">${esc(t.product||"")}</span></div>`:""}
+const card=t=>{const ty=TI[t.type]||TI.UPD,p=PI[t.prio],dc=dcls(t),chk=t.ck.length?[t.ck.filter(c=>c.d).length,t.ck.length]:null,D=UI.dense==="d";
+ return `<div class="km lb-c${t.live.length?" live":""}${D?" det":""}${CF("stripe")?"":" nostripe"}" draggable="true" data-k="${t.k}" style="--c:${CL[t.client]||"#5f6c80"}" title="${esc(t.client)}">
+ ${D||CF("client")?`<div class="kb-ct"><span class="kb-cl" style="--c:${CL[t.client]||"#5f6c80"}">${esc(t.client)}</span>${D?`<span class="kb-pd">${esc(t.product||"")}</span>`:""}</div>`:""}
  <b class="km-t">${esc(t.title)}</b>
- ${UI.dense==="d"&&t.alert?`<span class="kb-al ${t.alertCls}">${X("alert-circle")}${esc(t.alert)}</span>`:""}
- ${UI.dense==="d"&&chk?`<div class="kb-pr"><span class="tc-bar"><i style="width:${chk[0]/chk[1]*100}%"></i></span><small class="num">${chk[0]}/${chk[1]}</small></div>`:""}
- ${t.live.length&&UI.dense==="d"?`<span class="kb-live"><i></i>${t.live.map(n=>n.split(" ")[0]).join(" و")} شغال${t.live.length>1?"ين":""}</span>`:""}
- <div class="km-f"><span class="kb-ty ${ty[1]}" title="${ty[2]}">${X(ty[0])}</span><span class="kb-key num">${t.k}</span><span class="kb-pi ${p[1]}" title="${p[2]}">${X(p[0])}</span>${t.due?`<span class="kb-due ${dc}">${dfmt(t.due)}</span>`:""}${UI.dense!=="d"&&t.alert?`<span class="km-al ${t.alertCls||"a"}" title="${esc(t.alert)}">${X("alert-circle")}</span>`:""}${t.live.length?`<span class="km-lv" title="${t.live.join("، ")} شغال"></span>`:""}${UI.dense!=="d"&&t.cm.length?`<span class="kb-mt">${X("message-square")}${t.cm.length}</span>`:""}
-  <span class="kb-sp"></span><button class="km-sh" data-share="${t.k}" title="مشاركة على واتساب أو إيميل">${X("share-2")}</button>${avs(t.as)}</div></div>`};
+ ${D&&CF("alert")&&t.alert?`<span class="kb-al ${t.alertCls}">${X("alert-circle")}${esc(t.alert)}</span>`:""}
+ ${(D||CF("ck"))&&chk?`<div class="kb-pr"><span class="tc-bar"><i style="width:${chk[0]/chk[1]*100}%"></i></span><small class="num">${chk[0]}/${chk[1]}</small></div>`:""}
+ ${t.live.length&&D?`<span class="kb-live"><i></i>${t.live.map(n=>n.split(" ")[0]).join(" و")} شغال${t.live.length>1?"ين":""}</span>`:""}
+ <div class="km-f">${CF("type")?`<span class="kb-ty ${ty[1]}" title="${ty[2]}">${X(ty[0])}</span>`:""}${CF("key")?`<span class="kb-key num">${t.k}</span>`:""}${CF("prio")?`<span class="kb-pi ${p[1]}" title="${p[2]}">${X(p[0])}</span>`:""}${CF("due")&&t.due?`<span class="kb-due ${dc}">${dfmt(t.due)}</span>`:""}${!D&&CF("alert")&&t.alert?`<span class="km-al ${t.alertCls||"a"}" title="${esc(t.alert)}">${X("alert-circle")}</span>`:""}${t.live.length?`<span class="km-lv" title="${t.live.join("، ")} شغال"></span>`:""}${!D&&CF("cm")&&t.cm.length?`<span class="kb-mt">${X("message-square")}${t.cm.length}</span>`:""}
+  <span class="kb-sp"></span><button class="km-sh" data-share="${t.k}" title="مشاركة على واتساب أو إيميل">${X("share-2")}</button>${CF("as")?avs(t.as):""}</div></div>`};
 
 /* ---------- toolbar + board ---------- */
 const LOADN=n=>TS.filter(t=>t.status!=="closed"&&t.as.includes(n)).length;
@@ -6295,22 +6311,60 @@ const bar=()=>`<div class="kb-bar">
  <div class="kb-qf">${[["mine","مهامي",""],["late","متأخرة","r"],["client","مستني العميل","a"],["urgent","طارئ","r"],["review","المراجعة عندي",""]].map(c=>`<button class="${UI.qf===c[0]?"on":""}" data-qf="${c[0]}">${c[2]?`<i class="d ${c[2]}"></i>`:""}${c[1]}</button>`).join("")}</div>
  <span class="kb-sp"></span>
  <div class="kb-dens">${[["c","rows-2","مختصر"],["d","rows-4","مفصّل"]].map(d=>`<button class="${UI.dense===d[0]?"on":""}" data-dense="${d[0]}">${X(d[1])}${d[2]}</button>`).join("")}</div>
- <div class="kb-grp">${X("rows-3")}<small>تجميع</small>${[["none","بدون"],["person","الموظف"]].map(g=>`<button class="${UI.group===g[0]?"on":""}" data-grp="${g[0]}">${g[1]}</button>`).join("")}</div>
- ${B("primary","plus","مهمة",'data-new="1"')}</div>`;
-const col=c=>{const it=TS.filter(t=>t.status===c[0]&&vis(t));
- if((c[0]==="closed"||c[0]==="hold")&&!UI.unfold[c[0]])return `<div class="kb-fold lb-drop" data-col="${c[0]}" data-unfold="${c[0]}" style="--s:${c[2]}" title="افتح العمود"><span class="num">${TS.filter(t=>t.status===c[0]).length}</span><b>${c[1]}</b>${X("chevrons-left")}</div>`;
- const wip=c[0]==="doing"?[TS.filter(t=>t.status==="doing").length,4]:null;
- return `<div class="kb-col lb-drop" data-col="${c[0]}" style="--s:${c[2]}"><div class="kb-ch"><b>${c[1]}</b><span class="num kb-n">${it.length}</span>${wip?`<span class="kb-wip${wip[0]>=wip[1]?" full":""}" title="حد العمل الجاري">${wip[0]} / ${wip[1]}</span>`:""}${UI.unfold[c[0]]?`<button class="kb-more" data-fold="${c[0]}" title="اطوي">${X("chevrons-right")}</button>`:""}</div>
+ <div class="kb-grp">${X("rows-3")}<small>تجميع</small>${[["none","بدون"],["person","الموظف"]].map(g=>`<button class="${UI.group===g[0]?"on":""}" data-grp="${g[0]}">${g[1]}</button>`).join("")}</div></div>`;
+const col=c=>{const cf=c[3],it=sortIt(TS.filter(t=>t.status===c[0]&&vis(t)),cf.sort),n=UI.more[c[0]]||CAP;
+ if(cf.fold)return `<div class="kb-fold lb-drop" data-col="${c[0]}" data-unfold="${c[0]}" style="--s:${c[2]}" title="افتح القائمة"><span class="num">${TS.filter(t=>t.status===c[0]).length}</span><b>${esc(c[1])}</b>${X("chevrons-left")}</div>`;
+ const wip=cf.wip>0?[TS.filter(t=>t.status===c[0]).length,cf.wip]:null;
+ return `<div class="kb-col lb-drop" data-col="${c[0]}" style="--s:${c[2]}"><div class="kb-ch"><b>${esc(c[1])}</b><span class="num kb-n">${it.length}</span>${wip?`<span class="kb-wip${wip[0]>=wip[1]?" full":""}" title="حد العمل الجاري">${wip[0]} / ${wip[1]}</span>`:""}${cf.sort!=="manual"?`<span class="kb-srt" title="مترتبة ${cf.sort==="due"?"بالاستحقاق":"بالأولوية"}">${X(cf.sort==="due"?"calendar":"signal")}</span>`:""}<span class="kb-sp"></span><button class="kb-cm" data-fold="${c[0]}" title="اطوي القائمة">${X("chevrons-right")}</button><button class="kb-cm" data-colcfg="${c[0]}" title="إعدادات القائمة">${X("more-horizontal")}</button></div>
   ${UI.addcol===c[0]?`<div class="kb-new"><textarea rows="2" data-newin="${c[0]}" placeholder="إيه المطلوب؟ Enter للحفظ · Esc للإلغاء"></textarea><div><small class="tc-sub">هتتسند لك · بعد 3 أيام عمل</small><span class="kb-sp"></span>${B("primary sm","","إضافة",`data-newgo="${c[0]}"`)}</div></div>`:""}
-  <div class="kb-cb">${it.slice(0,UI.more[c[0]]||CAP).map(card).join("")}${it.length>(UI.more[c[0]]||CAP)?`<button class="lb-more" data-more="${c[0]}">${X("chevrons-down")}اعرض <span class="num">${Math.min(CAP,it.length-(UI.more[c[0]]||CAP))}</span> كمان · فاضل <span class="num">${it.length-(UI.more[c[0]]||CAP)}</span></button>`:""}${it.length?"":`<div class="kb-empty">${X("inbox")}اسحب مهمة هنا</div>`}</div>
+  <div class="kb-cb">${it.slice(0,n).map(card).join("")}${it.length>n?`<button class="lb-more" data-more="${c[0]}">${X("chevrons-down")}اعرض <span class="num">${Math.min(CAP,it.length-n)}</span> كمان · فاضل <span class="num">${it.length-n}</span></button>`:""}${it.length?"":`<div class="kb-empty">${X("inbox")}اسحب مهمة هنا</div>`}</div>
   ${c[0]==="closed"?"":`<button class="kb-add" data-addcol="${c[0]}">${X("plus")}مهمة</button>`}</div>`};
-const lanes=()=>{const L=["none",...PPL];const C=COL.filter(c=>["new","doing","qa","ready","client"].includes(c[0]));
- return `<div class="kb-lanes"><div class="kb-lh"><span></span>${C.map(c=>`<div style="--s:${c[2]}"><b>${c[1]}</b></div>`).join("")}</div>${L.map(p=>{const it=TS.filter(t=>t.status!=="closed"&&t.status!=="hold"&&vis(t)&&(p==="none"?!t.as.length:t.as.includes(p)));if(!it.length&&p!=="none")return "";
+const lanes=()=>{const L=["none",...PPL];const C=VCOLS().filter(c=>!c[3].fold&&c[0]!=="closed");
+ return `<div class="kb-lanes"><div class="kb-lh"><span></span>${C.map(c=>`<div style="--s:${c[2]}"><b>${c[1]}</b></div>`).join("")}</div>${L.map(p=>{const it=TS.filter(t=>C.some(c=>c[0]===t.status)&&vis(t)&&(p==="none"?!t.as.length:t.as.includes(p)));if(!it.length&&p!=="none")return "";
   return `<div class="kb-lane${p==="none"?" warn":""}"><div class="kb-lt">${p==="none"?`<span class="kb-av none">${X("user-x")}</span><b>من غير مسؤول</b>`:`${av(p)}<b>${p}</b>`}<small class="num">${it.length} مهام</small></div><div class="kb-lr">${C.map(c=>`<div class="kb-lc lb-drop" data-col="${c[0]}">${it.filter(t=>t.status===c[0]).map(card).join("")}</div>`).join("")}</div></div>`}).join("")}</div>`};
-const app=()=>`<div class="kb-head"><div><small class="kb-bc">مركز المهام / لوحة المهام</small><h1>لوحة المهام <span class="num">· ${TS.filter(t=>t.status!=="closed").length} مهمة مفتوحة</span></h1></div>${tcTabs("tcBoard")}</div>
+const app=()=>{const open=TS.filter(t=>t.status!=="closed"),late=open.filter(t=>dcls(t)==="late").length,none=open.filter(t=>!t.as.length).length,mine=open.filter(t=>t.as.includes(ME)).length;
+ return `<div class="kb-top">
+ <div class="kb-tr"><div class="kb-tt"><small class="kb-bc">مركز المهام</small><h1>لوحة المهام</h1></div>
+  <div class="kb-stats"><span><b class="num">${open.length}</b>مفتوحة</span><button data-qf="mine" class="${UI.qf==="mine"?"on":""}"><b class="num">${mine}</b>عليا</button><button data-qf="late" class="r${UI.qf==="late"?" on":""}"><b class="num">${late}</b>متأخرة</button><button data-pf="none" class="a${UI.ppl.includes("none")?" on":""}"><b class="num">${none}</b>من غير مسؤول</button></div>
+  <span class="kb-sp"></span>
+  <button class="btn btn-ghost kb-cfgb" data-cfg="lists">${X("sliders-horizontal")}تخصيص اللوحة</button>${B("primary","plus","مهمة جديدة",'data-new="1"')}</div>
+ ${tcTabs("tcBoard")}</div>
  ${bar()}
- ${UI.group==="person"?lanes():`<div class="kb-board${UI.dense==="d"?"":" compact"}">${COL.map(col).join("")}</div>`}
- <div class="lb-foot"><span>${X("save")}التعديلات بتتحفظ في المتصفح ده · اسحب الكارت بين الأعمدة · اضغط عليه يفتح</span><button data-reset="1">${X("rotate-ccw")}رجّع البيانات التجريبية</button></div>`;
+ ${UI.group==="person"?lanes():`<div class="kb-board${UI.dense==="d"?"":" compact"}">${VCOLS().map(col).join("")}</div>`}
+ <div class="lb-foot"><span>${X("save")}التعديلات بتتحفظ في المتصفح ده · اسحب الكارت بين القوائم أو جوه القائمة لترتيبه · اضغط عليه يفتح</span><button data-reset="1">${X("rotate-ccw")}رجّع البيانات التجريبية</button></div>`};
+
+/* ---------- v1.26: «تخصيص اللوحة» drawer ---------- */
+const CFL=[["type","نوع المهمة","أيقونة الخطأ / التحديث / الدعم"],["key","رقم المهمة","BUG-0147"],["prio","الأولوية","طارئ، مهم، متوسط، منخفض"],["due","الاستحقاق","بيتلوّن لو متأخر أو قرّب"],["as","المسؤولين","صور الناس اللي عليها"],["cm","عدد التعليقات",""],["alert","التنبيه","معلّق، مستني العميل…"],["client","اسم العميل","سطر صغير فوق العنوان"],["ck","تقدّم البنود","شريط 3/5"],["stripe","لون العميل على الجنب","خط ملوّن على طرف الكارت"]];
+const cfgPanel=()=>{const tb=UI.cfg,cnt=k=>TS.filter(t=>t.status===k).length;
+ const lists=`<p class="cf-hint">${X("info")}اسحب القايمة من ${X("grip-vertical")} عشان ترتّبها، أو استخدم الأسهم. القوائم دي هي حالات المهمة، فمش هتقدر تمسح قايمة فيها مهام.</p>
+  <div class="cf-list">${BC.cols.map((c,i)=>`<div class="cf-row${UI.cfgHi===c.k?" hi":""}${c.hidden?" off":""}" draggable="true" data-cfrow="${c.k}">
+   <div class="cf-r1"><span class="cf-grip" title="اسحب للترتيب">${X("grip-vertical")}</span>
+    <label class="cf-col" style="--s:${c.color}" title="اللون"><input type="color" value="${c.color}" data-cfc="${c.k}"></label>
+    <input class="cf-name" value="${esc(c.name)}" data-cfn="${c.k}" aria-label="اسم القايمة">
+    <span class="cf-cnt num">${cnt(c.k)} مهمة</span>
+    <button class="cf-ib" data-cfmv="${c.k}" data-d="-1" title="لفوق"${i===0?" disabled":""}>${X("arrow-up")}</button><button class="cf-ib" data-cfmv="${c.k}" data-d="1" title="لتحت"${i===BC.cols.length-1?" disabled":""}>${X("arrow-down")}</button>
+    <button class="cf-ib" data-cfhide="${c.k}" title="${c.hidden?"اظهرها":"اخفيها من اللوحة"}"${c.k==="new"?" disabled":""}>${X(c.hidden?"eye-off":"eye")}</button>
+    <button class="cf-ib del" data-cfdel="${c.k}" title="${cnt(c.k)?"فيها مهام — انقلها الأول":"امسح القايمة"}"${cnt(c.k)||c.k==="new"||c.k==="closed"?" disabled":""}>${X("trash-2")}</button></div>
+   <div class="cf-r2"><label>${X("gauge")}حد العمل <input type="number" min="0" max="99" value="${c.wip||""}" placeholder="من غير" data-cfw="${c.k}"></label>
+    <label>${X("arrow-down-up")}الترتيب <select data-cfs="${c.k}">${[["manual","يدوي (بالسحب)"],["due","بالاستحقاق"],["prio","بالأولوية"]].map(o=>`<option value="${o[0]}"${c.sort===o[0]?" selected":""}>${o[1]}</option>`).join("")}</select></label>
+    <button class="cf-tg${c.fold?" on":""}" data-cffold="${c.k}">${SWI(c.fold)}مطوية</button></div></div>`).join("")}</div>
+  <div class="cf-add">${X("plus")}<input data-cfnew placeholder="قايمة جديدة… مثلاً «مراجعة الكود» ثم Enter"><button class="btn btn-ghost sm" data-cfaddgo="1">إضافة</button></div>`;
+ const smp=TS.find(t=>t.k==="BUG-0147")||TS[0];
+ const cards=`<div class="cf-prev"><small>معاينة</small><div class="cf-pc">${smp?card(smp):""}</div></div>
+  <div class="cf-seg"><span>الشكل</span>${[["c","rows-2","مختصر"],["d","rows-4","مفصّل"]].map(d=>`<button class="${UI.dense===d[0]?"on":""}" data-cfdense="${d[0]}">${X(d[1])}${d[2]}</button>`).join("")}</div>
+  <div class="cf-tgl">${CFL.map(f=>`<button class="cf-tr" data-cfcard="${f[0]}"><span><b>${f[1]}</b>${f[2]?`<small>${f[2]}</small>`:""}</span>${SWI(CF(f[0]))}</button>`).join("")}</div>
+  <p class="cf-hint">${X("info")}في الشكل «المفصّل» العميل والبنود والتنبيه بيظهروا دايماً.</p>`;
+ const gen=`<div class="cf-tgl">
+  <div class="cf-tr"><span><b>عدد الكروت في كل قايمة</b><small>الباقي يظهر بزرار «اعرض كمان» — أسرع لما المهام تكتر</small></span><select data-cfcap>${[10,25,50,100].map(n=>`<option${+BC.cap===n?" selected":""}>${n}</option>`).join("")}</select></div>
+  <div class="cf-tr"><span><b>اللوحة تفتح بتجميع</b><small>ممكن تغيّره من الشريط في أي وقت</small></span><select data-cfgrp><option value="none"${BC.group==="none"?" selected":""}>بدون</option><option value="person"${BC.group==="person"?" selected":""}>حسب الموظف</option></select></div></div>
+  <div class="cf-note">${X("users")}<span><b>الإعدادات دي ليك انت بس.</b> الترتيب والألوان والحقول بتتحفظ على حسابك، ومش بتغيّر لوحة باقي الفريق. أسماء القوائم الجديدة بتظهر للكل بعد ما المدير يعتمدها من «الإعدادات».</span></div>`;
+ return `<div class="cf-ov" data-cfx="1"><aside class="cf" role="dialog" aria-label="تخصيص اللوحة">
+ <div class="cf-h"><span class="cf-hi">${X("sliders-horizontal")}</span><div><b>تخصيص اللوحة</b><small>القوائم، وشكل الكارت، والعرض</small></div><span class="tag a">جديد</span><button class="md-ic" data-cfx="1" title="قفل (Esc)">${X("x")}</button></div>
+ <div class="cf-tabs">${[["lists","columns-3","القوائم",BC.cols.length],["card","credit-card","الكارت"],["gen","settings-2","عام"]].map(x=>`<button class="${tb===x[0]?"on":""}" data-cftab="${x[0]}">${X(x[1])}${x[2]}${x[3]?`<em class="num">${x[3]}</em>`:""}</button>`).join("")}</div>
+ <div class="cf-b">${tb==="card"?cards:tb==="gen"?gen:lists}</div>
+ <div class="cf-f"><button class="btn btn-ghost" data-cfreset="1">${X("rotate-ccw")}رجّع الافتراضي</button><span class="kb-sp"></span><button class="btn btn-primary" data-cfx="1">${X("check")}تمام</button></div>
+ </aside></div>`};
+const SWI=on=>`<span class="sw ${on?"on":""}"></span>`;
 
 /* ---------- task dialog ---------- */
 const sel=(f,opts,v)=>`<select data-f="${f}">${opts.map(o=>`<option value="${esc(o[0])}" ${o[0]===v?"selected":""}>${esc(o[1])}</option>`).join("")}</select>`;
@@ -6323,7 +6377,7 @@ const modal=()=>{const t=get(UI.open);if(!t)return "";const ty=TI[t.type]||TI.UP
   <button class="md-ic" data-nav="-1" title="اللي قبلها (K)">${X("chevron-right")}</button><button class="md-ic" data-nav="1" title="اللي بعدها (J)">${X("chevron-left")}</button><button class="md-ic" data-copy="${t.k}" title="نسخ الرابط">${X("link")}</button>`}<button class="md-ic" data-close="1" title="قفل (Esc)">${X("x")}</button></div>
  <div class="md-body"><div class="md-main">
   <h2 class="md-tt" ${cl?"":`contenteditable="true" data-title="1"`}>${esc(t.title)}</h2>
-  <div class="md-path">${["new","doing","qa","ready","client","closed"].map((s,i,a)=>`<span class="${a.indexOf(t.status)>i?"done":t.status===s?"now":""}">${STN[s]}</span>`).join("")}${t.status==="hold"?`<span class="now" style="background:var(--red)">معلّق</span>`:""}</div>
+  <div class="md-path">${BC.cols.filter(c=>c.k!=="hold"&&!c.hidden).map(c=>c.k).map((s,i,a)=>`<span class="${a.indexOf(t.status)>i?"done":t.status===s?"now":""}">${STN[s]}</span>`).join("")}${t.status==="hold"?`<span class="now" style="background:var(--red)">معلّق</span>`:""}</div>
   ${t.alert?`<div class="kb-al ${t.alertCls||"a"}">${X("alert-circle")}${esc(t.alert)}${cl?"":`<button class="lb-x" data-clearalert="1">${X("x")}</button>`}</div>`:""}
   <div class="md-sec"><h4>${X("align-right")}الوصف</h4>${cl?`<div class="md-desc">${esc(t.desc)||"—"}</div>`:`<textarea class="lb-desc" data-desc="1" rows="3" placeholder="اكتب المطلوب والنتيجة المتوقعة…">${esc(t.desc)}</textarea>`}</div>
   <div class="md-sec"><h4>${X("list-checks")}قائمة التحقق <small class="num">${done} / ${t.ck.length}</small></h4>${t.ck.length?`<span class="tc-bar"><i style="width:${done/t.ck.length*100}%"></i></span>`:""}
@@ -6397,8 +6451,8 @@ const create=(o)=>{const t={k:nextKey(o.type||"UPD"),type:o.type||"UPD",title:o.
 /* v1.23: paint only what changed — the board and the dialog are compared as strings first, so opening a task doesn't rebuild the board */
 const paint=()=>{let ch=0;const a=document.getElementById("lbApp");if(a){const h=app();if(a.__h!==h){a.innerHTML=h;a.__h=h;ch=1}}
  let m=document.getElementById("lbM");if(!m){m=document.createElement("div");m.id="lbM";document.body.appendChild(m)}
- const mh=(UI.open?modal():"")+(UI.share?shModal():"")+(UI.create?newModal():"");if(m.__h!==mh){m.innerHTML=mh;m.__h=mh;ch=1}
- document.body.classList.toggle("lb-lock",!!(UI.open||UI.share||UI.create));
+ const mh=(UI.open?modal():"")+(UI.share?shModal():"")+(UI.create?newModal():"")+(UI.cfg?cfgPanel():"");if(m.__h!==mh){m.innerHTML=mh;m.__h=mh;ch=1}
+ document.body.classList.toggle("lb-lock",!!(UI.open||UI.share||UI.create||UI.cfg));
  if(ch&&window.lucide)lucide.createIcons({attrs:{"stroke-width":1.8}})};
 const setHash=()=>{const h=UI.open?`#task=${UI.open}${UI.client?"&v=client":""}`:"";if(location.hash!==h)history.replaceState(null,"",location.pathname+location.search+h)};
 const openT=k=>{UI.open=k;setHash();paint()};
@@ -6408,6 +6462,20 @@ screens.tcBoard=()=>{const h0=app();FIRST=h0;setTimeout(()=>{const a0=document.g
 /* ---------- events ---------- */
 const onBoard=()=>window.CERP_PAGE==="tcBoard";
 document.addEventListener("click",e=>{if(!onBoard())return;const g=s=>e.target.closest(s);let el;
+ if(UI.cfg||(el=g("[data-cfg],[data-colcfg]"))){
+  if(!UI.cfg){const c=el.dataset.colcfg;UI.cfg="lists";UI.cfgHi=c||null;paint();if(c)setTimeout(()=>{const r=document.querySelector(`.cf-row[data-cfrow="${c}"]`);if(r)r.scrollIntoView({block:"center"})},20);return}
+  const mv=(k,d)=>{const i=BC.cols.findIndex(c=>c.k===k),j=i+d;if(i<0||j<0||j>=BC.cols.length)return;const [x]=BC.cols.splice(i,1);BC.cols.splice(j,0,x);UI.cfgHi=k};
+  if((el=g("[data-cftab]"))){UI.cfg=el.dataset.cftab;paint();return}
+  if((el=g("[data-cfmv]"))){mv(el.dataset.cfmv,+el.dataset.d);saveCfg();paint();return}
+  if((el=g("[data-cfhide]"))){const c=CC(el.dataset.cfhide);c.hidden=!c.hidden;UI.cfgHi=c.k;saveCfg();paint();toast(c.hidden?`«${c.name}» اتخفت — مهامها لسه موجودة`:`«${c.name}» رجعت للوحة`,c.hidden?"eye-off":"eye");return}
+  if((el=g("[data-cffold]"))){const c=CC(el.dataset.cffold);c.fold=!c.fold;saveCfg();paint();return}
+  if((el=g("[data-cfdel]"))){const c=CC(el.dataset.cfdel);if(c&&confirm(`تمسح قايمة «${c.name}»؟`)){BC.cols=BC.cols.filter(x=>x!==c);saveCfg();paint();toast("اتمسحت القايمة","trash-2")}return}
+  if(g("[data-cfaddgo]")){addList();return}
+  if((el=g("[data-cfcard]"))){const f=el.dataset.cfcard;BC.card[f]=BC.card[f]?0:1;saveCfg();paint();return}
+  if((el=g("[data-cfdense]"))){UI.dense=BC.dense=el.dataset.cfdense;saveCfg();paint();return}
+  if(g("[data-cfreset]")){if(confirm("ترجّع القوائم وشكل الكارت للإعدادات الافتراضية؟")){BC=DEFCFG();saveCfg();UI.dense=BC.dense;UI.group=BC.group;paint();toast("رجعت الإعدادات الافتراضية","rotate-ccw")}return}
+  if((el=g("[data-cfx]"))&&(el.classList.contains("cf-ov")?e.target===el:true)){UI.cfg=null;UI.cfgHi=null;paint();return}
+  return}
  if((el=g("[data-more]"))){e.preventDefault();const c=el.dataset.more;UI.more[c]=(UI.more[c]||CAP)+CAP;paint();return}
  if((el=g("[data-share]"))){e.preventDefault();e.stopPropagation();UI.share=el.dataset.share;SH.to=[];SH.msg="";paint();return}
  if((el=g("[data-copy]"))){copy(link(el.dataset.copy));const t=get(el.dataset.copy);if(t){log(t,"نسخ رابط المهمة");save()}return}
@@ -6442,16 +6510,26 @@ document.addEventListener("click",e=>{if(!onBoard())return;const g=s=>e.target.c
   return}
  if((el=g("[data-pf]"))){const p=el.dataset.pf,i=UI.ppl.indexOf(p);i<0?UI.ppl.push(p):UI.ppl.splice(i,1);paint();return}
  if((el=g("[data-qf]"))){UI.qf=UI.qf===el.dataset.qf?"":el.dataset.qf;paint();return}
- if((el=g("[data-dense]"))){UI.dense=el.dataset.dense;paint();return}
+ if((el=g("[data-dense]"))){UI.dense=BC.dense=el.dataset.dense;saveCfg();paint();return}
  if((el=g("[data-grp]"))){UI.group=el.dataset.grp;paint();return}
- if((el=g("[data-unfold]"))){UI.unfold[el.dataset.unfold]=1;paint();return}
- if((el=g("[data-fold]"))){delete UI.unfold[el.dataset.fold];paint();return}
+ if((el=g("[data-unfold]"))){const c=CC(el.dataset.unfold);if(c){c.fold=false;saveCfg()}paint();return}
+ if((el=g("[data-fold]"))){const c=CC(el.dataset.fold);if(c){c.fold=true;saveCfg()}paint();return}
  if((el=g("[data-addcol]"))){UI.addcol=el.dataset.addcol;paint();setTimeout(()=>{const x=document.querySelector("[data-newin]");if(x)x.focus()},10);return}
  if((el=g("[data-newgo]"))){quickAdd(el.dataset.newgo);return}
  if(g("[data-new]")){UI.create=true;NEWS.title="";NEWS.as=[ME];paint();setTimeout(()=>{const x=document.querySelector("[data-nct]");if(x)x.focus()},10);return}
  if(g("[data-reset]")){if(confirm("ترجع كل البيانات التجريبية زي الأول؟")){TS=extra(seed());save();paint();toast("رجعت البيانات التجريبية","rotate-ccw")}return}
  if((el=g(".lb-c"))){openT(el.dataset.k);return}
 },true);
+const addList=()=>{const x=document.querySelector("[data-cfnew]");const v=x&&x.value.trim();if(!v)return;const k="c"+Date.now().toString(36);const i=BC.cols.findIndex(c=>c.k==="closed");BC.cols.splice(i<0?BC.cols.length:i,0,{k,name:v,color:CSW[BC.cols.length%CSW.length],wip:0,hidden:false,fold:false,sort:"manual"});UI.cfgHi=k;saveCfg();paint();toast(`اتضافت «${v}» قبل «مغلق»`,"plus");setTimeout(()=>{const y=document.querySelector("[data-cfnew]");if(y)y.focus()},20)};
+document.addEventListener("change",e=>{if(!onBoard()||!UI.cfg)return;const el=e.target,d=el.dataset;let c;
+ if(d.cfn&&(c=CC(d.cfn))){const v=el.value.trim();if(v){c.name=v;saveCfg();paint()}return}
+ if(d.cfc&&(c=CC(d.cfc))){c.color=el.value;saveCfg();paint();return}
+ if(d.cfw&&(c=CC(d.cfw))){c.wip=Math.max(0,parseInt(el.value)||0);saveCfg();paint();return}
+ if(d.cfs&&(c=CC(d.cfs))){c.sort=el.value;saveCfg();paint();return}
+ if(el.hasAttribute("data-cfcap")){BC.cap=+el.value;UI.more={};saveCfg();paint();return}
+ if(el.hasAttribute("data-cfgrp")){BC.group=el.value;saveCfg();return}
+});
+document.addEventListener("input",e=>{if(!onBoard()||!UI.cfg)return;const el=e.target;if(el.dataset.cfc){const r=el.closest(".cf-col");if(r)r.style.setProperty("--s",el.value)}});
 const quickAdd=colk=>{const x=document.querySelector("[data-newin]");const v=x&&x.value.trim();if(!v)return;const p=parse(v);const t=create({...p,status:colk});UI.addcol=null;paint();toast(`اتعملت ${t.k} في «${STN[colk]}»`,"plus")};
 const doCreate=()=>{const x=document.querySelector("[data-nct]");const p=parse((x&&x.value)||"");if(!p.title){toast("اكتب اسم المهمة الأول","alert-triangle");return}const t=create({type:p.type||NEWS.type,title:p.title,client:p.client||NEWS.client,prio:p.prio||NEWS.prio,due:NEWS.due,as:[...new Set([...(p.as||[]),...NEWS.as])]});UI.create=false;paint();toast(`اتعملت ${t.k} — ${t.as.join(" و")}`,"plus")};
 document.addEventListener("change",e=>{if(!onBoard())return;const el=e.target;
@@ -6468,28 +6546,37 @@ document.addEventListener("input",e=>{if(!onBoard())return;const el=e.target;
 });
 document.addEventListener("focusout",e=>{if(!onBoard())return;const el=e.target;if(el.dataset&&el.dataset.title&&UI.open){const t=get(UI.open);const v=el.textContent.trim();if(v&&v!==t.title){t.title=v;log(t,"عدّل العنوان");save();paint()}}});
 document.addEventListener("keydown",e=>{if(!onBoard())return;const el=e.target;
+ if(el.hasAttribute&&el.hasAttribute("data-cfnew")&&e.key==="Enter"){e.preventDefault();addList();return}
+ if(el.hasAttribute&&el.hasAttribute("data-cfn")&&e.key==="Enter"){e.preventDefault();el.blur();return}
  if(el.hasAttribute&&el.hasAttribute("data-newin")){if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();quickAdd(el.dataset.newin)}if(e.key==="Escape"){UI.addcol=null;paint()}return}
  if(el.hasAttribute&&el.hasAttribute("data-ckadd")&&e.key==="Enter"){const t=get(UI.open);if(el.value.trim()){t.ck.push({t:el.value.trim(),d:false});save();paint();setTimeout(()=>{const x=document.querySelector("[data-ckadd]");if(x)x.focus()},10)}return}
  if(el.hasAttribute&&el.hasAttribute("data-shto")&&e.key==="Enter"){e.preventDefault();if(el.value.trim()){SH.to.push(el.value.trim());paint();setTimeout(()=>{const x=document.querySelector("[data-shto]");if(x)x.focus()},10)}return}
  if(el.hasAttribute&&el.hasAttribute("data-cm")&&e.key==="Enter"&&(e.ctrlKey||e.metaKey)){e.preventDefault();document.querySelector("[data-cmsend]").click();return}
  if(el.hasAttribute&&el.hasAttribute("data-nct")&&e.key==="Enter"){e.preventDefault();doCreate();return}
  if(el.dataset&&el.dataset.title&&e.key==="Enter"){e.preventDefault();el.blur();return}
- if(e.key==="Escape"){if(UI.share){UI.share=null}else if(UI.create){UI.create=false}else if(UI.open){UI.open=null;UI.client=false;setHash()}paint();return}
+ if(e.key==="Escape"){if(UI.cfg){UI.cfg=null;UI.cfgHi=null}else if(UI.share){UI.share=null}else if(UI.create){UI.create=false}else if(UI.open){UI.open=null;UI.client=false;setHash()}paint();return}
  const typing=/INPUT|TEXTAREA|SELECT/.test(el.tagName)||el.isContentEditable;if(typing)return;
  if(e.key==="/"){e.preventDefault();const q=document.querySelector("[data-q]");if(q)q.focus()}
  if((e.key==="n"||e.key==="ى")&&!UI.open){UI.create=true;NEWS.title="";paint();setTimeout(()=>{const x=document.querySelector("[data-nct]");if(x)x.focus()},10)}
  if(UI.open&&(e.key==="j"||e.key==="k")){const b=document.querySelector(`[data-nav="${e.key==="j"?1:-1}"]`);if(b)b.click()}
 });
 /* drag & drop */
+document.addEventListener("dragstart",e=>{if(!onBoard()||!UI.cfg)return;const r=e.target.closest&&e.target.closest("[data-cfrow]");if(!r)return;UI.cfdrag=r.dataset.cfrow;r.classList.add("drag");e.dataTransfer.effectAllowed="move";try{e.dataTransfer.setData("text/plain",UI.cfdrag)}catch(x){}});
+document.addEventListener("dragover",e=>{if(!onBoard()||!UI.cfdrag)return;const r=e.target.closest&&e.target.closest("[data-cfrow]");if(!r)return;e.preventDefault();document.querySelectorAll(".cf-row.over").forEach(x=>x!==r&&x.classList.remove("over"));r.classList.add("over")});
+document.addEventListener("drop",e=>{if(!onBoard()||!UI.cfdrag)return;const r=e.target.closest&&e.target.closest("[data-cfrow]");e.preventDefault();const k=UI.cfdrag;UI.cfdrag=null;if(!r||r.dataset.cfrow===k){paint();return}
+ const i=BC.cols.findIndex(c=>c.k===k);const [x]=BC.cols.splice(i,1);const j=BC.cols.findIndex(c=>c.k===r.dataset.cfrow);BC.cols.splice(j,0,x);UI.cfgHi=k;saveCfg();paint()});
+document.addEventListener("dragend",()=>{UI.cfdrag=null});
 document.addEventListener("dragstart",e=>{if(!onBoard())return;const c=e.target.closest&&e.target.closest(".lb-c");if(!c)return;UI.drag=c.dataset.k;c.classList.add("drag");e.dataTransfer.effectAllowed="move";try{e.dataTransfer.setData("text/plain",UI.drag)}catch(x){}});
 document.addEventListener("dragend",()=>{document.querySelectorAll(".lb-c.drag,.lb-drop.over").forEach(x=>x.classList.remove("drag","over"))});
 document.addEventListener("dragover",e=>{if(!onBoard()||!UI.drag)return;const d=e.target.closest&&e.target.closest(".lb-drop");if(!d)return;e.preventDefault();document.querySelectorAll(".lb-drop.over").forEach(x=>x!==d&&x.classList.remove("over"));d.classList.add("over")});
-document.addEventListener("drop",e=>{if(!onBoard()||!UI.drag)return;const d=e.target.closest&&e.target.closest(".lb-drop");if(!d)return;e.preventDefault();const t=get(UI.drag),to=d.dataset.col;UI.drag=null;if(!t||t.status===to){paint();return}
+document.addEventListener("drop",e=>{if(!onBoard()||!UI.drag)return;const d=e.target.closest&&e.target.closest(".lb-drop");if(!d)return;e.preventDefault();const t=get(UI.drag),to=d.dataset.col;UI.drag=null;if(!t){paint();return}
+ const tc=e.target.closest(".lb-c");if(tc&&tc.dataset.k!==t.k){const i=TS.indexOf(t);TS.splice(i,1);TS.splice(TS.indexOf(get(tc.dataset.k)),0,t)}
+ if(t.status===to){save();paint();return}
  if(to==="hold"){const r=prompt("سبب التعليق؟ (إلزامي)");if(!r){paint();return}t.alert="معلّق: "+r;t.alertCls="n"}
  if(to==="closed"){t.live=[]}
  if(to==="client"){t.alert="مستني العميل — متابعة بعد 3 أيام عمل";t.alertCls="a"}
  const from=t.status;t.status=to;log(t,`نقلها من «${STN[from]}» لـ «${STN[to]}»`);save();paint();
- const wip=TS.filter(x=>x.status==="doing").length;toast(`${t.k} ← ${STN[to]}${to==="doing"&&wip>4?" · «قيد التنفيذ» عدّى الحد":""}`,"move")});
+ const cc=CC(to),wip=TS.filter(x=>x.status===to).length;toast(`${t.k} ← ${STN[to]}${cc&&cc.wip&&wip>cc.wip?` · «${cc.name}» عدّت الحد (${wip}/${cc.wip})`:""}`,"move")});
 })();
 (function(){var P=window.CERP_PAGE;if(!P)return;var PAGES=window.CERP_PAGES||[];
 if(P==="login"){renderLogin();return}
