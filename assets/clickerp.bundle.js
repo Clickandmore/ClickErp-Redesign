@@ -3373,7 +3373,7 @@ const DEPTS=[
   A("setHome","layout-grid","كل الإعدادات","All settings"),A("setGeneral","sliders-horizontal","العامة","General"),A("coupons","ticket-percent","كوبونات الخصم","Coupons"),A("setSite","globe","موقع المكتب","Office website"),A("setRecruit","files","الاستقدام والسير","Recruitment & CVs"),A("setRental","repeat","التأجير","Rental"),
   A("setUsers","shield-check","المستخدمون والصلاحيات","Users & roles"),A("setBranches","git-branch","الفروع","Branches"),A("setLists","list","القوائم المرجعية","Reference lists"),A("setMessages","bell","الرسائل والإشعارات","Messages & notifications"),
   A("setIntegrations","plug","التكاملات","Integrations"),A("setImport","upload","استيراد البيانات","Data import"),A("setAi","sparkles","المساعد الذكي","AI assistant"),A("setSupport","life-buoy","الدعم","Support"),A("setDev","code","المطوّر (Super Admin)","Developer")]}];
-const SUBS={setDev:["saSubscription","saModules","saEmployees","saDesigns","saUpdates","saUpdateForm","saBackups","saScheduler","saRecovery","saInvoices","saInvoiceFix","saMcp","saMoyasar","saTestAccounts"],tcMy:["tcPolicy","tcClose"],tcBoard:["tcTask","tcForm","tcList"],tcTeam:["tcMember","tcShots","tcSessions"],tcHours:["tcAttend"],tcSettings:["tcMigrate"],contracts:["contractShow","contractAdd","contractEdit"],cvs:["cvAdd","cvShow","cvEdit"],clients:["clientShow","clientAdd"],orders:["orderShow"],
+const SUBS={setDev:["saSubscription","saModules","saEmployees","saDesigns","saUpdates","saUpdateForm","saBackups","saScheduler","saRecovery","saInvoices","saInvoiceFix","saMcp","saMoyasar","saTestAccounts"],tcMy:["tcPolicy","tcClose"],tcBoard:["tcTask","tcForm","tcList","tcLanes"],tcTeam:["tcMember","tcShots","tcSessions"],tcHours:["tcAttend"],tcSettings:["tcMigrate"],contracts:["contractShow","contractAdd","contractEdit"],cvs:["cvAdd","cvShow","cvEdit"],clients:["clientShow","clientAdd"],orders:["orderShow"],
  rental:["rentalShow","rentalAdd"],housing:["housingShow","housingAdd"],transfer:["transferShow","transferAdd"],
  reports:["report"],finSales:["finSaleAdd","finBonds","finReturns"],finBanks:["finBoxes","finTransfers","finChecksIn","finChecksOut"],finClients:["finSuppliers","finAgents"],
  finCenters:["finCentersTree"],finReports:["finReport"],finItems:["finStock","finInventory"],finEntries:["finAdd","finShow"],finAccounts:["finSettings"],clArchive:[],delegations:["delAdd","delShow"],trips:["tripShow"],agents:["agentShow"],"hb-board":["hbNew"],"hb-visits":["hbVisit"],coupons:["couponForm","couponShow","couponBulk","couponReport","couponSettings"],claims:["claimAdd","claimShow","claimTypes"],absconding:["abscShow"],campaigns:["campaignNew"],finRequests:["finRequestAdd","finRequestShow"],finAssets:["finAssetShow"],finCommissions:["finCommissionShow","finCommissionRules"],finTax:["finZatca"],hrEmployees:["hrEmployeeShow","hrEmployeeAdd"],hrPayroll:["hrPayrollRun"],setUsers:["setRoles"],visaRequests:["visaAdd","visaShow"]};
@@ -4451,35 +4451,76 @@ const IDEA=t=>`<div class="fx-idea">${X("lightbulb")}<div><b>ليه الشكل �
 const NEWT=`<span class="tag a hm-new">جديد</span>`;
 const S={};
 
-/* ---------------- Home: role templates ---------------- */
+/* ---------------- Home: built from the modules the employee can see (v1.13) ---------------- */
+/* modules = view permissions in ClickERP (rec_contracts_view, clients_view …). The home shows one section per module the employee can open. */
+const MODS={
+ ops:{n:"العمليات",i:"briefcase",p:"rec_contracts_view",go:"contracts",m:["38","عقد تحت التشغيل"],a:["r","18 متأخر عن مدته"],l:"أغلبها في التذاكر · 64 في الإيواء"},
+ ext:{n:"المكاتب الخارجية",i:"globe",p:"DASHBOARD_OFFICES_STATISTICS",go:"agents",m:["26","طلب عند المكاتب"],a:["a","4 بدون رد"],l:"14 سيرة وصلت هذا الأسبوع"},
+ crm:{n:"العملاء",i:"users",p:"clients_view",go:"clients",m:["241","عميل · 6 جدد هذا الأسبوع"],a:["r","2 شكوى عاجلة"],l:"9 متابعات النهارده · 3 متأخرة"},
+ fin:{n:"المالية",i:"wallet",p:"FINANCE_REPORTS",go:"finReport",m:["144,450","صافي الشهر"],a:["r","184,600 لم تُحصّل"],l:"التزامات 30 يوم: 236,900"},
+ hr:{n:"الموارد البشرية",i:"user-cog",p:"HR_DASHBOARD",go:"hrDash",m:["22/24","حاضرين النهارده"],a:["a","5 طلبات موظفين"],l:"3 إقامات قربت تنتهي"},
+ hourly:{n:"التأجير بالساعة",i:"clock",p:"HOURLY_VISITS",go:"hb-board",m:["14","زيارة النهارده"],a:["r","2 متأخرة"],l:"تحصيل 3,450 · 1,200 مع الطاقم"}
+};
+/* sample employees for the preview. mods = what their permissions open; sec = sections in order [module, widgets] */
 const ROLES={
- owner:{n:"المالك / رئيس مجلس الإدارة",h:"صورة الشركة هذا الشهر",s:"الفلوس الأول، وبعدها التشغيل: إيه اللي اتعمل وإيه اللي متأخر.",
+ owner:{n:"المالك / رئيس مجلس الإدارة",nm:"عبدالعزيز",av:"ع",mods:["ops","ext","crm","fin","hr","hourly"],sup:"كل الإدارات",
   k:[["scale","صافي الشهر","144,450","الإيرادات 412,800 − المصروفات 268,350","g","+12% عن أكتوبر","finReport"],
      ["calendar-clock","التزامات خلال 30 يوم","236,900","رواتب، شيكات، وكلاء، ضريبة","a","أقربها بعد 4 أيام","finChecksOut"],
      ["file-text","عقود تحت التشغيل","38","9 عقود جديدة هذا الشهر","r","18 متأخرة","contracts"],
-     ["globe","طلبات عند المكاتب الخارجية","26","14 سيرة وصلت هذا الأسبوع","a","4 بدون رد","agents"]],
-  w:["fin","oblig","news","pipe","delays","reps"],r:["volume","finance","types"]},
- ops:{n:"مشرف العمليات",h:"تشغيل اليوم",s:"كل عقد في أي مرحلة، والمتأخر منه عند مين.",
-  k:[["file-text","عقود تحت التشغيل","38","موزعة على 6 مراحل","n","","contracts"],["timer-off","متأخرة عن مدتها","18","أغلبها في مرحلة التذاكر","r","11 عند المكاتب","contracts"],["home","داخل الإيواء","64","13 جاهز للنقل","n","","housing"],["plane","رحلات هذا الأسبوع","6","4 وصول · 2 ترحيل","a","2 بدون تأكيد حجز","trips"]],
-  w:["pipe","delays","housing","news","reps"],r:["ops","housing","register"]},
- sales:{n:"المبيعات",h:"محفظتك هذا الشهر",s:"عملاءك وطلباتك بس، ومين محتاج تكلمه النهارده.",
+     ["globe","طلبات عند المكاتب","26","14 سيرة وصلت هذا الأسبوع","a","4 بدون رد","agents"]],
+  sec:[["tiles"],["fin",["oblig","recv"],"الفلوس"],["ops",["pipe","delays"],"التشغيل"]],r:["volume","finance","types"],
+  me:[["file-check-2","اعتماد طلب صرف — مستحقات PLATINUM BROTHERS","32,600 ر.س · طلبه خالد المطيري","r","متأخر يومين","اعتماد","finRequestShow"],
+      ["receipt","توقيع الشيك الصادر #4471","18,500 ر.س · مؤسسة السكن","a","بعد 4 أيام","مراجعة","finChecksOut"],
+      ["banknote","الموافقة على سلفة علي ناصر","2,000 ر.س على 4 أشهر","n","النهارده","مراجعة","hrRequests"]],
+  team:[["علي ناصر","مشرف العمليات",12,5,"CN-2026-0084 متأخر في التذاكر 21 يوم"],["سارة القحطاني","مبيعات",9,3,"3 متابعات متأخرة من أمس"],["نوف الحربي","خدمة العملاء",5,2,"شكوى #000148 عاجلة من 26 ساعة"],["خالد المطيري","محاسب",6,1,"قيد مستني الاعتماد من 3 أيام"],["فهد الدوسري","التأجير بالساعة",4,1,"توريد متأخر 3 أيام"]]},
+ ops:{n:"مشرف العمليات",nm:"علي",av:"ع",mods:["ops","ext"],sup:"فريق العمليات · 3 موظفين",
+  k:[["file-text","عقود تحت التشغيل","38","موزعة على 7 مراحل","n","","contracts"],["timer-off","متأخرة عن مدتها","18","أغلبها في مرحلة التذاكر","r","11 عند المكاتب","contracts"],["home","داخل الإيواء","64","13 جاهز للنقل","n","","housing"],["plane","رحلات هذا الأسبوع","6","4 وصول · 2 ترحيل","a","2 بدون تأكيد حجز","trips"]],
+  sec:[["ops",["pipe","delays","housing"]],["ext",["ext"]]],r:["ops","housing","register"],
+  me:[["plane","تأكيد حجز الرحلة — CN-2026-0079","ميري جوي · عند مكتب PLATINUM","r","متأخر 13 يوم","مراسلة المكتب","contractShow"],
+      ["file-text","رفع التفويض — CN-2026-0091","ديوي لستاري · طباخة","r","متأخر 5 أيام","فتح العقد","contractShow"],
+      ["home","نقل 3 عاملات من الإيواء","جاهزين للنقل من أمس","a","النهارده","الإيواء","housing"],
+      ["plane-landing","استقبال رحلة SV-872","عاملتين · الساعة 4:30 م","n","4:30 م","التفاصيل","trips"]],
+  team:[["أحمد يوسف","موظف عمليات",7,3,"CN-2026-0084 في التذاكر +21 يوم"],["هند الشمري","موظفة عمليات",5,1,"CN-2026-0062 تحت الضمان +2 يوم"],["ماجد العنزي","الإيواء",4,0,"كله في معاده"]]},
+ sales:{n:"موظفة مبيعات",nm:"سارة",av:"س",mods:["crm"],
   k:[["shopping-cart","طلباتي الجارية","13","7 تحت الإجراء","n","","orders"],["file-signature","عقود وقّعتها","9","الهدف 12","a","75% من الهدف","contracts"],["percent","نسبة التحويل","24%","من 37 عميل محتمل","g","+3 نقاط","clients"],["phone","متابعات النهارده","9","3 منها متأخرة","r","3 متأخرة","followups"]],
-  w:["funnel","follow","news","reps"],r:["register","types","people"]},
- foreign:{n:"العلاقات الخارجية",h:"المكاتب والسير والوصول",s:"إيه اللي مستني المكاتب، وإيه اللي اتأخر عندهم.",
-  k:[["building-2","مكاتب متعاقدة","22","3 مكاتب = 82% من السير","n","","agents"],["inbox","طلبات عند المكاتب","26","متوسط الرد 2.4 يوم","a","4 بدون رد","agents"],["files","سير وصلت للمراجعة","14","من وكيل الفلبين","n","","cvs"],["plane-landing","متأخرة بالوصول","18","تجاوزت 45 يوم بدون تذاكر","r","","contracts"]],
-  w:["ext","delays","news","reps"],r:["offices","trips","people"]},
- finance:{n:"المحاسب",h:"الحسابات هذا الشهر",s:"اللي دخل، واللي لسه، واللي لازم يتدفع.",
-  k:[["arrow-down-left","إيرادات الشهر","412,800","محصّل 228,200","g","+18%","finReport"],["hourglass","مستحقات لم تُحصّل","184,600","7 فواتير تجاوزت الموعد","r","42,300 فوق 60 يوم","finClients"],["arrow-up-right","مصروفات الشهر","268,350","رواتب 96,000 · وكلاء 54,400","n","","finReport"],["file-check-2","قيود بانتظار الاعتماد","3","أقدمها من 3 أيام","a","","finEntries"]],
-  w:["fin","recv","oblig","reps"],r:["finance"]},
- cs:{n:"خدمة العملاء",h:"عملاء النهارده",s:"الشكاوى المفتوحة والمتابعات والمحادثات اللي مستنية رد.",
+  sec:[["crm",["funnel","follow"]]],r:["register","types","people"],
+  me:[["phone","الاتصال بهيا العنزي","سألت عن سعر الفلبين","r","متأخر من أمس","اتصال","followups"],
+      ["file-signature","إرسال العقد لعبدالله السبيعي","ORD-0431 · الدفعة الأولى وصلت","a","النهارده","فتح الطلب","orderShow"],
+      ["phone","تأكيد موعد الوصول — فهد العتيبي","مكالمة متفق عليها","n","11:00 ص","اتصال","followups"],
+      ["files","ترشيح 3 سير لنورة الحربي","ORD-0428 · عاملة منزلية","n","بكرة","السير","cvs"]]},
+ foreign:{n:"العلاقات الخارجية",nm:"ريم",av:"ر",mods:["ext"],
+  k:[["building-2","مكاتب متعاقدة","22","3 مكاتب = 82% من السير","n","","agents"],["inbox","طلبات عند المكاتب","26","متوسط الرد 2.4 يوم","a","4 بدون رد","agents"],["files","سير وصلت للمراجعة","14","من وكيل الفلبين","n","","cvs"],["plane-landing","متأخرة بالوصول","18","عدّت مدة التذاكر","r","","contracts"]],
+  sec:[["ext",["ext","delays"]]],r:["offices","trips","people"],
+  me:[["inbox","4 طلبات من غير رد من المكاتب","أقدمها عند Al Noor من 6 أيام","r","متأخر","مراسلة","agents"],
+      ["plane","طلب تذاكر — CN-2026-0070","Supreme Link · عدّى المدة بـ 4 أيام","r","متأخر 4 أيام","مراسلة","contractShow"],
+      ["files","مراجعة 14 سيرة من PLATINUM","وصلت النهارده الصبح","a","النهارده","مراجعة","cvs"]]},
+ finance:{n:"محاسب",nm:"خالد",av:"خ",mods:["fin"],
+  k:[["arrow-down-left","إيرادات الشهر","412,800","محصّل 228,200","g","+18%","finReport"],["hourglass","مستحقات لم تُحصّل","184,600","7 فواتير عدّت موعدها","r","42,300 فوق 60 يوم","finClients"],["arrow-up-right","مصروفات الشهر","268,350","رواتب 96,000 · وكلاء 54,400","n","","finReport"],["file-check-2","قيود مستنية الاعتماد","3","أقدمها من 3 أيام","a","","finEntries"]],
+  sec:[["fin",["oblig","recv"]]],r:["finance"],
+  me:[["hourglass","تحصيل من شركة نجد للمقاولات","42,300 ر.س · 3 فواتير · أقدمها 74 يوم","r","متأخر","كشف الحساب","finClients"],
+      ["file-check-2","3 قيود مستنية اعتمادك","أقدمها من 3 أيام","a","من 3 أيام","مراجعة","finEntries"],
+      ["receipt","تجهيز الشيك #4471","18,500 ر.س · مؤسسة السكن","a","بعد 4 أيام","فتح","finChecksOut"],
+      ["landmark","مراجعة إقرار ضريبة الربع","قبل 31 ديسمبر","n","الشهر الجاي","فتح","finTax"]]},
+ cs:{n:"خدمة العملاء",nm:"نوف",av:"ن",mods:["crm"],
   k:[["headphones","شكاوى مفتوحة","4","2 عاجلة","r","2 عاجلة","claims"],["phone","متابعات النهارده","9","3 متأخرة من أمس","a","","followups"],["message-circle","محادثات غير مقروءة","12","أقدمها من ساعتين","a","","chats"],["user-plus","عملاء جدد","6","خلال 7 أيام","n","","clients"]],
-  w:["claims","follow","news","reps"],r:["register"]},
- hr:{n:"الموارد البشرية",h:"فريق العمل النهارده",s:"مين حاضر، وإيه الطلبات المستنية، وإيه اللي قرب ينتهي.",
+  sec:[["crm",["claims","follow"]]],r:["register"],
+  me:[["headphones","الرد على شكوى #000148","العاملة ترفض العمل · منيرة الشهري","r","عاجلة · 26 ساعة","فتح","claimShow"],
+      ["message-circle","12 محادثة مستنية رد","أقدمها من ساعتين","a","من ساعتين","المحادثات","chats"],
+      ["phone","متابعة عبدالله السبيعي","3 أيام بعد الوصول","n","النهارده","اتصال","followups"]]},
+ hr:{n:"الموارد البشرية",nm:"منى",av:"م",mods:["hr"],
   k:[["user-check","حاضرين النهارده","22/24","2 إجازة","g","","hrAttendance"],["inbox","طلبات موظفين","5","3 إجازات · 2 سلف","a","","hrRequests"],["id-card","إقامات قربت تنتهي","3","خلال 30 يوم","r","","hrEmployees"],["banknote","رواتب نوفمبر","96,000","تتصرف 27 نوفمبر","n","","hrPayroll"]],
-  w:["hrw","news","reps"],r:[]},
- hourly:{n:"مشرف التأجير بالساعة",h:"زيارات النهارده",s:"الزيارات الجارية والمتأخرة والتحصيل.",
+  sec:[["hr",["hrw"]]],r:[],
+  me:[["id-card","تجديد 3 إقامات","أقربها تنتهي بعد 9 أيام","r","بعد 9 أيام","الموظفون","hrEmployees"],
+      ["calendar-days","طلب إجازة — خالد المطيري","5 أيام من 20 نوفمبر","a","النهارده","مراجعة","hrRequests"],
+      ["banknote","طلب سلفة — علي ناصر","2,000 ر.س على 4 أشهر","n","النهارده","مراجعة","hrRequests"],
+      ["wallet","تجهيز مسيّر رواتب نوفمبر","يتصرف 27 نوفمبر","n","بعد 11 يوم","المسيّر","hrPayrollRun"]]},
+ hourly:{n:"مشرف التأجير بالساعة",nm:"فهد",av:"ف",mods:["hourly"],sup:"طاقم الزيارات · 4",
   k:[["calendar-check","زيارات النهارده","14","5 جارية الآن","n","","hb-board"],["timer-off","زيارات متأخرة","2","السائق متأخر +20 دقيقة","r","","hb-tracking"],["wallet","تحصيل النهارده","3,450","1,200 لسه مع الطاقم","a","","hbCollect"],["star","تقييم الأسبوع","4.6","من 61 تقييم","g","","hb-visits"]],
-  w:["hourlyw","news","reps"],r:[]}
+  sec:[["hourly",["hourlyw"]]],r:[],
+  me:[["map-pin","السائق متأخر — V-2291","حي الملقا · +24 دقيقة","r","الآن","التتبع","hb-tracking"],
+      ["wallet","استلام توريد سامي","520 ر.س · متأخر 3 أيام","r","متأخر 3 أيام","استلام","hbCollect"],
+      ["calendar-plus","3 زيارات بكرة من غير طاقم","حي النرجس والياسمين","a","قبل 6 م","الجدول","hb-schedule"]],
+  team:[["أحمد","سائق",5,1,"V-2291 متأخر 24 دقيقة"],["سامي","سائق",3,1,"توريد 520 ر.س متأخر 3 أيام"],["ميرا","عاملة",4,0,"كله في معاده"],["جنات","عاملة",3,0,"كله في معاده"]]}
 };
 /* the prototype opens a role via #owner, #ops … — keep the old persona map in sync */
 Object.keys(ROLES).forEach(k=>{if(!personas[k])personas[k]={ar:ROLES[k].n,en:ROLES[k].n,h:{ar:"",en:""},s:{ar:"",en:""},k:[],a:[],r:[]}});
@@ -4545,36 +4586,66 @@ W.hourlyw=["زيارات اليوم","الزيارات ماشية في معاد�
 W.reps=["تقارير تخص دورك","أفتح أنهي تقرير؟","REPORTS_VIEW",()=>{
  const r=(ROLES[PERSONA]||ROLES.owner).r.map(id=>reports.find(x=>x[0]===id)).filter(Boolean);
  const mine=[["file-text","العقود المتأخرة — PLATINUM","تقريري المحفوظ · كل أحد 7 ص"],["wallet","المستحقات فوق 60 يوم","تقريري المحفوظ"]];
- return card("تقارير تخص دورك","والتقارير اللي حفظتها",`<div class="hm-list">${r.map(x=>`<div><span class="ni n">${X(x[1])}</span><b>${x[2]}</b>${B("ghost sm","","عرض",`data-report="${x[0]}"`)}</div>`).join("")}${mine.map(x=>`<div><span class="ni g">${X("bookmark")}</span><b>${x[1]}<small>${x[2]}</small></b>${B("ghost sm","","عرض",'data-go="reports"')}</div>`).join("")}</div>`,more("reports","مركز التقارير"))}];
+ return card("تقارير تخصك","حسب صلاحياتك، والتقارير اللي حفظتها",`<div class="hm-list">${r.map(x=>`<div><span class="ni n">${X(x[1])}</span><b>${x[2]}</b>${B("ghost sm","","عرض",`data-report="${x[0]}"`)}</div>`).join("")}${mine.map(x=>`<div><span class="ni g">${X("bookmark")}</span><b>${x[1]}<small>${x[2]}</small></b>${B("ghost sm","","عرض",'data-go="reports"')}</div>`).join("")}</div>`,more("reports","مركز التقارير"))}];
 
-/* which widgets a role may NOT see (permission) — shown locked in the customise panel */
-const LOCK={sales:["fin","oblig","recv"],cs:["fin","oblig","recv","ext"],foreign:["fin","oblig","recv"],ops:["fin","oblig","recv"],hr:["fin","recv","ext","pipe","delays"],hourly:["fin","oblig","recv","ext","pipe"]};
-let HCUST=false,HCMODE="me";
+/* home state: customise drawer, to-do tab, preview popover, idea note, analysis */
+let HCUST=false,HCMODE="me",HTODO="me",HPV=false,HIDEA=false,HANA=false;
+const P_=()=>ROLES[PERSONA]||ROLES.owner;
+const secName=s=>s[0]==="tiles"?"ملخص الإدارات":(s[2]||MODS[s[0]].n);
+const homeSecs=P=>[["todo","مطلوب منك","المهام والطلبات اللي عليك",""],["kpi","الأرقام الأساسية","4 أرقام، كل رقم بيفتح القائمة متفلترة",""],
+ ...P.sec.map(s=>[s[0],secName(s),s[0]==="tiles"?"سطر لكل إدارة: الرقم الأساسي واللي محتاج تصرف":"الكروت: "+s[1].map(w=>W[w][0]).join("، "),s[0]==="tiles"?"":MODS[s[0]].p]),
+ ["more","للمتابعة","الجديد من آخر دخول، والتقارير اللي تخصك",""],...(P.mods.includes("fin")?[["ana","التحليل","الإيرادات والمصروفات آخر 6 شهور","FINANCE_REPORTS"]]:[])];
 
 const custPanel=()=>{
- const R=ROLES[PERSONA]||ROLES.owner,lock=LOCK[PERSONA]||[];
- const on=R.w,off=Object.keys(W).filter(k=>!on.includes(k)&&!lock.includes(k));
- const row=(k,st)=>`<div class="hm-cr ${st}">${st==="lock"?X("lock"):X("grip-vertical")}<div><b>${W[k][0]}</b><small>${st==="lock"?`محتاج صلاحية <span class="num" dir="ltr">${W[k][2]}</span>`:W[k][1]}</small></div>${st==="lock"?"":SW(st==="on")}</div>`;
- return `<div class="ov" data-hc-ov><div class="drawer"><div class="hm-ch"><div><h3>تخصيص الرئيسية</h3><p>${R.n}</p></div><button class="icon-btn" data-hc-x>${X("x")}</button></div>
- <div class="hm-cseg"><button class="${HCMODE==="me"?"on":""}" data-hcmode="me">رئيسيتي أنا</button><button class="${HCMODE==="role"?"on":""}" data-hcmode="role">قالب الدور ${TAG("n","مدير النظام")}</button></div>
+ const P=P_(),secs=homeSecs(P),lock=Object.keys(MODS).filter(m=>!P.mods.includes(m));
+ const row=(s,st)=>`<div class="hm-cr ${st}">${st==="lock"?X("lock"):X("grip-vertical")}<div><b>${s[1]}</b><small>${st==="lock"?`محتاج صلاحية <span class="num" dir="ltr">${s[3]}</span>`:s[2]}</small></div>${st==="lock"?"":SW(true)}</div>`;
+ return `<div class="ov" data-hc-ov><div class="drawer"><div class="hm-ch"><div><h3>تخصيص الرئيسية</h3><p>${P.nm} · ${P.n}</p></div><button class="icon-btn" data-hc-x>${X("x")}</button></div>
+ <div class="hm-cseg"><button class="${HCMODE==="me"?"on":""}" data-hcmode="me">رئيسيتي أنا</button><button class="${HCMODE==="role"?"on":""}" data-hcmode="role">الترتيب الافتراضي ${TAG("n","مدير النظام")}</button></div>
  <div class="hm-cb">
-  <p class="hm-cn">${HCMODE==="me"?"التغيير هنا ليك إنت بس. تقدر تخفي كارت أو تغيّر ترتيبه بالسحب، لكن مش هتقدر تضيف حاجة مش في صلاحياتك.":"ده الشكل اللي أي موظف بالدور ده هيشوفه أول ما يدخل. الموظف يقدر يعدّل عليه لنفسه بعد كده."}</p>
-  <div class="hm-cs">ظاهرة <span class="num">${on.length}</span></div>${on.map(k=>row(k,"on")).join("")}
-  <div class="hm-cs">متاحة تضيفها <span class="num">${off.length}</span></div>${off.map(k=>row(k,"off")).join("")}
-  ${lock.length?`<div class="hm-cs">مقفولة على دورك <span class="num">${lock.length}</span></div>${lock.map(k=>row(k,"lock")).join("")}`:""}
+  <p class="hm-cn">${HCMODE==="me"?"التغيير ده ليك إنت بس. تقدر تخفي أي قسم أو ترتّبه بالسحب، بس مش هتقدر تضيف قسم مش في صلاحياتك.":"ده الترتيب اللي هيظهر لكل الموظفين أول ما يدخلوا. كل موظف بيشوف منه الأقسام اللي عنده صلاحيتها بس، ويقدر يعدّل لنفسه بعد كده."}</p>
+  <div class="hm-cs">الأقسام الظاهرة <span class="num">${secs.length}</span></div>${secs.map(s=>row(s,"on")).join("")}
+  ${lock.length?`<div class="hm-cs">مش في صلاحياتك <span class="num">${lock.length}</span></div>${lock.map(m=>row([m,MODS[m].n,"",MODS[m].p],"lock")).join("")}`:""}
  </div>
- <div class="hm-cf">${B("ghost","rotate-ccw",HCMODE==="me"?"رجوع لقالب الدور":"رجوع للافتراضي")}${B("primary","check",HCMODE==="me"?"حفظ":"حفظ قالب الدور",'data-hc-x="1"')}</div></div></div>`;
+ <div class="hm-cf">${B("ghost","rotate-ccw",HCMODE==="me"?"رجوع للترتيب الافتراضي":"رجوع لترتيب النظام")}${B("primary","check",HCMODE==="me"?"حفظ":"حفظ للكل",'data-hc-x="1"')}</div></div></div>`;
 };
 
+/* «مطلوب منك»: mine, and my team's when I supervise */
+const todoCard=P=>{
+ const me=P.me||[],team=P.team||[],tab=P.sup&&HTODO==="team"?"team":"me";
+ const teamN=team.reduce((a,m)=>a+m[2],0),teamL=team.reduce((a,m)=>a+m[3],0);
+ const tabs=P.sup?`<div class="hm-ttabs"><button class="${tab==="me"?"on":""}" data-htodo="me">ليا <span class="num">${me.length}</span></button><button class="${tab==="team"?"on":""}" data-htodo="team">لفريقي <span class="num">${teamN}</span></button></div>`:"";
+ const mine=me.map(x=>`<div class="hm-ti ${x[3]}"><span class="ni ${x[3]==="r"?"r":x[3]==="a"?"a":"n"}">${X(x[0])}</span><div class="tx"><b>${x[1]}</b><small>${x[2]}</small></div>${TAG(x[3],x[4])}${B("ghost sm","",x[5],`data-go="${x[6]}"`)}</div>`).join("");
+ const crew=team.map(m=>`<div class="hm-tm"><span class="av">${m[0][0]}</span><div class="tx"><b>${m[0]} <small>· ${m[1]}</small></b><small>${m[3]?X("alert-circle"):X("check")} ${m[4]}</small></div><span class="num hm-tc">${m[2]} <small>مهمة</small></span>${m[3]?TAG("r",m[3]+" متأخرة"):TAG("g","في المعاد")}${m[3]?B("ghost sm","bell","تذكير"):""}</div>`).join("");
+ const sub=tab==="me"?`${me.length} حاجات · مرتبة بالأهم`:`${P.sup} · ${teamL} متأخرة`;
+ return `<div class="card flush hm-todo"><div class="card-h pad"><div><h3>مطلوب منك</h3><p>${sub}</p></div>${tabs}</div>
+ <div class="hm-tl">${tab==="me"?mine:crew}</div>
+ <div class="hm-tf"><a href="#" data-go="tcMy">${X("sun")}كل مهامي في «يومي»</a>${tab==="team"?`<a href="#" data-go="tcTeam">${X("users")}متابعة الفريق</a>`:""}</div></div>`;
+};
+
+const tiles=P=>`<div class="hm-tiles">${P.mods.map(k=>{const m=MODS[k];return `<a href="#" class="card hm-tile" data-go="${m.go}"><div class="th"><span class="ni n">${X(m.i)}</span><b>${m.n}</b>${X("arrow-up-left")}</div><div class="tv"><b class="num">${m.m[0]}</b><small>${m.m[1]}</small></div><span class="tag ${m.a[0]}">${m.a[1]}</span><small class="tl">${m.l}</small></a>`}).join("")}</div>`;
+
+const grid=ids=>{const h=ids.map(id=>W[id][3]());const half=h.map((x,i)=>x.includes("hm-w wide")?-1:i).filter(i=>i>-1);if(half.length%2)h[half[half.length-1]]=h[half[half.length-1]].replace("hm-w ","hm-w wide ");return `<div class="hm-grid">${h.join("")}</div>`};
+const secHead=(icon,title,sub,go,perm)=>`<div class="hm-sec"><span class="ni n">${X(icon)}</span><div><h2>${title}</h2><small>${sub}</small></div>${perm?`<span class="hm-perm" title="بيظهر لأن عندك الصلاحية دي">${X("key-round")}<span dir="ltr">${perm}</span></span>`:""}${go?`<a href="#" class="btn btn-ghost sm" data-go="${go}">افتح ${(Object.values(MODS).find(m=>m.go===go)||{n:title}).n}${X("arrow-left")}</a>`:""}</div>`;
+
 S.dashboard=()=>{
- const R=ROLES[PERSONA]||ROLES.owner;
+ const P=P_(),me=P.me||[],late=me.filter(x=>x[3]==="r").length;
+ const teamL=(P.team||[]).reduce((a,m)=>a+m[3],0);
+ const hr=new Date().getHours(),hi=hr<12?"صباح الخير":"مساء الخير";
+ const summary=`عندك <b class="num">${me.length}</b> حاجات مطلوبة منك النهارده${late?`، منهم <b class="num r">${late}</b> متأخر`:""}.${P.sup?` وفريقك عنده <b class="num">${teamL}</b> متأخرة.`:""}`;
+ const pv=`<div class="hm-pvw"><button class="hm-pvb" data-hpv="1">${X("eye")}<span>معاينة كـ: <b>${P.nm}</b> · ${P.n}</span>${X("chevron-down")}</button>${HPV?`<div class="hm-pvm">${Object.keys(ROLES).map(k=>{const r=ROLES[k];return `<button class="${k===PERSONA?"on":""}" data-persona="${k}"><span class="av">${r.av}</span><span><b>${r.nm} · ${r.n}</b><small>${r.mods.map(m=>MODS[m].n).join("، ")}${r.sup?" · مشرف":""}</small></span></button>`}).join("")}</div>`:""}</div>`;
+ const secs=P.sec.map(s=>s[0]==="tiles"
+   ?secHead("layout-grid","ملخص الإدارات","سطر لكل إدارة: الرقم الأساسي، واللي محتاج تصرف","","")+tiles(P)
+   :secHead(MODS[s[0]].i,secName(s),s[2]?"":"حسب صلاحياتك في "+MODS[s[0]].n,MODS[s[0]].go,s[2]?"":MODS[s[0]].p)+grid(s[1])).join("");
  return `
- ${IDEA("كل موظف بيدخل يلاقي اللي يخصه بس: المالك يشوف الفلوس والتشغيل، المحاسب يشوف المستحقات، والمبيعات تشوف محفظتها. الرئيسية مبنية من «كروت» كل واحد مربوط بصلاحية، ولكل دور قالب جاهز يعدّله مدير النظام، والموظف يقدر يخفي أو يرتّب لنفسه. كل رقم بيتضغط ويفتح القائمة متفلترة.")}
- ${HEAD(R.h,R.s,`<div class="seg" data-seg>${["اليوم","الأسبوع","الشهر"].map((x,i)=>`<button class="${i===2?"on":""}">${x}</button>`).join("")}</div>${B("ghost","layout-grid","تخصيص",'data-hcust="1"')}`)}
- <div class="persona-bar hm-roles">${X("eye")}<span>معاينة القالب حسب الدور:</span><div class="seg">${Object.keys(ROLES).map(k=>`<button class="${k===PERSONA?"on":""}" data-persona="${k}">${ROLES[k].n}</button>`).join("")}</div></div>
- <div class="hm-atd">${X("shield-check")}<span>حاضر من <b class="num">07:58 ص</b> · الفرع الرئيسي — موثّق بالموقع</span><span class="hm-ses">مدة الجلسة <b class="num" data-session>02:06:32</b></span>${B("ghost sm","log-out","تسجيل الانصراف")}</div>
- <div class="hm-kpis">${R.k.map(k=>`<a href="#" class="card hm-k" data-go="${k[6]}"><div class="kl"><span class="ni n">${X(k[0])}</span><span>${k[1]}</span>${X("arrow-up-left")}</div><div class="kv num">${k[2]}</div><small>${k[3]}</small>${k[5]?`<span class="tag ${k[4]}">${k[5]}</span>`:""}</a>`).join("")}</div>
- <div class="hm-grid">${(()=>{const h=R.w.map(id=>W[id][3]());const half=h.map((x,i)=>x.includes("hm-w wide")?-1:i).filter(i=>i>-1);if(half.length%2)h[half[half.length-1]]=h[half[half.length-1]].replace("hm-w ","hm-w wide ");return h.join("")})()}</div>
+ <div class="hm-bar">${pv}<span class="sp"></span><div class="seg" data-seg>${["اليوم","الأسبوع","الشهر"].map((x,i)=>`<button class="${i===2?"on":""}">${x}</button>`).join("")}</div>${B("ghost sm","layout-grid","تخصيص",'data-hcust="1"')}<button class="icon-btn hm-ib ${HIDEA?"on":""}" data-hidea="1" title="ليه الشكل ده؟">${X("lightbulb")}</button></div>
+ ${HIDEA?IDEA("الرئيسية بتتبني من صلاحيات الموظف، مش من قالب ثابت. كل موديول عنده صلاحية عرضه بيظهر له كقسم (العمليات، المالية…)، والمالك عنده كل الصلاحيات فبيشوف ملخص سطر لكل إدارة. أول حاجة الموظف يشوفها هي «مطلوب منك»: المسند له بالاسم، ولو مشرف بيشوف كمان متأخرات فريقه. الأرقام والتحليل بعد كده."):""}
+ <div class="card hm-hero"><div class="hh"><small>الاثنين 16 نوفمبر · الفرع الرئيسي</small><h1>${hi} يا ${P.nm}</h1><p>${summary}</p>
+  <div class="hm-mods">${X("key-round")}<span>بتشوف حسب صلاحياتك:</span>${P.mods.map(m=>`<span class="chip">${X(MODS[m].i)}${MODS[m].n}</span>`).join("")}</div></div>
+  <div class="hm-att"><div class="st">${X("shield-check")}<div><b>حاضر من <span class="num">07:58 ص</span></b><small>موثّق بالموقع · الجلسة <span class="num" data-session>02:06:32</span></small></div></div>${B("ghost sm","log-out","تسجيل الانصراف")}</div></div>
+ <div class="hm-top">${todoCard(P)}<div class="hm-kpis">${P.k.map(k=>`<a href="#" class="card hm-k" data-go="${k[6]}"><div class="kl"><span class="ni n">${X(k[0])}</span><span>${k[1]}</span>${X("arrow-up-left")}</div><div class="kv num">${k[2]}</div><small>${k[3]}</small>${k[5]?`<span class="tag ${k[4]}">${k[5]}</span>`:""}</a>`).join("")}</div></div>
+ ${secs}
+ ${secHead("bell-dot","للمتابعة","الجديد من آخر دخول، والتقارير اللي تخصك","","")}<div class="hm-grid">${W.news[3]()}${W.reps[3]()}</div>
+ ${P.mods.includes("fin")?`<div class="hm-ana ${HANA?"open":""}"><button data-hana="1">${X("bar-chart-3")}<span><b>التحليل</b><small>الإيرادات والمصروفات آخر 6 شهور، وتوزيع الإيرادات</small></span>${X(HANA?"chevron-up":"chevron-down")}</button>${HANA?W.fin[3]():""}</div>`:""}
  ${HCUST?custPanel():""}`;
 };
 
@@ -4687,6 +4758,11 @@ document.addEventListener("click",e=>{
  const g=(s)=>e.target.closest(s);
  let hit=true;
  if(g("[data-hcust]")){HCUST=true;HCMODE="me"}
+ else if(g("[data-htodo]")){HTODO=g("[data-htodo]").dataset.htodo}
+ else if(g("[data-hpv]")){HPV=!HPV}
+ else if(g("[data-hidea]")){HIDEA=!HIDEA}
+ else if(g("[data-hana]")){HANA=!HANA}
+ else if(g(".hm-pvm [data-persona]")){PERSONA=g("[data-persona]").dataset.persona;HPV=false;HTODO="me"}
  else if(g("[data-hcmode]")){HCMODE=g("[data-hcmode]").dataset.hcmode}
  else if(g("[data-hc-x]")||(e.target.matches&&e.target.matches("[data-hc-ov]"))){HCUST=false}
  else if(g("[data-rctab]")){RCTAB=g("[data-rctab]").dataset.rctab}
@@ -4696,6 +4772,7 @@ document.addEventListener("click",e=>{
  else if(g("[data-rv-x]")||(e.target.matches&&e.target.matches("[data-rv-ov]"))){RCSAVE=false}
  else if(g(".hm-cr .sw")){g(".hm-cr .sw").classList.toggle("on");hit=false;e.stopImmediatePropagation();return}
  else if(g(".rc-star")){g(".rc-star").classList.toggle("on");e.stopImmediatePropagation();return}
+ else if(HPV&&!g(".hm-pvw")){HPV=false;render();hit=false}
  else hit=false;
  if(hit){e.preventDefault();e.stopImmediatePropagation();render()}
 },true);
@@ -4722,7 +4799,7 @@ const STC={new:"n",doing:"b",qa:"p",ready:"g",client:"a",hold:"r",closed:"n"};
 const ty=t=>`<span class="tc-ty ${TY[t][0]}">${t}</span>`;
 const av=(n,c)=>`<span class="tc-av${c?" "+c:""}" title="${n}">${n.trim()[0]}</span>`;
 const PPL=["أحمد سمير","منى عادل","كريم فتحي","يوسف حسن","سارة نبيل","عمر خالد"];
-const TCP={tcList:"tcBoard",tcTask:"tcBoard",tcForm:"tcBoard",tcMember:"tcTeam",tcShots:"tcTeam",tcSessions:"tcTeam",tcAttend:"tcHours",tcClose:"tcMy",tcPolicy:"tcMy",tcMigrate:"tcSettings"};
+const TCP={tcLanes:"tcBoard",tcList:"tcBoard",tcTask:"tcBoard",tcForm:"tcBoard",tcMember:"tcTeam",tcShots:"tcTeam",tcSessions:"tcTeam",tcAttend:"tcHours",tcClose:"tcMy",tcPolicy:"tcMy",tcMigrate:"tcSettings"};
 const tcTabs=on=>TABS([["tcMy","sun","يومي"],["tcInbox","inbox","الوارد",7],["tcBoard","columns-3","لوحة المهام"],["tcHandoff","arrow-left-right","التسليم والاستلام",3],["tcSpecs","file-text","التحليل والمواصفات"],["tcTeam","users","متابعة الفريق"],["tcApprovals","hourglass","موافقات الوقت",3],["tcHours","bar-chart-3","التقارير"],["tcSettings","settings","الإعدادات"]],TCP[on]||on);
 const TIMER=(num,title,el)=>`<div class="tc-timer"><span class="tc-pulse"></span>${X("timer")}<span>المؤقت شغال على <a href="#" data-go="tcTask"><b class="num">${num}</b> — ${title}</a></span><b class="num tc-clock">${el}</b><span class="tc-mon">${X("monitor-check")}مشاركة الشاشة شغالة · <span class="num">7</span> لقطات</span>${B("ghost sm","app-window","نافذة المراقبة")}${B("red sm","square","إيقاف")}</div>`;
 
@@ -5379,6 +5456,80 @@ const oldSet=screens.tcSettings;
 S.tcSettings=()=>oldSet().replace('<div class="grid-2 wide-l"><div>',`<div class="grid-2 wide-l"><div>${SEC("plug","القنوات ← الوارد",`<div class="tc-ch-l">${[["slack","Slack","مربوط بـ Click and More · أمر /click · ⚡ على أي رسالة","#ملاحظات-الاختبار ← ملاحظة اختبار · #الدعم ← SUP",1],["chat","Click Chat","«حوّل لمهمة» من أي محادثة — العميل بيتعرف من رقم المحادثة","",1],["live","لايف شات الموقع","نفس الزرار في المحادثة","",1],["wa","واتساب العملاء","الرسايل من أرقام العملاء المسجلين بس","",1],["mail","الإيميل","حوّل أي إيميل لـ tasks@…sa","",0],["portal","بوابة العميل","العميل يشوف طلباته ويوافق على التسليم","",0]].map(c=>`<div>${src(c[0])}<span><small>${c[2]}</small>${c[3]?`<small class="num">${c[3]}</small>`:""}</span>${SW(c[4])}</div>`).join("")}</div><div style="padding:0 20px 16px"><a href="#" data-go="tcMigrate" class="tc-clear">الانتقال من Trello و Time Doctor ←</a></div>`,NEWT)}`);
 
 Object.assign(T,{tcInbox:{ar:"الوارد",en:"Intake"},tcHandoff:{ar:"التسليم والاستلام",en:"Handoffs"},tcSpecs:{ar:"التحليل والمواصفات",en:"Specs"},tcMigrate:{ar:"الانتقال من Trello",en:"Move from Trello"}});
+Object.keys(S).forEach(k=>{screens[k]=S[k]});
+})();
+/* ===== v1.13 — Task board rebuilt Jira/ClickUp-style: roomy cards, status columns, swimlanes ===== */
+(()=>{
+const {X,SEC,KV,TAG,SW,ROW,FLD,SEL,INP,TXT,STAT,PAGER,ACTS,HEAD,B,TABS,CHIPS,STEPS,FS}=window.CXH;
+const {tcTabs,PR,STN,STC,PPL}=window.TCX;
+window.CERP_PAGES=(window.CERP_PAGES||[]).concat(["tcLanes"]);
+const IDEA=t=>`<div class="fx-idea">${X("lightbulb")}<div><b>ليه الشكل ده؟</b><span>${t}</span></div></div>`;
+const S={};
+const TI={BUG:["bug","r","خطأ"],UPD:["sparkles","b","تحديث"],DATA:["database","a","مشكلة بيانات"],OPS:["server","n","سيرفرات ونشر"],MTG:["users","g","متابعة واجتماع"],SUP:["life-buoy","p","استفسار ودعم"]};
+const PI={urgent:["chevrons-up","r","طارئ"],high:["chevron-up","a","مهم"],medium:["equal","n","متوسط"],low:["chevron-down","b","منخفض"]};
+const CL={"مكتب الريادة":"#2f5fa8","مؤسسة سواعد":"#0e7c66","مكتب الأمانة":"#7044b8","مكتب نجد":"#c8862a","داخلي":"#5f6c80"};
+const AVC={"أحمد سمير":"#16233f","منى عادل":"#7044b8","كريم فتحي":"#0e7c66","يوسف حسن":"#c8862a","سارة نبيل":"#d4453c","عمر خالد":"#2f5fa8"};
+const av=(n,c)=>`<span class="kb-av${c?" "+c:""}" style="--a:${AVC[n]||"#5f6c80"}" title="${n}">${n.trim()[0]}</span>`;
+/* [key,type,title,client,product,status,prio,assignee,reviewer,due,dueCls,size,chk,comments,files,live,alert,alertCls] */
+const K=[
+ ["OPS-0033","OPS","نقل نسخة العميل لسيرفر جديد مع الحفاظ على الدومين","مكتب نجد","Click ERP","new","high","كريم فتحي","","20 نوف","","يوم","0/6",0,0,"",""],
+ ["SUP-0290","SUP","العميل مش عارف يطبع عقد التأجير بعد التحديث","مؤسسة سواعد","Click ERP","new","medium","سارة نبيل","","17 نوف","soon","ربع ساعة","",3,1,"",""],
+ ["BUG-0150","BUG","رسالة الخطأ بتظهر بالإنجليزي في صفحة الدفع","مكتب الريادة","Click ERP","new","urgent","","","19 نوف","","ساعة","",0,0,"","من غير مسؤول","a"],
+ ["SUP-0288","SUP","شرح إعداد الفروع لموظف جديد","مكتب الأمانة","Click ERP","new","low","عمر خالد","","21 نوف","","ساعة","",0,0,"",""],
+ ["UPD-0812","UPD","إضافة فلتر الفرع في تقرير التحصيل","مؤسسة سواعد","Click ERP","doing","high","أحمد سمير","يوسف حسن","18 نوف","soon","ساعتين","1/4",2,0,"أحمد · 1:12",""],
+ ["DATA-0061","DATA","تكرار عملاء بعد الاستيراد من Excel","مكتب الأمانة","Click ERP","doing","medium","منى عادل","أحمد سمير","19 نوف","","نص يوم","2/3",1,2,"منى · 0:34",""],
+ ["UPD-0814","UPD","زر نسخ رابط الدفع في الفاتورة","مؤسسة سواعد","Click Chat","doing","high","أحمد سمير","","17 نوف","soon","ساعتين","",0,0,"",""],
+ ["BUG-0147","BUG","تقرير العمولات بيحسب الكوبون مرتين","مكتب الريادة","Click ERP","qa","urgent","أحمد سمير","منى عادل","16 نوف","late","ساعة","3/5",4,1,"",""],
+ ["DATA-0059","DATA","تصحيح أرصدة أول المدة بعد الترحيل","مكتب نجد","Click ERP","qa","high","منى عادل","كريم فتحي","17 نوف","soon","ساعة","2/2",3,0,"",""],
+ ["BUG-0145","BUG","فاتورة ZATCA بترجع خطأ 400 مع الخصم","مكتب الأمانة","Click ERP","ready","urgent","كريم فتحي","","15 نوف","done","ساعتين","5/5",5,0,"",""],
+ ["UPD-0809","UPD","رسالة واتساب للعميل عند وصول العاملة","مكتب الريادة","Click Chat","client","medium","يوسف حسن","","12 نوف","","ساعتين","4/4",6,0,"","مستني العميل 12 يوم","r"],
+ ["MTG-0071","MTG","اجتماع المتابعة الشهري","مؤسسة سواعد","داخلي","client","low","سارة نبيل","","14 نوف","late","ساعة","",1,0,"","تذكير اتبعت","a"],
+ ["UPD-0805","UPD","تصدير كشف الحساب PDF بالشعار","مكتب نجد","Click ERP","hold","low","منى عادل","","25 نوف","","ساعتين","2/3",2,0,"","مستني ملف الشعار من العميل","n"]];
+const COL=[["new","جديد","#8a97ab",""],["doing","قيد التنفيذ","#2f5fa8","3/4"],["qa","اختبار داخلي","#7044b8",""],["ready","جاهز للنشر","#0e7c66",""],["client","بانتظار قبول العميل","#c8862a",""],["hold","معلّق","#d4453c",""],["closed","مغلق","#5f6c80",""]];
+const kcard=(r,sm)=>{const t=TI[r[1]],p=PI[r[6]],chk=r[12]?r[12].split("/").map(Number):null;return `<a href="#" data-go="tcTask" class="kb-c${r[15]?" live":""}${r[3]?"":""}">
+ <div class="kb-ct"><span class="kb-ty ${t[1]}" title="${t[2]}">${X(t[0])}</span><span class="kb-key num">${r[0]}</span><span class="kb-sp"></span><span class="kb-cl" style="--c:${CL[r[3]]||"#5f6c80"}" title="${r[4]}">${r[3]}</span><button class="kb-more" title="إجراءات">${X("more-horizontal")}</button></div>
+ <b class="kb-tt">${r[2]}</b>
+ ${r[16]?`<span class="kb-al ${r[17]}">${X(r[17]==="r"?"alarm-clock":r[17]==="n"?"pause-circle":"user-x")}${r[16]}</span>`:""}
+ ${chk&&!sm?`<div class="kb-pr"><span class="tc-bar${chk[0]===chk[1]?"":" "}"><i style="width:${chk[0]/chk[1]*100}%"></i></span><small class="num">${r[12]}</small></div>`:""}
+ ${r[15]?`<span class="kb-live"><i></i>${r[15]} شغال</span>`:""}
+ <div class="kb-cf"><span class="kb-pi ${p[1]}" title="${p[2]}">${X(p[0])}</span>${r[9]?`<span class="kb-due ${r[10]}">${X("calendar")}${r[9]}</span>`:""}
+  <span class="kb-sp"></span>${!sm&&r[13]?`<span class="kb-mt">${X("message-square")}${r[13]}</span>`:""}${!sm&&r[14]?`<span class="kb-mt">${X("paperclip")}${r[14]}</span>`:""}<span class="kb-avs">${r[8]&&!sm?av(r[8],"rv"):""}${r[7]?av(r[7]):`<span class="kb-av none" title="من غير مسؤول">${X("user-plus")}</span>`}</span></div></a>`};
+
+/* toolbar shared by board + lanes */
+const LOAD={"أحمد سمير":[9,1],"منى عادل":[7,1],"كريم فتحي":[6,1],"يوسف حسن":[4,0],"سارة نبيل":[5,1],"عمر خالد":[2,0]};
+const BAR=(on)=>`<div class="kb-bar">
+ <div class="inp kb-q">${X("search")}<input placeholder="ابحث في اللوحة… ( / )"></div>
+ <div class="kb-ppl">${PPL.map(n=>`<button class="${n==="أحمد سمير"?"on":""}" title="${n} · ${LOAD[n][0]} مهام مفتوحة${LOAD[n][1]?" · شغال دلوقتي":""}">${av(n,LOAD[n][1]?"on-live":"")}<em class="num">${LOAD[n][0]}</em></button>`).join("")}<button class="kb-none" title="من غير مسؤول">${X("user-x")}<em class="num">1</em></button></div>
+ <div class="kb-qf">${[["مهامي",""],["متأخرة","r"],["مستني العميل","a"],["طارئ","r"],["المراجعة عندي",""]].map((c,i)=>`<button class="${i===0?"on":""}">${c[1]?`<i class="d ${c[1]}"></i>`:""}${c[0]}</button>`).join("")}</div>
+ <span class="kb-sp"></span>
+ <div class="kb-grp">${X("rows-3")}<small>تجميع</small>${[["tcBoard","بدون"],["tcLanes","الموظف"],["#c","العميل"],["#p","الأولوية"]].map(g=>`<button class="${g[0]===on?"on":""}" ${g[0][0]==="#"?"":`data-go="${g[0]}"`}>${g[1]}</button>`).join("")}</div>
+ <div class="tp-views">${[["tcBoard","columns-3","لوحة"],["tcList","list","قائمة"]].map(v=>`<button class="${v[0]==="tcBoard"?"on":""}" data-go="${v[0]}">${X(v[1])}${v[2]}</button>`).join("")}</div>
+ ${B("primary","plus","مهمة",'data-go="tcForm"')}</div>`;
+
+/* ================= لوحة المهام ================= */
+S.tcBoard=()=>`
+ ${IDEA("اللوحة بقت زي Jira وClickUp: القائمة الجانبية بتتقفل لوحدها عشان الأعمدة تاخد الصفحة، وكل عمود عرضه ثابت والكارت واخد مساحته. الكارت بيتقري من فوق لتحت بنفس الترتيب دايماً: العميل ← العنوان (أكبر حاجة) ← أي تنبيه ← تقدّم البنود ← سطر ثابت تحت: النوع والرقم والأولوية بأيقونات، التاريخ، والمسؤول. فلتر الناس بصورهم فوق (والرقم = مهامه المفتوحة، والدايرة الخضرا = شغال دلوقتي)، و«معلّق» و«مغلق» مطويين على الجنب عشان مايزحموش.")}
+ <div class="kb-head"><div><small class="kb-bc">مركز المهام / لوحة المهام</small><h1>لوحة المهام <span class="num">· 13 مهمة مفتوحة</span></h1></div>${tcTabs("tcBoard")}</div>
+ ${BAR("tcBoard")}
+ <div class="kb-board">${COL.map(c=>{const it=K.filter(r=>r[5]===c[0]);
+  if(c[0]==="closed"||c[0]==="hold")return `<div class="kb-fold" style="--s:${c[2]}" title="فتح العمود"><span class="num">${c[0]==="closed"?38:it.length}</span><b>${c[1]}</b>${X("chevrons-left")}</div>`;
+  const wip=c[3]?c[3].split("/").map(Number):null;
+  return `<div class="kb-col" style="--s:${c[2]}"><div class="kb-ch"><b>${c[1]}</b><span class="num kb-n">${it.length}</span>${wip?`<span class="kb-wip${wip[0]>=wip[1]?" full":""}" title="حد العمل الجاري">${wip[0]} / ${wip[1]}</span>`:""}<button class="kb-more">${X("more-horizontal")}</button></div>
+   ${c[0]==="new"?`<div class="kb-new"><textarea rows="2" placeholder="إيه المطلوب؟ (Enter للحفظ)">تقرير الإيرادات حسب المندوب #سواعد</textarea><div>${av("أحمد سمير")}<span class="kb-cl" style="--c:${CL["مؤسسة سواعد"]}">مؤسسة سواعد</span><span class="kb-ty b">${X("sparkles")}</span><span class="kb-sp"></span>${B("primary sm","","إضافة")}</div></div>`:""}
+   <div class="kb-cb">${it.map(r=>kcard(r)).join("")}${it.length?"":`<div class="kb-empty">${X("inbox")}مفيش مهام هنا</div>`}</div>
+   ${c[0]==="new"?"":`<button class="kb-add">${X("plus")}مهمة</button>`}</div>`}).join("")}</div>`;
+
+/* ================= حسب الموظف (Swimlanes) ================= */
+const LCOL=COL.filter(c=>["new","doing","qa","ready","client"].includes(c[0]));
+S.tcLanes=()=>`
+ ${IDEA("نفس اللوحة متقسمة صفوف لكل موظف (Swimlanes زي Jira): كل صف بيجاوب «فلان عنده إيه ومستني إيه؟». رأس الصف فيه عدد مهامه ومجموع أحجامها والمتأخر، فلو حد عليه حمل زيادة يبان قبل ما تسند له. والصف بيطوي، واللي من غير مسؤول أول صف عشان محدش ينساه.")}
+ <div class="kb-head"><div><small class="kb-bc">مركز المهام / لوحة المهام</small><h1>لوحة المهام <span class="num">· حسب الموظف</span></h1></div>${tcTabs("tcBoard")}</div>
+ ${BAR("tcLanes")}
+ <div class="kb-lanes"><div class="kb-lh"><span></span>${LCOL.map(c=>`<div style="--s:${c[2]}"><b>${c[1]}</b></div>`).join("")}</div>
+ ${[["من غير مسؤول",""],["أحمد سمير","5 مهام · 7 س · 1 متأخرة"],["منى عادل","3 مهام · 6 س"],["كريم فتحي","2 مهام · 10 س"],["سارة نبيل","2 مهام · 1:15"],["يوسف حسن","1 مهمة · 2 س"]].map((p,i)=>{const it=K.filter(r=>(p[0]==="من غير مسؤول"?!r[7]:r[7]===p[0]));return `<div class="kb-lane${i===0?" warn":""}"><div class="kb-lt">${X("chevron-down")}${p[0]==="من غير مسؤول"?`<span class="kb-av none">${X("user-x")}</span>`:av(p[0])}<b>${p[0]}</b><small>${p[1]||`<span class="tc-late">لازم يتسند</span>`}</small></div>
+  <div class="kb-lr">${LCOL.map(c=>`<div class="kb-lc">${it.filter(r=>r[5]===c[0]).map(r=>kcard(r,1)).join("")}</div>`).join("")}</div></div>`}).join("")}</div>`;
+
+Object.assign(T,{tcBoard:{ar:"لوحة المهام",en:"Task board"},tcLanes:{ar:"لوحة المهام — حسب الموظف",en:"Board by person"}});
 Object.keys(S).forEach(k=>{screens[k]=S[k]});
 })();
 (function(){var P=window.CERP_PAGE;if(!P)return;var PAGES=window.CERP_PAGES||[];

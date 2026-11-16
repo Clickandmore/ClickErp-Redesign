@@ -1,5 +1,5 @@
 {
-  "version": "v1.12",
+  "version": "v1.13",
   "date": "2026-11-16",
   "entry": "login.html",
   "screens": [
@@ -887,6 +887,11 @@
       "id": "tcMigrate",
       "file": "tcMigrate.html",
       "title": "مركز المهام — الانتقال من Trello و Time Doctor"
+    },
+    {
+      "id": "tcLanes",
+      "file": "tcLanes.html",
+      "title": "مركز المهام — لوحة المهام حسب الموظف"
     }
   ],
   "states": [
