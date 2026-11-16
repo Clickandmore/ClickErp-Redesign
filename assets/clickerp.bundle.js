@@ -3373,7 +3373,7 @@ const DEPTS=[
   A("setHome","layout-grid","كل الإعدادات","All settings"),A("setGeneral","sliders-horizontal","العامة","General"),A("coupons","ticket-percent","كوبونات الخصم","Coupons"),A("setSite","globe","موقع المكتب","Office website"),A("setRecruit","files","الاستقدام والسير","Recruitment & CVs"),A("setRental","repeat","التأجير","Rental"),
   A("setUsers","shield-check","المستخدمون والصلاحيات","Users & roles"),A("setBranches","git-branch","الفروع","Branches"),A("setLists","list","القوائم المرجعية","Reference lists"),A("setMessages","bell","الرسائل والإشعارات","Messages & notifications"),
   A("setIntegrations","plug","التكاملات","Integrations"),A("setImport","upload","استيراد البيانات","Data import"),A("setAi","sparkles","المساعد الذكي","AI assistant"),A("setSupport","life-buoy","الدعم","Support"),A("setDev","code","المطوّر (Super Admin)","Developer")]}];
-const SUBS={setDev:["saSubscription","saModules","saEmployees","saDesigns","saUpdates","saUpdateForm","saBackups","saScheduler","saRecovery","saInvoices","saInvoiceFix","saMcp","saMoyasar","saTestAccounts"],tcMy:["tcPolicy","tcClose"],tcBoard:["tcTask","tcForm","tcList","tcLanes"],tcTeam:["tcMember","tcShots","tcSessions"],tcHours:["tcAttend"],tcSettings:["tcMigrate"],contracts:["contractShow","contractAdd","contractEdit"],cvs:["cvAdd","cvShow","cvEdit"],clients:["clientShow","clientAdd"],orders:["orderShow"],
+const SUBS={setDev:["saSubscription","saModules","saEmployees","saDesigns","saUpdates","saUpdateForm","saBackups","saScheduler","saRecovery","saInvoices","saInvoiceFix","saMcp","saMoyasar","saTestAccounts"],tcMy:["tcPolicy","tcClose"],tcBoard:["tcTask","tcForm","tcList","tcLanes","tcBoardD","tcCard","tcNew"],tcTeam:["tcMember","tcShots","tcSessions"],tcHours:["tcAttend"],tcSettings:["tcMigrate"],contracts:["contractShow","contractAdd","contractEdit"],cvs:["cvAdd","cvShow","cvEdit"],clients:["clientShow","clientAdd"],orders:["orderShow"],
  rental:["rentalShow","rentalAdd"],housing:["housingShow","housingAdd"],transfer:["transferShow","transferAdd"],
  reports:["report"],finSales:["finSaleAdd","finBonds","finReturns"],finBanks:["finBoxes","finTransfers","finChecksIn","finChecksOut"],finClients:["finSuppliers","finAgents"],
  finCenters:["finCentersTree"],finReports:["finReport"],finItems:["finStock","finInventory"],finEntries:["finAdd","finShow"],finAccounts:["finSettings"],clArchive:[],delegations:["delAdd","delShow"],trips:["tripShow"],agents:["agentShow"],"hb-board":["hbNew"],"hb-visits":["hbVisit"],coupons:["couponForm","couponShow","couponBulk","couponReport","couponSettings"],claims:["claimAdd","claimShow","claimTypes"],absconding:["abscShow"],campaigns:["campaignNew"],finRequests:["finRequestAdd","finRequestShow"],finAssets:["finAssetShow"],finCommissions:["finCommissionShow","finCommissionRules"],finTax:["finZatca"],hrEmployees:["hrEmployeeShow","hrEmployeeAdd"],hrPayroll:["hrPayrollRun"],setUsers:["setRoles"],visaRequests:["visaAdd","visaShow"]};
@@ -4799,7 +4799,7 @@ const STC={new:"n",doing:"b",qa:"p",ready:"g",client:"a",hold:"r",closed:"n"};
 const ty=t=>`<span class="tc-ty ${TY[t][0]}">${t}</span>`;
 const av=(n,c)=>`<span class="tc-av${c?" "+c:""}" title="${n}">${n.trim()[0]}</span>`;
 const PPL=["أحمد سمير","منى عادل","كريم فتحي","يوسف حسن","سارة نبيل","عمر خالد"];
-const TCP={tcLanes:"tcBoard",tcList:"tcBoard",tcTask:"tcBoard",tcForm:"tcBoard",tcMember:"tcTeam",tcShots:"tcTeam",tcSessions:"tcTeam",tcAttend:"tcHours",tcClose:"tcMy",tcPolicy:"tcMy",tcMigrate:"tcSettings"};
+const TCP={tcBoardD:"tcBoard",tcCard:"tcBoard",tcNew:"tcBoard",tcLanes:"tcBoard",tcList:"tcBoard",tcTask:"tcBoard",tcForm:"tcBoard",tcMember:"tcTeam",tcShots:"tcTeam",tcSessions:"tcTeam",tcAttend:"tcHours",tcClose:"tcMy",tcPolicy:"tcMy",tcMigrate:"tcSettings"};
 const tcTabs=on=>TABS([["tcMy","sun","يومي"],["tcInbox","inbox","الوارد",7],["tcBoard","columns-3","لوحة المهام"],["tcHandoff","arrow-left-right","التسليم والاستلام",3],["tcSpecs","file-text","التحليل والمواصفات"],["tcTeam","users","متابعة الفريق"],["tcApprovals","hourglass","موافقات الوقت",3],["tcHours","bar-chart-3","التقارير"],["tcSettings","settings","الإعدادات"]],TCP[on]||on);
 const TIMER=(num,title,el)=>`<div class="tc-timer"><span class="tc-pulse"></span>${X("timer")}<span>المؤقت شغال على <a href="#" data-go="tcTask"><b class="num">${num}</b> — ${title}</a></span><b class="num tc-clock">${el}</b><span class="tc-mon">${X("monitor-check")}مشاركة الشاشة شغالة · <span class="num">7</span> لقطات</span>${B("ghost sm","app-window","نافذة المراقبة")}${B("red sm","square","إيقاف")}</div>`;
 
@@ -5486,7 +5486,7 @@ const K=[
  ["MTG-0071","MTG","اجتماع المتابعة الشهري","مؤسسة سواعد","داخلي","client","low","سارة نبيل","","14 نوف","late","ساعة","",1,0,"","تذكير اتبعت","a"],
  ["UPD-0805","UPD","تصدير كشف الحساب PDF بالشعار","مكتب نجد","Click ERP","hold","low","منى عادل","","25 نوف","","ساعتين","2/3",2,0,"","مستني ملف الشعار من العميل","n"]];
 const COL=[["new","جديد","#8a97ab",""],["doing","قيد التنفيذ","#2f5fa8","3/4"],["qa","اختبار داخلي","#7044b8",""],["ready","جاهز للنشر","#0e7c66",""],["client","بانتظار قبول العميل","#c8862a",""],["hold","معلّق","#d4453c",""],["closed","مغلق","#5f6c80",""]];
-const kcard=(r,sm)=>{const t=TI[r[1]],p=PI[r[6]],chk=r[12]?r[12].split("/").map(Number):null;return `<a href="#" data-go="tcTask" class="kb-c${r[15]?" live":""}${r[3]?"":""}">
+const kcard=(r,sm)=>{const t=TI[r[1]],p=PI[r[6]],chk=r[12]?r[12].split("/").map(Number):null;return `<a href="#" data-go="tcCard" class="kb-c${r[15]?" live":""}${r[3]?"":""}">
  <div class="kb-ct"><span class="kb-ty ${t[1]}" title="${t[2]}">${X(t[0])}</span><span class="kb-key num">${r[0]}</span><span class="kb-sp"></span><span class="kb-cl" style="--c:${CL[r[3]]||"#5f6c80"}" title="${r[4]}">${r[3]}</span><button class="kb-more" title="إجراءات">${X("more-horizontal")}</button></div>
  <b class="kb-tt">${r[2]}</b>
  ${r[16]?`<span class="kb-al ${r[17]}">${X(r[17]==="r"?"alarm-clock":r[17]==="n"?"pause-circle":"user-x")}${r[16]}</span>`:""}
@@ -5529,7 +5529,85 @@ S.tcLanes=()=>`
  ${[["من غير مسؤول",""],["أحمد سمير","5 مهام · 7 س · 1 متأخرة"],["منى عادل","3 مهام · 6 س"],["كريم فتحي","2 مهام · 10 س"],["سارة نبيل","2 مهام · 1:15"],["يوسف حسن","1 مهمة · 2 س"]].map((p,i)=>{const it=K.filter(r=>(p[0]==="من غير مسؤول"?!r[7]:r[7]===p[0]));return `<div class="kb-lane${i===0?" warn":""}"><div class="kb-lt">${X("chevron-down")}${p[0]==="من غير مسؤول"?`<span class="kb-av none">${X("user-x")}</span>`:av(p[0])}<b>${p[0]}</b><small>${p[1]||`<span class="tc-late">لازم يتسند</span>`}</small></div>
   <div class="kb-lr">${LCOL.map(c=>`<div class="kb-lc">${it.filter(r=>r[5]===c[0]).map(r=>kcard(r,1)).join("")}</div>`).join("")}</div></div>`}).join("")}</div>`;
 
+window.KBX={K,COL,LCOL,kcard,BAR,av,TI,PI,CL};
 Object.assign(T,{tcBoard:{ar:"لوحة المهام",en:"Task board"},tcLanes:{ar:"لوحة المهام — حسب الموظف",en:"Board by person"}});
+Object.keys(S).forEach(k=>{screens[k]=S[k]});
+})();
+/* ===== v1.14 — Board: compact cards, task opens in a dialog, create in a dialog ===== */
+(()=>{
+const {X,SEC,KV,TAG,SW,ROW,FLD,SEL,INP,TXT,B}=window.CXH;
+const {tcTabs,PR,STN,PPL}=window.TCX;
+const {K,COL,kcard,BAR,av,TI,PI,CL}=window.KBX;
+window.CERP_PAGES=(window.CERP_PAGES||[]).concat(["tcBoardD","tcCard","tcNew"]);
+const IDEA=t=>`<div class="fx-idea">${X("lightbulb")}<div><b>ليه الشكل ده؟</b><span>${t}</span></div></div>`;
+const NEWT=`<span class="tag a hm-new">جديد</span>`;
+const S={};
+
+/* compact card: title first, one meta line; client = colored edge */
+const kmini=(r,on)=>{const t=TI[r[1]],p=PI[r[6]];return `<a href="#" data-go="tcCard" class="km${r[15]?" live":""}${on?" on":""}" style="--c:${CL[r[3]]||"#5f6c80"}" title="${r[3]}">
+ <b class="km-t">${r[2]}</b>
+ <div class="km-f"><span class="kb-ty ${t[1]}" title="${t[2]}">${X(t[0])}</span><span class="kb-key num">${r[0]}</span><span class="kb-pi ${p[1]}" title="${p[2]}">${X(p[0])}</span>${r[9]?`<span class="kb-due ${r[10]}">${r[9]}</span>`:""}${r[16]?`<span class="km-al ${r[17]}" title="${r[16]}">${X(r[17]==="r"?"alarm-clock":r[17]==="n"?"pause-circle":"user-x")}</span>`:""}${r[15]?`<span class="km-lv" title="${r[15]} شغال"></span>`:""}<span class="kb-sp"></span>${r[7]?av(r[7]):`<span class="kb-av none">${X("user-plus")}</span>`}</div></a>`};
+
+const DENS=on=>`<div class="kb-dens">${[["tcBoard","rows-2","مختصر"],["tcBoardD","rows-4","مفصّل"]].map(d=>`<button class="${d[0]===on?"on":""}" data-go="${d[0]}">${X(d[1])}${d[2]}</button>`).join("")}</div>`;
+const BOARD=(mode,sel)=>{const bar=BAR("tcBoard").replace('data-go="tcForm"','data-go="tcNew"').replace('<span class="kb-sp"></span>',`<span class="kb-sp"></span>${DENS(mode==="d"?"tcBoardD":"tcBoard")}`);
+ return `<div class="kb-head"><div><small class="kb-bc">مركز المهام / لوحة المهام</small><h1>لوحة المهام <span class="num">· 13 مهمة مفتوحة</span></h1></div>${tcTabs("tcBoard")}</div>${bar}
+ <div class="kb-board${mode==="d"?"":" compact"}">${COL.map(c=>{const it=K.filter(r=>r[5]===c[0]);
+  if(c[0]==="closed"||c[0]==="hold")return `<div class="kb-fold" style="--s:${c[2]}"><span class="num">${c[0]==="closed"?38:it.length}</span><b>${c[1]}</b>${X("chevrons-left")}</div>`;
+  const wip=c[3]?c[3].split("/").map(Number):null;
+  return `<div class="kb-col" style="--s:${c[2]}"><div class="kb-ch"><b>${c[1]}</b><span class="num kb-n">${it.length}</span>${wip?`<span class="kb-wip${wip[0]>=wip[1]?" full":""}">${wip[0]} / ${wip[1]}</span>`:""}<button class="kb-more">${X("more-horizontal")}</button></div>
+   <div class="kb-cb">${it.map(r=>mode==="d"?kcard(r).replace('data-go="tcTask"','data-go="tcCard"'):kmini(r,sel===r[0])).join("")}</div><button class="kb-add" data-go="tcNew">${X("plus")}مهمة</button></div>`}).join("")}</div>`};
+
+S.tcBoard=()=>`${IDEA("على اللوحة الكارت مختصر: العنوان، وتحته سطر واحد (النوع والرقم، الأولوية، التاريخ، علامة لو فيه تنبيه، والمسؤول) — ولون العميل خط على جنب الكارت بدل tag. كده العمود بيشيل ضعف المهام وتلمح اللوحة كلها مرة واحدة. ولما تحتاج التفاصيل: اضغط على الكارت يفتح dialog فوق اللوحة فيه كل حاجة، وانت لسه في مكانك. ولو بتحب الكروت الكبيرة: «مفصّل».")}${BOARD("c")}`;
+S.tcBoardD=()=>`${IDEA("نفس اللوحة بالكروت المفصّلة: العميل والبنود والتعليقات والمراجِع ظاهرين على الكارت. مفيدة في الاجتماع اليومي لما بتراجعوا كل مهمة.")}${BOARD("d")}`;
+
+/* ================= Task dialog ================= */
+const FIELD=(ic,l,v,cls)=>`<div class="md-f${cls?" "+cls:""}"><span>${X(ic)}${l}</span><button>${v}</button></div>`;
+S.tcCard=()=>`${BOARD("c","BUG-0147")}
+<div class="md-ov"><div class="md" role="dialog" aria-label="BUG-0147">
+ <div class="md-top"><span class="kb-ty r">${X("bug")}</span><b class="num">BUG-0147</b><span class="md-bc">مكتب الريادة <i>/</i> Click ERP</span>
+  <span class="kb-sp"></span><button class="md-st" style="--s:#7044b8">اختبار داخلي${X("chevron-down")}</button>${B("primary sm","send","سلّم لمنى للمراجعة")}
+  <span class="md-sep"></span><button class="md-ic" title="المهمة اللي قبلها">${X("chevron-right")}</button><button class="md-ic" title="اللي بعدها">${X("chevron-left")}</button><button class="md-ic" title="نسخ الرابط">${X("link")}</button><button class="md-ic" title="افتح كصفحة" data-go="tcTask">${X("maximize-2")}</button><button class="md-ic" title="قفل (Esc)" data-go="tcBoard">${X("x")}</button></div>
+ <div class="md-body"><div class="md-main">
+  <h2 class="md-tt" contenteditable="true">تقرير العمولات بيحسب الكوبون مرتين</h2>
+  <div class="md-path">${["جديد","قيد التنفيذ","اختبار داخلي","جاهز للنشر","بانتظار قبول العميل","مغلق"].map((s,i)=>`<span class="${i<2?"done":i===2?"now":""}">${s}</span>`).join("")}</div>
+  <div class="md-sec"><h4>${X("align-right")}الوصف</h4><div class="md-desc">لما العقد يكون عليه كوبون خصم، تقرير العمولات بيخصم قيمة الكوبون مرة من الإجمالي ومرة تانية من صافي العمولة، فالمندوب بياخد أقل من المستحق.<br><b>المتوقع:</b> الكوبون يتخصم مرة واحدة من أساس العمولة. <b>للتجربة:</b> CN-2026-0115 · RAMADAN26</div></div>
+  <div class="md-sec"><h4>${X("list-checks")}قائمة التحقق <small class="num">3 / 5</small></h4><span class="tc-bar"><i style="width:60%"></i></span><div class="md-ck">${[["إعادة إنتاج المشكلة على نسخة الاختبار",1],["تعديل حساب أساس العمولة",1],["اختبار عقد بكوبون نسبة",1],["اختبار عقد بكوبون مبلغ ثابت",0],["مراجعة تقرير الشهر اللي فات",0]].map(c=>`<label class="${c[1]?"on":""}"><input type="checkbox" ${c[1]?"checked":""}>${c[0]}</label>`).join("")}<button class="md-add">${X("plus")}بند</button></div></div>
+  <div class="md-tabs"><button class="on">التعليقات <em class="num">3</em></button><button>النشاط</button><button>الوقت <em class="num">4</em></button></div>
+  <div class="md-cm">${[["منى عادل","من ساعة","اختبرت كوبون النسبة على CN-2026-0115 — العمولة طلعت صح 1,150 ر.س. فاضل المبلغ الثابت."],["أحمد سمير","امبارح 16:40","الإصلاح اترفع على نسخة الاختبار. نقلتها لاختبار داخلي."]].map(c=>`<div>${av(c[0])}<div><b>${c[0]} <small>${c[1]}</small></b><p>${c[2]}</p></div></div>`).join("")}
+   <div class="md-comp">${av("أحمد سمير")}<div><textarea rows="2" placeholder="اكتب تعليق… استخدم @ للإشارة لحد"></textarea><div>${B("ghost sm","paperclip","")}<span class="kb-sp"></span>${B("primary sm","","إرسال")}</div></div></div></div>
+ </div><aside class="md-side">
+  <div class="md-timer">${B("primary","play","ابدأ المؤقت")}<div class="md-est"><span><small>المسجل</small><b class="num">3:06</b></span><span><small>من التقدير</small><b class="num">4:00</b></span></div><span class="tc-bar"><i style="width:78%"></i></span></div>
+  <div class="md-fs">${FIELD("circle-dot","الحالة",`<span class="md-dot" style="--s:#7044b8"></span>اختبار داخلي`)}${FIELD("user","المسؤول",`${av("أحمد سمير")}أحمد سمير`)}${FIELD("user-check","المراجِع",`${av("منى عادل")}منى عادل`)}${FIELD("flag","الأولوية",`<span class="kb-pi r">${X("chevrons-up")}</span>طارئ`)}${FIELD("calendar","الاستحقاق",`<span class="kb-due late">16 نوف · متأخرة يوم</span>`)}${FIELD("hourglass","الحجم","ساعة")}${FIELD("building-2","العميل",`<span class="kb-cl" style="--c:#2f5fa8">مكتب الريادة</span>`)}${FIELD("folder","المشروع","الريادة — اشتراك ERP")}${FIELD("box","المنتج","Click ERP System")}${FIELD("hash","المصدر",`Slack <a href="#" class="md-ext">↗</a>`)}</div>
+  <div class="md-acts">${[["send","سلّم المهمة"],["monitor-up","طلب جلسة"],["plus-circle","وقت يدوي"],["copy","تكرار"],["archive","أرشفة"]].map(a=>`<button>${X(a[0])}${a[1]}</button>`).join("")}</div>
+  <small class="md-meta">أنشأتها سارة نبيل · 12 نوفمبر · آخر تعديل من ساعتين</small>
+ </aside></div>
+ <div class="md-kbd"><span><kbd>Esc</kbd> قفل</span><span><kbd>J</kbd> <kbd>K</kbd> اللي بعدها/قبلها</span><span><kbd>S</kbd> الحالة</span><span><kbd>A</kbd> المسؤول</span><span><kbd>Space</kbd> المؤقت</span></div>
+</div></div>`;
+
+/* ================= Create dialog ================= */
+S.tcNew=()=>`${BOARD("c")}
+<div class="md-ov"><div class="md sm" role="dialog" aria-label="مهمة جديدة">
+ <div class="md-top"><b>مهمة جديدة</b><span class="md-bc">في <button class="md-st" style="--s:#8a97ab">جديد${X("chevron-down")}</button></span><span class="kb-sp"></span><button class="md-ic" title="الفورم الكامل" data-go="tcForm">${X("maximize-2")}</button><button class="md-ic" data-go="tcBoard">${X("x")}</button></div>
+ <div class="mn-b">
+  <input class="mn-t" value="تقرير الإيرادات حسب المندوب" placeholder="اسم المهمة">
+  <textarea class="mn-d" rows="2" placeholder="الوصف — اختياري، تقدر تكمّله بعدين"></textarea>
+  <div class="mn-props">
+   <button class="mn-p set">${`<span class="kb-ty b">${X("sparkles")}</span>`}UPD · تحديث${X("chevron-down")}</button>
+   <button class="mn-p need">${X("building-2")}العميل <i>مطلوب</i></button>
+   <button class="mn-p set">${av("يوسف حسن")}يوسف حسن${X("chevron-down")}</button>
+   <button class="mn-p set">${X("calendar")}الأربعاء 19 نوف${X("chevron-down")}</button>
+   <button class="mn-p set"><span class="kb-pi n">${X("equal")}</span>متوسط${X("chevron-down")}</button>
+   <button class="mn-p">${X("hourglass")}الحجم</button>
+   <button class="mn-p">${X("user-check")}مراجِع</button>
+   <button class="mn-p">${X("list-checks")}بنود</button>
+  </div>
+  <div class="mn-pick"><div class="inp">${X("search")}<input value="سوا" placeholder="ابحث عن عميل"></div>${[["مؤسسة سواعد","آخر عميل استخدمته",1],["مكتب الريادة",""],["داخلي (من غير عميل)",""]].map(c=>`<button class="${c[2]?"on":""}"><span class="kb-cl" style="--c:${CL[c[0]]||"#5f6c80"}">${c[0]}</span><small>${c[1]}</small></button>`).join("")}</div>
+  <div class="mn-hint">${X("info")}الإلزامي: الاسم والعميل. الباقي واخد قيمة افتراضية تقدر تغيّرها. BUG أو «طارئ» لازم يكون ليهم تاريخ.</div>
+ </div>
+ <div class="md-foot"><label class="mn-more"><span class="sw on"></span>اعمل مهمة تانية بعدها</label><span class="kb-sp"></span>${B("ghost","","إلغاء",'data-go="tcBoard"')}${B("primary","plus","إنشاء <kbd>Ctrl</kbd><kbd>Enter</kbd>",'data-go="tcCard"')}</div>
+</div></div>`;
+
+Object.assign(T,{tcBoardD:{ar:"لوحة المهام — مفصّل",en:"Task board (detailed)"},tcCard:{ar:"BUG-0147",en:"Task"},tcNew:{ar:"مهمة جديدة",en:"New task"}});
 Object.keys(S).forEach(k=>{screens[k]=S[k]});
 })();
 (function(){var P=window.CERP_PAGE;if(!P)return;var PAGES=window.CERP_PAGES||[];

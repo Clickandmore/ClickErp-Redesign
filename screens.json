@@ -1,5 +1,5 @@
 {
-  "version": "v1.13",
+  "version": "v1.14",
   "date": "2026-11-16",
   "entry": "login.html",
   "screens": [
@@ -892,6 +892,21 @@
       "id": "tcLanes",
       "file": "tcLanes.html",
       "title": "مركز المهام — لوحة المهام حسب الموظف"
+    },
+    {
+      "id": "tcBoardD",
+      "file": "tcBoardD.html",
+      "title": "مركز المهام — لوحة المهام (مفصّل)"
+    },
+    {
+      "id": "tcCard",
+      "file": "tcCard.html",
+      "title": "مركز المهام — المهمة في dialog"
+    },
+    {
+      "id": "tcNew",
+      "file": "tcNew.html",
+      "title": "مركز المهام — إضافة مهمة (dialog)"
     }
   ],
   "states": [
