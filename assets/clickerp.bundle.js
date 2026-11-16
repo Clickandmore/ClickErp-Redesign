@@ -4443,6 +4443,265 @@ S.hbCollect=()=>`
 Object.assign(T,{visaDash:{ar:"تأشيرات الشركة",en:"Company visas"},visaRequests:{ar:"طلبات التأشيرات",en:"Visa requests"},visaAdd:{ar:"طلب تأشيرة جديد",en:"New visa request"},visaShow:{ar:"VR-0033",en:"Visa request"},visaBalance:{ar:"رصيد التأشيرات",en:"Visa balance"},visaReports:{ar:"تقارير التأشيرات",en:"Visa reports"},visaPrebook:{ar:"الحجز المسبق للتأجير",en:"Pre-bookings"},visaSettings:{ar:"إعدادات التأشيرات",en:"Visa settings"},hbCollect:{ar:"التحصيل والتعويضات",en:"Collections"}});
 Object.keys(S).forEach(k=>{screens[k]=S[k]});
 })();
+/* ===== v1.9 — Home by role template + Reports centre (saved reports, schedules, delivery log) ===== */
+(()=>{
+const {X,SEC,KV,TAG,SW,ROW,FLD,SEL,INP,TXT,STAT,PAGER,ACTS,HEAD,B,TABS,CHIPS,STEPS,FS}=window.CXH;
+const IDEA=t=>`<div class="fx-idea">${X("lightbulb")}<div><b>ليه الشكل ده؟</b><span>${t}</span></div></div>`;
+const NEWT=`<span class="tag a hm-new">جديد</span>`;
+const S={};
+
+/* ---------------- Home: role templates ---------------- */
+const ROLES={
+ owner:{n:"المالك / رئيس مجلس الإدارة",h:"صورة الشركة هذا الشهر",s:"الفلوس الأول، وبعدها التشغيل: إيه اللي اتعمل وإيه اللي متأخر.",
+  k:[["scale","صافي الشهر","144,450","الإيرادات 412,800 − المصروفات 268,350","g","+12% عن أكتوبر","finReport"],
+     ["calendar-clock","التزامات خلال 30 يوم","236,900","رواتب، شيكات، وكلاء، ضريبة","a","أقربها بعد 4 أيام","finChecksOut"],
+     ["file-text","عقود تحت التشغيل","38","9 عقود جديدة هذا الشهر","r","18 متأخرة","contracts"],
+     ["globe","طلبات عند المكاتب الخارجية","26","14 سيرة وصلت هذا الأسبوع","a","4 بدون رد","agents"]],
+  w:["fin","oblig","news","pipe","delays","reps"],r:["volume","finance","types"]},
+ ops:{n:"مشرف العمليات",h:"تشغيل اليوم",s:"كل عقد في أي مرحلة، والمتأخر منه عند مين.",
+  k:[["file-text","عقود تحت التشغيل","38","موزعة على 6 مراحل","n","","contracts"],["timer-off","متأخرة عن مدتها","18","أغلبها في مرحلة التذاكر","r","11 عند المكاتب","contracts"],["home","داخل الإيواء","64","13 جاهز للنقل","n","","housing"],["plane","رحلات هذا الأسبوع","6","4 وصول · 2 ترحيل","a","2 بدون تأكيد حجز","trips"]],
+  w:["pipe","delays","housing","news","reps"],r:["ops","housing","register"]},
+ sales:{n:"المبيعات",h:"محفظتك هذا الشهر",s:"عملاءك وطلباتك بس، ومين محتاج تكلمه النهارده.",
+  k:[["shopping-cart","طلباتي الجارية","13","7 تحت الإجراء","n","","orders"],["file-signature","عقود وقّعتها","9","الهدف 12","a","75% من الهدف","contracts"],["percent","نسبة التحويل","24%","من 37 عميل محتمل","g","+3 نقاط","clients"],["phone","متابعات النهارده","9","3 منها متأخرة","r","3 متأخرة","followups"]],
+  w:["funnel","follow","news","reps"],r:["register","types","people"]},
+ foreign:{n:"العلاقات الخارجية",h:"المكاتب والسير والوصول",s:"إيه اللي مستني المكاتب، وإيه اللي اتأخر عندهم.",
+  k:[["building-2","مكاتب متعاقدة","22","3 مكاتب = 82% من السير","n","","agents"],["inbox","طلبات عند المكاتب","26","متوسط الرد 2.4 يوم","a","4 بدون رد","agents"],["files","سير وصلت للمراجعة","14","من وكيل الفلبين","n","","cvs"],["plane-landing","متأخرة بالوصول","18","تجاوزت 45 يوم بدون تذاكر","r","","contracts"]],
+  w:["ext","delays","news","reps"],r:["offices","trips","people"]},
+ finance:{n:"المحاسب",h:"الحسابات هذا الشهر",s:"اللي دخل، واللي لسه، واللي لازم يتدفع.",
+  k:[["arrow-down-left","إيرادات الشهر","412,800","محصّل 228,200","g","+18%","finReport"],["hourglass","مستحقات لم تُحصّل","184,600","7 فواتير تجاوزت الموعد","r","42,300 فوق 60 يوم","finClients"],["arrow-up-right","مصروفات الشهر","268,350","رواتب 96,000 · وكلاء 54,400","n","","finReport"],["file-check-2","قيود بانتظار الاعتماد","3","أقدمها من 3 أيام","a","","finEntries"]],
+  w:["fin","recv","oblig","reps"],r:["finance"]},
+ cs:{n:"خدمة العملاء",h:"عملاء النهارده",s:"الشكاوى المفتوحة والمتابعات والمحادثات اللي مستنية رد.",
+  k:[["headphones","شكاوى مفتوحة","4","2 عاجلة","r","2 عاجلة","claims"],["phone","متابعات النهارده","9","3 متأخرة من أمس","a","","followups"],["message-circle","محادثات غير مقروءة","12","أقدمها من ساعتين","a","","chats"],["user-plus","عملاء جدد","6","خلال 7 أيام","n","","clients"]],
+  w:["claims","follow","news","reps"],r:["register"]},
+ hr:{n:"الموارد البشرية",h:"فريق العمل النهارده",s:"مين حاضر، وإيه الطلبات المستنية، وإيه اللي قرب ينتهي.",
+  k:[["user-check","حاضرين النهارده","22/24","2 إجازة","g","","hrAttendance"],["inbox","طلبات موظفين","5","3 إجازات · 2 سلف","a","","hrRequests"],["id-card","إقامات قربت تنتهي","3","خلال 30 يوم","r","","hrEmployees"],["banknote","رواتب نوفمبر","96,000","تتصرف 27 نوفمبر","n","","hrPayroll"]],
+  w:["hrw","news","reps"],r:[]},
+ hourly:{n:"مشرف التأجير بالساعة",h:"زيارات النهارده",s:"الزيارات الجارية والمتأخرة والتحصيل.",
+  k:[["calendar-check","زيارات النهارده","14","5 جارية الآن","n","","hb-board"],["timer-off","زيارات متأخرة","2","السائق متأخر +20 دقيقة","r","","hb-tracking"],["wallet","تحصيل النهارده","3,450","1,200 لسه مع الطاقم","a","","hbCollect"],["star","تقييم الأسبوع","4.6","من 61 تقييم","g","","hb-visits"]],
+  w:["hourlyw","news","reps"],r:[]}
+};
+/* the prototype opens a role via #owner, #ops … — keep the old persona map in sync */
+Object.keys(ROLES).forEach(k=>{if(!personas[k])personas[k]={ar:ROLES[k].n,en:ROLES[k].n,h:{ar:"",en:""},s:{ar:"",en:""},k:[],a:[],r:[]}});
+
+/* widget library: id → [name, what it answers, permission, render] */
+const W={};
+const card=(title,sub,inner,extra,cls)=>`<div class="card flush hm-w ${cls||""}"><div class="card-h pad"><div><h3>${title}</h3><p>${sub}</p></div>${extra||""}</div>${inner}</div>`;
+const more=(go,txt)=>`<a href="#" class="btn btn-ghost sm" data-go="${go}">${txt||"الكل"}</a>`;
+
+W.fin=["الصورة المالية","دخل كام وصرف كام؟","FINANCE_REPORTS",()=>{
+ const m=[["يونيو",298,231],["يوليو",341,240],["أغسطس",322,262],["سبتمبر",356,251],["أكتوبر",368,239],["نوفمبر",413,268]];
+ return card("الصورة المالية","الإيرادات والمصروفات آخر 6 شهور (بالألف ر.س)",`
+ <div class="hm-fin">${m.map(x=>`<div class="hm-fb"><div class="bars"><i class="in" style="height:${x[1]/4.4}%"></i><i class="out" style="height:${x[2]/4.4}%"></i></div><small>${x[0]}</small></div>`).join("")}</div>
+ <div class="hm-legend"><span><i class="in"></i>إيرادات</span><span><i class="out"></i>مصروفات</span></div>
+ <div class="hm-split">${[["إيرادات الاستقدام","286,400"],["إيرادات التأجير","98,150"],["نقل الكفالة","28,250"]].map(x=>`<div><small>${x[0]}</small><b class="num">${x[1]}</b></div>`).join("")}</div>`,more("finReport","قائمة الدخل"),"wide")}];
+
+W.oblig=["الالتزامات القادمة","إيه اللي لازم يتدفع قريب؟","FINANCE_REPORTS",()=>card("الالتزامات القادمة","خلال 30 يوم · مرتبة بالأقرب",`
+ <div class="hm-ob">${[["banknote","رواتب نوفمبر","96,000","27 نوفمبر","بعد 11 يوم","n"],["receipt","شيك صادر #4471 — مؤسسة السكن","18,500","20 نوفمبر","بعد 4 أيام","a"],["globe","مستحقات PLATINUM BROTHERS","32,600","مستحقة من 45 يوم","متأخرة","r"],["globe","مستحقات Supreme Link","21,800","مستحقة من 112 يوم","متأخرة","r"],["landmark","إقرار ضريبة القيمة المضافة","68,000","31 ديسمبر","الربع الرابع","n"]].map(o=>`<div class="hm-obr ${o[5]}">${X(o[0])}<div><b>${o[1]}</b><small>${o[3]}</small></div><span class="num">${o[2]}</span>${TAG(o[5],o[4])}</div>`).join("")}</div>
+ <div class="hm-tot"><span>الإجمالي</span><b class="num">236,900 ر.س</b><span class="sub">الرصيد المتاح في البنوك والخزن <b class="num">512,300</b></span></div>`,more("finChecksOut","التفاصيل"))];
+
+W.recv=["المستحقات وأعمارها","مين عليه فلوس ومن إمتى؟","FINANCE_REPORTS",()=>card("المستحقات وأعمارها","184,600 ر.س لم تُحصّل",`
+ <div class="hm-age">${[["0–30 يوم","98,400",53,"g"],["31–60 يوم","43,900",24,"a"],["61–90 يوم","26,100",14,"r"],["+90 يوم","16,200",9,"r"]].map(a=>`<div class="${a[3]}" style="flex:${a[2]}"><b class="num">${a[1]}</b><small>${a[0]}</small></div>`).join("")}</div>
+ <div class="hm-list">${[["شركة نجد للمقاولات","42,300","3 فواتير · أقدمها 74 يوم"],["فهد العتيبي","19,200","فاتورة INV-9919 · 38 يوم"],["نورة الحربي","12,400","دفعة عقد CN-0597 · 21 يوم"]].map(x=>`<div><b>${x[0]}</b><small>${x[2]}</small><span class="num">${x[1]}</span></div>`).join("")}</div>`,more("finClients","كشف العملاء"))];
+
+const STG=[["عقد جديد",8,1],["مساند",7,0],["التفويض",3,2],["التفييز",3,1],["التذكرة",13,11],["الوصول",2,1],["تحت الضمان",2,2]];
+W.pipe=["مسار العقود","كل عقد في أي مرحلة؟","DASHBOARD_CONTRACTS_OVERVIEW",()=>card("مسار العقود","38 عقد تحت التشغيل · الأحمر = متأخر عن مدة المرحلة",`
+ <div class="hm-pipe">${STG.map((s,i)=>`<button class="${s[2]>5?"hot":""}" data-go="contracts"><b class="num">${s[1]}</b><span>${s[0]}</span>${s[2]?`<em class="num">${s[2]} متأخر</em>`:`<em class="ok">في الموعد</em>`}</button>${i<STG.length-1?`<i>${X("chevron-left")}</i>`:""}`).join("")}</div>
+ <div class="hm-pfoot">${X("info")}<span>المدة المسموحة لكل مرحلة بتتحدد من الإعدادات (مثلاً: التذكرة 45 يوم من التفييز). اللي يعدّيها يتحسب متأخر ويظهر تحت.</span></div>`,more("contracts","كل العقود"),"wide")];
+
+W.delays=["التأخيرات","إيه اللي متأخر، وعند مين؟","DASHBOARD_OPERATIONS_OVERVIEW",()=>card("التأخيرات","18 عقد عدّى المدة المسموحة لمرحلته",`
+ ${CHIPS([["الكل","",18],["التذكرة","r",11],["التفويض","a",2],["تحت الضمان","a",2],["أخرى","n",3]])}
+ <div class="tw"><table><thead><tr><th>العقد</th><th>المرحلة</th><th style="width:170px">المدة</th><th>عند مين</th><th class="act"></th></tr></thead><tbody>
+ ${[["CN-2026-0084","روزا دلا · عاملة منزلية","التذكرة",66,45,"PLATINUM BROTHERS","مكتب خارجي"],["CN-2026-0079","ميري جوي · عاملة منزلية","التذكرة",58,45,"PLATINUM BROTHERS","مكتب خارجي"],["CN-2026-0091","ديوي لستاري · طباخة","التفويض",12,7,"علي ناصر","موظف"],["CN-2026-0062","أمينة · عاملة منزلية","تحت الضمان",4,2,"سارة القحطاني","موظف"],["CN-2026-0070","جوي · سائق خاص","التذكرة",49,45,"Supreme Link","مكتب خارجي"]].map(r=>`<tr><td><a href="#" data-go="contractShow" class="num cx-tk">${r[0]}</a><small class="hm-sm">${r[1]}</small></td><td>${TAG("n",r[2])}</td><td><div class="hm-over"><span class="track"><i style="width:${Math.min(100,r[4]/r[3]*100)}%"></i></span><b class="num">${r[3]}/${r[4]} يوم</b></div><small class="hm-sm r">+${r[3]-r[4]} يوم</small></td><td><b>${r[5]}</b><small class="hm-sm">${r[6]}</small></td><td class="act">${B("ghost sm","",r[6]==="مكتب خارجي"?"مراسلة":"تذكير")}</td></tr>`).join("")}
+ </tbody></table></div>`,more("contracts","الـ 18 عقد"),"wide")];
+
+W.news=["الجديد","إيه اللي حصل من آخر مرة دخلت؟","DASHBOARD_RECENT_ACTIVITIES",()=>card("الجديد من آخر دخول","أمس 6:12 م · 14 حدث",`
+ <div class="hm-feed">${[["file-signature","g","عقد جديد CN-2026-0116","منيرة الشهري · عاملة منزلية · الفلبين","09:41"],["plane-landing","g","وصول ميري جوي","CN-2026-0071 · بدأ الضمان 90 يوم","08:20"],["files","n","14 سيرة جديدة من PLATINUM","مستنية المراجعة","07:55"],["receipt","g","سند قبض 12,400 ر.س","نايف القحطاني · CN-0597","أمس"],["x-circle","r","إلغاء طلب ORD-0412","العميل طلب استرداد","أمس"]].map(f=>`<div class="hm-fi"><span class="ni ${f[1]}">${X(f[0])}</span><div><b>${f[2]}</b><small>${f[3]}</small></div><time class="num">${f[4]}</time></div>`).join("")}</div>`,`<span class="tag n num">14</span>`)];
+
+W.ext=["المكاتب الخارجية","المكاتب ماشية كويس ولا لأ؟","DASHBOARD_OFFICES_STATISTICS",()=>card("المكاتب الخارجية","أعلى 4 من 22 مكتب",`
+ <div class="tw"><table><thead><tr><th>المكتب</th><th>طلبات عنده</th><th>بدون رد</th><th>متوسط الوصول</th><th>إرجاع</th></tr></thead><tbody>
+ ${[["PLATINUM BROTHERS","الفلبين",14,2,42,"3%"],["Supreme Link Ltd","أوغندا",6,1,51,"5%"],["Al Noor Manpower","إثيوبيا",4,1,31,"9%"],["Gulf Bridge Agency","بنغلاديش",2,0,27,"0%"]].map(o=>`<tr><td><b>${o[0]}</b><small class="hm-sm">${o[1]}</small></td><td class="num">${o[2]}</td><td>${o[3]?TAG("a",o[3]):"—"}</td><td class="num">${o[4]} يوم</td><td class="num">${o[5]}</td></tr>`).join("")}</tbody></table></div>`,more("agents","كل المكاتب"))];
+
+W.housing=["الإيواء","مين في السكن ومين جاهز يطلع؟","DASHBOARD_SHELTER_COUNT",()=>card("الإيواء","64 داخل السكن",`
+ <div class="hm-mini">${[["جاهز للنقل",13,"a"],["مرحلة الترحيل",9,"r"],["خارج الإيواء",5,"n"],["أماكن شاغرة",2,"g"]].map(x=>`<div class="${x[2]}"><b class="num">${x[1]}</b><small>${x[0]}</small></div>`).join("")}</div>`,more("housing","الإيواء"))];
+
+W.funnel=["مسار المبيعات","العملاء بيوصلوا لعقد ولا بيقفوا فين؟","DASHBOARD_CLIENTS_COUNT",()=>card("مسار المبيعات","هذا الشهر · محفظتك",`
+ <div class="hm-fun">${[["عملاء محتملون",37,100],["طلبوا عرض",21,57],["طلب استقدام",13,35],["عقد موقّع",9,24]].map(f=>`<div><span class="lb">${f[0]}</span><span class="bar"><i style="width:${f[2]}%"></i></span><b class="num">${f[1]}</b></div>`).join("")}</div>`,more("orders","طلباتي"))];
+
+W.follow=["متابعات النهارده","أكلم مين النهارده؟","CRM_FOLLOWUPS",()=>card("متابعات النهارده","9 متابعات · 3 متأخرة",`
+ <div class="hm-list">${[["هيا العنزي","متأخرة من أمس · سألت عن سعر الفلبين","r"],["عبدالله السبيعي","11:00 ص · تأكيد موعد الوصول","n"],["شركة نجد","1:30 م · تجديد عقد إيجار","n"]].map(x=>`<div><b>${x[0]}</b><small>${x[1]}</small>${B("ghost sm","phone","اتصال")}</div>`).join("")}</div>`,more("followups","كل المتابعات"))];
+
+W.claims=["الشكاوى","مين مستني رد؟","COMPLAINTS_VIEW",()=>card("الشكاوى المفتوحة","4 مفتوحة · 2 عاجلة",`
+ <div class="hm-list">${[["#000148 العاملة ترفض العمل","منيرة الشهري · عاجلة · من 26 ساعة","r"],["#000146 تأخر الوصول","فهد العتيبي · عاجلة · من يومين","r"],["#000141 استرداد رسوم","نورة الحربي · متوسطة · من 3 أيام","a"]].map(x=>`<div><b>${x[0]}</b><small>${x[1]}</small>${TAG(x[2],x[2]==="r"?"عاجلة":"متوسطة")}</div>`).join("")}</div>`,more("claims","الشكاوى"))];
+
+W.hrw=["فريق العمل","مين حاضر ومين محتاج حاجة؟","HR_DASHBOARD",()=>card("فريق العمل","النهارده",`
+ <div class="hm-mini">${[["حاضرين",22,"g"],["إجازة",2,"n"],["متأخرين",1,"a"],["إقامات قربت تنتهي",3,"r"]].map(x=>`<div class="${x[2]}"><b class="num">${x[1]}</b><small>${x[0]}</small></div>`).join("")}</div>
+ <div class="hm-list">${[["طلب إجازة — خالد المطيري","5 أيام من 20 نوفمبر"],["سلفة — علي ناصر","2,000 ر.س على 4 أشهر"]].map(x=>`<div><b>${x[0]}</b><small>${x[1]}</small>${B("ghost sm","","مراجعة")}</div>`).join("")}</div>`,more("hrRequests","الطلبات"),"wide")];
+
+W.hourlyw=["زيارات اليوم","الزيارات ماشية في معادها؟","HOURLY_VISITS",()=>card("زيارات النهارده","14 زيارة",`
+ <div class="hm-mini">${[["خلصت",6,"g"],["جارية",5,"n"],["متأخرة",2,"r"],["لسه",1,"n"]].map(x=>`<div class="${x[2]}"><b class="num">${x[1]}</b><small>${x[0]}</small></div>`).join("")}</div>
+ <div class="hm-list">${[["V-2291 · حي الملقا","السائق متأخر 24 دقيقة","r"],["V-2288 · حي النرجس","السائق متأخر 21 دقيقة","r"]].map(x=>`<div><b>${x[0]}</b><small>${x[1]}</small>${B("ghost sm","map-pin","التتبع",'data-go="hb-tracking"')}</div>`).join("")}</div>`,more("hb-board","لوحة الزيارات"),"wide")];
+
+W.reps=["تقارير تخص دورك","أفتح أنهي تقرير؟","REPORTS_VIEW",()=>{
+ const r=(ROLES[PERSONA]||ROLES.owner).r.map(id=>reports.find(x=>x[0]===id)).filter(Boolean);
+ const mine=[["file-text","العقود المتأخرة — PLATINUM","تقريري المحفوظ · كل أحد 7 ص"],["wallet","المستحقات فوق 60 يوم","تقريري المحفوظ"]];
+ return card("تقارير تخص دورك","والتقارير اللي حفظتها",`<div class="hm-list">${r.map(x=>`<div><span class="ni n">${X(x[1])}</span><b>${x[2]}</b>${B("ghost sm","","عرض",`data-report="${x[0]}"`)}</div>`).join("")}${mine.map(x=>`<div><span class="ni g">${X("bookmark")}</span><b>${x[1]}<small>${x[2]}</small></b>${B("ghost sm","","عرض",'data-go="reports"')}</div>`).join("")}</div>`,more("reports","مركز التقارير"))}];
+
+/* which widgets a role may NOT see (permission) — shown locked in the customise panel */
+const LOCK={sales:["fin","oblig","recv"],cs:["fin","oblig","recv","ext"],foreign:["fin","oblig","recv"],ops:["fin","oblig","recv"],hr:["fin","recv","ext","pipe","delays"],hourly:["fin","oblig","recv","ext","pipe"]};
+let HCUST=false,HCMODE="me";
+
+const custPanel=()=>{
+ const R=ROLES[PERSONA]||ROLES.owner,lock=LOCK[PERSONA]||[];
+ const on=R.w,off=Object.keys(W).filter(k=>!on.includes(k)&&!lock.includes(k));
+ const row=(k,st)=>`<div class="hm-cr ${st}">${st==="lock"?X("lock"):X("grip-vertical")}<div><b>${W[k][0]}</b><small>${st==="lock"?`محتاج صلاحية <span class="num" dir="ltr">${W[k][2]}</span>`:W[k][1]}</small></div>${st==="lock"?"":SW(st==="on")}</div>`;
+ return `<div class="ov" data-hc-ov><div class="drawer"><div class="hm-ch"><div><h3>تخصيص الرئيسية</h3><p>${R.n}</p></div><button class="icon-btn" data-hc-x>${X("x")}</button></div>
+ <div class="hm-cseg"><button class="${HCMODE==="me"?"on":""}" data-hcmode="me">رئيسيتي أنا</button><button class="${HCMODE==="role"?"on":""}" data-hcmode="role">قالب الدور ${TAG("n","مدير النظام")}</button></div>
+ <div class="hm-cb">
+  <p class="hm-cn">${HCMODE==="me"?"التغيير هنا ليك إنت بس. تقدر تخفي كارت أو تغيّر ترتيبه بالسحب، لكن مش هتقدر تضيف حاجة مش في صلاحياتك.":"ده الشكل اللي أي موظف بالدور ده هيشوفه أول ما يدخل. الموظف يقدر يعدّل عليه لنفسه بعد كده."}</p>
+  <div class="hm-cs">ظاهرة <span class="num">${on.length}</span></div>${on.map(k=>row(k,"on")).join("")}
+  <div class="hm-cs">متاحة تضيفها <span class="num">${off.length}</span></div>${off.map(k=>row(k,"off")).join("")}
+  ${lock.length?`<div class="hm-cs">مقفولة على دورك <span class="num">${lock.length}</span></div>${lock.map(k=>row(k,"lock")).join("")}`:""}
+ </div>
+ <div class="hm-cf">${B("ghost","rotate-ccw",HCMODE==="me"?"رجوع لقالب الدور":"رجوع للافتراضي")}${B("primary","check",HCMODE==="me"?"حفظ":"حفظ قالب الدور",'data-hc-x="1"')}</div></div></div>`;
+};
+
+S.dashboard=()=>{
+ const R=ROLES[PERSONA]||ROLES.owner;
+ return `
+ ${IDEA("كل موظف بيدخل يلاقي اللي يخصه بس: المالك يشوف الفلوس والتشغيل، المحاسب يشوف المستحقات، والمبيعات تشوف محفظتها. الرئيسية مبنية من «كروت» كل واحد مربوط بصلاحية، ولكل دور قالب جاهز يعدّله مدير النظام، والموظف يقدر يخفي أو يرتّب لنفسه. كل رقم بيتضغط ويفتح القائمة متفلترة.")}
+ ${HEAD(R.h,R.s,`<div class="seg" data-seg>${["اليوم","الأسبوع","الشهر"].map((x,i)=>`<button class="${i===2?"on":""}">${x}</button>`).join("")}</div>${B("ghost","layout-grid","تخصيص",'data-hcust="1"')}`)}
+ <div class="persona-bar hm-roles">${X("eye")}<span>معاينة القالب حسب الدور:</span><div class="seg">${Object.keys(ROLES).map(k=>`<button class="${k===PERSONA?"on":""}" data-persona="${k}">${ROLES[k].n}</button>`).join("")}</div></div>
+ <div class="hm-atd">${X("shield-check")}<span>حاضر من <b class="num">07:58 ص</b> · الفرع الرئيسي — موثّق بالموقع</span><span class="hm-ses">مدة الجلسة <b class="num" data-session>02:06:32</b></span>${B("ghost sm","log-out","تسجيل الانصراف")}</div>
+ <div class="hm-kpis">${R.k.map(k=>`<a href="#" class="card hm-k" data-go="${k[6]}"><div class="kl"><span class="ni n">${X(k[0])}</span><span>${k[1]}</span>${X("arrow-up-left")}</div><div class="kv num">${k[2]}</div><small>${k[3]}</small>${k[5]?`<span class="tag ${k[4]}">${k[5]}</span>`:""}</a>`).join("")}</div>
+ <div class="hm-grid">${(()=>{const h=R.w.map(id=>W[id][3]());const half=h.map((x,i)=>x.includes("hm-w wide")?-1:i).filter(i=>i>-1);if(half.length%2)h[half[half.length-1]]=h[half[half.length-1]].replace("hm-w ","hm-w wide ");return h.join("")})()}</div>
+ ${HCUST?custPanel():""}`;
+};
+
+/* ---------------- Reports centre ---------------- */
+let RCTAB="all",RCSCHED=false,RCSAVE=false;
+/* catalogue — names from ReportExportService::definitions() + finance/HR/visa packages */
+const CAT=[
+ ["ops","العمليات","briefcase",[
+  ["register","recruitment_contracts","سجل عقود الاستقدام","كل عقد في أي مرحلة، ومع مين؟",1,1,1],
+  ["ops","arrival","تقرير الوصول","مين وصل ومين متأخر عن الوصول؟",1,0,1],
+  ["types","orders","طلبات الاستقدام","كام طلب جديد ومكتمل وملغي؟",0,1,1],
+  ["housing","shelter_contracts","الإيواء","مين في السكن ومين طلع؟",1,0,1],
+  ["types","sponsorship_transfers","نقل الكفالة","مين في فترة التجربة ومين اتنقل؟",0,0,1],
+  ["trips","travel_trips","رحلات الاستقدام","إيه الرحلات الجاية والمكتملة؟",0,0,1],
+  ["trips","deportation_travel","الترحيل","مين في مرحلة الترحيل؟",0,0,1]]],
+ ["ext","المكاتب الخارجية والسير","globe",[
+  ["offices","offices","المكاتب الخارجية","أنهي مكتب أسرع وأقل إرجاع؟",1,1,1],
+  ["people","maids","السير الذاتية والعاملات","المتاح والمحجوز حسب الجنسية والمهنة",0,0,1],
+  ["volume","visa","تقارير التأشيرات (8)","الاستهلاك، المدفوعات، قريبة الانتهاء…",0,0,0]]],
+ ["crm","العملاء","users",[
+  ["people","clients","العملاء","مين عنده طلبات ومين لأ؟",0,0,1],
+  ["register","complaints","الشكاوى","كام شكوى ومتوسط وقت الحل؟",0,0,1]]],
+ ["rent","التأجير","home",[
+  ["housing","rent_contracts","عقود الإيجار","النشط والمنتهي والمتأخر في الدفع",0,0,1],
+  ["volume","hourly","تقارير التأجير بالساعة","الزيارات والتحصيل والتقييم",0,0,0]]],
+ ["fin","المالية","wallet",[
+  ["finance","financial_requests","الطلبات المالية","إيه الطلبات المستنية اعتماد؟",1,0,1],
+  ["finance","trail-balance","ميزان المراجعة","الأرصدة كلها متزنة؟",0,1,0],
+  ["finance","account-statement","كشف حساب","حركة حساب معيّن في فترة",1,0,0],
+  ["finance","clients-balances","أرصدة العملاء وأعمار الديون","مين عليه فلوس ومن إمتى؟",1,1,0],
+  ["finance","suppliers-balances","أرصدة الموردين والوكلاء","علينا كام ولمين؟",0,1,0],
+  ["finance","treasury-and-banks-balances","أرصدة الخزن والبنوك","معانا كام فلوس دلوقتي؟",1,1,0],
+  ["finance","tax-invoice-statement","بيان الفواتير الضريبية","ضريبة الربع كام؟",0,0,0]]],
+ ["hr","الموارد البشرية","user-cog",[
+  ["register","payrolls","مسيّر الرواتب","رواتب الشهر بالتفصيل",0,0,0],
+  ["register","employeeVacationBalance","أرصدة الإجازات","كل موظف فاضله كام يوم؟",0,0,0],
+  ["register","daily-work-reports","تقارير العمل اليومية","كل موظف عمل إيه؟",0,0,0]]]
+];
+const ALL=CAT.reduce((a,c)=>a+c[3].length,0);
+const rcTabs=()=>`<div class="vtabs">${[["all","library","كل التقارير",ALL],["mine","bookmark","تقاريري",4],["sched","calendar-clock","المجدولة",3],["log","history","سجل الإرسال"]].map(x=>`<button class="${x[0]===RCTAB?"on":""}" data-rctab="${x[0]}">${X(x[1])}<span>${x[2]}</span>${x[3]!=null?`<em class="num">${x[3]}</em>`:""}</button>`).join("")}</div>`;
+
+const allView=()=>`
+ <div class="rc-wrap"><aside class="card rc-side"><b class="rc-st">الأقسام</b>
+  <button class="on">${X("layers")}<span>الكل</span><em class="num">${ALL}</em></button>
+  <button>${X("star")}<span>المفضلة</span><em class="num">5</em></button>
+  <button>${X("user-round")}<span>تخص دورك</span><em class="num">6</em></button><hr>
+  ${CAT.map(c=>`<button>${X(c[2])}<span>${c[1]}</span><em class="num">${c[3].length}</em></button>`).join("")}</aside>
+ <div><div class="fbar"><div class="fb grow"><label>بحث</label><div class="inp">${X("search")}<input placeholder="اكتب اللي عايز تعرفه: «متأخر»، «أرصدة»، «وصول»…"></div></div></div>
+ ${CAT.map(c=>`<div class="rc-sec"><div class="rc-sh">${X(c[2])}<b>${c[1]}</b><span class="num">${c[3].length}</span></div>
+  <div class="card flush">${c[3].map(r=>`<div class="rc-row"><button class="rc-star ${r[4]?"on":""}" title="مفضلة">${X("star")}</button><div class="rc-t"><b>${r[2]}</b><small>${r[3]}</small></div>
+   <div class="rc-tags">${r[5]?TAG("n","تخص دورك"):""}${r[6]?"":`<span class="tag" title="الجدولة متاحة حالياً لتقارير التصدير الـ 12 بس">الجدولة ${NEWT}</span>`}</div>
+   <div class="rc-act">${B("ghost sm","eye","عرض",`data-report="${r[0]}"`)}${B("ghost sm","calendar-clock","جدولة",'data-rsched="1"')}</div></div>`).join("")}</div></div>`).join("")}
+ </div></div>`;
+
+const SAVED=[["العقود المتأخرة — PLATINUM","سجل عقود الاستقدام",["المرحلة: التذكرة","المكتب: PLATINUM","متأخر فقط"],9,"لي",1],["المستحقات فوق 60 يوم","أرصدة العملاء وأعمار الديون",["العمر: +60 يوم","كل الفروع"],6,"دور: المحاسب",0],["وصول هذا الأسبوع","تقرير الوصول",["الفترة: هذا الأسبوع","الفرع الرئيسي"],7,"دور: مشرف العمليات",1],["عقود إيجار تنتهي الشهر الجاي","عقود الإيجار",["ينتهي خلال 30 يوم"],8,"لي",0]];
+const mineView=()=>`
+ <div class="cx-info">${X("info")}<span>«تقاريري» = تقرير من الموجودين بفلاتر وأعمدة إنت اخترتها، محفوظ باسم. بتعمله من أي تقرير بزر «حفظ في تقاريري»، وتقدر تشاركه مع دور كامل أو تجدوله. ${NEWT}</span></div>
+ <div class="card flush"><div class="tw"><table><thead><tr><th>الاسم</th><th>الفلاتر والأعمدة</th><th>متشارك مع</th><th>مجدول</th><th class="act"></th></tr></thead><tbody>
+ ${SAVED.map(s=>`<tr><td><b>${s[0]}</b><small class="hm-sm">من: ${s[1]}</small></td><td><div class="rc-fl">${s[2].map(f=>`<span>${f}</span>`).join("")}<em class="num">${s[3]} أعمدة</em></div></td><td>${s[4]}</td><td>${s[5]?TAG("g","كل أحد 7 ص"):"—"}</td><td class="act">${ACTS([["eye","فتح",'data-report="register"'],["calendar-clock","جدولة",'data-rsched="1"'],["more-horizontal","تعديل · مشاركة · حذف"]])}</td></tr>`).join("")}
+ </tbody></table></div></div>`;
+
+const SCH=[["ملخص العقود الأسبوعي","سجل عقود الاستقدام","أسبوعي · الأحد 07:00","الشهر الحالي","كل الفروع","Excel",["owner@riyada.sa","ops@riyada.sa"],"الأحد 23 نوفمبر 07:00","sent","",1],
+ ["المستحقات فوق 60 يوم","تقريري المحفوظ","شهري · يوم 1 · 08:00","الشهر السابق","كل الفروع","Excel + PDF",["acc@riyada.sa","واتساب: 0551234567"],"1 ديسمبر 08:00","sent","",1],
+ ["الشكاوى اليومية","الشكاوى","يومي · 18:00","الشهر الحالي","الفرع الرئيسي","Excel",["cs@riyada.sa"],"اليوم 18:00","failed","صندوق البريد ممتلئ",1]];
+const schedView=()=>`
+ <div class="card flush"><div class="tw"><table><thead><tr><th>الاسم والتقرير</th><th>التكرار</th><th>الفترة والفرع</th><th>المستلمين</th><th>الإرسال</th><th>مفعّل</th><th class="act"></th></tr></thead><tbody>
+ ${SCH.map(s=>`<tr><td><b>${s[0]}</b><small class="hm-sm">${s[1]}</small></td><td><span class="num">${s[2]}</span><small class="hm-sm">${s[5]}</small></td><td>${s[3]}<small class="hm-sm">${s[4]}</small></td><td><div class="rc-fl">${s[6].map(r=>`<span dir="ltr">${r}</span>`).join("")}</div></td><td><small class="hm-sm">الجاي: <b class="num">${s[7]}</b></small>${s[8]==="sent"?`<small class="hm-sm">آخر مرة: ${TAG("g","اتبعت")}</small>`:`<small class="hm-sm">آخر مرة: ${TAG("r","فشل")}</small><small class="hm-sm r">${s[9]}</small>`}</td><td>${SW(s[10])}</td><td class="act">${ACTS([["send","إرسال الآن"],["pencil","تعديل",'data-rsched="1"']])}</td></tr>`).join("")}
+ </tbody></table></div><div class="tfoot"><span>3 من 20 جدولة مسموحة لك · بحد أقصى 10 مستلمين لكل جدولة</span></div></div>`;
+
+const logView=()=>`
+ <div class="card flush"><div class="tw"><table><thead><tr><th>الوقت</th><th>الجدولة</th><th>اتبعت لـ</th><th>الحالة</th><th class="act"></th></tr></thead><tbody>
+ ${[["اليوم 07:00","ملخص العقود الأسبوعي","2 بريد","g","اتبعت",""],["أمس 18:00","الشكاوى اليومية","1 بريد","r","فشل","Mailbox full"],["15 نوفمبر 18:00","الشكاوى اليومية","1 بريد","g","اتبعت",""],["1 نوفمبر 08:00","المستحقات فوق 60 يوم","1 بريد + 1 واتساب","g","اتبعت",""]].map(l=>`<tr><td class="num">${l[0]}</td><td><b>${l[1]}</b></td><td>${l[2]}</td><td>${TAG(l[3],l[4])}${l[5]?`<small class="hm-sm r" dir="ltr">${l[5]}</small>`:""}</td><td class="act">${l[3]==="r"?B("ghost sm","rotate-ccw","إعادة المحاولة"):ACTS([["download","تحميل الملف"]])}</td></tr>`).join("")}
+ </tbody></table></div></div>`;
+
+const schedModal=()=>`<div class="ov" data-rs-ov><div class="modal rc-modal"><div class="modal-h"><h3>جدولة تقرير</h3><button class="icon-btn" data-rs-x>${X("x")}</button></div>
+ <div class="rc-mb">
+ ${FLD("التقرير",SEL(["سجل عقود الاستقدام","تقريري: العقود المتأخرة — PLATINUM","تقرير الوصول","الشكاوى","العملاء"]),1)}
+ ${FLD("اسم الجدولة",INP("","ملخص العقود الأسبوعي"),1)}
+ <div class="fld"><label>بيتبعت كل</label><div class="cx-seg2"><button>يوم</button><button class="on">أسبوع</button><button>شهر</button></div></div>
+ <div class="fgrid">${FLD("يوم",SEL(["الأحد","الإثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"]))}${FLD("الساعة",INP("","07:00",1))}</div>
+ <div class="fgrid">${FLD("الفترة اللي يغطيها",SEL(["الشهر الحالي","الشهر السابق","السنة الحالية","كل الفترات","الأسبوع الماضي (جديد)"]))}${FLD("الفرع",SEL(["كل الفروع","الفرع الرئيسي","فرع جدة"]))}</div>
+ <div class="fld"><label>الصيغة</label><div class="cx-seg2"><button class="on">Excel</button><button>PDF ${NEWT}</button></div></div>
+ <div class="fld"><label>المستلمين <small class="hm-sm">حتى 10</small></label><div class="rc-rcp"><span dir="ltr">owner@riyada.sa ${X("x")}</span><span dir="ltr">ops@riyada.sa ${X("x")}</span><input placeholder="بريد أو رقم واتساب"></div><small class="fhint">الواتساب ${NEWT} بيتبعت كرابط للملف عن طريق مزوّد الرسائل المربوط.</small></div>
+ <div class="rc-sum">${X("calendar-check")}<span>هيتبعت <b>كل أحد الساعة 7:00 ص</b> لـ <b>2</b> مستلمين، ويغطي <b>الشهر الحالي</b> لـ <b>كل الفروع</b>. أول إرسال: <b class="num">الأحد 23 نوفمبر</b>.</span></div>
+ </div><div class="rc-mf">${B("ghost","send","تجربة: ابعته لي الآن")}${B("primary","check","حفظ الجدولة",'data-rs-x="1"')}</div></div></div>`;
+
+S.reports=()=>`
+ ${IDEA("مركز التقارير بقى للتفاصيل بس، والمؤشرات العامة اتنقلت للرئيسية حسب الدور. التقارير متقسمة بالأقسام، وكل تقرير مكتوب تحته السؤال اللي بيجاوبه. أي تقرير تقدر تحفظه بفلاترك في «تقاريري» أو تجدوله يوصلك، وسجل الإرسال بيقولك اتبعت ولا فشل وليه.")}
+ ${HEAD("مركز التقارير","كل تقارير النظام في مكان واحد، حسب صلاحياتك.",B("primary","calendar-plus","جدولة تقرير",'data-rsched="1"'))}
+ ${rcTabs()}
+ ${RCTAB==="all"?allView():RCTAB==="mine"?mineView():RCTAB==="sched"?schedView():logView()}
+ ${RCSCHED?schedModal():""}`;
+
+/* report page: keep the existing body, add "save to my reports" + columns + applied filters */
+const _report=screens.report;
+const saveModal=()=>`<div class="ov" data-rv-ov><div class="modal rc-modal"><div class="modal-h"><h3>حفظ في تقاريري</h3><button class="icon-btn" data-rv-x>${X("x")}</button></div><div class="rc-mb">
+ ${FLD("الاسم",INP("","العقود المتأخرة — PLATINUM"),1)}
+ <div class="fld"><label>اللي هيتحفظ</label><div class="rc-fl">${["المرحلة: التذكرة","المكتب: PLATINUM","متأخر فقط","9 أعمدة"].map(f=>`<span>${f}</span>`).join("")}</div></div>
+ <div class="fld"><label>مين يشوفه</label><div class="cx-seg2"><button class="on">أنا بس</button><button>دور: مشرف العمليات</button><button>أشخاص…</button></div><small class="fhint">اللي متشارك معاه يشوف البيانات حسب صلاحياته هو، مش صلاحياتك.</small></div></div>
+ <div class="rc-mf">${B("ghost","","إلغاء",'data-rv-x="1"')}${B("primary","bookmark","حفظ",'data-rv-x="1"')}</div></div></div>`;
+S.report=()=>{
+ let h=_report();
+ h=h.replace('class="btn btn-primary">','class="btn btn-primary" data-rsched="1">');
+ const bar=`<div class="rc-bar"><div class="rc-fl"><b>الفلاتر:</b>${["الفترة: هذا الشهر","كل الفروع","المرحلة: الكل"].map(f=>`<span>${f} ${X("x")}</span>`).join("")}<button class="rc-addf">${X("plus")}فلتر</button></div>${B("ghost sm","columns-3","الأعمدة (9 من 14)")}${B("ghost sm","bookmark","حفظ في تقاريري "+NEWT,'data-rvsave="1"')}</div>`;
+ h=h.replace(/(<div class="page-head">[\s\S]*?<\/div><\/div>)/,"$1"+bar);
+ return h+(RCSAVE?saveModal():"");
+};
+
+document.addEventListener("click",e=>{
+ const g=(s)=>e.target.closest(s);
+ let hit=true;
+ if(g("[data-hcust]")){HCUST=true;HCMODE="me"}
+ else if(g("[data-hcmode]")){HCMODE=g("[data-hcmode]").dataset.hcmode}
+ else if(g("[data-hc-x]")||(e.target.matches&&e.target.matches("[data-hc-ov]"))){HCUST=false}
+ else if(g("[data-rctab]")){RCTAB=g("[data-rctab]").dataset.rctab}
+ else if(g("[data-rsched]")){RCSCHED=true}
+ else if(g("[data-rs-x]")||(e.target.matches&&e.target.matches("[data-rs-ov]"))){RCSCHED=false}
+ else if(g("[data-rvsave]")){RCSAVE=true}
+ else if(g("[data-rv-x]")||(e.target.matches&&e.target.matches("[data-rv-ov]"))){RCSAVE=false}
+ else if(g(".hm-cr .sw")){g(".hm-cr .sw").classList.toggle("on");hit=false;e.stopImmediatePropagation();return}
+ else if(g(".rc-star")){g(".rc-star").classList.toggle("on");e.stopImmediatePropagation();return}
+ else hit=false;
+ if(hit){e.preventDefault();e.stopImmediatePropagation();render()}
+},true);
+
+Object.assign(T,{dashboard:{ar:"الرئيسية",en:"Home"},reports:{ar:"مركز التقارير",en:"Reports centre"}});
+Object.keys(S).forEach(k=>{screens[k]=S[k]});
+})();
 /* ===== multipage boot ===== */
 (function(){var P=window.CERP_PAGE;if(!P)return;var PAGES=window.CERP_PAGES||[];
 if(P==="login"){renderLogin();return}
