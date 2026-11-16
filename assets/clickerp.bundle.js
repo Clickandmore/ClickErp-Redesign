@@ -4451,7 +4451,7 @@ const IDEA=t=>`<div class="fx-idea">${X("lightbulb")}<div><b>ليه الشكل �
 const NEWT=`<span class="tag a hm-new">جديد</span>`;
 const S={};
 
-/* ---------------- Home: built from the modules the employee can see (v1.13) ---------------- */
+/* ---------------- Home: built from the modules the employee can see (v1.14) ---------------- */
 /* modules = view permissions in ClickERP (rec_contracts_view, clients_view …). The home shows one section per module the employee can open. */
 const MODS={
  ops:{n:"العمليات",i:"briefcase",p:"rec_contracts_view",go:"contracts",m:["38","عقد تحت التشغيل"],a:["r","18 متأخر عن مدته"],l:"أغلبها في التذاكر · 64 في الإيواء"},

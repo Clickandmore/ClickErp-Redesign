@@ -3843,7 +3843,7 @@ td.tp-grip{display:table-cell;vertical-align:middle;color:#b4bdcc}td.tp-grip svg
 @media (max-width:1150px){.ti-top,.ti-wrap,.ts-wrap{grid-template-columns:1fr}.ti-k{grid-template-columns:repeat(2,1fr)}.ti-side{position:static}}
 .ts-pr .tc-bar{flex:none}
 
-/* ===== v1.13 — Home built from the employee's permissions ===== */
+/* ===== v1.14 — Home built from the employee's permissions ===== */
 .hm-bar{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
 .hm-bar .sp{flex:1}
 .hm-ib{border:1px solid var(--line);background:var(--surface);border-radius:var(--r-s)}
