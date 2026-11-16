@@ -5805,7 +5805,7 @@ const PINS=[["أحمد سمير","office",62,40,"09:02","المكتب الرئي
 const PS={office:["g","في المكتب"],field:["b","زيارة ميدانية"],remote:["n","عن بعد"],out:["r","برّه النطاق"],none:["a","لسه"]};
 S.tcCheckin=()=>`
  ${IDEA("الحضور بقى بالموقع ومربوط بالشغل: الموظف بيسجّل من الموبايل أو المتصفح، والنظام بيقارن مكانه بنطاق الفرع (الإحداثيات موجودة أصلاً في الفروع). جوه النطاق = حضور مباشر، برّه = لازم سبب (زيارة عميل مربوطة بمهمة، أو يوم عن بعد متوافق عليه). والمؤقت في «يومي» مش بيشتغل غير بعد تسجيل الحضور — فوقت المهام دايماً جوه ساعات الحضور. والمدير بيشوف الخريطة والجدول مع بعض.")}
- ${HEAD("الحضور بالموقع — مباشر","مين فين النهارده — جزء من الحضور في الموارد البشرية.",B("ghost","settings-2","النطاقات",'data-go="tcGeo"')+B("ghost","file-spreadsheet","تصدير"),["hrAttendance","الحضور والانصراف"])}
+ ${HEAD("الحضور بالموقع — مباشر","مين فين النهارده — جزء من الحضور في الموارد البشرية.",B("ghost","map-pinned","مواقع العمل",'data-go="tcGeo"')+B("ghost","file-spreadsheet","تصدير"),["hrAttendance","الحضور والانصراف"])}
  ${tcTabs("tcCheckin")}
  <div class="ci-wrap">
   <div class="ci-phone"><div class="ci-ph"><small class="num">09:02</small><b>صباح الخير يا أحمد</b></div>
@@ -5830,7 +5830,7 @@ S.tcGeo=()=>`
 const oldMy=screens.tcMy;
 S.tcMy=()=>oldMy().replace('${TIMER','${TIMER').replace('<div class="tc-timer">',`<div class="ci-strip">${X("locate-fixed")}<span>حاضر من <b class="num">09:02</b> · <b>المكتب الرئيسي</b> (بالموقع · 18 م)</span><a href="#" data-go="tcCheckin">الحضور</a></div><div class="tc-timer">`);
 
-Object.assign(T,{tcAdmin:{ar:"مهام الإدارة",en:"Management tasks"},tcRemind:{ar:"رسالة أو تذكير",en:"Send reminder"},tcVault:{ar:"بيانات الدخول",en:"Credentials"},tcArchive:{ar:"الأرشيف",en:"Archive"},tcCheckin:{ar:"الحضور بالموقع",en:"Location check-in"},tcGeo:{ar:"نطاقات الحضور",en:"Geofences"}});
+Object.assign(T,{tcAdmin:{ar:"مهام الإدارة",en:"Management tasks"},tcRemind:{ar:"رسالة أو تذكير",en:"Send reminder"},tcVault:{ar:"بيانات الدخول",en:"Credentials"},tcArchive:{ar:"الأرشيف",en:"Archive"},tcCheckin:{ar:"الحضور بالموقع",en:"Location check-in"},tcGeo:{ar:"مواقع العمل",en:"Work sites"}});
 Object.keys(S).forEach(k=>{screens[k]=S[k]});
 })();
 /* ===== v1.17 — Attendance is one source (HR): location view in HR attendance, presence on the task board, team presence on home ===== */
@@ -5846,7 +5846,7 @@ const pav=n=>{const p=PR[n];return `<span class="pz ${p[0]}" title="${n} · ${p[
 /* ---------- 1) HR attendance: «النهارده بالموقع» on top ---------- */
 const LIVE=`<div class="card ha-live"><div class="ha-lh"><div><b>${X("map-pin")}النهارده بالموقع</b><small>الاثنين 16 نوفمبر · تسجيل من الموبايل أو المتصفح بنطاق الفرع ${NEWT}</small></div>
  <div class="ha-lk">${[["g","في المكتب",31],["b","زيارة ميدانية",3],["n","عن بعد",2],["r","برّه النطاق",1],["a","لسه ماسجّلش",2],["v","إجازة",3]].map(k=>`<span class="${k[0]}"><b class="num">${k[2]}</b>${k[1]}</span>`).join("")}</div>
- <div class="ha-la">${B("ghost sm","map","الخريطة المباشرة",'data-go="tcCheckin"')}${B("ghost sm","settings-2","نطاقات الحضور",'data-go="tcGeo"')}</div></div>
+ <div class="ha-la">${B("ghost sm","map","الخريطة المباشرة",'data-go="tcCheckin"')}${B("ghost sm","map-pinned","مواقع العمل",'data-go="tcGeo"')}</div></div>
  <div class="ha-ex"><b>محتاج قرارك</b>${[["r","يوسف حسن","سجّل برّه النطاق · 1.2 كم · «عند البنك»",[["check","اعتماد"],["x","رفض"]]],["a","فيصل القحطاني","لسه ماسجّلش · ميعاده 08:30",[["send","فكّره",'data-go="tcRemind"']]],["b","كريم فتحي","زيارة عميل · مكتب نجد · مربوطة بـ OPS-0033",[["eye","التفاصيل"]]]].map(e=>`<div class="${e[0]}"><i></i><b>${e[1]}</b><span>${e[2]}</span>${ACTS(e[3])}</div>`).join("")}</div></div>`;
 const oldHR=screens.hrAttendance;
 screens.hrAttendance=()=>oldHR()
@@ -5872,20 +5872,62 @@ const TEAM=`<div class="card hm-team"><div class="hm-th"><div><b>${X("users")}ف
 const oldDash=screens.dashboard;
 screens.dashboard=()=>{const h=oldDash();return h.includes('<div class="hm-top">')?h.replace('<div class="hm-top">',TEAM+'<div class="hm-top">'):h};
 })();
-/* ===== v1.18 — Attendance + timer + activity in the top bar (Time Doctor-style), check-in prompt on task screens ===== */
+/* ===== v1.18 — Attendance + timer in the top bar · v1.19: real location check-in against work sites ===== */
 (()=>{
-const {X,B}=window.CXH;
+const {X,B,SEC,ROW,SW,FLD,INP,SEL,TAG,HEAD}=window.CXH;
 const KEY="cerp-att";
 const st=()=>{try{return localStorage.getItem(KEY)||"out"}catch(e){return "out"}};
 const setSt=v=>{try{localStorage.setItem(KEY,v)}catch(e){}};
-let OPEN=false;
+let OPEN=false,CKPOP=false;
 if(/^#att-in/.test(location.hash)){try{localStorage.setItem(KEY,"in")}catch(e){}OPEN=location.hash==="#att-in-open"}
+
+/* ---------- work sites (مواقع العمل) ---------- */
+/* [id,icon,name,type,lat,lng,radius,who,when] */
+const SITES=[["hq","building-2","المكتب الرئيسي","فرع",24.7743,46.7386,150,"كل الفرع","دايم"],
+ ["jed","building","فرع جدة","فرع",21.5433,39.1728,200,"موظفين فرع جدة","دايم"],
+ ["cli","briefcase","موقع عميل — مكتب نجد","موقع عميل مؤقت",24.7136,46.6753,120,"كريم فتحي","16 – 30 نوفمبر · OPS-0033"],
+ ["home","home","البيت — عن بعد","عن بعد",null,null,0,"سارة نبيل، أحمد سمير","الأحد والخميس"]];
+const hav=(a,b,c,d)=>{const R=6371000,r=x=>x*Math.PI/180,dl=r(c-a),dg=r(d-b),h=Math.sin(dl/2)**2+Math.cos(r(a))*Math.cos(r(c))*Math.sin(dg/2)**2;return 2*R*Math.asin(Math.sqrt(h))};
+const fmtD=m=>m<1000?`${Math.round(m)} م`:`${(m/1000).toFixed(m<10000?1:0)} كم`;
+/* G = location state: idle | locating | in | out | denied */
+let G={s:"idle"};
+if(location.hash==="#geo-in")G={s:"in",site:"hq",d:hav(24.7744,46.7387,24.7743,46.7386),acc:12,lat:24.7744,lng:46.7387};
+if(location.hash==="#geo-out")G={s:"out",site:"hq",d:hav(24.80,46.76,24.7743,46.7386),acc:25,lat:24.80,lng:46.76};
+const locate=()=>{
+ if(!navigator.geolocation){G={s:"denied",why:"المتصفح ده مش بيدعم تحديد الموقع"};inject();return}
+ G={s:"locating"};inject();
+ navigator.geolocation.getCurrentPosition(p=>{const la=p.coords.latitude,ln=p.coords.longitude;let best=null;
+  SITES.forEach(s=>{if(s[4]==null)return;const d=hav(la,ln,s[4],s[5]);if(!best||d<best.d)best={id:s[0],d,r:s[6]}});
+  G={s:best.d<=best.r+Math.min(p.coords.accuracy,50)?"in":"out",site:best.id,d:best.d,acc:Math.round(p.coords.accuracy),lat:la,lng:ln};inject()},
+  e=>{G={s:"denied",why:e.code===1?"رفضت إذن الموقع":"ماقدرناش نحدد المكان"};inject()},{enableHighAccuracy:true,timeout:12000,maximumAge:0});
+};
+const site=id=>SITES.find(s=>s[0]===id);
+const CK=mode=>{const s=G.site?site(G.site):null;
+ const line={idle:`<div class="ck-loc idle">${X("crosshair")}<div><b>محتاجين نتأكد إنك في موقع عمل</b><small>بناخد مكانك مرة واحدة من الموبايل أو المتصفح، وبنقارنه بمواقع العمل المسموحة ليك.</small></div>${B("primary","locate-fixed","حدد مكاني",'data-ckloc="1"')}</div>`,
+  locating:`<div class="ck-loc wait"><span class="ck-spin"></span><div><b>بنحدد مكانك…</b><small>لو المتصفح سألك، اختار «السماح».</small></div></div>`,
+  in:s?`<div class="ck-loc in">${X("check-circle-2")}<div><b>انت في ${s[2]}</b><small>على بُعد <span class="num">${fmtD(G.d)}</span> · دقة الموقع <span class="num">±${G.acc} م</span> · النطاق <span class="num">${s[6]} م</span></small></div><button class="ck-re" data-ckloc="1" title="حدّد تاني">${X("rotate-cw")}</button></div>`:"",
+  out:s?`<div class="ck-loc out">${X("map-pin-off")}<div><b>انت برّه مواقع العمل</b><small>أقرب موقع: ${s[2]} على بُعد <span class="num">${fmtD(G.d)}</span> · دقة <span class="num">±${G.acc} م</span></small></div><button class="ck-re" data-ckloc="1" title="حدّد تاني">${X("rotate-cw")}</button></div>`:"",
+  denied:`<div class="ck-loc no">${X("alert-triangle")}<div><b>${G.why||"الموقع مش متاح"}</b><small>فعّل الموقع من إعدادات المتصفح وحاول تاني، أو سجّل من غير موقع (بيروح للمدير يعتمده).</small></div>${B("ghost sm","rotate-cw","حاول تاني",'data-ckloc="1"')}</div>`}[G.s];
+ const chips=SITES.map(x=>{const on=G.site===x[0]&&G.s==="in";const d=G.lat!=null&&x[4]!=null?hav(G.lat,G.lng,x[4],x[5]):null;
+  return `<div class="ck-site${on?" on":""}${x[0]==="home"?" rem":""}"><span>${X(x[1])}</span><div><b>${x[2]}</b><small>${x[3]} · ${x[0]==="home"?x[8]:`نطاق ${x[6]} م`}${d!=null?` · <span class="num">${fmtD(d)}</span>`:""}</small></div>${on?`<em>${X("check")}</em>`:""}</div>`}).join("");
+ const act=G.s==="in"?`<button class="btn btn-primary ck-go" data-attin="1">${X("log-in")}سجّل حضوري · <span class="num">09:02</span></button>`
+  :G.s==="out"||G.s==="denied"?`<div class="ck-why"><label>سبب التسجيل برّه مواقع العمل <i class="rq">*</i></label><select><option>زيارة عميل (اختار المهمة)</option><option>مأمورية — في الطريق</option><option>عن بعد — يوم متوافق عليه</option><option>تاني…</option></select><small>${X("user-check")}هيتسجل بموقعك الحالي ويروح للمدير يعتمده.</small></div><button class="btn btn-primary ck-go amber" data-attin="1">${X("log-in")}سجّل وابعت للاعتماد</button>`
+  :`<button class="btn btn-primary ck-go" data-ckloc="1">${X("locate-fixed")}حدد مكاني وسجّل حضوري</button>`;
+ return `<div class="ck ${mode}">
+  <div class="ck-h"><span class="ck-ic">${X("fingerprint")}</span><div><b>تسجيل الحضور</b><small>الاثنين 16 نوفمبر · دوامك <span class="num">09:00 – 17:00</span></small></div><span class="ck-shift">${X("clock")}<span class="num">09:02</span> · متأخر دقيقتين</span>${mode==="pop"?`<button class="md-ic" data-ckpop="1">${X("x")}</button>`:""}</div>
+  ${line}
+  <div class="ck-sites"><small>مواقع العمل المسموحة ليك النهارده</small><div>${chips}</div></div>
+  <div class="ck-a">${act}${G.s==="in"?`<button class="btn btn-ghost" data-attin="1">${X("home")}عن بعد</button>`:""}</div>
+  <small class="ck-priv">${X("shield-check")}الموقع بيتاخد مرة وقت الحضور ومرة وقت الانصراف بس — مش بنتابعك طول اليوم.${G.lat!=null?` <span class="num" dir="ltr">(${G.lat.toFixed(4)}, ${G.lng.toFixed(4)})</span>`:""}</small>
+ </div>`};
+
+/* ---------- top-bar widget ---------- */
 const SEG=[[9.03,9.97,"a"],[9.97,10.1,"i"],[10.1,12.5,"a"],[12.5,13,"m"],[13,13.47,"w"],[13.47,14.3,"a"],[14.3,14.42,"i"],[14.42,14.7,"a"]];
 const pc=h=>((h-9)/(18-9)*100).toFixed(2);
 const POP=`<div class="tw-pop" role="dialog">
  <div class="tw-ph"><div><b>الاثنين 16 نوفمبر</b><small>${X("map-pin")}المكتب الرئيسي · بالموقع · 18 م</small></div><span class="tw-st g"><i></i>نشط دلوقتي</span></div>
  <div class="tw-k">${[["الحضور","5:40",""],["على مهام","5:00",""],["نشط","4:52","g"],["خامل","0:38","a"]].map(k=>`<div><small>${k[0]}</small><b class="num ${k[2]}">${k[1]}</b></div>`).join("")}</div>
- <div class="tw-bar">${SEG.map(s=>`<i class="${s[2]}" style="inset-inline-start:${pc(s[0])}%;width:${(pc(s[1])-pc(s[0])).toFixed(2)}%"></i>`).join("")}</div>
+ <div class="tw-bar">${SEG.map(s=>`<i class="${s[2]}" style="left:${pc(s[0])}%;width:${(pc(s[1])-pc(s[0])).toFixed(2)}%"></i>`).join("")}</div>
  <div class="tw-ax"><span class="num">09</span><span class="num">12</span><span class="num">15</span><span class="num">18</span></div>
  <div class="tw-lg"><span><i class="a"></i>نشط (كيبورد/ماوس)</span><span><i class="i"></i>خامل</span><span><i class="m"></i>اجتماع</span><span><i class="w"></i>بعيد عن الجهاز</span></div>
  <div class="tw-away">${X("bell-ring")}<div><b>كنت بعيد 28 دقيقة (13:00 – 13:28)</b><small>تحسبهم على إيه؟</small><div>${["اجتماع","مكالمة عميل","استراحة — مش شغل"].map((x,i)=>`<button class="${i===2?"on":""}">${x}</button>`).join("")}</div></div></div>
@@ -5893,29 +5935,41 @@ const POP=`<div class="tw-pop" role="dialog">
  <div class="tw-soon">${X("camera")}<span>لقطات الشاشة</span><em>قريباً</em></div>
  <div class="tw-acts">${B("ghost sm","coffee","استراحة")}${B("ghost sm","log-out","تسجيل الانصراف",'data-attout="1"')}</div></div>`;
 const W=()=>st()==="out"
- ?`<div class="tw-att out"><button class="tw-in" data-attin="1">${X("log-in")}<span><b>سجّل حضورك</b><small>${X("map-pin")}في نطاق المكتب الرئيسي</small></span></button></div>`
+ ?`<div class="tw-att out"><button class="tw-in" data-ckpop="1">${X("log-in")}<span><b>سجّل حضورك</b><small>${X("clock")}دوامك بدأ 09:00</small></span></button>${CKPOP?`<div class="tw-pop ckp">${CK("pop")}</div>`:""}</div>`
  :`<div class="tw-att in"><button class="tw-main" data-attpop="1" title="نشاطك النهارده"><span class="tw-dot"></span><span><b>حاضر <span class="num">09:02</span></b><small>نشط · <span class="num">5:40</span></small></span>${X("chevron-down")}</button>
    <span class="tw-tm" title="المؤقت شغال على UPD-0812">${X("timer")}<b class="num">UPD-0812</b><span class="num" data-twclock>01:12:40</span><button title="إيقاف المؤقت">${X("square")}</button></span>${OPEN?POP:""}</div>`;
-const BANNER=`<div class="tw-ban">${X("map-pin")}<div><b>لسه ماسجّلتش حضورك النهارده</b><small>انت في نطاق المكتب الرئيسي (18 م). المؤقت والمهام بيشتغلوا بعد تسجيل الحضور.</small></div><button class="btn btn-primary tw-big" data-attin="1">${X("log-in")}سجّل حضوري الآن</button><button class="btn btn-ghost" data-attin="1">${X("home")}عن بعد</button><button class="btn btn-ghost" data-attin="1">${X("car")}زيارة عميل</button></div>`;
+const SHOWBAN=c=>/^(tc|hrAttendance)/.test(c)&&!/^(tcSettings|tcGeo|tcMigrate|tcVault|tcArchive|tcSpecs|tcQALib|tcAdmin|tcRemind|tcCheckin)$/.test(c);
 const inject=()=>{
  const tr=document.querySelector("#app .top-right");if(!tr)return;
  tr.querySelectorAll(".tw-att").forEach(e=>e.remove());
  const tc=tr.querySelector(".tclock");if(tc)tc.style.display="none";
  const w=document.createElement("div");w.innerHTML=W();tr.prepend(w.firstElementChild);
  const pg=document.querySelector("#app .page");
- if(pg){pg.querySelectorAll(".tw-ban").forEach(e=>e.remove());
-  const c=window.CERP_PAGE||"";if(st()==="out"&&/^(tc|hrAttendance)/.test(c)&&!/^(tcSettings|tcGeo|tcMigrate|tcVault|tcArchive|tcSpecs|tcQALib|tcAdmin|tcRemind)$/.test(c)){const b=document.createElement("div");b.innerHTML=BANNER;pg.prepend(b.firstElementChild)}}
+ if(pg){pg.querySelectorAll(".ck.ban").forEach(e=>e.remove());
+  if(st()==="out"&&SHOWBAN(window.CERP_PAGE||"")){const b=document.createElement("div");b.innerHTML=CK("ban");pg.prepend(b.firstElementChild)}}
  if(window.lucide)lucide.createIcons({attrs:{"stroke-width":1.8}});
 };
 const oRN=window.renderNav;
 window.renderNav=function(c){const r=oRN.apply(this,arguments);setTimeout(inject,0);return r};
 document.addEventListener("click",e=>{
- if(e.target.closest("[data-attin]")){e.preventDefault();setSt("in");OPEN=false;inject();return}
- if(e.target.closest("[data-attout]")){e.preventDefault();setSt("out");OPEN=false;inject();return}
+ if(e.target.closest("[data-ckloc]")){e.preventDefault();locate();return}
+ if(e.target.closest("[data-attin]")){e.preventDefault();setSt("in");OPEN=false;CKPOP=false;inject();return}
+ if(e.target.closest("[data-attout]")){e.preventDefault();setSt("out");OPEN=false;G={s:"idle"};inject();return}
  if(e.target.closest("[data-attpop]")){e.preventDefault();OPEN=!OPEN;inject();return}
- if(OPEN&&!e.target.closest(".tw-att")){OPEN=false;inject()}
+ if(e.target.closest("[data-ckpop]")){e.preventDefault();CKPOP=!CKPOP;inject();return}
+ if((OPEN||CKPOP)&&!e.target.closest(".tw-att")){OPEN=false;CKPOP=false;inject()}
 });
 setInterval(()=>{const el=document.querySelector("[data-twclock]");if(!el)return;const p=el.textContent.split(":").map(Number);let s=p[0]*3600+p[1]*60+p[2]+1;el.textContent=[Math.floor(s/3600),Math.floor(s%3600/60),s%60].map(x=>String(x).padStart(2,"0")).join(":")},1000);
+
+/* ---------- مواقع العمل (replaces «نطاقات الحضور») ---------- */
+screens.tcGeo=()=>`
+ ${HEAD("مواقع العمل","الأماكن المسموح منها تسجيل الحضور: الفروع، مواقع العملاء المؤقتة، والعمل عن بعد.",B("primary","plus","موقع عمل جديد"),["hrAttendance","الحضور والانصراف"])}
+ <div class="ws-wrap"><div class="ws-list">${SITES.map((s,i)=>`<div class="card ws-it${i===0?" on":""}"><span class="ws-ic">${X(s[1])}</span><div class="ws-b"><b>${s[2]}</b><small>${TAG(s[3]==="فرع"?"n":s[3]==="عن بعد"?"g":"a",s[3])}${s[0]==="home"?"من غير نطاق — بيتسجل الموقع بس":`نطاق <span class="num">${s[6]}</span> م`}</small><small>${X("users")}${s[7]} · ${X("calendar")}${s[8]}</small></div>${SW(1)}</div>`).join("")}
+  <div class="card ws-add">${X("plus-circle")}<div><b>أنواع المواقع</b><small>فرع (من إعدادات الفروع) · موقع عميل أو مشروع بتاريخ بداية ونهاية · سكن أو مستودع · عن بعد لموظفين وأيام محددة.</small></div></div></div>
+ <div><div class="card ci-map tall ws-map"><div class="ci-zone big" style="left:58%;top:42%"><span>المكتب الرئيسي · 150 م</span></div><div class="ci-zone" style="left:28%;top:66%;border-color:var(--amber);background:rgba(200,134,42,.15)"><span style="color:var(--amber)">مكتب نجد · مؤقت</span></div><span class="ci-pin g" style="left:57%;top:41%">أ</span><span class="ci-pin b" style="left:29%;top:64%">ك</span></div>
+  ${SEC("map-pin","المكتب الرئيسي",`<div class="fgrid" style="padding:0 20px 14px">${FLD("النوع",SEL(["فرع","موقع عميل مؤقت","سكن / مستودع","عن بعد"]))}${FLD("الإحداثيات",INP("","24.7743, 46.7386",1),0,"من إعدادات الفروع، أو حرّك الدبوس")}${FLD("نصف قطر النطاق",`<div class="ci-r"><input type="range" value="150" min="50" max="500"><b class="num">150 م</b></div>`)}${FLD("مين مسموح له",SEL(["كل موظفين الفرع","موظفين محددين"]))}${FLD("الفترة",SEL(["دايم","من – إلى"]))}${FLD("الأيام",SEL(["كل أيام الدوام","أيام محددة"]))}</div>`)}
+  ${SEC("list-checks","القواعد",`${ROW("المؤقت مايشتغلش قبل تسجيل الحضور","",SW(1))}${ROW("برّه كل مواقع العمل يطلب سبب","ويروح للمدير يعتمده",SW(1))}${ROW("موقع العميل المؤقت لازم يتربط بمهمة","زي OPS-0033",SW(1))}${ROW("الموقع بيتاخد عند الحضور والانصراف بس","مش تتبع طول اليوم",SW(1))}${ROW("نبّه لو خرج من الموقع والمؤقت شغال","",SW(0))}`)}</div></div>`;
+Object.assign(T,{tcGeo:{ar:"مواقع العمل",en:"Work sites"}});
 })();
 (function(){var P=window.CERP_PAGE;if(!P)return;var PAGES=window.CERP_PAGES||[];
 if(P==="login"){renderLogin();return}

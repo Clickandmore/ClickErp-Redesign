@@ -1,5 +1,5 @@
 {
-  "version": "v1.18",
+  "version": "v1.19",
   "date": "2026-11-16",
   "entry": "login.html",
   "screens": [
@@ -951,7 +951,7 @@
     {
       "id": "tcGeo",
       "file": "tcGeo.html",
-      "title": "الموارد البشرية — نطاقات الحضور"
+      "title": "الموارد البشرية — مواقع العمل"
     }
   ],
   "states": [
