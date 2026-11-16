@@ -3368,17 +3368,17 @@ const DEPTS=[
  {id:"hr",i:"user-cog",ar:"الموارد البشرية",en:"HR",s:"الموارد",d:"الموظفون والحضور والرواتب ومركز المهام",items:[
   A("hrDash","gauge","لوحة الموارد البشرية","HR dashboard"),A("hrEmployees","id-card","الموظفون","Employees"),A("hrWorkers","user-round","العاملات","Workers"),A("hrAttendance","clock","الحضور","Attendance"),
   A("hrRequests","inbox","الطلبات","Requests","7"),A("hrCustody","key-round","العهد","Custody"),A("hrSanctions","gavel","الجزاءات","Sanctions"),A("hrPayroll","banknote","الرواتب","Payroll"),A("hrDaily","notebook-pen","التقارير اليومية","Daily reports"),
-  H("مركز المهام"),A("tcMy","sun","يومي","My day"),A("tcInbox","inbox","الوارد","Intake"),A("tcBoard","columns-3","لوحة المهام","Task board"),A("tcHandoff","arrow-left-right","التسليم والاستلام","Handoffs"),A("tcQA","flask-conical","الاختبار","Testing"),A("tcSpecs","file-text","التحليل والمواصفات","Specs"),A("tcTeam","users","متابعة الفريق","Team"),A("tcApprovals","hourglass","موافقات الوقت","Time approvals"),A("tcHours","bar-chart-3","الساعات والتكلفة","Hours & cost"),A("tcSettings","settings","إعدادات مركز المهام","Settings")]},
+  H("مركز المهام"),A("tcMy","sun","يومي","My day"),A("tcInbox","inbox","الوارد","Intake"),A("tcBoard","columns-3","لوحة المهام","Task board"),A("tcHandoff","arrow-left-right","التسليم والاستلام","Handoffs"),A("tcQA","flask-conical","الاختبار","Testing"),A("tcSpecs","file-text","التحليل والمواصفات","Specs"),A("tcAdmin","briefcase","مهام الإدارة","Management"),A("tcVault","key-round","بيانات الدخول","Credentials"),A("tcArchive","archive","الأرشيف","Archive"),A("tcCheckin","map-pin","الحضور بالموقع","Check-in"),A("tcTeam","users","متابعة الفريق","Team"),A("tcApprovals","hourglass","موافقات الوقت","Time approvals"),A("tcHours","bar-chart-3","الساعات والتكلفة","Hours & cost"),A("tcSettings","settings","إعدادات مركز المهام","Settings")]},
  {id:"settings",i:"settings",ar:"الإعدادات",en:"Settings",s:"الإعدادات",d:"إعدادات المكتب والمستخدمين والتكاملات",items:[
   A("setHome","layout-grid","كل الإعدادات","All settings"),A("setGeneral","sliders-horizontal","العامة","General"),A("coupons","ticket-percent","كوبونات الخصم","Coupons"),A("setSite","globe","موقع المكتب","Office website"),A("setRecruit","files","الاستقدام والسير","Recruitment & CVs"),A("setRental","repeat","التأجير","Rental"),
   A("setUsers","shield-check","المستخدمون والصلاحيات","Users & roles"),A("setBranches","git-branch","الفروع","Branches"),A("setLists","list","القوائم المرجعية","Reference lists"),A("setMessages","bell","الرسائل والإشعارات","Messages & notifications"),
   A("setIntegrations","plug","التكاملات","Integrations"),A("setImport","upload","استيراد البيانات","Data import"),A("setAi","sparkles","المساعد الذكي","AI assistant"),A("setSupport","life-buoy","الدعم","Support"),A("setDev","code","المطوّر (Super Admin)","Developer")]}];
-const SUBS={setDev:["saSubscription","saModules","saEmployees","saDesigns","saUpdates","saUpdateForm","saBackups","saScheduler","saRecovery","saInvoices","saInvoiceFix","saMcp","saMoyasar","saTestAccounts"],tcMy:["tcPolicy","tcClose"],tcBoard:["tcTask","tcForm","tcList","tcLanes","tcBoardD","tcCard","tcNew","tcCardQA"],tcQA:["tcQALib"],tcTeam:["tcMember","tcShots","tcSessions"],tcHours:["tcAttend"],tcSettings:["tcMigrate"],contracts:["contractShow","contractAdd","contractEdit"],cvs:["cvAdd","cvShow","cvEdit"],clients:["clientShow","clientAdd"],orders:["orderShow"],
+const SUBS={setDev:["saSubscription","saModules","saEmployees","saDesigns","saUpdates","saUpdateForm","saBackups","saScheduler","saRecovery","saInvoices","saInvoiceFix","saMcp","saMoyasar","saTestAccounts"],tcMy:["tcPolicy","tcClose"],tcBoard:["tcTask","tcForm","tcList","tcLanes","tcBoardD","tcCard","tcNew","tcCardQA"],tcQA:["tcQALib"],tcAdmin:["tcRemind"],tcCheckin:["tcGeo"],tcTeam:["tcMember","tcShots","tcSessions"],tcHours:["tcAttend"],tcSettings:["tcMigrate"],contracts:["contractShow","contractAdd","contractEdit"],cvs:["cvAdd","cvShow","cvEdit"],clients:["clientShow","clientAdd"],orders:["orderShow"],
  rental:["rentalShow","rentalAdd"],housing:["housingShow","housingAdd"],transfer:["transferShow","transferAdd"],
  reports:["report"],finSales:["finSaleAdd","finBonds","finReturns"],finBanks:["finBoxes","finTransfers","finChecksIn","finChecksOut"],finClients:["finSuppliers","finAgents"],
  finCenters:["finCentersTree"],finReports:["finReport"],finItems:["finStock","finInventory"],finEntries:["finAdd","finShow"],finAccounts:["finSettings"],clArchive:[],delegations:["delAdd","delShow"],trips:["tripShow"],agents:["agentShow"],"hb-board":["hbNew"],"hb-visits":["hbVisit"],coupons:["couponForm","couponShow","couponBulk","couponReport","couponSettings"],claims:["claimAdd","claimShow","claimTypes"],absconding:["abscShow"],campaigns:["campaignNew"],finRequests:["finRequestAdd","finRequestShow"],finAssets:["finAssetShow"],finCommissions:["finCommissionShow","finCommissionRules"],finTax:["finZatca"],hrEmployees:["hrEmployeeShow","hrEmployeeAdd"],hrPayroll:["hrPayrollRun"],setUsers:["setRoles"],visaRequests:["visaAdd","visaShow"]};
 /* v1.8.1: sidebar badges = only things that need action (no totals). r=urgent/late, a=waiting for you, n=unread */
-const ALERTS={tcQA:[4,"a","4 مهام مستنية اختبارك"],tcInbox:[7,"a","7 حاجات واردة لسه متفرزتش"],tcHandoff:[3,"a","3 مهام مستنياك تستلمها"],tcApprovals:[3,"a","3 تسجيلات وقت بانتظار اعتمادك"],orders:[6,"a","6 طلبات جديدة لسه محدش ردّ عليها"],contracts:[18,"r","18 عقد تجاوز 45 يوم بدون تذاكر"],invoices:[7,"r","7 فواتير متأخرة السداد"],transfer:[4,"a","4 طلبات نقل بانتظار موافقتك"],housing:[2,"a","2 عاملة محتاجين فحص طبي"],followups:[5,"a","5 متابعات مطلوبة النهارده"],chats:[3,"n","3 محادثات غير مقروءة"],claims:[2,"r","شكوتين عاجلتين"],absconding:[2,"r","2 بلاغ هروب مفتوح"],"hb-alerts":[1,"r","بلاغ مفتوح من الطاقم"],visaDash:[2,"a","2 طلب تأشيرة بانتظار الموافقة"],finRequests:[5,"a","5 طلبات مالية بانتظار اعتمادك"],finTax:[4,"r","4 فواتير مرفوضة من ZATCA"],hrRequests:[7,"a","7 طلبات موظفين مستنية قرارك"],hrAttendance:[1,"r","موظف غايب بدون إذن النهارده"],setMessages:[0,"r","مزود الرسائل النصية متوقف"]};
+const ALERTS={tcAdmin:[2,"r","مهمتين إدارة متأخرين"],tcVault:[1,"r","حساب باسورده عدّى 90 يوم"],tcCheckin:[1,"r","موظف برّه النطاق مستني اعتماد"],tcQA:[4,"a","4 مهام مستنية اختبارك"],tcInbox:[7,"a","7 حاجات واردة لسه متفرزتش"],tcHandoff:[3,"a","3 مهام مستنياك تستلمها"],tcApprovals:[3,"a","3 تسجيلات وقت بانتظار اعتمادك"],orders:[6,"a","6 طلبات جديدة لسه محدش ردّ عليها"],contracts:[18,"r","18 عقد تجاوز 45 يوم بدون تذاكر"],invoices:[7,"r","7 فواتير متأخرة السداد"],transfer:[4,"a","4 طلبات نقل بانتظار موافقتك"],housing:[2,"a","2 عاملة محتاجين فحص طبي"],followups:[5,"a","5 متابعات مطلوبة النهارده"],chats:[3,"n","3 محادثات غير مقروءة"],claims:[2,"r","شكوتين عاجلتين"],absconding:[2,"r","2 بلاغ هروب مفتوح"],"hb-alerts":[1,"r","بلاغ مفتوح من الطاقم"],visaDash:[2,"a","2 طلب تأشيرة بانتظار الموافقة"],finRequests:[5,"a","5 طلبات مالية بانتظار اعتمادك"],finTax:[4,"r","4 فواتير مرفوضة من ZATCA"],hrRequests:[7,"a","7 طلبات موظفين مستنية قرارك"],hrAttendance:[1,"r","موظف غايب بدون إذن النهارده"],setMessages:[0,"r","مزود الرسائل النصية متوقف"]};
 DEPTS.forEach(d=>d.items.forEach(p=>{if(p.sec)return;delete p.b;if(ALERTS[p.id])p.al=ALERTS[p.id]}));
 const ALB=p=>p&&p.al?`<span class="nal ${p.al[1]}${p.al[0]?"":" dot"}" title="${p.al[2]}">${p.al[0]?`<b class="num">${p.al[0]}</b>`:""}</span>`:"";
 const DAL=d=>{const al=d.items.filter(p=>p.al);if(!al.length)return "";const r=al.filter(p=>p.al[1]==="r").length,w=al.length-r;return `<span class="dal">${r?`<span class="nal r" title="${r} حاجة عاجلة"><b class="num">${r}</b></span>`:""}${w?`<span class="nal a" title="${w} حاجة مستنياك"><b class="num">${w}</b></span>`:""}</span>`};
@@ -4799,8 +4799,8 @@ const STC={new:"n",doing:"b",qa:"p",ready:"g",client:"a",hold:"r",closed:"n"};
 const ty=t=>`<span class="tc-ty ${TY[t][0]}">${t}</span>`;
 const av=(n,c)=>`<span class="tc-av${c?" "+c:""}" title="${n}">${n.trim()[0]}</span>`;
 const PPL=["أحمد سمير","منى عادل","كريم فتحي","يوسف حسن","سارة نبيل","عمر خالد"];
-const TCP={tcQALib:"tcQA",tcCardQA:"tcBoard",tcBoardD:"tcBoard",tcCard:"tcBoard",tcNew:"tcBoard",tcLanes:"tcBoard",tcList:"tcBoard",tcTask:"tcBoard",tcForm:"tcBoard",tcMember:"tcTeam",tcShots:"tcTeam",tcSessions:"tcTeam",tcAttend:"tcHours",tcClose:"tcMy",tcPolicy:"tcMy",tcMigrate:"tcSettings"};
-const tcTabs=on=>TABS([["tcMy","sun","يومي"],["tcInbox","inbox","الوارد",7],["tcBoard","columns-3","لوحة المهام"],["tcHandoff","arrow-left-right","التسليم والاستلام",3],["tcQA","flask-conical","الاختبار",4],["tcSpecs","file-text","التحليل والمواصفات"],["tcTeam","users","متابعة الفريق"],["tcApprovals","hourglass","موافقات الوقت",3],["tcHours","bar-chart-3","التقارير"],["tcSettings","settings","الإعدادات"]],TCP[on]||on);
+const TCP={tcRemind:"tcAdmin",tcVault:"tcAdmin",tcArchive:"tcBoard",tcGeo:"tcCheckin",tcQALib:"tcQA",tcCardQA:"tcBoard",tcBoardD:"tcBoard",tcCard:"tcBoard",tcNew:"tcBoard",tcLanes:"tcBoard",tcList:"tcBoard",tcTask:"tcBoard",tcForm:"tcBoard",tcMember:"tcTeam",tcShots:"tcTeam",tcSessions:"tcTeam",tcAttend:"tcHours",tcClose:"tcMy",tcPolicy:"tcMy",tcMigrate:"tcSettings"};
+const tcTabs=on=>TABS([["tcMy","sun","يومي"],["tcInbox","inbox","الوارد",7],["tcBoard","columns-3","لوحة المهام"],["tcHandoff","arrow-left-right","التسليم والاستلام",3],["tcQA","flask-conical","الاختبار",4],["tcSpecs","file-text","التحليل والمواصفات"],["tcAdmin","briefcase","الإدارة",2],["tcCheckin","map-pin","الحضور"],["tcTeam","users","متابعة الفريق"],["tcApprovals","hourglass","موافقات الوقت",3],["tcHours","bar-chart-3","التقارير"],["tcSettings","settings","الإعدادات"]],TCP[on]||on);
 const TIMER=(num,title,el)=>`<div class="tc-timer"><span class="tc-pulse"></span>${X("timer")}<span>المؤقت شغال على <a href="#" data-go="tcTask"><b class="num">${num}</b> — ${title}</a></span><b class="num tc-clock">${el}</b><span class="tc-mon">${X("monitor-check")}مشاركة الشاشة شغالة · <span class="num">7</span> لقطات</span>${B("ghost sm","app-window","نافذة المراقبة")}${B("red sm","square","إيقاف")}</div>`;
 
 /* ---- tasks ---- */
@@ -5694,6 +5694,118 @@ S.tcQALib=()=>`
    <div class="ts-sel">${X("lightbulb")}<span>الحالة اللي فشلت مرتين في آخر شهر بتتعلّم «حساسة» وبتتضاف تلقائي لأي مهمة على نفس الموديول.</span></div></div></div>`;
 
 Object.assign(T,{tcQA:{ar:"الاختبار",en:"Testing"},tcCardQA:{ar:"BUG-0147 — الاختبار",en:"Task testing"},tcQALib:{ar:"مكتبة السيناريوهات",en:"Test library"}});
+Object.keys(S).forEach(k=>{screens[k]=S[k]});
+})();
+/* ===== v1.16 — Management tasks + reminders (WhatsApp/email), credentials vault, archive, location check-in ===== */
+(()=>{
+const {X,SEC,KV,TAG,SW,ROW,FLD,SEL,INP,TXT,B,HEAD,TABS,ACTS}=window.CXH;
+const {tcTabs,PPL}=window.TCX;
+const {av,CL}=window.KBX;
+const NEWL=["tcAdmin","tcRemind","tcVault","tcArchive","tcCheckin","tcGeo"];
+window.CERP_PAGES=(window.CERP_PAGES||[]).concat(NEWL);
+const IDEA=t=>`<div class="fx-idea">${X("lightbulb")}<div><b>ليه الشكل ده؟</b><span>${t}</span></div></div>`;
+const NEWT=`<span class="tag a hm-new">جديد</span>`;
+const S={};
+const CH={wa:["phone","واتساب","#1f9d55"],mail:["mail","إيميل","#c8862a"],app:["bell","داخل النظام","#2f5fa8"]};
+const ch=k=>`<span class="am-ch" style="--c:${CH[k][2]}" title="${CH[k][1]}">${X(CH[k][0])}</span>`;
+
+/* ================= مهام الإدارة ================= */
+/* [title,kind,icon,due,dueCls,to,channels,remind,key,repeat] */
+const AD=[["over","متأخرة",[["تجديد دومين alriyada-erp.com","تجديد","globe","انتهى امبارح","late","كريم فتحي",["wa","app"],"اتبعت تذكير مرتين",1,"سنوي"],["متابعة تقرير الحضور الشهري مع المحاسب","متابعة موظف","user-check","15 نوف","late","خالد المطيري",["wa"],"",0,""]]],
+ ["today","النهارده",[["دفع فاتورة السيرفرات (Hetzner)","دفع","credit-card","النهارده","soon","أنا",["app","mail"],"09:00 اتبعت",1,"شهري"],["اجتماع مراجعة مؤسسة سواعد","عميل","users","14:00","soon","سارة نبيل · فهد العتيبي (العميل)",["wa","mail"],"قبلها بساعة",0,""]]],
+ ["week","الأسبوع ده",[["تجديد شهادة SSL لنسخة نجد","تجديد","shield-check","19 نوف","","كريم فتحي",["wa"],"قبلها بـ 3 أيام",1,"سنوي"],["مراجعة طلبات الإجازة لشهر ديسمبر","موظفين","calendar-off","20 نوف","","أنا",["app"],"",0,"شهري"],["إلغاء Time Doctor قبل التجديد","اشتراك","x-circle","21 نوف","","أنا",["mail","app"],"قبلها بيومين",1,""]]],
+ ["rec","متكررة",[["تقرير ساعات العملاء الشهري","تقرير","bar-chart-3","أول كل شهر","","أنا + الإدارة",["mail"],"",0,"شهري"],["نسخة احتياطية خارجية للسيرفرات","تشغيل","database-backup","كل جمعة","","كريم فتحي",["wa"],"",1,"أسبوعي"]]]];
+S.tcAdmin=()=>`
+ ${IDEA("مهام الإدارة منفصلة عن مهام العملاء: تجديدات، مدفوعات، متابعة موظفين، اجتماعات — وبتظهر للإدارة بس. كل مهمة جنبها مين هيتفكّر وبإيه (واتساب / إيميل / داخل النظام) وإمتى، و«ابعت تذكير دلوقتي» بضغطة. ولو المهمة محتاجة حساب (دومين، سيرفر، بوابة دفع) بيبان مفتاح يفتح بيانات الدخول من غير ما تدوّر. والتجديدات الجاية بتتجمع لوحدها من تواريخ انتهاء الحسابات.")}
+ ${HEAD("مهام الإدارة","خاصة بالإدارة — مش ظاهرة لباقي الفريق.",B("ghost","send","رسالة أو تذكير",'data-go="tcRemind"')+B("primary","plus","مهمة إدارية"))}
+ ${tcTabs("tcAdmin")}
+ <div class="am-wrap"><div>
+  ${AD.map(g=>`<div class="am-g"><div class="am-gh ${g[0]}">${g[1]} <span class="num">${g[2].length}</span></div>${g[2].map(r=>`<div class="am-it ${r[4]}">
+   <span class="am-ic">${X(r[2])}</span>
+   <div class="am-b"><b>${r[0]}</b><small><span class="am-k">${r[1]}</span>${r[9]?`<span class="am-rp">${X("repeat")}${r[9]}</span>`:""}${r[8]?`<a href="#" data-go="tcVault" class="am-key">${X("key-round")}بيانات الدخول</a>`:""}</small></div>
+   <div class="am-to"><small>التذكير لـ</small><b>${r[5]}</b><span>${r[6].map(ch).join("")}${r[7]?`<em>${r[7]}</em>`:""}</span></div>
+   <span class="kb-due ${r[4]}">${r[3]}</span>
+   <div class="am-a">${B("ghost sm","send","فكّر",'data-go="tcRemind"')}<button class="am-done" title="تم">${X("check")}</button></div></div>`).join("")}</div>`).join("")}
+ </div><div class="fx-side">
+  ${SEC("calendar-clock","التجديدات الجاية",`<div class="am-ren">${[["alriyada-erp.com","دومين","انتهى","r"],["SSL — نسخة نجد","شهادة","3 أيام","a"],["Apple Developer","حساب","12 يوم","a"],["Moyasar — الإنتاج","مفاتيح API","45 يوم",""],["Google Workspace","اشتراك","2 شهر",""]].map(r=>`<a href="#" data-go="tcVault"><span><b>${r[0]}</b><small>${r[1]}</small></span><span class="am-d ${r[3]}">${r[2]}</span></a>`).join("")}</div><small class="tc-sub" style="display:block;padding:0 20px 14px">بتتجمع من تاريخ الانتهاء في «بيانات الدخول».</small>`)}
+  ${SEC("history","آخر الرسائل",`<div class="am-log">${[["wa","كريم فتحي","تجديد الدومين انتهى امبارح — جدّده النهارده لو سمحت","10:02","تمت القراءة","g"],["mail","المحاسب","تذكير: فاتورة السيرفرات مستحقة النهارده","09:00","اتبعت","n"],["wa","فهد العتيبي (عميل)","تذكير باجتماع المراجعة الساعة 2","08:30","فشل — الرقم مش على واتساب","r"]].map(l=>`<div>${ch(l[0])}<span><b>${l[1]}</b><small>${l[2]}</small></span><em><span class="num">${l[3]}</span>${TAG(l[5],l[4])}</em></div>`).join("")}</div>`)}
+ </div></div>`;
+
+/* ================= Reminder / message dialog ================= */
+S.tcRemind=()=>`${screens.tcAdmin()}
+<div class="md-ov"><div class="md sm am-md" role="dialog">
+ <div class="md-top"><b>رسالة أو تذكير</b><span class="md-bc">مربوطة بـ «تجديد دومين alriyada-erp.com»</span><span class="kb-sp"></span><button class="md-ic" data-go="tcAdmin">${X("x")}</button></div>
+ <div class="am-mb"><div>
+  ${FLD("لمين؟",`<div class="am-rc"><span>${av("كريم فتحي")}كريم فتحي<i>${X("x")}</i></span><span>${X("building-2")}مكتب الريادة — المالك<i>${X("x")}</i></span><input placeholder="موظف، عميل، أو رقم/إيميل…"></div>`)}
+  ${FLD("القناة",`<div class="am-chs">${[["wa","واتساب",1],["mail","إيميل",1],["app","داخل النظام",0]].map(c=>`<label class="${c[2]?"on":""}">${ch(c[0])}${c[1]}</label>`).join("")}</div>`)}
+  ${FLD("القالب",SEL(["تذكير بتجديد — renewal_reminder (معتمد من Meta)","تذكير بموعد — meeting_reminder","رسالة حرة (إيميل وداخل النظام بس)"]),0,"واتساب للأرقام اللي ماكلمتناش آخر 24 ساعة لازم قالب معتمد")}
+  ${FLD("الرسالة",`<textarea rows="3">أهلاً {الاسم}، الدومين alriyada-erp.com انتهى امبارح — محتاجين نجدده النهارده عشان الموقع مايقفش.</textarea>`)}
+  ${FLD("إمتى؟",`<div class="cx-seg2 in"><button>دلوقتي</button><button class="on">في ميعاد</button><button>يتكرر</button></div><div class="am-when"><input value="17/11/2026 09:00" dir="ltr"><span>وكرّر لو ماحدش علّم «تم» كل</span><select><option>يوم</option><option>3 أيام</option></select></div>`)}
+ </div><div class="am-prev"><small>معاينة واتساب</small><div class="cx-phone"><div class="cx-msg in tpl"><b>Click ERP</b><p>أهلاً كريم، الدومين <b dir="ltr">alriyada-erp.com</b> انتهى امبارح — محتاجين نجدده النهارده عشان الموقع مايقفش.</p><small>زرار: «تم التجديد»</small></div></div><small class="tc-sub">لما يضغط «تم التجديد» المهمة بتتقفل لوحدها ${NEWT}</small></div></div>
+ <div class="md-foot"><span class="tc-sub">هيتسجل في سجل الرسائل · ${X("phone")} 2 · ${X("mail")} 2</span><span class="kb-sp"></span>${B("ghost","","إلغاء",'data-go="tcAdmin"')}${B("primary","send","جدولة التذكير",'data-go="tcAdmin"')}</div>
+</div></div>`;
+
+/* ================= بيانات الدخول ================= */
+const VF=[["server","السيرفرات",9],["globe","الدومينات وDNS",14],["layout-dashboard","لوحات العملاء",22],["credit-card","بوابات الدفع",4],["smartphone","المتاجر (Apple/Google)",3],["mail","الإيميلات",6],["lock","داخلي",8]];
+const VE=[["server","سيرفر نسخة نجد (SSH)","مكتب نجد","root","203.0.113.24","منذ 92 يوم","r",["كريم فتحي","أحمد سمير"],1],["globe","Namecheap — دومينات العملاء","داخلي","clickmore-dns","namecheap.com","منذ 40 يوم","",["كريم فتحي"],0],["layout-dashboard","لوحة ClickERP — مكتب الريادة (مدير)","مكتب الريادة","support@clickmore","alriyada.clickerp.sa","منذ 12 يوم","",["الكل في الدعم"],0],["credit-card","Moyasar — حساب الإنتاج","مكتب الأمانة","finance@alamana","dashboard.moyasar.com","منذ 30 يوم","",["الإدارة"],0],["smartphone","Apple Developer — تطبيق الريادة","مكتب الريادة","dev@clickmore","developer.apple.com","ينتهي بعد 12 يوم","a",["أحمد سمير"],0]];
+S.tcVault=()=>`
+ ${IDEA("بيانات الدخول بدل ما تبقى في رسايل Slack أو ملف Excel: كل حساب في مكانه بالعميل، والباسورد مخفي — النسخ بضغطة من غير ما يظهر، والكشف بيطلب سبب وبيتسجل باسمك. كل حساب مكتوب جنبه مين يقدر يشوفه، وآخر مرة الباسورد اتغير (لو عدّى 90 يوم بيتعلّم)، وتاريخ الانتهاء بيروح لوحده لـ «التجديدات الجاية» في مهام الإدارة. ولو حد محتاجه مرة: رابط مشاركة بينتهي بعد ساعة.")}
+ ${HEAD("بيانات الدخول","مشفّرة · كل كشف أو نسخ بيتسجل.",B("ghost","shield","سجل الوصول")+B("primary","plus","حساب جديد"))}
+ ${tcTabs("tcVault")}
+ <div class="av-wrap"><div class="ts-nav">${VF.map((f,i)=>`<a href="#" class="${i===0?"on":""}">${X(f[0])}<span><b>${f[1]}</b><small class="num">${f[2]} حساب</small></span></a>`).join("")}<div class="av-sec">${X("shield-check")}<small>تشفير AES-256 · المفتاح مش على نفس السيرفر · التحقق بخطوتين عند الكشف</small></div></div>
+  <div><div class="fbar" style="margin-bottom:10px"><div class="fb grow"><label>بحث</label><div class="inp">${X("search")}<input placeholder="اسم الحساب، العميل، الرابط…"></div></div><div class="fb"><label>العميل</label>${SEL(["الكل","مكتب الريادة","مكتب نجد","مكتب الأمانة","داخلي"])}</div><div class="fb"><label>محتاج تغيير</label>${SEL(["الكل","أكتر من 90 يوم","قرب ينتهي"])}</div></div>
+   <div class="av-list">${VE.map((e,i)=>`<div class="av-it${i===0?" on":""}"><span class="av-ic">${X(e[0])}</span><div class="av-b"><b>${e[1]}</b><small><span class="kb-cl" style="--c:${CL[e[2]]||"#5f6c80"}">${e[2]}</span><span dir="ltr">${e[4]}</span></small></div><div class="av-cred"><span dir="ltr">${e[3]}</span><button title="نسخ اسم الدخول">${X("copy")}</button><span class="av-pw">••••••••••</span><button title="نسخ الباسورد">${X("copy")}</button></div><span class="av-age ${e[6]}">${e[5]}</span></div>`).join("")}</div>
+  </div>
+  <div class="card av-det"><div class="av-dh"><span class="av-ic big">${X("server")}</span><div><b>سيرفر نسخة نجد (SSH)</b><small>مكتب نجد · مربوط بـ <a href="#" data-go="tcCard" class="num">OPS-0033</a></small></div></div>
+   <div class="av-f">${[["الرابط / IP",`<span dir="ltr">203.0.113.24 : 22</span>`,"copy"],["اسم الدخول",`<span dir="ltr">root</span>`,"copy"],["الباسورد",`<span class="av-pw">••••••••••••</span>`,"eye"],["مفتاح SSH",`<span dir="ltr">nagd-prod.pem</span>`,"download"],["التحقق بخطوتين","مش مفعّل",""]].map(f=>`<div><small>${f[0]}</small><b>${f[1]}</b>${f[2]?`<button>${X(f[2])}</button>`:""}</div>`).join("")}</div>
+   <div class="av-warn">${X("alert-triangle")}<span>الباسورد ماتغيرش من 92 يوم ${B("ghost sm","refresh-cw","اعمل مهمة تغيير")}</span></div>
+   <div class="av-reveal"><small>عشان تكشف الباسورد اكتب السبب:</small><div class="inp"><input placeholder="مثلاً: OPS-0033 نقل السيرفر"></div></div>
+   <div class="av-acc"><small>مين يقدر يشوفه</small><div>${["كريم فتحي","أحمد سمير"].map(n=>`<span>${av(n)}${n}</span>`).join("")}<button>${X("plus")}</button></div></div>
+   <div class="av-acts">${B("ghost sm","link","رابط مشاركة (ساعة)")}${B("ghost sm","pencil","تعديل")}</div>
+   <div class="av-hist"><small>آخر وصول</small>${[["أحمد سمير","نسخ الباسورد · «OPS-0033 نقل السيرفر»","اليوم 10:40"],["كريم فتحي","كشف الباسورد · «فحص المساحة»","امبارح"]].map(h=>`<div><b>${h[0]}</b><span>${h[1]}</span><em>${h[2]}</em></div>`).join("")}</div></div>
+ </div>`;
+
+/* ================= الأرشيف ================= */
+S.tcArchive=()=>`
+ ${IDEA("الأرشيف مكان واحد لكل حاجة خلصت: المهام المقفولة (بتتنقل لوحدها بعد 30 يوم من اللوحة)، والملفات والمستندات لكل عميل، وأرشيف Trello المستورد، والحسابات اللي اتقفلت. البحث بيدوّر في الكل مرة واحدة — العنوان، التعليقات، وأسماء الملفات — وأي مهمة ترجع بضغطة لو العميل رجع بنفس المشكلة.")}
+ ${HEAD("الأرشيف","كل اللي خلص — بيتدوّر فيه ومش بيضيع.",B("ghost","download","تصدير"))}
+ ${tcTabs("tcArchive")}
+ <div class="ar-search card"><div class="inp big">${X("search")}<input value="كوبون"></div><div class="ar-f">${[["الكل","",128],["مهام مقفولة","check-circle-2",96],["ملفات ومستندات","folder",21],["Trello","trello",9],["حسابات متقفلة","key-round",2]].map((t,i)=>`<button class="${i===0?"on":""}">${t[1]?X(t[1]):""}${t[0]}<b class="num">${t[2]}</b></button>`).join("")}</div><div class="ar-sel">${SEL(["كل العملاء","مكتب الريادة","مؤسسة سواعد"])}${SEL(["2026","2025"])}${SEL(["كل الأنواع","BUG","UPD","SUP"])}</div></div>
+ <div class="grid-2 wide-l"><div class="card flush fx-t"><div class="tw fit"><table><thead><tr><th>النتيجة</th><th>العميل</th><th>اتقفلت</th><th class="act"></th></tr></thead><tbody>${[["task","BUG-0141","البحث في السير الذاتية بطيء","…اتضح إن الفهرس على <mark>كوبون</mark>…","مكتب الريادة","10 نوف"],["task","UPD-0790","استهداف <mark>الكوبونات</mark> حسب الفرع","","مؤسسة سواعد","2 نوف"],["file","","عرض سعر — موديول <mark>الكوبونات</mark>.pdf","مستند · 340 KB","مؤسسة سواعد","28 أكت"],["trello","#1034","<mark>كوبون</mark> رمضان للعملاء","مستورد من Trello · Done","مكتب الريادة","أبريل"],["task","SUP-0244","العميل مش لاقي حقل <mark>الكوبون</mark> في التطبيق","3 تعليقات","مكتب الأمانة","9 أكت"]].map(r=>`<tr><td><div class="wcell"><span class="ar-ic ${r[0]}">${X(r[0]==="task"?"check-circle-2":r[0]==="file"?"file-text":"trello")}</span><div><b>${r[1]?`<span class="num">${r[1]}</span> `:""}${r[2]}</b><small>${r[3]}</small></div></div></td><td>${r[4]}</td><td class="num">${r[5]}</td><td class="act">${r[0]==="task"?ACTS([["rotate-ccw","رجّعها للوحة"]]):ACTS([["eye","فتح"]])}</td></tr>`).join("")}</tbody></table></div></div>
+ <div class="fx-side">${SEC("folder","ملفات مكتب الريادة",`<div class="ar-files">${[["file-signature","العقود",4],["file-text","المواصفات",6],["receipt","الفواتير",12],["image","التصاميم",9]].map(f=>`<a href="#">${X(f[0])}<b>${f[1]}</b><small class="num">${f[2]}</small></a>`).join("")}</div>`)}
+  ${SEC("settings-2","قواعد الأرشفة",`${ROW("المهام المقفولة تتنقل للأرشيف بعد","30 يوم — بتفضل في التقارير",`<b class="num">30</b>`)}${ROW("الملفات المرفقة تتحفظ","للأبد · لقطات الشاشة 60 يوم",SW(1))}`)}</div></div>`;
+
+/* ================= الحضور بالموقع ================= */
+const PINS=[["أحمد سمير","office",62,40,"09:02","المكتب الرئيسي · 18 م"],["منى عادل","office",58,46,"08:55","المكتب الرئيسي · 34 م"],["كريم فتحي","field",22,70,"09:40","زيارة عميل — مكتب نجد"],["سارة نبيل","remote",80,18,"09:10","من البيت · يوم عن بعد"],["يوسف حسن","out",35,22,"09:31","برّه النطاق · 1.2 كم"],["عمر خالد","none",0,0,"—","لسه ماسجّلش"]];
+const PS={office:["g","في المكتب"],field:["b","زيارة ميدانية"],remote:["n","عن بعد"],out:["r","برّه النطاق"],none:["a","لسه"]};
+S.tcCheckin=()=>`
+ ${IDEA("الحضور بقى بالموقع ومربوط بالشغل: الموظف بيسجّل من الموبايل أو المتصفح، والنظام بيقارن مكانه بنطاق الفرع (الإحداثيات موجودة أصلاً في الفروع). جوه النطاق = حضور مباشر، برّه = لازم سبب (زيارة عميل مربوطة بمهمة، أو يوم عن بعد متوافق عليه). والمؤقت في «يومي» مش بيشتغل غير بعد تسجيل الحضور — فوقت المهام دايماً جوه ساعات الحضور. والمدير بيشوف الخريطة والجدول مع بعض.")}
+ ${HEAD("الحضور بالموقع","مين فين النهارده — مربوط بنطاق كل فرع.",B("ghost","settings-2","النطاقات",'data-go="tcGeo"')+B("ghost","file-spreadsheet","تصدير"))}
+ ${tcTabs("tcCheckin")}
+ <div class="ci-wrap">
+  <div class="ci-phone"><div class="ci-ph"><small class="num">09:02</small><b>صباح الخير يا أحمد</b></div>
+   <div class="ci-map sm"><div class="ci-zone"></div><span class="ci-me" style="left:52%;top:48%"></span></div>
+   <div class="ci-ok">${X("locate-fixed")}<div><b>انت في المكتب الرئيسي</b><small>على بُعد <span class="num">18</span> م · دقة <span class="num">±8</span> م</small></div></div>
+   ${B("primary","log-in","سجّل حضوري")}
+   <div class="ci-alt"><button>${X("car")}زيارة عميل</button><button>${X("home")}عن بعد</button></div>
+   <small class="ci-n">بعد التسجيل يفتحلك «يومي» والمؤقت يبقى متاح.</small></div>
+  <div class="ci-mgr"><div class="ci-k">${[["g","في المكتب",2],["b","زيارة ميدانية",1],["n","عن بعد",1],["r","برّه النطاق",1],["a","لسه ماسجّلش",1]].map(k=>`<div class="${k[0]}"><b class="num">${k[2]}</b><small>${k[1]}</small></div>`).join("")}</div>
+   <div class="card ci-map"><div class="ci-zone big"><span>المكتب الرئيسي · نطاق 150 م</span></div>${PINS.filter(p=>p[1]!=="none").map(p=>`<span class="ci-pin ${PS[p[1]][0]}" style="left:${p[2]}%;top:${p[3]}%" title="${p[0]}">${p[0][0]}</span>`).join("")}<div class="ci-leg">${Object.keys(PS).filter(k=>k!=="none").map(k=>`<span><i class="${PS[k][0]}"></i>${PS[k][1]}</span>`).join("")}</div></div>
+   <div class="card flush fx-t"><div class="tw fit"><table><thead><tr><th>الموظف</th><th>الحضور</th><th>المكان</th><th>الحالة</th><th>شغال على</th><th class="act"></th></tr></thead><tbody>${PINS.map(p=>`<tr><td><div class="wcell">${av(p[0])}<div><b>${p[0]}</b></div></div></td><td class="num">${p[4]}</td><td><small>${p[5]}</small></td><td>${TAG(PS[p[1]][0]==="b"?"n":PS[p[1]][0],PS[p[1]][1])}</td><td>${p[1]==="office"&&p[0]==="أحمد سمير"?`<span class="num">UPD-0812</span>`:p[1]==="field"?`<span class="num">OPS-0033</span>`:p[1]==="none"?"—":`<small class="tc-sub">مفيش مؤقت</small>`}</td><td class="act">${p[1]==="out"?ACTS([["check","اعتماد"],["message-circle","اسأل"]]):p[1]==="none"?ACTS([["send","فكّره",'data-go="tcRemind"']]):""}</td></tr>`).join("")}</tbody></table></div></div>
+  </div></div>`;
+
+S.tcGeo=()=>`
+ ${IDEA("النطاق بيتحدد مرة لكل فرع بدايرة على الخريطة (الإحداثيات اللي في إعدادات الفروع)، وجنبه القواعد بالعربي: مين مسموح له عن بعد وإمتى، والزيارة الميدانية لازم تكون مربوطة بمهمة.")}
+ ${HEAD("نطاقات الحضور","لكل فرع نطاق، وقواعد للعمل برّه المكتب.",B("primary","save","حفظ"),["tcCheckin","الحضور بالموقع"])}
+ <div class="grid-2 wide-l"><div class="card ci-map tall"><div class="ci-zone big"><span>المكتب الرئيسي</span></div><span class="ci-handle"></span></div>
+ <div class="fx-side">${SEC("map-pin","المكتب الرئيسي",`<div class="fgrid one" style="padding:0 20px 14px">${FLD("الإحداثيات",INP("","24.7743, 46.7386",1),0,"من إعدادات الفروع")}${FLD("نصف قطر النطاق",`<div class="ci-r"><input type="range" value="150" min="50" max="500"><b class="num">150 م</b></div>`)}${FLD("الدقة المطلوبة",SEL(["±50 م (موصى به)","±100 م"]))}</div>`)}
+  ${SEC("list-checks","القواعد",`${ROW("المؤقت مايشتغلش قبل تسجيل الحضور","",SW(1))}${ROW("برّه النطاق يطلب سبب","ويروح للمدير يعتمده",SW(1))}${ROW("الزيارة الميدانية لازم تتربط بمهمة","",SW(1))}${ROW("أيام العمل عن بعد","سارة نبيل: الأحد والخميس",SW(1))}${ROW("نبّه لو خرج من النطاق والمؤقت شغال","",SW(0))}`)}</div></div>`;
+
+/* ================= «يومي»: الحضور بالموقع ================= */
+const oldMy=screens.tcMy;
+S.tcMy=()=>oldMy().replace('${TIMER','${TIMER').replace('<div class="tc-timer">',`<div class="ci-strip">${X("locate-fixed")}<span>حاضر من <b class="num">09:02</b> · <b>المكتب الرئيسي</b> (بالموقع · 18 م)</span><a href="#" data-go="tcCheckin">الحضور</a></div><div class="tc-timer">`);
+
+Object.assign(T,{tcAdmin:{ar:"مهام الإدارة",en:"Management tasks"},tcRemind:{ar:"رسالة أو تذكير",en:"Send reminder"},tcVault:{ar:"بيانات الدخول",en:"Credentials"},tcArchive:{ar:"الأرشيف",en:"Archive"},tcCheckin:{ar:"الحضور بالموقع",en:"Location check-in"},tcGeo:{ar:"نطاقات الحضور",en:"Geofences"}});
 Object.keys(S).forEach(k=>{screens[k]=S[k]});
 })();
 (function(){var P=window.CERP_PAGE;if(!P)return;var PAGES=window.CERP_PAGES||[];

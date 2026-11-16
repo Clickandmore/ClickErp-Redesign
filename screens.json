@@ -1,5 +1,5 @@
 {
-  "version": "v1.15",
+  "version": "v1.16",
   "date": "2026-11-16",
   "entry": "login.html",
   "screens": [
@@ -922,6 +922,36 @@
       "id": "tcQALib",
       "file": "tcQALib.html",
       "title": "مركز المهام — مكتبة السيناريوهات"
+    },
+    {
+      "id": "tcAdmin",
+      "file": "tcAdmin.html",
+      "title": "مركز المهام — مهام الإدارة"
+    },
+    {
+      "id": "tcRemind",
+      "file": "tcRemind.html",
+      "title": "مركز المهام — رسالة أو تذكير (واتساب / إيميل)"
+    },
+    {
+      "id": "tcVault",
+      "file": "tcVault.html",
+      "title": "مركز المهام — بيانات الدخول"
+    },
+    {
+      "id": "tcArchive",
+      "file": "tcArchive.html",
+      "title": "مركز المهام — الأرشيف"
+    },
+    {
+      "id": "tcCheckin",
+      "file": "tcCheckin.html",
+      "title": "مركز المهام — الحضور بالموقع"
+    },
+    {
+      "id": "tcGeo",
+      "file": "tcGeo.html",
+      "title": "مركز المهام — نطاقات الحضور"
     }
   ],
   "states": [
