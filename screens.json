@@ -1,5 +1,5 @@
 {
-  "version": "v1.10",
+  "version": "v1.11",
   "date": "2026-11-16",
   "entry": "login.html",
   "screens": [
@@ -721,7 +721,7 @@
     {
       "id": "tcMy",
       "file": "tcMy.html",
-      "title": "مركز المهام — مهامي اليوم"
+      "title": "مركز المهام — يومي"
     },
     {
       "id": "tcBoard",
@@ -857,6 +857,16 @@
       "id": "saTestAccounts",
       "file": "saTestAccounts.html",
       "title": "حسابات اختبار التطبيقات"
+    },
+    {
+      "id": "tcList",
+      "file": "tcList.html",
+      "title": "مركز المهام — كل المهام (قائمة)"
+    },
+    {
+      "id": "tcClose",
+      "file": "tcClose.html",
+      "title": "مركز المهام — قفّل يومك"
     }
   ],
   "states": [
