@@ -1,114 +1,144 @@
 /* =====================================================================
-   Super Admin — الهيكل المشترك (sidebar + topbar) + تفاعلات المعاينة
-   كل صفحة فيها <body data-page="…"> و<main class="sa-content"> بس،
-   والملف ده بيلفّها بالقائمة والشريط العلوي من مصدر واحد (SA_NAV).
+   Super Admin — الإطار المشترك بنفس ماركب ثيم النظام
+   (#app > aside.side > .rail + .side-head + nav.nav + .side-foot  ·  .main > header.top + main.page)
+   الأنماط كلها من ../assets/clickerp.bundle.css — الملف ده بيبني الماركب بس.
+
+   كل صفحة فيها <body data-page="…"> و<main class="sa-content"> بالمحتوى بس،
+   والملف ده بيلفّها بالإطار من مصدر واحد (SA_NAV).
 
    إضافة شاشة جديدة:
-     1) انسخ أي صفحة (مثلاً scheduler.html) وغيّر data-page والمحتوى.
+     1) انسخ أقرب صفحة (مثلاً scheduler.html) وغيّر data-page والمحتوى.
      2) ضيف سطر في SA_NAV تحت المجموعة المناسبة.
-     — لو الشاشة فرعية (فورم/تفاصيل) ضيفها في SA_PARENT بدل القائمة.
+     — شاشة فرعية (فورم/تفاصيل)؟ ضيفها في SA_PARENT بدل القائمة.
 
    المقابل في ClickERP: resources/views/admin/superadmin/partials/sidebar.blade.php ($saMainNav / $saToolNav)
    ===================================================================== */
 (function () {
   'use strict';
 
-  /* ---------- مصدر القائمة الوحيد ---------- */
+  /* ---------- مصدر القائمة الوحيد: كل مجموعة = زر في الـ rail + قائمتها في الـ side ---------- */
   var SA_NAV = [
-    { group: 'النظام', items: [
-      { id: 'overview',     href: 'index.html',        icon: 'activity',         label: 'نظرة عامة', isNew: true, dot: true },
-      { id: 'subscription', href: 'subscription.html', icon: 'badge-check',      label: 'العميل والاشتراك', route: 'dev-superadmin.subscription' },
-      { id: 'employees',    href: 'employees.html',    icon: 'users',            label: 'الموظفون', route: 'dev-superadmin.employees' },
-      { id: 'modules',      href: 'modules.html',      icon: 'layout-grid',      label: 'الموديلات', route: 'dev-superadmin.modules' },
-      { id: 'designs',      href: 'designs.html',      icon: 'panels-top-left',  label: 'تصاميم لوحة التحكم', route: 'dev-superadmin.dashboard-designs' },
-      { id: 'updates',      href: 'updates.html',      icon: 'refresh-cw',       label: 'تحديثات النظام', route: 'dev-superadmin.product-updates' },
-      { id: 'backups',      href: 'backups.html',      icon: 'database',         label: 'النسخ الاحتياطية', route: 'dev-superadmin.database-backups' },
-      { id: 'scheduler',    href: 'scheduler.html',    icon: 'clock',            label: 'المهام المجدولة', route: 'dev-superadmin.scheduler', dot: true },
-      { id: 'recovery',     href: 'recovery.html',     icon: 'shield-check',     label: 'الاستعادة والفحص', route: 'dev-superadmin.recovery', count: 2 }
+    { id: 'system', icon: 'server-cog', label: 'النظام', desc: 'العميل والاشتراك والموديلات والتشغيل', items: [
+      { id: 'overview',     href: 'index.html',        icon: 'activity',        label: 'نظرة عامة', isNew: true },
+      { id: 'subscription', href: 'subscription.html', icon: 'badge-check',     label: 'العميل والاشتراك', route: 'dev-superadmin.subscription' },
+      { id: 'employees',    href: 'employees.html',    icon: 'users',           label: 'الموظفون', route: 'dev-superadmin.employees' },
+      { id: 'modules',      href: 'modules.html',      icon: 'layout-grid',     label: 'الموديلات', route: 'dev-superadmin.modules' },
+      { id: 'designs',      href: 'designs.html',      icon: 'panels-top-left', label: 'تصاميم لوحة التحكم', route: 'dev-superadmin.dashboard-designs' },
+      { id: 'updates',      href: 'updates.html',      icon: 'refresh-cw',      label: 'تحديثات النظام', route: 'dev-superadmin.product-updates' },
+      { id: 'backups',      href: 'backups.html',      icon: 'database',        label: 'النسخ الاحتياطية', route: 'dev-superadmin.database-backups' },
+      { id: 'scheduler',    href: 'scheduler.html',    icon: 'clock',           label: 'المهام المجدولة', route: 'dev-superadmin.scheduler', alert: 'Scheduler متوقف' },
+      { id: 'recovery',     href: 'recovery.html',     icon: 'shield-check',    label: 'الاستعادة والفحص', route: 'dev-superadmin.recovery', count: 2 }
     ]},
-    { group: 'أدوات', items: [
-      { id: 'test-accounts', href: 'test-accounts.html', icon: 'smartphone',   label: 'حسابات اختبار التطبيقات', route: 'dev-superadmin.hourly-app-review-accounts.index' },
-      { id: 'hourly',        href: 'hourly.html',        icon: 'hourglass',    label: 'إعدادات الساعات', route: 'dev-superadmin.hourly-rental-settings.index' },
-      { id: 'moyasar',       href: 'moyasar.html',       icon: 'link',         label: 'بوابة ميسر', route: 'dev-superadmin.moyasar-settings' },
-      { id: 'invoices',      href: 'invoices.html',      icon: 'file-pen',     label: 'تصحيح الفواتير', route: 'dev-superadmin.invoice-corrections.index' },
-      { id: 'mcp',           href: 'mcp.html',           icon: 'plug-zap',     label: 'المساعد الذكي (MCP)', route: 'dev-superadmin.mcp.index' }
+    { id: 'tools', icon: 'wrench', label: 'الأدوات', desc: 'أدوات الدعم والربط والتصحيح', items: [
+      { id: 'test-accounts', href: 'test-accounts.html', icon: 'smartphone', label: 'حسابات اختبار التطبيقات', route: 'dev-superadmin.hourly-app-review-accounts.index' },
+      { id: 'hourly',        href: 'hourly.html',        icon: 'hourglass',  label: 'إعدادات الساعات', route: 'dev-superadmin.hourly-rental-settings.index' },
+      { id: 'moyasar',       href: 'moyasar.html',       icon: 'credit-card', label: 'بوابة ميسر', route: 'dev-superadmin.moyasar-settings' },
+      { id: 'invoices',      href: 'invoices.html',      icon: 'file-pen',   label: 'تصحيح الفواتير', route: 'dev-superadmin.invoice-corrections.index' },
+      { id: 'mcp',           href: 'mcp.html',           icon: 'sparkles',   label: 'المساعد الذكي (MCP)', route: 'dev-superadmin.mcp.index' }
     ]}
   ];
 
-  /* شاشات فرعية: بتنوّر عنصر الأب في القائمة وبتظهر في مسار التنقل تحته */
+  /* شاشات فرعية: بتنوّر عنصر الأب وبتظهر في مسار التنقل */
   var SA_PARENT = {
     'update-form': { parent: 'updates', label: 'تحديث جديد' },
     'invoice-fix': { parent: 'invoices', label: 'تعديل فاتورة' }
   };
 
-  /* بيانات النسخة المعروضة في الشريط العلوي (في النظام: من SystemModuleManager و app()->environment()) */
-  var SA_ENV = { env: 'بيئة الإنتاج', profile: 'نظام الاستقدام' };
+  /* بيانات النسخة (في النظام: app()->environment() و SystemModuleManager::productProfileKey()) */
+  var SA_ENV = { env: 'بيئة الإنتاج', profile: 'نظام الاستقدام', client: 'مكتب الريادة للاستقدام', user: 'clickdev' };
 
-  /* شعار Click & More (نفس partials/logo-mark.blade.php) */
-  var LOGO = '<svg viewBox="0 0 100 100" aria-hidden="true"><g fill="none" stroke="#1B2A4A" stroke-linecap="round"><path d="M68.51 29.43A32 32 0 1 0 66.63 72.63" stroke-width="15"/><path d="M58.55 37.79A19 19 0 1 0 57.43 63.43" stroke-width="4"/><path d="M51.66 43.57A10 10 0 1 0 51.07 57.07" stroke-width="4"/></g><path d="M50 53L94 66L72 73L65 95Z" fill="#7AB948"/></svg>';
-  window.SA_LOGO = LOGO;
-  /* شعار الشركة من ثيم النظام (assets/ في جذر المستودع) */
+  /* شعار الشركة من ثيم النظام */
   var LOGO_IMG = '../assets/logo-light-tight.png';
 
-  var ic = function (n) { return '<i data-lucide="' + n + '"></i>'; };
+  var ic = function (n, c) { return '<i data-lucide="' + n + '"' + (c ? ' class="' + c + '"' : '') + '></i>'; };
 
-  function findItem(id) {
+  function find(id) {
     for (var g = 0; g < SA_NAV.length; g++)
       for (var i = 0; i < SA_NAV[g].items.length; i++)
-        if (SA_NAV[g].items[i].id === id) return { group: SA_NAV[g].group, item: SA_NAV[g].items[i] };
+        if (SA_NAV[g].items[i].id === id) return { group: SA_NAV[g], item: SA_NAV[g].items[i] };
     return null;
+  }
+
+  function list(group, activeId) {
+    return '<div class="dp-head"><div class="dp-t"><b>' + group.label + '</b><small title="' + group.desc + '">' + group.desc + '</small></div></div>' +
+      '<div class="dp-list">' + group.items.map(function (it) {
+        var tail = it.count ? '<span class="badge sa-warn num">' + it.count + '</span>' : (it.alert ? '<span class="nal r dot" title="' + it.alert + '"></span>' : '');
+        return '<a href="' + it.href + '"' + (it.id === activeId ? ' class="on" aria-current="page"' : '') + (it.route ? ' data-route="' + it.route + '"' : '') + '>' + ic(it.icon) + '<span>' + it.label + '</span>' + tail + '</a>';
+      }).join('') + '</div>';
   }
 
   function buildShell() {
     var body = document.body;
     var page = body.getAttribute('data-page');
-    var main = document.querySelector('main.sa-content');
-    if (!page || !main) return;
+    var content = document.querySelector('main.sa-content');
+    if (!page || !content) return;
 
     var sub = SA_PARENT[page];
     var activeId = sub ? sub.parent : page;
-    var found = findItem(activeId);
+    var found = find(activeId) || { group: SA_NAV[0], item: null };
+    var title = sub ? sub.label : (found.item ? found.item.label : '');
 
-    var nav = SA_NAV.map(function (g, gi) {
-      var links = g.items.map(function (it) {
-        var on = it.id === activeId;
-        var tail = it.count ? '<span class="sa-nav-count num">' + it.count + '</span>' : (it.dot ? '<span class="sa-nav-dot" title="محتاج تصرّف"></span>' : '');
-        return '<a class="sa-nav-link' + (on ? ' is-active' : '') + '" href="' + it.href + '"' + (on ? ' aria-current="page"' : '') + (it.route ? ' data-route="' + it.route + '"' : '') + '>' + ic(it.icon) + '<span>' + it.label + '</span>' + tail + '</a>';
-      }).join('');
-      return (gi ? '<p class="sa-nav-label">' + g.group + '</p>' : '') + '<nav class="sa-nav" aria-label="' + g.group + '">' + links + '</nav>';
-    }).join('');
+    var rail =
+      '<div class="rail">' +
+        '<a href="index.html" class="rl-first' + (page === 'overview' ? ' on here' : '') + '" title="نظرة عامة">' + ic('layout-dashboard') + '<small>الرئيسية</small></a>' +
+        SA_NAV.map(function (g) {
+          var on = g === found.group && page !== 'overview';
+          return '<button type="button" data-sa-rail="' + g.id + '" class="' + (on ? 'on here' : '') + '" title="' + g.label + '">' + ic(g.icon) + '<small>' + g.label + '</small></button>';
+        }).join('') +
+      '</div>';
 
-    var sidebar =
-      '<aside class="sa-sidebar sa-pattern" id="saSidebar" aria-label="القائمة الرئيسية">' +
-        '<div class="sa-sidebar-brand"><a class="sa-brand" href="index.html" title="Click & More — Super Admin"><img src="' + LOGO_IMG + '" alt="Click & More"><span class="sa-brand-sub">Super Admin</span></a></div>' +
-        nav +
-        '<div class="sa-sidebar-foot">' +
-          '<a class="sa-nav-link" href="../dashboard.html">' + ic('external-link') + '<span>لوحة الإدارة</span></a>' +
-          '<a class="sa-nav-link sa-nav-link--danger" href="login.html">' + ic('log-out') + '<span>خروج</span></a>' +
+    var side =
+      '<aside class="side">' + rail +
+        '<div class="side-head"><a class="sb-brand" href="index.html" title="Click & More — Super Admin"><span class="sb-logo" role="img" aria-label="Click & More"><img src="' + LOGO_IMG + '" alt=""></span><span class="sb-name"><b>Click & More</b><small>لوحة Super Admin</small></span></a></div>' +
+        '<nav class="nav" data-sa-list>' + list(found.group, activeId) + '</nav>' +
+        '<div class="side-foot"><span class="av">SA</span><div class="sf-txt"><b>Super Admin</b><span>' + SA_ENV.user + ' · ' + SA_ENV.env + '</span></div><a class="icon-btn" href="login.html" title="خروج" style="margin-inline-start:auto;color:#8093ad">' + ic('log-out') + '</a></div>' +
+      '</aside>';
+
+    var crumb = 'Super Admin / ' + found.group.label + (sub && found.item ? ' / ' + found.item.label : '');
+    var top =
+      '<header class="top">' +
+        '<button class="icon-btn" data-collapse title="تصغير القائمة">' + ic('panel-left') + '</button>' +
+        '<div class="crumb"><span>' + crumb + '</span><b>' + title + '</b></div>' +
+        '<div class="top-search"><div class="inp">' + ic('search') + '<input placeholder="ابحث في Super Admin… موظف، فاتورة، إعداد"><kbd>Ctrl K</kbd></div></div>' +
+        '<div class="top-right">' +
+          '<button class="pill" title="العميل">' + ic('building-2') + '<span>' + SA_ENV.client + '</span></button>' +
+          '<button class="pill" title="البيئة · نوع البرنامج">' + ic('server') + '<span>' + SA_ENV.env + ' · ' + SA_ENV.profile + '</span></button>' +
+          '<span class="sep"></span>' +
+          '<a class="icon-btn" href="../dashboard.html" title="لوحة الإدارة">' + ic('external-link') + '</a>' +
+          '<button class="icon-btn" title="التنبيهات">' + ic('bell') + '<span class="dot"></span></button>' +
+          '<div class="lang"><button class="on">AR</button><button>EN</button></div>' +
+          '<a class="icon-btn av-btn" href="login.html" title="خروج"><span class="av-sm">SA</span></a>' +
         '</div>' +
-      '</aside><div class="sa-backdrop" data-sa-nav-close></div>';
-
-    var title = body.getAttribute('data-title') || (document.querySelector('.sa-page-title') || {}).textContent || '';
-    var crumbs = '<li><a href="index.html">الرئيسية</a></li><li>' + (found ? found.group : 'النظام') + '</li>';
-    if (sub && found) crumbs += '<li><a href="' + found.item.href + '">' + found.item.label + '</a></li><li aria-current="page">' + sub.label + '</li>';
-    else crumbs += '<li aria-current="page">' + (found ? found.item.label : title.trim()) + '</li>';
-
-    var topbar =
-      '<header class="sa-topbar">' +
-        '<div class="sa-topbar-start"><button class="btn btn-icon sa-menu-btn" type="button" data-sa-nav-toggle aria-controls="saSidebar" aria-expanded="false" aria-label="القائمة">' + ic('menu') + '</button>' +
-        '<ol class="sa-breadcrumb" aria-label="مسار التنقل">' + crumbs + '</ol></div>' +
-        '<div class="sa-topbar-end"><span class="sa-badge sa-badge--env">' + ic('server') + SA_ENV.env + '</span><span class="sa-badge sa-badge--brand">' + ic('package') + SA_ENV.profile + '</span><span class="sa-avatar" title="Super Admin">SA</span></div>' +
       '</header>';
 
     var app = document.createElement('div');
-    app.className = 'sa-app';
-    app.id = 'saApp';
-    app.innerHTML = sidebar + '<div class="sa-main">' + topbar + '</div>';
-    main.parentNode.insertBefore(app, main);
-    app.querySelector('.sa-main').appendChild(main);
+    app.id = 'app';
+    app.innerHTML = side + '<div class="main">' + top + '</div>';
+    content.parentNode.insertBefore(app, content);
+    content.classList.add('page');
+    app.querySelector('.main').appendChild(content);
 
-    document.title = (found && !sub ? found.item.label : (sub ? sub.label : title.trim())) + ' — Super Admin · Click ERP';
+    document.title = title + ' — Super Admin · Click ERP';
+
+    /* الـ rail بيبدّل القائمة الجانبية من غير تنقّل (زي النظام) */
+    app.querySelectorAll('[data-sa-rail]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var g = SA_NAV.filter(function (x) { return x.id === b.getAttribute('data-sa-rail'); })[0];
+        app.querySelectorAll('.rail > *').forEach(function (r) { r.classList.toggle('on', r === b); });
+        app.querySelector('[data-sa-list]').innerHTML = list(g, activeId);
+        app.classList.remove('collapsed');
+        icons();
+      });
+    });
+    /* تصغير القائمة على الكمبيوتر، وفتحها كدرج على الموبايل */
+    app.querySelector('[data-collapse]').addEventListener('click', function () {
+      if (window.matchMedia('(max-width: 1000px)').matches) app.classList.toggle('navopen');
+      else app.classList.toggle('collapsed');
+    });
+    app.addEventListener('click', function (e) { if (e.target === app) app.classList.remove('navopen'); });
   }
+
+  function icons() { if (window.lucide) lucide.createIcons({ attrs: { 'stroke-width': 1.8 } }); }
 
   /* ---------- تفاعلات المعاينة (مش للإنتاج) ---------- */
   function toast(msg) {
@@ -116,26 +146,20 @@
     t.className = 'sa-toast';
     t.innerHTML = ic('check-circle-2') + '<span>' + msg + '</span>';
     document.body.appendChild(t);
-    if (window.lucide) lucide.createIcons({ attrs: { 'stroke-width': 1.8 } });
+    icons();
     setTimeout(function () { t.remove(); }, 2200);
   }
   window.saToast = toast;
 
   function bind() {
-    var app = document.getElementById('saApp');
-    var toggle = document.querySelector('[data-sa-nav-toggle]');
-    function setNav(open) { if (!app) return; app.classList.toggle('is-nav-open', open); if (toggle) toggle.setAttribute('aria-expanded', open ? 'true' : 'false'); }
-    if (toggle) toggle.addEventListener('click', function () { setNav(!app.classList.contains('is-nav-open')); });
-    document.querySelectorAll('[data-sa-nav-close]').forEach(function (el) { el.addEventListener('click', function () { setNav(false); }); });
-    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') setNav(false); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { var a = document.getElementById('app'); if (a) a.classList.remove('navopen'); } });
 
-    /* مفاتيح التشغيل */
     document.addEventListener('click', function (e) {
       var sw = e.target.closest('.sa-switch');
       if (sw && !sw.disabled && !sw.classList.contains('is-locked')) { sw.classList.toggle('is-on'); sw.setAttribute('aria-checked', sw.classList.contains('is-on')); dirty(); }
 
       var choice = e.target.closest('.sa-choice');
-      if (choice) { var grp = choice.parentNode; grp.querySelectorAll('.sa-choice').forEach(function (c) { c.classList.toggle('is-on', c === choice); }); }
+      if (choice) { choice.parentNode.querySelectorAll('.sa-choice').forEach(function (c) { c.classList.toggle('is-on', c === choice); }); }
 
       var seg = e.target.closest('.sa-seg button, .sa-chips .sa-chip');
       if (seg) { seg.parentNode.querySelectorAll('button').forEach(function (b) { b.classList.toggle('is-on', b === seg); }); }
@@ -159,7 +183,7 @@
     /* أي زر عليه data-sa-confirm بيعدي على نافذة التأكيد (نفس سلوك layouts/app.blade.php) */
     var dlg = document.createElement('dialog');
     dlg.className = 'sa-dialog';
-    dlg.innerHTML = '<form method="dialog"><div class="sa-dialog-body"><span class="sa-dialog-icon">' + ic('triangle-alert') + '</span><h2 class="sa-dialog-title">تأكيد الإجراء</h2><p class="sa-dialog-text"></p></div><div class="sa-dialog-actions"><button class="btn" value="cancel">إلغاء</button><button class="btn btn-primary" value="confirm">متابعة</button></div></form>';
+    dlg.innerHTML = '<form method="dialog"><div class="sa-dialog-body"><span class="sa-dialog-icon">' + ic('triangle-alert') + '</span><h2 class="sa-dialog-title">تأكيد الإجراء</h2><p class="sa-dialog-text"></p></div><div class="sa-dialog-actions"><button class="btn btn-ghost" value="cancel">إلغاء</button><button class="btn btn-primary" value="confirm">متابعة</button></div></form>';
     document.body.appendChild(dlg);
     document.addEventListener('click', function (e) {
       var b = e.target.closest('[data-sa-confirm]');
@@ -183,6 +207,6 @@
   }
 
   buildShell();
-  if (window.lucide) lucide.createIcons({ attrs: { 'stroke-width': 1.8 } });
+  icons();
   bind();
 })();

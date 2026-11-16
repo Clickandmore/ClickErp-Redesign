@@ -4,11 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<meta name="design-version" content="v1.25.1">
+<meta name="design-version" content="v1.26">
 <title>النسخ الاحتياطية — Super Admin · Click ERP</title>
+<link rel="stylesheet" href="../assets/clickerp.bundle.css">
 <link rel="stylesheet" href="assets/sa.css">
 </head>
-<body data-page="backups">
+<body dir="rtl" data-page="backups">
 <!-- Screen: backups · dev-superadmin.database-backups (DevDatabaseBackupController) · partials/backups.blade.php
      الاستعادة/الحذف/الاستيراد: رمز تحقق (database-backups.verification-code) ← عبارة تأكيد ← تنفيذ -->
 <main class="sa-content">
@@ -19,8 +20,8 @@
       <p class="sa-page-desc">سحابي على R2 ومحلي على السيرفر.</p>
     </div>
     <div class="sa-page-header-end">
-      <button class="btn" data-sa-toast="بدأ تنزيل نسخة من الوضع الحالي"><i data-lucide="download"></i>تنزيل نسخة الآن</button>
-      <button class="btn" data-sa-toast="اتعملت نسخة محلية"><i data-lucide="hard-drive"></i>نسخة محلية</button>
+      <button class="btn btn-ghost" data-sa-toast="بدأ تنزيل نسخة من الوضع الحالي"><i data-lucide="download"></i>تنزيل نسخة الآن</button>
+      <button class="btn btn-ghost" data-sa-toast="اتعملت نسخة محلية"><i data-lucide="hard-drive"></i>نسخة محلية</button>
       <button class="btn btn-primary" data-sa-toast="بدأ إنشاء نسخة في R2"><i data-lucide="cloud-upload"></i>إنشاء نسخة في R2</button>
     </div>
   </div>
@@ -43,9 +44,9 @@
         <div class="sa-table-wrap"><table class="sa-table">
           <thead><tr><th>النسخة</th><th>التاريخ</th><th>الحجم</th><th class="is-end"></th></tr></thead>
           <tbody>
-            <tr><td><span class="sa-mono">clickerp-2026-11-16-0300.sql.gz</span></td><td class="num">اليوم 03:00</td><td class="num">1.8 GB</td><td class="is-end"><button class="btn btn-ghost btn-sm btn-icon" title="تحميل"><i data-lucide="download"></i></button><a class="btn btn-ghost btn-sm" href="#restore"><i data-lucide="rotate-ccw"></i>استعادة</a></td></tr>
-            <tr><td><span class="sa-mono">clickerp-2026-11-15-0300.sql.gz</span></td><td class="num">أمس 03:00</td><td class="num">1.8 GB</td><td class="is-end"><button class="btn btn-ghost btn-sm btn-icon" title="تحميل"><i data-lucide="download"></i></button><a class="btn btn-ghost btn-sm" href="#restore"><i data-lucide="rotate-ccw"></i>استعادة</a></td></tr>
-            <tr><td><span class="sa-mono">clickerp-2026-11-14-0300.sql.gz</span></td><td class="num">14 نوفمبر</td><td class="num">1.7 GB</td><td class="is-end"><button class="btn btn-ghost btn-sm btn-icon" title="تحميل"><i data-lucide="download"></i></button><a class="btn btn-ghost btn-sm" href="#restore"><i data-lucide="rotate-ccw"></i>استعادة</a></td></tr>
+            <tr><td><span class="sa-mono">clickerp-2026-11-16-0300.sql.gz</span></td><td class="num">اليوم 03:00</td><td class="num">1.8 GB</td><td class="is-end"><button class="icon-btn" title="تحميل"><i data-lucide="download"></i></button><a class="btn btn-ghost sm" href="#restore"><i data-lucide="rotate-ccw"></i>استعادة</a></td></tr>
+            <tr><td><span class="sa-mono">clickerp-2026-11-15-0300.sql.gz</span></td><td class="num">أمس 03:00</td><td class="num">1.8 GB</td><td class="is-end"><button class="icon-btn" title="تحميل"><i data-lucide="download"></i></button><a class="btn btn-ghost sm" href="#restore"><i data-lucide="rotate-ccw"></i>استعادة</a></td></tr>
+            <tr><td><span class="sa-mono">clickerp-2026-11-14-0300.sql.gz</span></td><td class="num">14 نوفمبر</td><td class="num">1.7 GB</td><td class="is-end"><button class="icon-btn" title="تحميل"><i data-lucide="download"></i></button><a class="btn btn-ghost sm" href="#restore"><i data-lucide="rotate-ccw"></i>استعادة</a></td></tr>
           </tbody>
         </table></div>
       </section>
@@ -55,22 +56,22 @@
         <div class="sa-steps">
           <div class="sa-step"><span class="sa-step-n"><span>1</span>رمز التحقق</span>
             <div class="sa-field"><label>إرسال الرمز إلى</label><select class="sa-select"><option>البريد — dev@…sa</option><option>الجوال — 05••••4421</option></select></div>
-            <button class="btn btn-sm" data-sa-toast="اتبعت الرمز — صالح 10 دقايق"><i data-lucide="send"></i>طلب رمز الاستعادة</button>
+            <button class="btn btn-ghost sm" data-sa-toast="اتبعت الرمز — صالح 10 دقايق"><i data-lucide="send"></i>طلب رمز الاستعادة</button>
             <span class="sa-help">صالح 10 دقايق · 5 محاولات</span></div>
           <div class="sa-step"><span class="sa-step-n"><span>2</span>التأكيد</span>
             <div class="sa-field"><label>اكتب <code>RESTORE</code></label><input class="sa-input" dir="ltr" placeholder="RESTORE"></div>
             <div class="sa-field"><label>رمز التحقق</label><input class="sa-input" dir="ltr" placeholder="••••••"></div></div>
           <div class="sa-step"><span class="sa-step-n"><span>3</span>التنفيذ</span>
             <span class="sa-help">قاعدة البيانات الحالية هتتستبدل بالكامل بالنسخة دي.</span>
-            <button class="btn btn-danger" data-sa-confirm="هتتستبدل قاعدة البيانات الحالية بنسخة 15 نوفمبر 03:00. هتتعمل نسخة من الوضع الحالي الأول. متأكد؟"><i data-lucide="rotate-ccw"></i>استعادة النسخة</button></div>
+            <button class="btn btn-red" data-sa-confirm="هتتستبدل قاعدة البيانات الحالية بنسخة 15 نوفمبر 03:00. هتتعمل نسخة من الوضع الحالي الأول. متأكد؟"><i data-lucide="rotate-ccw"></i>استعادة النسخة</button></div>
         </div>
       </section>
 
       <section class="sa-card sa-card--flush">
         <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="hard-drive"></i></span><div><h2 class="sa-card-title">النسخ المحلية على السيرفر</h2></div></div></div>
         <div class="sa-table-wrap"><table class="sa-table"><tbody>
-          <tr><td><span class="sa-mono">local-2026-11-16.sql.gz</span> <span class="sa-badge sa-badge--success">محمية</span></td><td class="num">1.8 GB</td><td class="is-end"><button class="btn btn-ghost btn-sm btn-icon" title="تحميل"><i data-lucide="download"></i></button><button class="btn btn-ghost btn-sm btn-icon" title="نسخ أمر Terminal" data-sa-toast="اتنسخ الأمر"><i data-lucide="terminal"></i></button></td></tr>
-          <tr><td><span class="sa-mono">local-2026-11-15.sql.gz</span></td><td class="num">1.8 GB</td><td class="is-end"><button class="btn btn-ghost btn-sm btn-icon" title="تحميل"><i data-lucide="download"></i></button><button class="btn btn-ghost btn-sm btn-icon" title="نسخ أمر Terminal" data-sa-toast="اتنسخ الأمر"><i data-lucide="terminal"></i></button><button class="btn btn-ghost btn-sm btn-icon" title="حذف" data-sa-confirm="هتتحذف النسخة المحلية local-2026-11-15 نهائيًا."><i data-lucide="trash-2"></i></button></td></tr>
+          <tr><td><span class="sa-mono">local-2026-11-16.sql.gz</span> <span class="sa-badge sa-badge--success">محمية</span></td><td class="num">1.8 GB</td><td class="is-end"><button class="icon-btn" title="تحميل"><i data-lucide="download"></i></button><button class="icon-btn" title="نسخ أمر Terminal" data-sa-toast="اتنسخ الأمر"><i data-lucide="terminal"></i></button></td></tr>
+          <tr><td><span class="sa-mono">local-2026-11-15.sql.gz</span></td><td class="num">1.8 GB</td><td class="is-end"><button class="icon-btn" title="تحميل"><i data-lucide="download"></i></button><button class="icon-btn" title="نسخ أمر Terminal" data-sa-toast="اتنسخ الأمر"><i data-lucide="terminal"></i></button><button class="icon-btn" title="حذف" data-sa-confirm="هتتحذف النسخة المحلية local-2026-11-15 نهائيًا."><i data-lucide="trash-2"></i></button></td></tr>
         </tbody></table></div>
       </section>
     </div>
@@ -86,7 +87,7 @@
           <div class="sa-field"><label>الاحتفاظ في R2 (يوم)</label><input class="sa-input" type="number" value="30"></div>
           <div class="sa-field"><label>الاحتفاظ محليًا (يوم)</label><input class="sa-input" type="number" value="7"></div>
         </div>
-        <div class="sa-card-foot"><button class="btn btn-primary btn-sm" data-sa-toast="اتحفظ الإعداد"><i data-lucide="save"></i>حفظ الإعداد</button></div>
+        <div class="sa-card-foot"><button class="btn btn-primary sm" data-sa-toast="اتحفظ الإعداد"><i data-lucide="save"></i>حفظ الإعداد</button></div>
       </section>
       <section class="sa-card">
         <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="key-round"></i></span><div><h2 class="sa-card-title">أمان Super Admin</h2><p class="sa-card-desc">لرموز التحقق في العمليات الحساسة.</p></div></div></div>
@@ -95,13 +96,13 @@
           <div class="sa-field"><label>جوال التحقق</label><input class="sa-input" dir="ltr" value="05••••4421"></div>
           <div class="sa-field"><label>كلمة مرور جديدة</label><input class="sa-input" type="password"><span class="sa-help">12 حرف على الأقل بأنواع مختلفة · تغييرها بيعمل خروج.</span></div>
         </div>
-        <div class="sa-card-foot"><button class="btn btn-sm" data-sa-toast="اتحفظ"><i data-lucide="save"></i>حفظ</button></div>
+        <div class="sa-card-foot"><button class="btn btn-ghost sm" data-sa-toast="اتحفظ"><i data-lucide="save"></i>حفظ</button></div>
       </section>
       <section class="sa-card sa-card--danger">
         <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="database-zap"></i></span><div><h2 class="sa-card-title">استيراد قاعدة بيانات</h2><p class="sa-card-desc">بيولّد لك أمر الرفع وأمر الاستيراد تنسخهم.</p></div></div></div>
         <div class="sa-seg" style="margin-bottom:12px"><button class="is-on">من السيرفر (SSH)</button><button>من المتصفح</button></div>
         <code class="sa-code">mysql -u clickerp -p alriyada_prod &lt; backup.sql</code>
-        <div class="sa-card-foot"><button class="btn btn-sm" data-sa-toast="اتنسخ"><i data-lucide="copy"></i>نسخ أمر الرفع</button><button class="btn btn-sm" data-sa-toast="اتنسخ"><i data-lucide="copy"></i>نسخ أمر الاستيراد</button></div>
+        <div class="sa-card-foot"><button class="btn btn-ghost sm" data-sa-toast="اتنسخ"><i data-lucide="copy"></i>نسخ أمر الرفع</button><button class="btn btn-ghost sm" data-sa-toast="اتنسخ"><i data-lucide="copy"></i>نسخ أمر الاستيراد</button></div>
       </section>
     </aside>
   </div>

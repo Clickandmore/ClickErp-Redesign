@@ -4,57 +4,55 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<meta name="design-version" content="v1.25.1">
+<meta name="design-version" content="v1.26">
 <title>تسجيل الدخول — Super Admin · Click ERP</title>
+<link rel="stylesheet" href="../assets/clickerp.bundle.css">
 <link rel="stylesheet" href="assets/sa.css">
 </head>
-<body>
+<body dir="rtl">
 <!-- Screen: login · /{locale}/superadmin (DevSuperAdminController@loginForm) · admin/superadmin/login.blade.php
-     الشكل نفس login.html في الثيم: فورم في كارت على خلفية منقطة + صورة الرياض. الحقول زي الكود: اسم وكلمة مرور. -->
-<div class="sa-auth">
-  <div class="sa-auth-form-col">
-    <form class="sa-auth-inner" action="index.html">
-      <div class="sa-auth-logo">
-        <img src="../assets/logo-light-tight.png" alt="Click & More">
-        <span class="sa-auth-restricted"><i data-lucide="shield-alert"></i>Super Admin — للفريق التقني فقط</span>
-      </div>
-      <div class="sa-auth-head">
-        <h1 class="sa-auth-title">تسجيل الدخول</h1>
-        <p class="sa-auth-sub">أدخل بيانات حساب المدير العام للمتابعة.</p>
+     الماركب نفس login.html في الثيم (.lx / .lx-form / .lx-art) — مكان شعار المكتب شعار Click & More.
+     الحقول زي الكود: اسم الدخول + كلمة المرور (throttle 5 في الدقيقة). -->
+<section id="login" class="lx">
+  <div class="lx-form">
+    <div class="lx-head"><div class="lang"><button class="on">AR</button><button>EN</button></div></div>
+    <div class="lx-body">
+      <div class="lx-brand">
+        <div class="org-logo" role="img" aria-label="Click & More" style="background:#fff"><img src="../assets/logo-light-tight.png" alt=""></div>
+        <div class="org-name"><b>Click & More</b><small>لوحة Super Admin</small></div>
       </div>
 
-      <!-- حالة الخطأ (errors->has('username')) -->
-      <div class="sa-alert sa-alert--danger"><i data-lucide="circle-alert"></i><span>بيانات دخول لوحة التطوير غير صحيحة.</span></div>
-
-      <div class="sa-field">
-        <label for="saUsername">اسم الدخول</label>
-        <input class="sa-input" id="saUsername" name="username" value="clickdev" dir="ltr" autocomplete="username">
-      </div>
-      <div class="sa-field">
-        <label for="saPassword">كلمة المرور</label>
-        <div class="sa-pass">
-          <input class="sa-input" id="saPassword" type="password" name="password" value="••••••••••••" dir="ltr" autocomplete="current-password">
-          <button type="button" data-sa-pass aria-label="إظهار كلمة المرور"><i data-lucide="eye"></i></button>
+      <form action="index.html">
+        <div class="lx-title">
+          <span class="lx-badge"><i data-lucide="shield-check"></i>منطقة مقيّدة — للفريق التقني فقط</span>
+          <h1>تسجيل الدخول</h1>
+          <p>أدخل بيانات حساب المدير العام للمتابعة</p>
         </div>
-      </div>
-      <button class="btn btn-primary" type="submit">دخول اللوحة<i data-lucide="arrow-left"></i></button>
-      <p class="sa-auth-foot">5 محاولات في الدقيقة · كل دخول بيتسجل</p>
-    </form>
-    <span class="sa-auth-powered">POWERED BY <img src="../assets/logo-light-tight.png" alt="Click & More"><b>Click<span>ERP</span></b></span>
-  </div>
 
-  <div class="sa-auth-panel">
-    <span class="sa-auth-line"></span>
-    <h2>إدارة النسخة بثقة وأمان</h2>
-    <p>لوحة Super Admin للتحكم في اشتراك العميل والموديلات والتحديثات والنسخ الاحتياطية من مكان واحد.</p>
-    <ul>
-      <li><i data-lucide="badge-check"></i>العميل والاشتراك ونوع البرنامج</li>
-      <li><i data-lucide="layout-grid"></i>الموديلات وحدود المستخدمين والفروع</li>
-      <li><i data-lucide="database"></i>النسخ الاحتياطية والاستعادة</li>
-      <li><i data-lucide="clock"></i>المهام المجدولة ووضع التحديث</li>
-    </ul>
+        <div class="field">
+          <label for="saUsername">اسم الدخول</label>
+          <div class="inp"><i data-lucide="user-round"></i><input id="saUsername" name="username" value="clickdev" dir="ltr" autocomplete="username"></div>
+        </div>
+        <div class="field">
+          <label for="saPassword">كلمة المرور</label>
+          <div class="inp"><i data-lucide="lock"></i><input id="saPassword" type="password" name="password" value="••••••••••••" dir="ltr" autocomplete="current-password"><span class="eye" data-sa-pass role="button" title="إظهار كلمة المرور"><i data-lucide="eye"></i></span></div>
+        </div>
+        <button class="btn btn-primary btn-block" type="submit"><span>دخول اللوحة</span><i data-lucide="arrow-left"></i></button>
+        <p class="lx-note">5 محاولات في الدقيقة · كل دخول بيتسجل في سجل Super Admin</p>
+      </form>
+
+      <a class="lx-agent" href="../login.html" style="text-decoration:none"><span class="ai"><i data-lucide="building-2"></i></span><span class="at"><b>موظف في المكتب؟</b><small>ادخل من صفحة دخول الموظفين</small></span><i data-lucide="chevron-left"></i></a>
+    </div>
+    <div class="lx-foot">
+      <a class="pwb" href="https://clickandmore.sa" title="ClickERP — Click &amp; More"><small>Powered by</small><img src="../assets/logo-light-tight.png" alt="Click &amp; More"><span class="sep"></span><b>Click<em>ERP</em></b></a>
+      <nav><a href="#">الدعم الفني</a><a href="#">الخصوصية</a></nav>
+    </div>
   </div>
-</div>
+  <div class="lx-art">
+    <img src="../assets/login-photo.webp" alt="">
+    <div class="lx-cap"><h2>إدارة النسخة بثقة وأمان</h2><p>اشتراك العميل والموديلات والتحديثات والنسخ الاحتياطية من مكان واحد.</p></div>
+  </div>
+</section>
 <script src="https://unpkg.com/lucide@0.451.0/dist/umd/lucide.min.js"></script>
 <script src="assets/sa.js"></script>
 </body>

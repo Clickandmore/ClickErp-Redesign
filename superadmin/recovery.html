@@ -4,11 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<meta name="design-version" content="v1.25.1">
+<meta name="design-version" content="v1.26">
 <title>الاستعادة والفحص — Super Admin · Click ERP</title>
+<link rel="stylesheet" href="../assets/clickerp.bundle.css">
 <link rel="stylesheet" href="assets/sa.css">
 </head>
-<body data-page="recovery">
+<body dir="rtl" data-page="recovery">
 <!-- Screen: recovery · dev-superadmin.recovery + recovery.migrate (throttle 3/1) · recovery.blade.php — بتفتح حتى لو قاعدة البيانات واقعة -->
 <main class="sa-content">
 
@@ -17,7 +18,7 @@
       <h1 class="sa-page-title">الاستعادة والفحص</h1>
       <p class="sa-page-desc">طبقة استعادة ClickERP — بتشتغل حتى لو لوحة الإدارة واقعة.</p>
     </div>
-    <div class="sa-page-header-end"><button class="btn" data-sa-toast="تم الفحص"><i data-lucide="refresh-cw"></i>إعادة الفحص</button></div>
+    <div class="sa-page-header-end"><button class="btn btn-ghost" data-sa-toast="تم الفحص"><i data-lucide="refresh-cw"></i>إعادة الفحص</button></div>
   </div>
 
   <div class="sa-grid-3">
@@ -43,7 +44,7 @@
           <div class="sa-field"><label>عبارة التأكيد</label><input class="sa-input" dir="ltr" placeholder="MIGRATE alriyada_prod"></div>
           <div class="sa-field"><label>كلمة مرور Super Admin</label><input class="sa-input" type="password"></div>
         </div>
-        <div><button class="btn btn-danger" data-sa-confirm="هتتشغل 2 رقعة على alriyada_prod. متأكد؟"><i data-lucide="play"></i>تشغيل 2 رقعة معلقة</button></div>
+        <div><button class="btn btn-red" data-sa-confirm="هتتشغل 2 رقعة على alriyada_prod. متأكد؟"><i data-lucide="play"></i>تشغيل 2 رقعة معلقة</button></div>
       </div>
     </section>
   </div>

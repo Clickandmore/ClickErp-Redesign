@@ -4,11 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<meta name="design-version" content="v1.25.1">
+<meta name="design-version" content="v1.26">
 <title>الموديلات — Super Admin · Click ERP</title>
+<link rel="stylesheet" href="../assets/clickerp.bundle.css">
 <link rel="stylesheet" href="assets/sa.css">
 </head>
-<body data-page="modules">
+<body dir="rtl" data-page="modules">
 <!-- Screen: modules · dev-superadmin.modules (DevSuperAdminController@modules) · modules.blade.php + config/superadmin_modules.php
      الكروت بالترتيب: نوع البرنامج · لوحة التحكم الافتراضية · مكوّنات النظام · وضع التحديث · ملخص النسخة -->
 <main class="sa-content">
@@ -44,7 +45,7 @@
             <div class="sa-field"><label>كلمة مرور Super Admin <span class="req">*</span></label><input class="sa-input" type="password"></div>
             <div class="sa-field is-wide"><label>سبب تغيير نوع البرنامج <span class="req">*</span></label><input class="sa-input" placeholder="اشرح سبب التحويل والجهة الطالبة له"><span class="sa-help">10 حروف على الأقل.</span></div>
           </div>
-          <div><button class="btn btn-danger" data-sa-confirm="هيتغير نوع البرنامج لـ «نظام عام» وهتختفي شاشات الاستقدام من القائمة. البيانات مش هتتمسح. متأكد؟"><i data-lucide="arrow-left-right"></i>تغيير نوع البرنامج</button></div>
+          <div><button class="btn btn-red" data-sa-confirm="هيتغير نوع البرنامج لـ «نظام عام» وهتختفي شاشات الاستقدام من القائمة. البيانات مش هتتمسح. متأكد؟"><i data-lucide="arrow-left-right"></i>تغيير نوع البرنامج</button></div>
         </div>
       </section>
 
@@ -81,7 +82,7 @@
       <section class="sa-card sa-card--feature sa-pattern" id="maintenance">
         <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="construction"></i></span><div><h2 class="sa-card-title">وضع التحديث</h2><p class="sa-card-desc">بيقفل لوحة التحكم على الموظفين أثناء التحديث. لوحة Super Admin بتفضل متاحة دايمًا.</p></div></div><span class="sa-badge sa-badge--success"><i data-lucide="lock-open"></i>اللوحة متاحة</span></div>
         <div class="sa-field"><label style="color:#C9D3E3">الرسالة اللي هتظهر للموظفين</label><textarea class="sa-textarea" rows="2">جاري تحديث النظام — هنرجع خلال نص ساعة. شكرًا لصبركم.</textarea><span class="sa-help">من 10 لـ 500 حرف.</span></div>
-        <div class="sa-card-foot" style="border-color:rgba(255,255,255,.12)"><button class="btn btn-danger" data-sa-confirm="هيتقفل الدخول على كل الموظفين لحد ما توقف وضع التحديث. متأكد؟"><i data-lucide="lock"></i>تفعيل وضع التحديث وإغلاق اللوحة</button></div>
+        <div class="sa-card-foot" style="border-color:rgba(255,255,255,.12)"><button class="btn btn-red" data-sa-confirm="هيتقفل الدخول على كل الموظفين لحد ما توقف وضع التحديث. متأكد؟"><i data-lucide="lock"></i>تفعيل وضع التحديث وإغلاق اللوحة</button></div>
       </section>
     </div>
 
@@ -107,7 +108,7 @@
     </aside>
   </div>
 
-  <div class="sa-savebar" hidden><i data-lucide="circle-dot"></i><span>عندك تغييرات مش محفوظة</span><button class="btn btn-ghost btn-sm" onclick="location.reload()">تراجع</button><button class="btn btn-primary btn-sm" data-sa-toast="اتحفظت الموديلات"><i data-lucide="save"></i>حفظ</button></div>
+  <div class="sa-savebar" hidden><i data-lucide="circle-dot"></i><span>عندك تغييرات مش محفوظة</span><button class="btn btn-ghost sm" onclick="location.reload()">تراجع</button><button class="btn btn-primary sm" data-sa-toast="اتحفظت الموديلات"><i data-lucide="save"></i>حفظ</button></div>
 
 </main>
 <script src="https://unpkg.com/lucide@0.451.0/dist/umd/lucide.min.js"></script>

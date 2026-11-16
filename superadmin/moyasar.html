@@ -4,11 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<meta name="design-version" content="v1.25.1">
+<meta name="design-version" content="v1.26">
 <title>بوابة ميسر — Super Admin · Click ERP</title>
+<link rel="stylesheet" href="../assets/clickerp.bundle.css">
 <link rel="stylesheet" href="assets/sa.css">
 </head>
-<body data-page="moyasar">
+<body dir="rtl" data-page="moyasar">
 <!-- Screen: moyasar · dev-superadmin.moyasar-settings (MoyasarSettingsController@edit/update/testConnection) · moyasar-settings.blade.php -->
 <main class="sa-content">
 
@@ -18,7 +19,7 @@
       <p class="sa-page-desc">mada · Visa · Mastercard · Apple Pay</p>
       <div class="sa-page-chips"><span class="sa-badge sa-badge--success"><i data-lucide="power"></i>البوابة مفعّلة</span><span class="sa-badge sa-badge--env"><i data-lucide="server"></i>البيئة: الإنتاج</span><span class="sa-badge sa-badge--success"><i data-lucide="webhook"></i>الويبهوك مضبوط</span></div>
     </div>
-    <div class="sa-page-header-end"><a class="btn" href="../finReports.html"><i data-lucide="bar-chart-3"></i>تقارير المدفوعات</a></div>
+    <div class="sa-page-header-end"><a class="btn btn-ghost" href="../finReports.html"><i data-lucide="bar-chart-3"></i>تقارير المدفوعات</a></div>
   </div>
 
   <div class="sa-layout">
@@ -35,19 +36,19 @@
           <div class="sa-field"><label>Publishable Key</label><input class="sa-input" dir="ltr" value="pk_live_••••••••a1c2"></div>
           <div class="sa-field"><label>Secret Key</label><input class="sa-input" dir="ltr" placeholder="المحفوظ: sk_live_••••9f0e"><span class="sa-help">اتركه فاضي عشان تحتفظ بالمفتاح الحالي.</span></div>
         </div>
-        <div class="sa-card-foot"><button class="btn btn-sm" data-sa-toast="الاتصال ناجح — حساب الإنتاج"><i data-lucide="plug"></i>اختبار الاتصال</button></div>
+        <div class="sa-card-foot"><button class="btn btn-ghost sm" data-sa-toast="الاتصال ناجح — حساب الإنتاج"><i data-lucide="plug"></i>اختبار الاتصال</button></div>
       </section>
       <section class="sa-card">
         <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="webhook"></i></span><div><h2 class="sa-card-title">إشعارات السداد (Webhook)</h2></div></div></div>
         <div class="sa-form-grid">
-          <div class="sa-field is-wide"><label>رابط الويبهوك</label><div class="sa-input-group"><input class="sa-input" dir="ltr" value="https://alriyada.clickerp.sa/moyasar/webhook" readonly><button class="btn btn-icon" title="نسخ" data-sa-toast="اتنسخ الرابط"><i data-lucide="copy"></i></button></div><span class="sa-help">الأحداث المطلوبة: <span class="sa-mono">payment_paid · payment_failed</span></span></div>
+          <div class="sa-field is-wide"><label>رابط الويبهوك</label><div class="sa-input-group"><input class="sa-input" dir="ltr" value="https://alriyada.clickerp.sa/moyasar/webhook" readonly><button class="icon-btn" title="نسخ" data-sa-toast="اتنسخ الرابط"><i data-lucide="copy"></i></button></div><span class="sa-help">الأحداث المطلوبة: <span class="sa-mono">payment_paid · payment_failed</span></span></div>
           <div class="sa-field"><label>سر الويبهوك (Secret Token)</label><input class="sa-input" dir="ltr" value="••••••••"></div>
         </div>
       </section>
       <section class="sa-card">
         <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="message-square"></i></span><div><h2 class="sa-card-title">رسائل رابط الدفع</h2></div></div></div>
         <div class="sa-field"><label>رسالة رابط دفع العقد</label><textarea class="sa-textarea" rows="3">أهلاً {client_name}، رابط سداد عقدك رقم {contract_no}: {payment_link}</textarea><span class="sa-help">لازم تحتوي على <span class="sa-mono">{payment_link}</span>.</span></div>
-        <div class="sa-card-foot"><button class="btn btn-sm"><i data-lucide="rotate-ccw"></i>استعادة النص الافتراضي</button><button class="btn btn-sm"><i data-lucide="eye"></i>معاينة بمثال</button></div>
+        <div class="sa-card-foot"><button class="btn btn-ghost sm"><i data-lucide="rotate-ccw"></i>استعادة النص الافتراضي</button><button class="btn btn-ghost sm"><i data-lucide="eye"></i>معاينة بمثال</button></div>
       </section>
     </div>
 
@@ -73,7 +74,7 @@
     </aside>
   </div>
 
-  <div class="sa-savebar" hidden><i data-lucide="circle-dot"></i><span>عندك تغييرات مش محفوظة</span><button class="btn btn-ghost btn-sm" onclick="location.reload()">تراجع</button><button class="btn btn-primary btn-sm" data-sa-toast="اتحفظت الإعدادات"><i data-lucide="save"></i>حفظ الإعدادات</button></div>
+  <div class="sa-savebar" hidden><i data-lucide="circle-dot"></i><span>عندك تغييرات مش محفوظة</span><button class="btn btn-ghost sm" onclick="location.reload()">تراجع</button><button class="btn btn-primary sm" data-sa-toast="اتحفظت الإعدادات"><i data-lucide="save"></i>حفظ الإعدادات</button></div>
 
 </main>
 <script src="https://unpkg.com/lucide@0.451.0/dist/umd/lucide.min.js"></script>

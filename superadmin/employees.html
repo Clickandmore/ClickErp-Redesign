@@ -4,11 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<meta name="design-version" content="v1.25.1">
+<meta name="design-version" content="v1.26">
 <title>الموظفون — Super Admin · Click ERP</title>
+<link rel="stylesheet" href="../assets/clickerp.bundle.css">
 <link rel="stylesheet" href="assets/sa.css">
 </head>
-<body data-page="employees">
+<body dir="rtl" data-page="employees">
 <!-- Screen: employees · dev-superadmin.employees (activeSection=employees) + POST dev-superadmin.impersonate/{admin} -->
 <main class="sa-content">
 
@@ -32,20 +33,20 @@
       <table class="sa-table">
         <thead><tr><th>الموظف</th><th>التواصل</th><th>الدور</th><th>الفرع</th><th>آخر دخول</th><th class="is-end"></th></tr></thead>
         <tbody>
-          <tr><td><div class="sa-person"><span class="sa-person-av">س</span><b>سارة القحطاني</b></div></td><td><span class="sa-mono">sara@alriyada.sa</span><small class="num">0551234567</small></td><td>موظف عمليات</td><td>الفرع الرئيسي</td><td class="num">اليوم 10:42</td><td class="is-end"><button class="btn btn-sm" data-sa-confirm="هتدخل باسم سارة القحطاني (موظف عمليات). العملية هتتسجل في سجل Super Admin."><i data-lucide="log-in"></i>دخول باسمه</button></td></tr>
-          <tr><td><div class="sa-person"><span class="sa-person-av">خ</span><b>خالد المطيري</b></div></td><td><small class="num">0504455667</small></td><td>محاسب</td><td>الفرع الرئيسي</td><td class="num">اليوم 09:15</td><td class="is-end"><button class="btn btn-sm" data-sa-confirm="هتدخل باسم خالد المطيري (محاسب)."><i data-lucide="log-in"></i>دخول باسمه</button></td></tr>
-          <tr><td><div class="sa-person"><span class="sa-person-av">ن</span><b>نورة الحربي</b></div></td><td><span class="sa-mono">noura@alriyada.sa</span></td><td>خدمة عملاء</td><td>فرع جدة</td><td>أمس</td><td class="is-end"><button class="btn btn-sm" data-sa-confirm="هتدخل باسم نورة الحربي (خدمة عملاء)."><i data-lucide="log-in"></i>دخول باسمه</button></td></tr>
-          <tr><td><div class="sa-person"><span class="sa-person-av">ف</span><b>فهد العتيبي</b></div></td><td><small class="num">0532211009</small></td><td>مدير النظام</td><td>الفرع الرئيسي</td><td class="num">اليوم 08:01</td><td class="is-end"><button class="btn btn-sm" data-sa-confirm="هتدخل باسم فهد العتيبي (مدير النظام)."><i data-lucide="log-in"></i>دخول باسمه</button></td></tr>
-          <tr><td><div class="sa-person"><span class="sa-person-av">ر</span><div><b>ريم الشهري</b><small><span class="sa-badge sa-badge--danger">موقوف</span></small></div></div></td><td><small class="num">0549988776</small></td><td>خدمة عملاء</td><td>فرع جدة</td><td class="num">3 أكتوبر</td><td class="is-end"><button class="btn btn-sm" disabled title="الحساب موقوف"><i data-lucide="log-in"></i>دخول باسمه</button></td></tr>
+          <tr><td><div class="sa-person"><span class="sa-person-av">س</span><b>سارة القحطاني</b></div></td><td><span class="sa-mono">sara@alriyada.sa</span><small class="num">0551234567</small></td><td>موظف عمليات</td><td>الفرع الرئيسي</td><td class="num">اليوم 10:42</td><td class="is-end"><button class="btn btn-ghost sm" data-sa-confirm="هتدخل باسم سارة القحطاني (موظف عمليات). العملية هتتسجل في سجل Super Admin."><i data-lucide="log-in"></i>دخول باسمه</button></td></tr>
+          <tr><td><div class="sa-person"><span class="sa-person-av">خ</span><b>خالد المطيري</b></div></td><td><small class="num">0504455667</small></td><td>محاسب</td><td>الفرع الرئيسي</td><td class="num">اليوم 09:15</td><td class="is-end"><button class="btn btn-ghost sm" data-sa-confirm="هتدخل باسم خالد المطيري (محاسب)."><i data-lucide="log-in"></i>دخول باسمه</button></td></tr>
+          <tr><td><div class="sa-person"><span class="sa-person-av">ن</span><b>نورة الحربي</b></div></td><td><span class="sa-mono">noura@alriyada.sa</span></td><td>خدمة عملاء</td><td>فرع جدة</td><td>أمس</td><td class="is-end"><button class="btn btn-ghost sm" data-sa-confirm="هتدخل باسم نورة الحربي (خدمة عملاء)."><i data-lucide="log-in"></i>دخول باسمه</button></td></tr>
+          <tr><td><div class="sa-person"><span class="sa-person-av">ف</span><b>فهد العتيبي</b></div></td><td><small class="num">0532211009</small></td><td>مدير النظام</td><td>الفرع الرئيسي</td><td class="num">اليوم 08:01</td><td class="is-end"><button class="btn btn-ghost sm" data-sa-confirm="هتدخل باسم فهد العتيبي (مدير النظام)."><i data-lucide="log-in"></i>دخول باسمه</button></td></tr>
+          <tr><td><div class="sa-person"><span class="sa-person-av">ر</span><div><b>ريم الشهري</b><small><span class="sa-badge sa-badge--danger">موقوف</span></small></div></div></td><td><small class="num">0549988776</small></td><td>خدمة عملاء</td><td>فرع جدة</td><td class="num">3 أكتوبر</td><td class="is-end"><button class="btn btn-ghost sm" disabled title="الحساب موقوف"><i data-lucide="log-in"></i>دخول باسمه</button></td></tr>
         </tbody>
       </table>
     </div>
-    <div class="sa-card-foot"><span class="sa-help">عرض 5 من 46 موظف</span><button class="btn btn-sm">السابق</button><button class="btn btn-sm">التالي</button></div>
+    <div class="sa-card-foot"><span class="sa-help">عرض 5 من 46 موظف</span><button class="btn btn-ghost sm">السابق</button><button class="btn btn-ghost sm">التالي</button></div>
   </section>
 
   <section class="sa-card">
     <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="eye"></i></span><div><h2 class="sa-card-title">بعد الدخول</h2><p class="sa-card-desc">شريط ثابت فوق لوحة الموظف بيفكّرك إنك داخل باسمه، بزرار رجوع.</p></div></div></div>
-    <div class="sa-impersonate"><i data-lucide="user-check"></i><span>انت داخل باسم <b>سارة القحطاني</b> (موظف عمليات)</span><a class="btn btn-sm" href="employees.html"><i data-lucide="undo-2"></i>ارجع لـ Super Admin</a></div>
+    <div class="sa-impersonate"><i data-lucide="user-check"></i><span>انت داخل باسم <b>سارة القحطاني</b> (موظف عمليات)</span><a class="btn btn-ghost sm" href="employees.html"><i data-lucide="undo-2"></i>ارجع لـ Super Admin</a></div>
   </section>
 
 </main>
