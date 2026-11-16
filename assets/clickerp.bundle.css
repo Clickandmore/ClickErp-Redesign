@@ -4695,3 +4695,40 @@ button.cf-tr:hover{background:var(--bg)}
 .cf-note{display:flex;gap:10px;align-items:flex-start;background:var(--blue-soft);color:#24467a;border-radius:12px;padding:12px 14px;font-size:12.5px;line-height:1.7}.cf-note svg{width:17px;height:17px;flex:none;margin-top:2px}
 @media (max-width:760px){.kb-stats{border:0;padding:0;order:3;flex-basis:100%}.kb-tr{padding:12px}.cf-r2{padding-inline-start:0}}
 .cf .cf-r2 input,.cf .cf-r2 select,.cf .cf-tr select{height:30px;min-height:0;padding:0 6px;font-size:12.5px;width:auto}.cf .cf-r2 input{width:70px}.cf-row{padding:6px 10px;gap:2px}
+/* ===== v1.27 — lists fill the board width, one consistent card ===== */
+.kb-board{align-items:stretch;gap:12px;min-height:0}
+.kb-board .kb-col,.kb-board.compact .kb-col{flex:1 1 0;min-width:236px;max-width:none;height:calc(100vh - 300px);min-height:520px;max-height:none;border-top:0;border-radius:14px;background:#eef1f5;position:relative;overflow:hidden}
+.kb-board .kb-col::before,.kb-board .kb-fold::before{content:"";position:absolute;inset-inline:0;top:0;height:3px;background:var(--s)}
+.kb-board .kb-fold{flex:0 0 44px;height:calc(100vh - 300px);min-height:520px;border-top:0;position:relative;overflow:hidden;border-radius:14px;background:#eef1f5}
+.kb-board .kb-fold:hover{background:#e5e9f0}
+.kb-ch{padding:14px 14px 10px}
+.kb-ch b{font-size:14px;text-transform:none;letter-spacing:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.kb-ch b::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--s);margin-inline-end:7px;vertical-align:middle}
+.kb-ch .kb-n{flex:none}
+.kb-cb{flex:1;min-height:0;padding:2px 10px 10px;gap:8px!important}
+.kb-col>.kb-add{margin:0 10px 10px;justify-content:flex-start}
+.kb-board .kb-empty{flex:1;min-height:120px;border:1.5px dashed #cfd6e1;border-radius:10px;display:flex;align-items:center;justify-content:center;gap:6px;color:var(--muted);font-size:13px}
+.lb-drop.over{background:#e3eaf5!important;box-shadow:inset 0 0 0 2px var(--navy)}
+.km.lb-c{display:flex;flex-direction:column;gap:8px;background:#fff;border:1px solid #e3e8ef;border-inline-start:3px solid var(--c);border-radius:10px;padding:10px 12px;box-shadow:0 1px 2px rgba(16,26,46,.05);transition:box-shadow .12s,border-color .12s,transform .12s}
+.km.lb-c.nostripe{border-inline-start:1px solid #e3e8ef!important}
+.km.lb-c:hover{border-color:#c9d3e3;border-inline-start-color:var(--c);box-shadow:0 6px 16px -8px rgba(16,26,46,.28);transform:translateY(-1px)}
+.km.lb-c.live{box-shadow:0 0 0 1px rgba(101,160,52,.35),0 1px 2px rgba(16,26,46,.05)}
+.km-h{display:flex;align-items:center;gap:6px;min-height:22px}
+.km-h .kb-ty{width:20px;height:20px;border-radius:6px}.km-h .kb-ty svg{width:12px;height:12px}
+.km-h .kb-key{font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.2px}
+.km-h .kb-cl{font-size:11px;padding:1px 7px;max-width:130px}
+.km-h .km-sh{width:24px;height:24px}
+.km.lb-c .km-t{font-size:14px;font-weight:600;line-height:1.55;color:var(--ink);-webkit-line-clamp:2}
+.km.lb-c .km-f{display:flex;align-items:center;gap:8px;min-height:26px;padding-top:8px;border-top:1px solid #f0f2f6}
+.km.lb-c .kb-due{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:600;padding:2px 7px;border-radius:6px;background:var(--bg);color:var(--body)}
+.km.lb-c .kb-due svg{width:12px;height:12px}
+.km.lb-c .kb-due.late{background:var(--red-soft);color:var(--red)}.km.lb-c .kb-due.soon{background:var(--amber-soft);color:#9a6210}.km.lb-c .kb-due.done{background:var(--green-soft);color:var(--green-d)}
+.km.lb-c .kb-pi svg{width:15px;height:15px}
+.km.lb-c .kb-mt{gap:3px;font-size:12px}.km.lb-c .kb-mt svg{width:13px;height:13px}
+.km.lb-c .kb-av{width:26px;height:26px;font-size:11px;margin-inline-start:-6px}
+.km.lb-c .lb-avs{display:flex;padding-inline-start:6px}
+.km.lb-c .kb-pr{display:flex;align-items:center;gap:8px}.km.lb-c .kb-pr .tc-bar{flex:1}
+.km.lb-c .kb-al{font-size:12px}
+@media (max-width:760px){.kb-board .kb-col,.kb-board .kb-fold{height:auto;min-height:320px}.kb-board .kb-col{min-width:82vw}}
+.kb-wip,.kb-board .kb-wip{white-space:nowrap;flex:none}.kb-board .kb-col>*{min-width:0}.kb-board .kb-col{width:0}
+.kb-cm{display:none}.kb-col:hover .kb-cm,.kb-cm:focus-visible{display:grid}.kb-col:hover .kb-ch b{max-width:calc(100% - 120px)}

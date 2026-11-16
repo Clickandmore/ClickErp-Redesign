@@ -4809,7 +4809,7 @@ const rcCnt=(f)=>CAT.reduce((a,c)=>a+c[4].filter(f).length,0);
 const rcTabs=()=>`<div class="vtabs">${[["ind","bar-chart-3","المؤشرات التشغيلية"],["all","library","كل التقارير",ALL],["mine","bookmark","تقاريري",4],["sched","calendar-clock","المجدولة",3],["log","history","سجل الإرسال"]].map(x=>`<button class="${x[0]===RCTAB?"on":""}" data-rctab="${x[0]}">${X(x[1])}<span>${x[2]}</span>${x[3]!=null?`<em class="num">${x[3]}</em>`:""}</button>`).join("")}</div>`;
 
 const rcPass=(r)=>RCF==="fav"?r[4]:RCF==="role"?r[5]:RCF==="sched"?r[6]:true;
-const rcCard=(c,r)=>`<div class="card rc-card" ${r[9]?`data-go="${r[9]}"`:`data-report="${r[0]}"`} data-rq="${r[2]} ${r[3]} ${c[1]} ${(r[7]||[]).join(" ")}">
+const rcCard=(c,r)=>`<div class="card rc-card" ${r[9]?`data-go="${r[9]}"`:`data-report="${r[0]}" data-rkey="${r[1]}"`} data-rq="${r[2]} ${r[3]} ${c[1]} ${(r[7]||[]).join(" ")}">
  <div class="rc-ch"><span class="rc-ic rc-${c[0]}">${X(c[2])}</span>${r[5]?`<span class="rc-role">${X("user-round")}تخص دورك</span>`:""}<button class="rc-star ${r[4]?"on":""}" title="مفضلة">${X("star")}</button></div>
  <b class="rc-tt">${r[2]}</b><small class="rc-q">${r[3]}</small>
  ${r[7]?`<div class="rc-subs">${r[7].map(s=>`<span>${s}</span>`).join("")}</div>`:""}
@@ -4825,18 +4825,18 @@ const allView=()=>{
   <div class="rc-qf">${[["","الكل",ALL],["fav","المفضلة",rcCnt(r=>r[4])],["role","تخص دورك",rcCnt(r=>r[5])],["sched","تتصدّر وتتجدول",rcCnt(r=>r[6])]].map(f=>`<button class="${RCF===f[0]?"on":""}" data-rcf="${f[0]}">${f[1]}<em class="num">${f[2]}</em></button>`).join("")}</div>
   <div class="rc-cats"><button class="${RCCAT?"":"on"}" data-rccat="">${X("layers")}كل الأقسام</button>${CAT.map(c=>`<button class="${RCCAT===c[0]?"on":""}" data-rccat="${c[0]}"><span class="rc-ic rc-${c[0]}">${X(c[2])}</span>${c[1]}<em class="num">${c[4].length}</em></button>`).join("")}</div>
  </div>
- ${!RCCAT&&!RCF?`<div class="rc-fav" data-rcfav><div class="rc-sh">${X("star")}<b>المفضلة</b><span>توصلها بضغطة</span></div><div class="rc-fl2">${favs.map(([c,r])=>`<a href="#" class="card rc-fv" data-report="${r[0]}"><span class="rc-ic rc-${c[0]}">${X(c[2])}</span><b>${r[2]}<small>${r[8]||c[1]}</small></b>${X("arrow-left")}</a>`).join("")}</div></div>`:""}
+ ${!RCCAT&&!RCF?`<div class="rc-fav" data-rcfav><div class="rc-sh">${X("star")}<b>المفضلة</b><span>توصلها بضغطة</span></div><div class="rc-fl2">${favs.map(([c,r])=>`<a href="#" class="card rc-fv" data-report="${r[0]}" data-rkey="${r[1]}"><span class="rc-ic rc-${c[0]}">${X(c[2])}</span><b>${r[2]}<small>${r[8]||c[1]}</small></b>${X("arrow-left")}</a>`).join("")}</div></div>`:""}
  ${secs.map(([c,rs])=>`<section class="rc-sec" data-rcsec><div class="rc-sh"><span class="rc-ic rc-${c[0]}">${X(c[2])}</span><b>${c[1]}</b><span>${c[3]} · <i class="num">${rs.length}</i></span></div>
   <div class="rc-grid">${rs.map(r=>rcCard(c,r)).join("")}</div></section>`).join("")}
  <div class="card rc-none" data-rcnone ${secs.length?"hidden":""}>${X("search-x")}<b>مفيش تقرير بالاسم ده</b><small>جرّب كلمة تانية، أو شيل الفلتر.</small></div>
  <p class="rc-foot">${X("info")}<span>في ClickERP الجدولة والتصدير Excel متاحين لـ <b class="num">${rcCnt(r=>r[6])}</b> تقرير بس (فلتر «تتصدّر وتتجدول»). جدولة باقي التقارير ${NEWT}.</span></p>`;
 };
 
-const SAVED=[["العقود المتأخرة — PLATINUM","سجل عقود الاستقدام",["المرحلة: التذكرة","المكتب: PLATINUM","متأخر فقط"],9,"لي",1],["المستحقات فوق 60 يوم","أرصدة العملاء وأعمار الديون",["العمر: +60 يوم","كل الفروع"],6,"دور: المحاسب",0],["وصول هذا الأسبوع","تقرير الوصول",["الفترة: هذا الأسبوع","الفرع الرئيسي"],7,"دور: مشرف العمليات",1],["عقود إيجار تنتهي الشهر الجاي","عقود الإيجار",["ينتهي خلال 30 يوم"],8,"لي",0]];
+const SAVED=[["العقود المتأخرة — PLATINUM","سجل عقود الاستقدام",["المرحلة: التذكرة","المكتب: PLATINUM","متأخر فقط"],9,"لي",1,'data-rkey="recruitment_contracts" data-rpreset=\'{"f":{"stage":"tazker","office":"PLATINUM BROTHERS","late":"y"}}\''],["المستحقات الأقدم","أرصدة العملاء وأعمار الديون",["مرتبة بعمر الدين","كل الفروع"],6,"دور: المحاسب",0,'data-rkey="clients-balances" data-rpreset=\'{"sort":"age","dir":-1}\''],["الوصول الشهر ده","تقرير الوصول",["الفترة: الشهر ده","على: تاريخ الوصول"],7,"دور: مشرف العمليات",1,'data-rkey="arrival" data-rpreset=\'{"per":"month","dt":"arrival"}\''],["عقود إيجار تنتهي الشهر الجاي","عقود الإيجار",["ينتهي خلال 30 يوم"],8,"لي",0,'data-report="housing"']];
 const mineView=()=>`
  <div class="cx-info">${X("info")}<span>«تقاريري» = تقرير من الموجودين بفلاتر وأعمدة إنت اخترتها، محفوظ باسم. بتعمله من أي تقرير بزر «حفظ في تقاريري»، وتقدر تشاركه مع دور كامل أو تجدوله. ${NEWT}</span></div>
  <div class="card flush"><div class="tw"><table><thead><tr><th>الاسم</th><th>الفلاتر والأعمدة</th><th>متشارك مع</th><th>مجدول</th><th class="act"></th></tr></thead><tbody>
- ${SAVED.map(s=>`<tr><td><b>${s[0]}</b><small class="hm-sm">من: ${s[1]}</small></td><td><div class="rc-fl">${s[2].map(f=>`<span>${f}</span>`).join("")}<em class="num">${s[3]} أعمدة</em></div></td><td>${s[4]}</td><td>${s[5]?TAG("g","كل أحد 7 ص"):"—"}</td><td class="act">${ACTS([["eye","فتح",'data-report="register"'],["calendar-clock","جدولة",'data-rsched="1"'],["more-horizontal","تعديل · مشاركة · حذف"]])}</td></tr>`).join("")}
+ ${SAVED.map(s=>`<tr><td><b>${s[0]}</b><small class="hm-sm">من: ${s[1]}</small></td><td><div class="rc-fl">${s[2].map(f=>`<span>${f}</span>`).join("")}<em class="num">${s[3]} أعمدة</em></div></td><td>${s[4]}</td><td>${s[5]?TAG("g","كل أحد 7 ص"):"—"}</td><td class="act">${ACTS([["eye","فتح",s[6]],["calendar-clock","جدولة",'data-rsched="1"'],["more-horizontal","تعديل · مشاركة · حذف"]])}</td></tr>`).join("")}
  </tbody></table></div></div>`;
 
 const SCH=[["ملخص العقود الأسبوعي","سجل عقود الاستقدام","أسبوعي · الأحد 07:00","الشهر الحالي","كل الفروع","Excel",["owner@riyada.sa","ops@riyada.sa"],"الأحد 23 نوفمبر 07:00","sent","",1],
@@ -4947,6 +4947,227 @@ const homeInd=()=>{const t=TILES.filter(x=>canSee(x[6])).slice(0,4);if(!t.length
 
 /* deep link: reports.html#ind (or #ind-ops, #ind-sales …) opens the indicators tab */
 {const m=location.hash.match(/^#ind(?:-(\w+))?$/);if(m){RCTAB="ind";if(m[1]&&ROLES[m[1]])PERSONA=m[1]}}
+/* ===== v1.25 — Report runner: one engine, every number computed from the same rows =====
+   filters/views follow ReportExportService (arrivalReport: date_type, bucket, view=contracts|offices|employees, office, marketer, nationality, branch, search, sort) */
+const RP_TODAY="2026-11-16";
+const rpRng=(s=>()=>{s|=0;s=s+0x6D2B79F5|0;let t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296})(20261116);
+const rpPick=(a)=>a[Math.floor(rpRng()*a.length)];
+const rpW=(pairs)=>{const s=pairs.reduce((a,p)=>a+p[1],0);let x=rpRng()*s;for(const p of pairs){if((x-=p[1])<0)return p[0]}return pairs[0][0]};
+const rpD=(y,m,d)=>`${y}-${String(m).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+const rpAdd=(ds,n)=>{const d=new Date(ds+"T00:00:00Z");d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10)};
+const rpDiff=(a,b)=>Math.round((new Date(b+"T00:00:00Z")-new Date(a+"T00:00:00Z"))/864e5);
+const RP_MON=["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
+const rpDate=(ds)=>ds?`${+ds.slice(8)} ${RP_MON[+ds.slice(5,7)-1]}${ds.slice(0,4)==="2026"?"":" "+ds.slice(0,4)}`:"—";
+const rpN=(n)=>Math.round(n).toLocaleString("en-US");
+const NAMES=["خالد العتيبي","منيرة الشهري","عبدالله الحربي","نورة القحطاني","سلطان الدوسري","هيا المطيري","فهد الشمري","ريم الزهراني","ماجد السبيعي","سارة الغامدي","تركي العنزي","لطيفة البقمي","سعود الرشيدي","أمل العمري","ناصر الجهني","جواهر الشهراني","بندر المالكي","منى الحارثي","فيصل العسيري","عبير السلمي","شركة نجد للمقاولات","مؤسسة الرواد","يوسف القرني","دلال الخالدي","راشد البلوي","مها العبدلي","وليد الثبيتي","هند الفيفي","إبراهيم الأحمدي","غادة العمودي"];
+const OFFS=[["PLATINUM BROTHERS","الفلبين",40],["Supreme Link Ltd","أوغندا",14],["Al Noor Manpower","إثيوبيا",12],["Gulf Bridge Agency","بنغلاديش",8],["Nairobi Link","كينيا",9],["Delhi Star","الهند",7]];
+const MKTS=[["علي ناصر",4],["هند الشمري",3],["أحمد يوسف",3],["Mohameed",2]];
+const OCC=[["عاملة منزلية",60,16500],["سائق خاص",14,18000],["ممرضة منزلية",9,21000],["طباخة",10,17500],["عامل نظافة",7,15000]];
+const BR=[["الفرع الرئيسي",7],["فرع جدة",3]];
+const STG_L={new:"عقد جديد",msaned:"توثيق مساند",tafwed:"التفويض",taffez:"التفييز",tazker:"التذكرة",arrival:"مرحلة الوصول",warranty:"تحت الضمان",completed:"مكتمل",back:"مرتجع",refunded:"مسترد"};
+const STG_T={new:"n",msaned:"n",tafwed:"n",taffez:"n",tazker:"n",arrival:"a",warranty:"g",completed:"g",back:"r",refunded:"r"};
+const STG_O=Object.keys(STG_L);
+/* contracts: 2026 follows the indicators (115, stages & late counts from STAGES); 2025 = 90 closed ones for comparisons */
+const CONTRACTS=(()=>{
+ const mk=(y,counts)=>{const out=[];counts.forEach((c,i)=>{for(let k=0;k<c;k++){const last=y===2026&&i===10?16:28;out.push(rpD(y,i+1,1+Math.floor(rpRng()*last)))}});return out.sort().reverse()};
+ const rows=[];let seq=1;
+ const make=(date,stage,late)=>{const o=rpW(OFFS.map(x=>[x,x[2]]));const occ=rpW(OCC.map(x=>[x,x[1]]));
+  const r={id:`CN-${date.slice(0,4)}-${String(seq++).padStart(4,"0")}`,date,client:rpPick(NAMES),office:o[0],nat:o[1],occ:occ[0],mkt:rpW(MKTS),br:rpW(BR),stage,late:!!late,amount:occ[2]};
+  r.days=late?18+Math.floor(rpRng()*30):2+Math.floor(rpRng()*12);
+  r.paid=["completed","warranty","back","refunded"].includes(stage)?r.amount:Math.round(r.amount*(stage==="new"?0.3:0.5)/50)*50;
+  r.expected=rpAdd(date,60);
+  if(["arrival","warranty","completed","back"].includes(stage)){let a=rpAdd(date,(late?62:34)+Math.floor(rpRng()*30));if(a>RP_TODAY)a=rpAdd(RP_TODAY,-Math.floor(rpRng()*5));if(a<date)a=rpAdd(date,3);r.arrival=a;r.delivered=stage==="arrival"?null:(rpRng()<0.9?rpAdd(a,1+Math.floor(rpRng()*4)):null)}
+  else if(stage==="tazker"){r.flight=late?null:rpAdd(RP_TODAY,1+Math.floor(rpRng()*14))}
+  r.expected=stage==="tazker"?(late?rpAdd(RP_TODAY,-(r.days-12)):r.flight):r.arrival&&r.expected>RP_TODAY?r.arrival:r.expected;
+  return r};
+ const d26=mk(2026,[3,7,3,15,19,8,13,2,1,1,43]);
+ const blocks=[["new",8,1],["msaned",7,0],["tafwed",3,2],["taffez",3,1],["tazker",13,11],["arrival",2,1],["warranty",2,2]];
+ let p=0;blocks.forEach(([s,n,l])=>{for(let k=0;k<n;k++)rows.push(make(d26[p++],s,k>=n-l))});
+ const rest=d26.slice(p);const closed=Array(63).fill("completed").concat(Array(11).fill("back"),Array(3).fill("refunded"));
+ for(let i=closed.length-1;i>0;i--){const j=Math.floor(rpRng()*(i+1));[closed[i],closed[j]]=[closed[j],closed[i]]}
+ rest.forEach((d,i)=>rows.push(make(d,closed[i],0)));
+ mk(2025,[5,4,9,6,11,14,7,5,3,6,12,8]).forEach(d=>rows.push(make(d,rpRng()<0.86?"completed":rpRng()<0.8?"back":"refunded",0)));
+ return rows})();
+/* arrival rows: contracts that reached the ticket stage or later (reports.arrivals) */
+const ARR_L={waiting:"مستني الوصول",delayed:"متأخر عن الوصول",undelivered:"وصل ولسه ما اتسلّمش",delivered:"اتسلّم للعميل"};
+const ARR_T={waiting:"n",delayed:"r",undelivered:"a",delivered:"g"};
+const ARRIVALS=CONTRACTS.filter(r=>["tazker","arrival","warranty","completed"].includes(r.stage)).map(r=>({...r,bucket:!r.arrival?(r.expected<RP_TODAY?"delayed":"waiting"):r.delivered?"delivered":"undelivered",adays:r.arrival?rpDiff(r.date,r.arrival):null}));
+/* client balances: totals = the aging card on home (98,400 / 43,900 / 26,100 / 16,200) */
+const AGE_L={a:"0–30 يوم",b:"31–60 يوم",c:"61–90 يوم",d:"أكتر من 90 يوم"};
+const AGE_T={a:"g",b:"n",c:"a",d:"r"};
+const BALANCES=(()=>{const out=[];const pool=NAMES.slice();let n=0;
+ [["a",98400,13,0,30],["b",43900,9,31,60],["c",26100,6,61,90],["d",16200,5,91,170]].forEach(([b,tot,cnt,lo,hi])=>{
+  const w=Array.from({length:cnt},()=>0.4+rpRng());const sw=w.reduce((a,x)=>a+x,0);let left=tot;
+  w.forEach((x,i)=>{const v=i===cnt-1?left:Math.round(tot*x/sw/50)*50;left-=v;const age=lo+Math.floor(rpRng()*(hi-lo));const nm=pool[n++%pool.length]+(n>pool.length?" ":"");const cn=1+Math.floor(rpRng()*2);const paid=Math.round(v*(0.4+rpRng())/50)*50;
+   out.push({id:`CL-${String(200+n).padStart(4,"0")}`,client:nm,phone:`05${Math.floor(rpRng()*9)}•••••${10+Math.floor(rpRng()*89)}`,age,bucket:b,remaining:v,paid,total:v+paid,contracts:cn,mkt:rpW(MKTS),br:rpW(BR),date:rpAdd(RP_TODAY,-age),last:age>10?rpAdd(RP_TODAY,-Math.floor(age/2)):null})})});
+ return out})();
+/* orders: 121 = new 6 · in progress 7 · completed 108 (the orders tile) */
+const ORD_L={new:"جديد",progress:"تحت الإجراء",completed:"مكتمل",cancelled:"ملغي"};const ORD_T={new:"a",progress:"n",completed:"g",cancelled:"r"};
+const ORDERS=(()=>{const ds=[];[4,7,4,15,19,9,14,3,2,2,42].forEach((c,i)=>{for(let k=0;k<c;k++)ds.push(rpD(2026,i+1,1+Math.floor(rpRng()*(i===10?16:28))))});ds.sort().reverse();
+ [6,7,6,10,14,12,11,9,8,6,9,13].forEach((c,i)=>{for(let k=0;k<c;k++)ds.push(rpD(2025,i+1,1+Math.floor(rpRng()*28)))});
+ return ds.map((d,i)=>{const occ=rpW(OCC.map(x=>[x[0],x[1]]));const o=rpW(OFFS.map(x=>[x,x[2]]));const st=d<"2026"?(rpRng()<0.93?"completed":"cancelled"):i<6?"new":i<13?"progress":"completed";
+  return {id:`ORD-${String(i<121?431-i:1000+i)}`,date:d,client:rpPick(NAMES),occ,nat:o[1],gender:occ==="سائق خاص"||occ==="عامل نظافة"&&rpRng()<0.5?"ذكر":"أنثى",mkt:rpW(MKTS),br:rpW(BR),status:st,first:st!=="new"||rpRng()<0.5}})})();
+
+/* ---- report definitions ---- */
+const dimsFrom=(rows,get,order,labels)=>{const s=[...new Set(rows.map(get))];if(order)s.sort((a,b)=>order.indexOf(a)-order.indexOf(b));return s.map(v=>[v,labels?labels[v]:v])};
+const stgTag=(s)=>TAG(STG_T[s],STG_L[s]);
+const CDIMS={
+ stage:{l:"المرحلة",g:r=>r.stage,o:()=>STG_O.map(s=>[s,STG_L[s]])},
+ office:{l:"المكتب",g:r=>r.office,o:()=>OFFS.map(o=>[o[0],o[0]])},
+ nat:{l:"الجنسية",g:r=>r.nat,o:()=>OFFS.map(o=>[o[1],o[1]])},
+ occ:{l:"المهنة",g:r=>r.occ,o:()=>OCC.map(o=>[o[0],o[0]])},
+ mkt:{l:"الموظف المسؤول",g:r=>r.mkt,o:()=>MKTS.map(m=>[m[0],m[0]])},
+ br:{l:"الفرع",g:r=>r.br,o:()=>BR.map(b=>[b[0],b[0]])},
+ late:{l:"التأخير",g:r=>r.late?"y":"n",o:()=>[["y","متأخر عن مدة مرحلته"],["n","في الميعاد"]]}};
+const RDEF={
+ recruitment_contracts:{t:"سجل عقود الاستقدام",q:"كل عقد في أي مرحلة، ومع مين؟",src:()=>CONTRACTS,dateTypes:[["date","تاريخ العقد"]],per:"year",
+  dims:CDIMS,quick:["stage","late","office"],views:[["rows","العقود"],["stage","المرحلة"],["office","المكاتب"],["mkt","الموظفين"],["nat","الجنسية"]],
+  search:r=>r.id+" "+r.client,ph:"رقم العقد أو اسم العميل",
+  kpis:R=>[["عقود في الفترة",R.length,"",null],["شغالة",R.filter(r=>!["completed","back","refunded"].includes(r.stage)).length,"قبل الإغلاق",null],["متأخرة عن مدتها",R.filter(r=>r.late).length,"عدّت مدة مرحلتها",["late","y"],"r"],["قيمة العقود",R.reduce((a,r)=>a+r.amount,0),"ر.س",null,"",1]],
+  charts:[{t:"bars",ti:"حسب المرحلة",dim:"stage",late:1},{t:"months",ti:"العقود حسب الشهر"}],
+  cols:[["id","رقم العقد",r=>`<b class="num">${r.id}</b>`,r=>r.id,1],["client","العميل",r=>r.client,r=>r.client,1],["occ","المهنة",r=>r.occ,r=>r.occ,1],["nat","الجنسية",r=>r.nat,r=>r.nat,1],["office","المكتب",r=>r.office,r=>r.office,1],["stage","المرحلة",r=>stgTag(r.stage)+(r.late?` <small class="rp-late">متأخر ${r.days} يوم</small>`:""),r=>STG_O.indexOf(r.stage),1],["mkt","الموظف",r=>r.mkt,r=>r.mkt,1],["date","تاريخ العقد",r=>`<span class="num">${rpDate(r.date)}</span>`,r=>r.date,1],["amount","القيمة",r=>`<span class="num">${rpN(r.amount)}</span>`,r=>r.amount,0],["paid","المدفوع",r=>`<span class="num">${rpN(r.paid)}</span>`,r=>r.paid,0],["rem","المتبقي",r=>`<span class="num">${rpN(r.amount-r.paid)}</span>`,r=>r.amount-r.paid,0],["br","الفرع",r=>r.br,r=>r.br,0],["days","أيام في المرحلة",r=>`<span class="num">${r.days}</span>`,r=>r.days,0],["expected","الوصول المتوقع",r=>`<span class="num">${rpDate(r.expected)}</span>`,r=>r.expected,0]],
+  gcols:[["عقود",R=>R.length],["شغالة",R=>R.filter(r=>!["completed","back","refunded"].includes(r.stage)).length],["متأخرة",R=>R.filter(r=>r.late).length,"r"],["مكتملة",R=>R.filter(r=>r.stage==="completed").length],["مرتجع / مسترد",R=>R.filter(r=>r.stage==="back"||r.stage==="refunded").length],["القيمة",R=>R.reduce((a,r)=>a+r.amount,0),"",1]]},
+ arrival:{t:"تقرير الوصول",q:"مين وصل ومين متأخر عن الوصول؟",src:()=>ARRIVALS,dateTypes:[["date","تاريخ العقد"],["arrival","تاريخ الوصول"],["expected","الوصول المتوقع"],["delivered","تاريخ التسليم"]],per:"year",
+  dims:{bucket:{l:"الحالة",g:r=>r.bucket,o:()=>Object.keys(ARR_L).map(k=>[k,ARR_L[k]])},office:CDIMS.office,mkt:CDIMS.mkt,nat:CDIMS.nat,br:CDIMS.br,occ:CDIMS.occ},quick:["bucket","office"],
+  views:[["rows","العقود"],["office","المكاتب"],["mkt","الموظفين"],["nat","الجنسية"]],search:r=>r.id+" "+r.client,ph:"رقم العقد أو اسم العميل",
+  kpis:R=>{const a=R.filter(r=>r.adays!=null);return [["وصلوا",a.length,"في الفترة",null],["مستنيين",R.filter(r=>r.bucket==="waiting").length,"تذكرة محجوزة",["bucket","waiting"]],["متأخرين عن الوصول",R.filter(r=>r.bucket==="delayed").length,"عدّوا ميعاد الوصول المتوقع",["bucket","delayed"],"r"],["متوسط مدة الوصول",a.length?a.reduce((x,r)=>x+r.adays,0)/a.length:0,"يوم",null,"",0,1]]},
+  charts:[{t:"bars",ti:"حسب الحالة",dim:"bucket"},{t:"bars",ti:"متوسط أيام الوصول لكل مكتب",dim:"office",metric:R=>{const a=R.filter(r=>r.adays!=null);return a.length?Math.round(a.reduce((x,r)=>x+r.adays,0)/a.length):0},unit:"يوم",warn:60}],
+  cols:[["id","رقم العقد",r=>`<b class="num">${r.id}</b>`,r=>r.id,1],["client","العميل",r=>r.client,r=>r.client,1],["office","المكتب",r=>r.office,r=>r.office,1],["nat","الجنسية",r=>r.nat,r=>r.nat,1],["date","تاريخ العقد",r=>`<span class="num">${rpDate(r.date)}</span>`,r=>r.date,1],["expected","الوصول المتوقع",r=>`<span class="num">${rpDate(r.expected)}</span>`,r=>r.expected,1],["arrival","الوصول الفعلي",r=>r.arrival?`<span class="num">${rpDate(r.arrival)}</span>`:r.flight?`<small class="hm-sm">رحلة ${rpDate(r.flight)}</small>`:"—",r=>r.arrival||"",1],["adays","المدة",r=>r.adays!=null?`<span class="num ${r.adays>60?"r":""}">${r.adays} يوم</span>`:"—",r=>r.adays??999,1],["bucket","الحالة",r=>TAG(ARR_T[r.bucket],ARR_L[r.bucket]),r=>r.bucket,1],["delivered","التسليم",r=>r.delivered?`<span class="num">${rpDate(r.delivered)}</span>`:"—",r=>r.delivered||"",0],["mkt","الموظف",r=>r.mkt,r=>r.mkt,0],["br","الفرع",r=>r.br,r=>r.br,0]],
+  gcols:[["عقود",R=>R.length],["وصلوا",R=>R.filter(r=>r.adays!=null).length],["متأخرين",R=>R.filter(r=>r.bucket==="delayed").length,"r"],["ما اتسلّموش",R=>R.filter(r=>r.bucket==="undelivered").length,"a"],["متوسط الوصول",R=>{const a=R.filter(r=>r.adays!=null);return a.length?Math.round(a.reduce((x,r)=>x+r.adays,0)/a.length):0},"",0,"يوم"]]},
+ orders:{t:"طلبات الاستقدام",q:"كام طلب جديد ومكتمل وملغي؟",src:()=>ORDERS,dateTypes:[["date","تاريخ الطلب"]],per:"year",
+  dims:{status:{l:"الحالة",g:r=>r.status,o:()=>Object.keys(ORD_L).map(k=>[k,ORD_L[k]])},occ:CDIMS.occ,nat:CDIMS.nat,gender:{l:"الجنس",g:r=>r.gender,o:()=>[["أنثى","أنثى"],["ذكر","ذكر"]]},mkt:CDIMS.mkt,br:CDIMS.br},quick:["status","occ"],
+  views:[["rows","الطلبات"],["occ","المهنة"],["nat","الجنسية"],["gender","الجنس"],["mkt","الموظفين"]],search:r=>r.id+" "+r.client,ph:"رقم الطلب أو اسم العميل",
+  kpis:R=>[["طلبات في الفترة",R.length,"",null],["جديدة",R.filter(r=>r.status==="new").length,"مستنية عقد",["status","new"],"a"],["تحت الإجراء",R.filter(r=>r.status==="progress").length,"",["status","progress"]],["مكتملة",R.filter(r=>r.status==="completed").length,"اتحولت لعقد",["status","completed"]]],
+  charts:[{t:"bars",ti:"حسب المهنة",dim:"occ"},{t:"months",ti:"الطلبات حسب الشهر"}],
+  cols:[["id","رقم الطلب",r=>`<b class="num">${r.id}</b>`,r=>r.id,1],["client","العميل",r=>r.client,r=>r.client,1],["occ","المهنة",r=>r.occ,r=>r.occ,1],["nat","الجنسية",r=>r.nat,r=>r.nat,1],["gender","الجنس",r=>r.gender,r=>r.gender,1],["status","الحالة",r=>TAG(ORD_T[r.status],ORD_L[r.status]),r=>r.status,1],["date","تاريخ الطلب",r=>`<span class="num">${rpDate(r.date)}</span>`,r=>r.date,1],["mkt","الموظف",r=>r.mkt,r=>r.mkt,0],["first","الدفعة الأولى",r=>r.first?TAG("g","وصلت"):TAG("a","لسه"),r=>r.first?1:0,0],["br","الفرع",r=>r.br,r=>r.br,0]],
+  gcols:[["طلبات",R=>R.length],["جديدة",R=>R.filter(r=>r.status==="new").length,"a"],["تحت الإجراء",R=>R.filter(r=>r.status==="progress").length],["مكتملة",R=>R.filter(r=>r.status==="completed").length],["ملغاة",R=>R.filter(r=>r.status==="cancelled").length,"r"]]},
+ "clients-balances":{t:"أرصدة العملاء وأعمار الديون",q:"مين عليه فلوس ومن إمتى؟",src:()=>BALANCES,dateTypes:[["date","تاريخ أقدم مستحق"]],per:"all",
+  dims:{bucket:{l:"عمر الدين",g:r=>r.bucket,o:()=>Object.keys(AGE_L).map(k=>[k,AGE_L[k]])},mkt:CDIMS.mkt,br:CDIMS.br},quick:["bucket","mkt"],
+  views:[["rows","العملاء"],["bucket","عمر الدين"],["mkt","الموظفين"],["br","الفروع"]],search:r=>r.id+" "+r.client,ph:"اسم العميل أو رقمه",
+  kpis:R=>[["إجمالي المستحق",R.reduce((a,r)=>a+r.remaining,0),"ر.س",null,"",1],["فوق 60 يوم",R.filter(r=>r.age>60).reduce((a,r)=>a+r.remaining,0),"ر.س",null,"r",1],["عملاء عليهم فلوس",R.length,"",null],["أكبر رصيد",R.reduce((a,r)=>Math.max(a,r.remaining),0),"ر.س",null,"",1]],
+  charts:[{t:"bars",ti:"المستحق حسب عمر الدين",dim:"bucket",metric:R=>R.reduce((a,r)=>a+r.remaining,0),money:1},{t:"bars",ti:"المستحق حسب الموظف",dim:"mkt",metric:R=>R.reduce((a,r)=>a+r.remaining,0),money:1}],
+  cols:[["client","العميل",r=>`<b>${r.client}</b><small class="hm-sm num">${r.id}</small>`,r=>r.client,1],["phone","الجوال",r=>`<span class="num" dir="ltr">${r.phone}</span>`,r=>r.phone,1],["contracts","العقود",r=>`<span class="num">${r.contracts}</span>`,r=>r.contracts,1],["total","الإجمالي",r=>`<span class="num">${rpN(r.total)}</span>`,r=>r.total,1],["paid","المدفوع",r=>`<span class="num">${rpN(r.paid)}</span>`,r=>r.paid,1],["remaining","المتبقي",r=>`<b class="num">${rpN(r.remaining)}</b>`,r=>r.remaining,1],["age","عمر الدين",r=>`${TAG(AGE_T[r.bucket],r.age+" يوم")}`,r=>r.age,1],["last","آخر دفعة",r=>r.last?`<span class="num">${rpDate(r.last)}</span>`:"—",r=>r.last||"",0],["mkt","الموظف",r=>r.mkt,r=>r.mkt,0],["br","الفرع",r=>r.br,r=>r.br,0]],
+  gcols:[["عملاء",R=>R.length],["المستحق",R=>R.reduce((a,r)=>a+r.remaining,0),"",1],["المدفوع",R=>R.reduce((a,r)=>a+r.paid,0),"",1],["فوق 60 يوم",R=>R.filter(r=>r.age>60).reduce((a,r)=>a+r.remaining,0),"r",1]]}
+};
+RDEF.offices={...RDEF.recruitment_contracts,t:"المكاتب الخارجية",q:"أنهي مكتب أسرع وأقل إرجاع؟",defView:"office",quick:["office","nat"],
+ gcols:[["عقود",R=>R.length],["شغالة",R=>R.filter(r=>!["completed","back","refunded"].includes(r.stage)).length],["متأخرة",R=>R.filter(r=>r.late).length,"r"],["مرتجع",R=>R.filter(r=>r.stage==="back").length,"r"],["نسبة الإرجاع",R=>R.length?Math.round(R.filter(r=>r.stage==="back").length/R.length*100):0,"",0,"%"],["متوسط الوصول",R=>{const a=R.filter(r=>r.arrival);return a.length?Math.round(a.reduce((x,r)=>x+rpDiff(r.date,r.arrival),0)/a.length):0},"",0,"يوم"]],
+ charts:[{t:"bars",ti:"العقود حسب المكتب",dim:"office"},{t:"bars",ti:"متوسط أيام الوصول",dim:"office",metric:R=>{const a=R.filter(r=>r.arrival);return a.length?Math.round(a.reduce((x,r)=>x+rpDiff(r.date,r.arrival),0)/a.length):0},unit:"يوم",warn:60}]};
+
+/* ---- state ---- */
+let RKEY="recruitment_contracts",RS=null;
+const rpInit=(k,preset)=>{const d=RDEF[k];RKEY=k;RS={f:{},per:d.per,from:"",to:"",dt:d.dateTypes[0][0],view:d.defView||"rows",q:"",cmp:false,sort:null,dir:-1,cols:d.cols.filter(c=>c[4]).map(c=>c[0]),n:15,add:false,colp:false,...(preset||{})}};
+const PERS=[["month","الشهر ده"],["last","الشهر اللي فات"],["q","آخر 3 شهور"],["year","السنة دي"],["pyear","السنة اللي فاتت"],["all","كل الفترات"],["custom","مخصص"]];
+const rpRange=(p)=>{const y=+RP_TODAY.slice(0,4),m=+RP_TODAY.slice(5,7);
+ if(p==="month")return [rpD(y,m,1),RP_TODAY];if(p==="last")return [rpD(y,m-1,1),rpAdd(rpD(y,m,1),-1)];if(p==="q")return [rpD(y,m-2,1),RP_TODAY];
+ if(p==="year")return [rpD(y,1,1),RP_TODAY];if(p==="pyear")return [rpD(y-1,1,1),rpD(y-1,12,31)];if(p==="custom")return [RS.from||"2026-01-01",RS.to||RP_TODAY];return ["",""]};
+const rpPrev=([a,b])=>{if(!a)return null;if(RS.per==="year"||RS.per==="pyear")return [String(+a.slice(0,4)-1)+a.slice(4),String(+b.slice(0,4)-1)+b.slice(4)];
+ if(RS.per==="month"||RS.per==="last"){const d=new Date(a+"T00:00:00Z");d.setUTCMonth(d.getUTCMonth()-1);const pa=d.toISOString().slice(0,10);return [pa,rpAdd(pa,rpDiff(a,b))]}
+ const n=rpDiff(a,b)+1;return [rpAdd(a,-n),rpAdd(a,-1)]};
+const rpRows=(range)=>{const d=RDEF[RKEY];const [a,b]=range;const dt=RS.dt;
+ return d.src().filter(r=>{if(a){const v=r[dt];if(!v||v<a||v>b)return false}
+  for(const k in RS.f){if(RS.f[k]!==""&&d.dims[k].g(r)!==RS.f[k])return false}
+  if(RS.q&&!d.search(r).includes(RS.q))return false;return true})};
+const rpFmt=(v,money,dec)=>dec?(Math.round(v*10)/10).toLocaleString("en-US"):rpN(v);
+const rpDelta=(c,p,good)=>{if(p==null)return "";if(!p)return c?`<span class="rp-dl n">جديد عن الفترة اللي فاتت</span>`:`<span class="rp-dl n">زي الفترة اللي فاتت</span>`;const d=Math.round((c-p)/p*100);if(!d)return `<span class="rp-dl n">زي الفترة اللي فاتت</span>`;
+ const up=d>0;const bad=good==="r"?up:!up;return `<span class="rp-dl ${bad?"bad":"good"}">${X(up?"trending-up":"trending-down")}${up?"+":""}${d}% عن الفترة اللي فاتت <i class="num">(${rpFmt(p)})</i></span>`};
+
+/* ---- render ---- */
+const rpChartBars=(c,R)=>{const d=RDEF[RKEY];const dim=d.dims[c.dim];const m=c.metric||(x=>x.length);
+ const items=dim.o().map(([v,l])=>{const rr=R.filter(r=>dim.g(r)===v);return [v,l,m(rr),c.late?rr.filter(r=>r.late).length:0,rr.length]}).filter(x=>x[4]);
+ const max=Math.max(1,...items.map(x=>x[2]));const on=RS.f[c.dim];
+ if(!items.length)return `<p class="rp-empty">مفيش بيانات في الفلاتر دي</p>`;
+ return `<div class="rp-bars">${items.map(x=>`<button class="rp-bar ${on===x[0]?"on":""} ${on&&on!==x[0]?"dim":""}" data-rpdrill="${c.dim}|${x[0]}" ${dvT(`${x[1]} · ${c.money?rpN(x[2])+" ر.س":rpN(x[2])+(c.unit?" "+c.unit:"")}${c.late&&x[3]?` · منهم ${x[3]} متأخر`:""} — اضغط للفلترة`)}>
+  <span class="rp-bl">${x[1]}</span><span class="rp-bt"><i style="width:${(x[2]-(c.late?x[3]:0))/max*100}%" class="${c.warn&&x[2]>c.warn?"w":""}"></i>${c.late&&x[3]?`<i class="lt" style="width:${x[3]/max*100}%"></i>`:""}</span><b class="num">${c.money?rpN(x[2]):rpN(x[2])}${c.unit?`<small> ${c.unit}</small>`:""}</b></button>`).join("")}</div>
+  ${c.late?`<div class="in-lg rp-lg"><span><i style="background:var(--navy)"></i>في الميعاد</span><span><i style="background:var(--red)"></i>متأخر</span></div>`:""}${c.warn?`<div class="in-lg rp-lg"><span><i style="background:var(--red)"></i>أكتر من ${c.warn} يوم</span></div>`:""}`};
+const rpChartMonths=(R)=>{const [a,b]=rpRange(RS.per);const yr=(b||RP_TODAY).slice(0,4);const ms=[];
+ for(let i=1;i<=12;i++){const k=`${yr}-${String(i).padStart(2,"0")}`;if(k>RP_TODAY.slice(0,7))break;if(a&&k<a.slice(0,7))continue;ms.push([k,R.filter(r=>(r[RS.dt]||"").startsWith(k)).length])}
+ if(!ms.length)return `<p class="rp-empty">مفيش بيانات</p>`;const max=Math.max(1,...ms.map(m=>m[1]));
+ return `<div class="rp-cols">${ms.map(m=>`<button class="rp-col" data-rpmonth="${m[0]}" ${dvT(`${RP_MON[+m[0].slice(5)-1]} ${m[0].slice(0,4)} · ${m[1]} — اضغط تشوف الشهر ده بس`)}><b class="num">${m[1]||""}</b><i style="height:${Math.max(m[1]?4:1,m[1]/max*100)}%"></i><span>${RP_MON[+m[0].slice(5)-1]}</span></button>`).join("")}</div>`};
+const rpChip=(k)=>{const d=RDEF[RKEY];const dim=d.dims[k];return `<label class="rp-chip ${RS.f[k]?"set":""}"><span>${dim.l}</span><select data-rpf="${k}"><option value="">الكل</option>${dim.o().map(([v,l])=>`<option value="${v}" ${RS.f[k]===v?"selected":""}>${l}</option>`).join("")}</select>${d.quick.includes(k)&&!RS.f[k]?"":`<button data-rprm="${k}" title="شيل الفلتر">${X("x")}</button>`}</label>`};
+const rpView=()=>{
+ const d=RDEF[RKEY];if(!RS)rpInit(RKEY);
+ const range=rpRange(RS.per);const R=rpRows(range);const prev=RS.cmp?rpPrev(range):null;const P=prev?rpRows(prev):null;
+ const shown=[...new Set([...d.quick,...Object.keys(RS.f)])];const avail=Object.keys(d.dims).filter(k=>!shown.includes(k));
+ const K=d.kpis(R),KP=P?d.kpis(P):null;
+ const nf=Object.values(RS.f).filter(v=>v!=="").length+(RS.q?1:0);
+ const perL=PERS.find(p=>p[0]===RS.per)[1];
+ /* table */
+ let table;const col=(k)=>d.cols.find(c=>c[0]===k);
+ if(RS.view==="rows"){
+  const cs=RS.cols.map(col).filter(Boolean);let rows=R.slice();
+  if(RS.sort){const c=col(RS.sort);if(c)rows.sort((x,y)=>{const a=c[3](x),b=c[3](y);return (a>b?1:a<b?-1:0)*RS.dir})}
+  table=`<div class="tw"><table class="rp-t"><thead><tr>${cs.map(c=>`<th><button data-rpsort="${c[0]}" class="${RS.sort===c[0]?"on":""}">${c[1]}${X(RS.sort===c[0]?(RS.dir>0?"arrow-up":"arrow-down"):"arrow-up-down")}</button></th>`).join("")}</tr></thead>
+   <tbody>${rows.slice(0,RS.n).map(r=>`<tr>${cs.map(c=>`<td>${c[2](r)}</td>`).join("")}</tr>`).join("")||`<tr><td colspan="${cs.length}" class="rp-empty">مفيش نتايج — شيل فلتر أو وسّع الفترة</td></tr>`}</tbody></table></div>
+   <div class="tfoot rp-foot"><span>عارض <b class="num">${Math.min(RS.n,rows.length)}</b> من <b class="num">${rows.length}</b></span>${rows.length>RS.n?B("ghost sm","chevrons-down",`اعرض ${Math.min(25,rows.length-RS.n)} كمان`,'data-rpmore="1"'):""}</div>`;
+ }else{
+  const dim=d.dims[RS.view];const groups=dim.o().map(([v,l])=>[v,l,R.filter(r=>dim.g(r)===v)]).filter(g=>g[2].length);
+  const gs=(RS.sort&&RS.sort.startsWith("g"))?groups.slice().sort((x,y)=>(d.gcols[+RS.sort.slice(1)][1](x[2])-d.gcols[+RS.sort.slice(1)][1](y[2]))*RS.dir):groups;
+  const tot=d.gcols.map(g=>g[1](R));
+  table=`<div class="tw"><table class="rp-t rp-g"><thead><tr><th>${dim.l}</th>${d.gcols.map((g,i)=>`<th><button data-rpsort="g${i}" class="${RS.sort==="g"+i?"on":""}">${g[0]}${X(RS.sort==="g"+i?(RS.dir>0?"arrow-up":"arrow-down"):"arrow-up-down")}</button></th>`).join("")}<th></th></tr></thead>
+   <tbody>${gs.map(g=>`<tr data-rpgroup="${RS.view}|${g[0]}"><td><b>${g[1]}</b></td>${d.gcols.map(c=>{const v=c[1](g[2]);return `<td><span class="num ${c[2]&&v?c[2]:""}">${rpN(v)}${c[4]?` <small>${c[4]}</small>`:""}</span></td>`}).join("")}<td class="act"><span class="rp-go">التفاصيل${X("arrow-left")}</span></td></tr>`).join("")}</tbody>
+   <tfoot><tr><td><b>الإجمالي</b></td>${d.gcols.map((c,i)=>`<td><b class="num">${c[4]?"—":rpN(tot[i])}</b></td>`).join("")}<td></td></tr></tfoot></table></div>`;
+ }
+ return `
+ <div class="page-head rp-head"><div><a class="back" href="#" data-go="reports" style="margin:0 0 8px">${X("arrow-right")}<span>مركز التقارير</span></a><h1>${d.t}</h1><p>${d.q}</p></div>
+  <div class="actions"><span class="fresh">${X("clock")}<span>اتحسب دلوقتي · ${nf?`${nf} فلتر`:"من غير فلاتر"}</span></span>
+   <div class="rp-exp">${B("ghost","file-spreadsheet","Excel",'title="بيصدّر الصفوف اللي قدامك بالفلاتر والأعمدة دي"')}${B("ghost","file-text","PDF",'title="حسب صلاحية التصدير PDF"')}</div>
+   ${B("ghost","bookmark","حفظ في تقاريري",'data-rvsave="1"')}${B("primary","calendar-clock","جدولة",'data-rsched="1"')}</div></div>
+ <div class="card rp-ctl">
+  <div class="rp-r1">
+   <div class="rp-q">${X("search")}<input data-rpq value="${RS.q}" placeholder="${d.ph}"></div>
+   <div class="rp-per"><span>${X("calendar")}الفترة</span><select data-rpper>${PERS.map(p=>`<option value="${p[0]}" ${RS.per===p[0]?"selected":""}>${p[1]}</option>`).join("")}</select>
+    ${RS.per==="custom"?`<input type="date" data-rpfrom value="${range[0]}"><span>لـ</span><input type="date" data-rpto value="${range[1]}">`:""}
+    ${d.dateTypes.length>1?`<span class="rp-on">على</span><select data-rpdt>${d.dateTypes.map(t=>`<option value="${t[0]}" ${RS.dt===t[0]?"selected":""}>${t[1]}</option>`).join("")}</select>`:""}</div>
+   <button class="rp-cmp ${RS.cmp?"on":""}" data-rpcmp="1" ${RS.per==="all"?"disabled title='اختار فترة الأول'":""}>${SW(RS.cmp)}<span>قارن بالفترة اللي قبلها</span>${NEWT}</button>
+  </div>
+  <div class="rp-r2">${shown.map(rpChip).join("")}
+   ${avail.length?`<div class="rp-addw"><button class="rp-add" data-rpadd="1">${X("plus")}فلتر</button>${RS.add?`<div class="rp-pop">${avail.map(k=>`<button data-rpaddk="${k}">${d.dims[k].l}</button>`).join("")}</div>`:""}</div>`:""}
+   ${nf?`<button class="rp-clear" data-rpreset="1">${X("rotate-ccw")}امسح الفلاتر</button>`:""}</div>
+ </div>
+ <div class="rp-kpis">${K.map((k,i)=>`<${k[3]?"button":"div"} class="card rp-k ${k[4]||""} ${k[3]&&RS.f[k[3][0]]===k[3][1]?"on":""}" ${k[3]?`data-rpdrill="${k[3][0]}|${k[3][1]}" title="اضغط تشوف دول بس"`:""}><small>${k[0]}</small><b class="num">${rpFmt(k[1],k[5],k[6])}<em>${k[2]&&(k[5]||k[6])?" "+k[2]:""}</em></b>${KP?rpDelta(k[1],KP[i][1],k[4]):`<span class="rp-sub">${k[5]||k[6]?"":k[2]}${k[3]?` ${X("filter")}`:""}</span>`}</${k[3]?"button":"div"}>`).join("")}</div>
+ <div class="rp-charts">${d.charts.map(c=>`<div class="card rp-ch"><div class="rp-cht"><b>${c.ti}</b><small>${c.t==="months"?"اضغط على شهر تشوفه لوحده":"اضغط على أي عمود يفلتر الجدول"}</small></div>${c.t==="months"?rpChartMonths(R):rpChartBars(c,R)}</div>`).join("")}</div>
+ <div class="card flush rp-tbl">
+  <div class="rp-th"><div class="rp-vw"><span>اعرض حسب</span><div class="seg">${d.views.map(v=>`<button class="${RS.view===v[0]?"on":""}" data-rpview="${v[0]}">${v[1]}</button>`).join("")}</div></div>
+   <div class="rp-ta">${RS.view==="rows"?`<div class="rp-addw">${B("ghost sm","columns-3",`الأعمدة (${RS.cols.length} من ${d.cols.length})`,'data-rpcolp="1"')}${RS.colp?`<div class="rp-pop rp-colp"><b>الأعمدة وترتيبها</b>${[...RS.cols.map(col),...d.cols.filter(c=>!RS.cols.includes(c[0]))].map(c=>{const on=RS.cols.includes(c[0]);const i=RS.cols.indexOf(c[0]);return `<div class="rp-ci ${on?"":"off"}"><button data-rpcol="${c[0]}" class="rp-cb">${X(on?"square-check":"square")}<span>${c[1]}</span></button>${on?`<button data-rpmv="${c[0]}|-1" ${i===0?"disabled":""}>${X("chevron-up")}</button><button data-rpmv="${c[0]}|1" ${i===RS.cols.length-1?"disabled":""}>${X("chevron-down")}</button>`:""}</div>`}).join("")}<small class="fhint">الترتيب ده بيتحفظ مع «حفظ في تقاريري» وبيطلع بيه في Excel.</small></div>`:""}</div>`:`<small class="hm-sm">اضغط على أي صف تشوف تفاصيله</small>`}</div></div>
+  ${table}</div>`};
+
+/* ---- events ---- */
+document.addEventListener("click",e=>{
+ const lg=e.target.closest("[data-report]:not([data-rkey])");if(lg){const m={register:"recruitment_contracts",offices:"offices"}[lg.dataset.report]||"";if(m)rpInit(m);else RKEY="";return}
+ if(cur!=="report"&&!e.target.closest("[data-rkey]"))return;
+ const g=s=>e.target.closest(s);const go=()=>{e.preventDefault();e.stopImmediatePropagation();render()};
+ const rk=g("[data-rkey]");if(rk){if(RDEF[rk.dataset.rkey]){rpInit(rk.dataset.rkey,rk.dataset.rpreset?JSON.parse(rk.dataset.rpreset):null);e.preventDefault();e.stopImmediatePropagation();cur="report";render();window.scrollTo(0,0)}else RKEY="";return}
+ if(!RKEY||!RDEF[RKEY])return;
+ if(RS.add&&!g(".rp-addw")){RS.add=false;if(!g("[data-rpadd]"))render()}
+ if(RS.colp&&!g(".rp-addw")){RS.colp=false;if(!g("[data-rpcolp]"))render()}
+ let t;
+ if(t=g("[data-rpdrill]")){const [k,v]=t.dataset.rpdrill.split("|");RS.f[k]=RS.f[k]===v?"":v;RS.n=15;go()}
+ else if(t=g("[data-rpmonth]")){const m=t.dataset.rpmonth;RS.per="custom";RS.from=m+"-01";const e2=rpAdd(rpD(+m.slice(0,4),+m.slice(5)+1,1),-1);RS.to=e2>RP_TODAY?RP_TODAY:e2;RS.n=15;go()}
+ else if(t=g("[data-rpgroup]")){const [k,v]=t.dataset.rpgroup.split("|");RS.f[k]=v;RS.view="rows";RS.sort=null;go()}
+ else if(t=g("[data-rpview]")){RS.view=t.dataset.rpview;RS.sort=null;go()}
+ else if(t=g("[data-rpsort]")){const k=t.dataset.rpsort;if(RS.sort===k)RS.dir=-RS.dir;else{RS.sort=k;RS.dir=-1}go()}
+ else if(g("[data-rpcmp]")){if(RS.per!=="all"){RS.cmp=!RS.cmp;go()}}
+ else if(g("[data-rpadd]")){RS.add=!RS.add;RS.colp=false;go()}
+ else if(t=g("[data-rpaddk]")){RS.f[t.dataset.rpaddk]="";RS.add=false;go();setTimeout(()=>{const s=document.querySelector(`[data-rpf="${t.dataset.rpaddk}"]`);if(s)s.focus()},0)}
+ else if(t=g("[data-rprm]")){delete RS.f[t.dataset.rprm];go()}
+ else if(g("[data-rpreset]")){RS.f={};RS.q="";go()}
+ else if(g("[data-rpmore]")){RS.n+=25;go()}
+ else if(g("[data-rpcolp]")){RS.colp=!RS.colp;RS.add=false;go()}
+ else if(t=g("[data-rpcol]")){const k=t.dataset.rpcol;if(RS.cols.includes(k)){if(RS.cols.length>1)RS.cols=RS.cols.filter(c=>c!==k)}else RS.cols.push(k);RS.colp=true;go()}
+ else if(t=g("[data-rpmv]")){const [k,dd]=t.dataset.rpmv.split("|");const i=RS.cols.indexOf(k),j=i+ +dd;if(j>=0&&j<RS.cols.length){[RS.cols[i],RS.cols[j]]=[RS.cols[j],RS.cols[i]]}RS.colp=true;go()}
+},true);
+document.addEventListener("change",e=>{
+ if(cur!=="report"||!RS)return;const t=e.target;
+ if(t.matches("[data-rpf]")){RS.f[t.dataset.rpf]=t.value;RS.n=15;render()}
+ else if(t.matches("[data-rpper]")){RS.per=t.value;if(RS.per==="all")RS.cmp=false;if(RS.per==="custom"&&!RS.from){RS.from="2026-01-01";RS.to=RP_TODAY}render()}
+ else if(t.matches("[data-rpdt]")){RS.dt=t.value;render()}
+ else if(t.matches("[data-rpfrom]")){RS.from=t.value;render()}
+ else if(t.matches("[data-rpto]")){RS.to=t.value;render()}
+});
+let rpT;document.addEventListener("input",e=>{if(!e.target.matches("[data-rpq]"))return;clearTimeout(rpT);const v=e.target.value;rpT=setTimeout(()=>{RS.q=v.trim();RS.n=15;render();const n=document.querySelector("[data-rpq]");if(n){n.focus();n.setSelectionRange(v.length,v.length)}},250)});
+/* deep link: report.html#arrival, #clients-balances … */
+{const h=decodeURIComponent(location.hash.slice(1));if(RDEF[h])RKEY=h}
+
 /* report page: keep the existing body, add "save to my reports" + columns + applied filters */
 const _report=screens.report;
 const saveModal=()=>`<div class="ov" data-rv-ov><div class="modal rc-modal"><div class="modal-h"><h3>حفظ في تقاريري</h3><button class="icon-btn" data-rv-x>${X("x")}</button></div><div class="rc-mb">
@@ -4954,12 +5175,15 @@ const saveModal=()=>`<div class="ov" data-rv-ov><div class="modal rc-modal"><div
  <div class="fld"><label>اللي هيتحفظ</label><div class="rc-fl">${["المرحلة: التذكرة","المكتب: PLATINUM","متأخر فقط","9 أعمدة"].map(f=>`<span>${f}</span>`).join("")}</div></div>
  <div class="fld"><label>مين يشوفه</label><div class="cx-seg2"><button class="on">أنا بس</button><button>دور: مشرف العمليات</button><button>أشخاص…</button></div><small class="fhint">اللي متشارك معاه يشوف البيانات حسب صلاحياته هو، مش صلاحياتك.</small></div></div>
  <div class="rc-mf">${B("ghost","","إلغاء",'data-rv-x="1"')}${B("primary","bookmark","حفظ",'data-rv-x="1"')}</div></div></div>`;
+const rpSaveModal=()=>{if(!RS)return saveModal();const d=RDEF[RKEY];const fl=[`الفترة: ${PERS.find(p=>p[0]===RS.per)[1]}`,...Object.keys(RS.f).filter(k=>RS.f[k]!=="").map(k=>`${d.dims[k].l}: ${d.dims[k].o().find(o=>o[0]===RS.f[k])[1]}`),...(RS.q?[`بحث: ${RS.q}`]:[]),RS.view==="rows"?`${RS.cols.length} أعمدة`:`حسب ${d.views.find(v=>v[0]===RS.view)[1]}`];
+ return saveModal().replace(/(<label>اللي هيتحفظ<\/label><div class="rc-fl">)[\s\S]*?(<\/div>)/,`$1${fl.map(f=>`<span>${f}</span>`).join("")}$2`)};
 S.report=()=>{
+ if(RKEY&&RDEF[RKEY])return rpView()+(RCSAVE?rpSaveModal():"")+(RCSCHED?schedModal():"");
  let h=_report();
  h=h.replace('class="btn btn-primary">','class="btn btn-primary" data-rsched="1">');
  const bar=`<div class="rc-bar"><div class="rc-fl"><b>الفلاتر:</b>${["الفترة: هذا الشهر","كل الفروع","المرحلة: الكل"].map(f=>`<span>${f} ${X("x")}</span>`).join("")}<button class="rc-addf">${X("plus")}فلتر</button></div>${B("ghost sm","columns-3","الأعمدة (9 من 14)")}${B("ghost sm","bookmark","حفظ في تقاريري "+NEWT,'data-rvsave="1"')}</div>`;
  h=h.replace(/(<div class="page-head">[\s\S]*?<\/div><\/div>)/,"$1"+bar);
- return h+(RCSAVE?saveModal():"");
+ return h+(RCSAVE?saveModal():"")+(RCSCHED?schedModal():"");
 };
 
 document.addEventListener("click",e=>{
@@ -6293,15 +6517,17 @@ const copy=txt=>{const ok=()=>toast("اتنسخ الرابط — الصقه في
 const log=(t,x)=>{t.act.unshift({w:ME,at:now(),x})};
 
 /* ---------- card ---------- */
+/* v1.27: one card layout — meta row, title, footer — same order on every card */
+/* v1.27: one card layout — meta row, title, footer — same order on every card */
 const card=t=>{const ty=TI[t.type]||TI.UPD,p=PI[t.prio],dc=dcls(t),chk=t.ck.length?[t.ck.filter(c=>c.d).length,t.ck.length]:null,D=UI.dense==="d";
+ const cli=D||CF("client"),al=CF("alert")&&t.alert;
  return `<div class="km lb-c${t.live.length?" live":""}${D?" det":""}${CF("stripe")?"":" nostripe"}" draggable="true" data-k="${t.k}" style="--c:${CL[t.client]||"#5f6c80"}" title="${esc(t.client)}">
- ${D||CF("client")?`<div class="kb-ct"><span class="kb-cl" style="--c:${CL[t.client]||"#5f6c80"}">${esc(t.client)}</span>${D?`<span class="kb-pd">${esc(t.product||"")}</span>`:""}</div>`:""}
+ <div class="km-h">${CF("type")?`<span class="kb-ty ${ty[1]}" title="${ty[2]}">${X(ty[0])}</span>`:""}${CF("key")?`<span class="kb-key num">${t.k}</span>`:""}${cli?`<span class="kb-cl" style="--c:${CL[t.client]||"#5f6c80"}">${esc(t.client)}</span>`:""}<span class="kb-sp"></span>${!D&&al?`<span class="km-al ${t.alertCls||"a"}" title="${esc(t.alert)}">${X("alert-circle")}</span>`:""}${t.live.length?`<span class="km-lv" title="${t.live.join("، ")} شغال"></span>`:""}<button class="km-sh" data-share="${t.k}" title="مشاركة على واتساب أو إيميل">${X("share-2")}</button></div>
  <b class="km-t">${esc(t.title)}</b>
- ${D&&CF("alert")&&t.alert?`<span class="kb-al ${t.alertCls}">${X("alert-circle")}${esc(t.alert)}</span>`:""}
+ ${D&&al?`<span class="kb-al ${t.alertCls}">${X("alert-circle")}${esc(t.alert)}</span>`:""}
  ${(D||CF("ck"))&&chk?`<div class="kb-pr"><span class="tc-bar"><i style="width:${chk[0]/chk[1]*100}%"></i></span><small class="num">${chk[0]}/${chk[1]}</small></div>`:""}
  ${t.live.length&&D?`<span class="kb-live"><i></i>${t.live.map(n=>n.split(" ")[0]).join(" و")} شغال${t.live.length>1?"ين":""}</span>`:""}
- <div class="km-f">${CF("type")?`<span class="kb-ty ${ty[1]}" title="${ty[2]}">${X(ty[0])}</span>`:""}${CF("key")?`<span class="kb-key num">${t.k}</span>`:""}${CF("prio")?`<span class="kb-pi ${p[1]}" title="${p[2]}">${X(p[0])}</span>`:""}${CF("due")&&t.due?`<span class="kb-due ${dc}">${dfmt(t.due)}</span>`:""}${!D&&CF("alert")&&t.alert?`<span class="km-al ${t.alertCls||"a"}" title="${esc(t.alert)}">${X("alert-circle")}</span>`:""}${t.live.length?`<span class="km-lv" title="${t.live.join("، ")} شغال"></span>`:""}${!D&&CF("cm")&&t.cm.length?`<span class="kb-mt">${X("message-square")}${t.cm.length}</span>`:""}
-  <span class="kb-sp"></span><button class="km-sh" data-share="${t.k}" title="مشاركة على واتساب أو إيميل">${X("share-2")}</button>${CF("as")?avs(t.as):""}</div></div>`};
+ <div class="km-f">${CF("due")&&t.due?`<span class="kb-due ${dc}" title="الاستحقاق">${X("calendar")}${dfmt(t.due)}</span>`:""}${CF("prio")?`<span class="kb-pi ${p[1]}" title="${p[2]}">${X(p[0])}</span>`:""}${CF("cm")&&t.cm.length?`<span class="kb-mt" title="تعليقات">${X("message-square")}<span class="num">${t.cm.length}</span></span>`:""}${!D&&!CF("ck")&&chk?`<span class="kb-mt" title="البنود">${X("list-checks")}<span class="num">${chk[0]}/${chk[1]}</span></span>`:""}<span class="kb-sp"></span>${CF("as")?avs(t.as):""}</div></div>`};
 
 /* ---------- toolbar + board ---------- */
 const LOADN=n=>TS.filter(t=>t.status!=="closed"&&t.as.includes(n)).length;
@@ -6315,7 +6541,7 @@ const bar=()=>`<div class="kb-bar">
 const col=c=>{const cf=c[3],it=sortIt(TS.filter(t=>t.status===c[0]&&vis(t)),cf.sort),n=UI.more[c[0]]||CAP;
  if(cf.fold)return `<div class="kb-fold lb-drop" data-col="${c[0]}" data-unfold="${c[0]}" style="--s:${c[2]}" title="افتح القائمة"><span class="num">${TS.filter(t=>t.status===c[0]).length}</span><b>${esc(c[1])}</b>${X("chevrons-left")}</div>`;
  const wip=cf.wip>0?[TS.filter(t=>t.status===c[0]).length,cf.wip]:null;
- return `<div class="kb-col lb-drop" data-col="${c[0]}" style="--s:${c[2]}"><div class="kb-ch"><b>${esc(c[1])}</b><span class="num kb-n">${it.length}</span>${wip?`<span class="kb-wip${wip[0]>=wip[1]?" full":""}" title="حد العمل الجاري">${wip[0]} / ${wip[1]}</span>`:""}${cf.sort!=="manual"?`<span class="kb-srt" title="مترتبة ${cf.sort==="due"?"بالاستحقاق":"بالأولوية"}">${X(cf.sort==="due"?"calendar":"signal")}</span>`:""}<span class="kb-sp"></span><button class="kb-cm" data-fold="${c[0]}" title="اطوي القائمة">${X("chevrons-right")}</button><button class="kb-cm" data-colcfg="${c[0]}" title="إعدادات القائمة">${X("more-horizontal")}</button></div>
+ return `<div class="kb-col lb-drop" data-col="${c[0]}" style="--s:${c[2]}"><div class="kb-ch"><b title="${esc(c[1])}">${esc(c[1])}</b><span class="num kb-n">${it.length}</span>${wip?`<span class="kb-wip${wip[0]>=wip[1]?" full":""}" title="حد العمل الجاري">${wip[0]} / ${wip[1]}</span>`:""}${cf.sort!=="manual"?`<span class="kb-srt" title="مترتبة ${cf.sort==="due"?"بالاستحقاق":"بالأولوية"}">${X(cf.sort==="due"?"calendar":"signal")}</span>`:""}<span class="kb-sp"></span><button class="kb-cm" data-fold="${c[0]}" title="اطوي القائمة">${X("chevrons-right")}</button><button class="kb-cm" data-colcfg="${c[0]}" title="إعدادات القائمة">${X("more-horizontal")}</button></div>
   ${UI.addcol===c[0]?`<div class="kb-new"><textarea rows="2" data-newin="${c[0]}" placeholder="إيه المطلوب؟ Enter للحفظ · Esc للإلغاء"></textarea><div><small class="tc-sub">هتتسند لك · بعد 3 أيام عمل</small><span class="kb-sp"></span>${B("primary sm","","إضافة",`data-newgo="${c[0]}"`)}</div></div>`:""}
   <div class="kb-cb">${it.slice(0,n).map(card).join("")}${it.length>n?`<button class="lb-more" data-more="${c[0]}">${X("chevrons-down")}اعرض <span class="num">${Math.min(CAP,it.length-n)}</span> كمان · فاضل <span class="num">${it.length-n}</span></button>`:""}${it.length?"":`<div class="kb-empty">${X("inbox")}اسحب مهمة هنا</div>`}</div>
   ${c[0]==="closed"?"":`<button class="kb-add" data-addcol="${c[0]}">${X("plus")}مهمة</button>`}</div>`};
