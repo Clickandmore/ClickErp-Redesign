@@ -1,5 +1,5 @@
 {
-  "version": "v1.11",
+  "version": "v1.12",
   "date": "2026-11-16",
   "entry": "login.html",
   "screens": [
@@ -867,6 +867,26 @@
       "id": "tcClose",
       "file": "tcClose.html",
       "title": "مركز المهام — قفّل يومك"
+    },
+    {
+      "id": "tcInbox",
+      "file": "tcInbox.html",
+      "title": "مركز المهام — الوارد الموحد"
+    },
+    {
+      "id": "tcHandoff",
+      "file": "tcHandoff.html",
+      "title": "مركز المهام — التسليم والاستلام"
+    },
+    {
+      "id": "tcSpecs",
+      "file": "tcSpecs.html",
+      "title": "مركز المهام — التحليل والمواصفات"
+    },
+    {
+      "id": "tcMigrate",
+      "file": "tcMigrate.html",
+      "title": "مركز المهام — الانتقال من Trello و Time Doctor"
     }
   ],
   "states": [
