@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="design-version" content="v1.24">
+<title>نظرة عامة — Super Admin · Click ERP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Reem+Kufi:wght@500;700&family=Noto+Kufi+Arabic:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/sa.css">
+</head>
+<body data-page="overview">
+<!-- Screen: overview · «جديد» — مفيش صفحة مقابلة في الكود (بعد الدخول بيروح على modules). بتجمع حالة كل الصفحات في مكان واحد. -->
+<main class="sa-content">
+
+  <div class="sa-page-header">
+    <div>
+      <h1 class="sa-page-title">نظرة عامة <span class="sa-new">جديد</span></h1>
+      <p class="sa-page-desc">النسخة دي سليمة ولا لأ؟ وإيه اللي محتاج تصرّف دلوقتي؟</p>
+    </div>
+    <div class="sa-page-header-end">
+      <button class="btn" data-sa-toast="تم الفحص — مفيش تغيير"><i data-lucide="refresh-cw"></i>افحص تاني</button>
+    </div>
+  </div>
+
+  <div class="sa-health sa-health--warning">
+    <span class="sa-health-icon"><i data-lucide="triangle-alert"></i></span>
+    <div class="sa-health-body">
+      <b>النسخة شغالة، بس فيه 3 حاجات محتاجة تصرّف</b>
+      <small>آخر فحص من دقيقتين · Laravel 10 · PHP 8.4 · قاعدة البيانات متصلة</small>
+    </div>
+  </div>
+
+  <div class="sa-todo">
+    <div class="sa-todo-item is-danger"><i data-lucide="calendar-x"></i><span><b>Laravel Scheduler متوقف من 3 ساعات</b><small>المهام المجدولة (تنبيهات العقود، التقرير اليومي، النسخ الليلي) مش بتشتغل.</small></span><a class="btn btn-primary btn-sm" href="scheduler.html">تفعيل وتشغيل Scheduler</a></div>
+    <div class="sa-todo-item"><i data-lucide="database"></i><span><b>2 رقعة قاعدة بيانات معلقة</b><small>مطلوبة قبل التحديث الجاي.</small></span><a class="btn btn-sm" href="recovery.html">مراجعة وتشغيل</a></div>
+    <div class="sa-todo-item"><i data-lucide="badge-alert"></i><span><b>الاشتراك بينتهي بعد 44 يوم</b><small>30 ديسمبر 2026 · الخطة الاحترافية</small></span><a class="btn btn-sm" href="subscription.html">تحديث الاشتراك</a></div>
+  </div>
+
+  <div class="sa-grid-4">
+    <a class="sa-kpi" href="subscription.html"><span class="sa-kpi-label"><i data-lucide="badge-check"></i>الاشتراك</span><b class="sa-kpi-value is-success">نشط</b><span class="sa-kpi-sub num">CL-014 · باقي 44 يوم</span></a>
+    <a class="sa-kpi" href="modules.html"><span class="sa-kpi-label"><i data-lucide="layout-grid"></i>الموديلات</span><b class="sa-kpi-value num">11 من 14</b><span class="sa-kpi-sub">مفعّل · نظام الاستقدام</span></a>
+    <a class="sa-kpi" href="employees.html"><span class="sa-kpi-label"><i data-lucide="users"></i>المستخدمون</span><b class="sa-kpi-value num">46 / 60</b><span class="sa-kpi-sub">من الحد المسموح للنسخة</span></a>
+    <a class="sa-kpi" href="backups.html"><span class="sa-kpi-label"><i data-lucide="database"></i>آخر نسخة احتياطية</span><b class="sa-kpi-value num">اليوم 03:00</b><span class="sa-kpi-sub">R2 · 1.8 GB · سليمة</span></a>
+  </div>
+
+  <div class="sa-grid-2">
+    <section class="sa-card">
+      <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="heart-pulse"></i></span><div><h2 class="sa-card-title">حالة المكوّنات</h2><p class="sa-card-desc">كل سطر بيفتح صفحته.</p></div></div></div>
+      <div class="sa-status-list">
+        <div class="sa-status-row"><span class="sa-dot sa-dot--danger"></span><b><a href="scheduler.html">Laravel Scheduler</a></b><small>متوقف — آخر نبض 13:02</small></div>
+        <div class="sa-status-row"><span class="sa-dot sa-dot--success"></span><b>Crontab</b><small>موجود</small></div>
+        <div class="sa-status-row"><span class="sa-dot sa-dot--success"></span><b><a href="recovery.html">قاعدة البيانات</a></b><small class="num">متصلة · 214 جدول</small></div>
+        <div class="sa-status-row"><span class="sa-dot sa-dot--warning"></span><b><a href="recovery.html">رقع قاعدة البيانات</a></b><small>2 معلقة</small></div>
+        <div class="sa-status-row"><span class="sa-dot sa-dot--success"></span><b><a href="backups.html">النسخ التلقائي اليومي</a></b><small>يوميًا 03:00 · R2</small></div>
+        <div class="sa-status-row"><span class="sa-dot sa-dot--success"></span><b><a href="mcp.html">خادم MCP</a></b><small>يعمل · 7 اتصالات</small></div>
+        <div class="sa-status-row"><span class="sa-dot sa-dot--success"></span><b><a href="moyasar.html">بوابة ميسر</a></b><small>الإنتاج · الويبهوك مضبوط</small></div>
+        <div class="sa-status-row"><span class="sa-dot sa-dot--success"></span><b><a href="updates.html">مزامنة التحديثات</a></b><small>آخر سحب من 12 دقيقة</small></div>
+      </div>
+    </section>
+
+    <section class="sa-card">
+      <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="history"></i></span><div><h2 class="sa-card-title">آخر العمليات الحساسة <span class="sa-new">جديد</span></h2><p class="sa-card-desc">كل عملية في Super Admin بتتسجل باسم اللي عملها.</p></div></div></div>
+      <ul class="sa-timeline">
+        <li><span class="sa-timeline-icon"><i data-lucide="user-check"></i></span><div class="sa-timeline-body"><b>دخول كموظف</b><small>سارة القحطاني (موظف عمليات)</small></div><time class="num">اليوم 11:20</time></li>
+        <li><span class="sa-timeline-icon"><i data-lucide="file-pen"></i></span><div class="sa-timeline-body"><b>تصحيح فاتورة INV-9915</b><small class="num">الإجمالي 11,500 ← 10,350</small></div><time class="num">أمس 18:05</time></li>
+        <li><span class="sa-timeline-icon"><i data-lucide="layout-grid"></i></span><div class="sa-timeline-body"><b>تفعيل موديل «كوبونات الخصم»</b><small>الموديلات</small></div><time class="num">12 نوفمبر</time></li>
+        <li><span class="sa-timeline-icon"><i data-lucide="construction"></i></span><div class="sa-timeline-body"><b>وضع التحديث 22 دقيقة</b><small>«تحديث المالية — راجعين خلال نص ساعة»</small></div><time class="num">9 نوفمبر</time></li>
+        <li><span class="sa-timeline-icon"><i data-lucide="package"></i></span><div class="sa-timeline-body"><b>تغيير نوع البرنامج</b><small>نظام عام ← نظام الاستقدام · «طلب العميل»</small></div><time class="num">1 نوفمبر</time></li>
+      </ul>
+    </section>
+  </div>
+
+  <section class="sa-card sa-card--feature sa-pattern">
+    <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="construction"></i></span><div><h2 class="sa-card-title">وضع التحديث</h2><p class="sa-card-desc">لوحة التحكم متاحة للموظفين دلوقتي. الإعداد الكامل في <a href="modules.html#maintenance" style="color:var(--sa-green-300)">الموديلات</a>.</p></div></div><span class="sa-badge sa-badge--success"><i data-lucide="lock-open"></i>اللوحة متاحة</span></div>
+  </section>
+
+</main>
+<script src="https://unpkg.com/lucide@0.451.0/dist/umd/lucide.min.js"></script>
+<script src="assets/sa.js"></script>
+</body>
+</html>

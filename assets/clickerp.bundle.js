@@ -4753,54 +4753,82 @@ S.recDash=()=>`
  </div>`;
 /* ---------------- Reports centre ---------------- */
 let RCTAB="all",RCSCHED=false,RCSAVE=false;
-/* catalogue — names from ReportExportService::definitions() + finance/HR/visa packages */
+let RCCAT="",RCF="";
+/* catalogue — ReportExportService::definitions() + reports.arrivals + visa-requests.reports + finance package + hr/hourly/ingaz report routes
+   row: [type, key, title, question, fav, forRole, schedulable(export), subs, lastOpened] */
 const CAT=[
- ["ops","العمليات","briefcase",[
-  ["register","recruitment_contracts","سجل عقود الاستقدام","كل عقد في أي مرحلة، ومع مين؟",1,1,1],
-  ["ops","arrival","تقرير الوصول","مين وصل ومين متأخر عن الوصول؟",1,0,1],
+ ["ops","العمليات والاستقدام","briefcase","العقود والطلبات والوصول والسكن",[
+  ["register","recruitment_contracts","سجل عقود الاستقدام","كل عقد في أي مرحلة، ومع مين؟",1,1,1,0,"فتحته النهارده"],
+  ["ops","arrival","تقرير الوصول","مين وصل ومين متأخر عن الوصول؟",1,0,1,0,"فتحته أمس"],
   ["types","orders","طلبات الاستقدام","كام طلب جديد ومكتمل وملغي؟",0,1,1],
-  ["housing","shelter_contracts","الإيواء","مين في السكن ومين طلع؟",1,0,1],
+  ["housing","shelter_contracts","الإيواء","مين في السكن ومين طلع؟",1,0,1,0,"من 3 أيام"],
   ["types","sponsorship_transfers","نقل الكفالة","مين في فترة التجربة ومين اتنقل؟",0,0,1],
   ["trips","travel_trips","رحلات الاستقدام","إيه الرحلات الجاية والمكتملة؟",0,0,1],
-  ["trips","deportation_travel","الترحيل","مين في مرحلة الترحيل؟",0,0,1]]],
- ["ext","المكاتب الخارجية والسير","globe",[
-  ["offices","offices","المكاتب الخارجية","أنهي مكتب أسرع وأقل إرجاع؟",1,1,1],
+  ["trips","deportation_travel","الترحيل","مين في مرحلة الترحيل؟",0,0,1],
+  ["register","escape_reports","بلاغات الهروب","كام بلاغ مفتوح وفي أنهي عقود؟",0,0,0],
+  ["finance","musaned_invoices","فواتير نقل مساند","فواتير نقل الخدمات اتدفعت ولا لسه؟",0,0,0],
+  ["volume","branches","تقرير الفروع","كل فرع شغال قد إيه مقارنة بالباقي؟",0,0,0]]],
+ ["ext","المكاتب الخارجية والتأشيرات","globe","المكاتب والسير وطلبات التأشيرة",[
+  ["offices","offices","المكاتب الخارجية","أنهي مكتب أسرع وأقل إرجاع؟",1,1,1,0,"فتحته أمس"],
   ["people","maids","السير الذاتية والعاملات","المتاح والمحجوز حسب الجنسية والمهنة",0,0,1],
-  ["volume","visa","تقارير التأشيرات (8)","الاستهلاك، المدفوعات، قريبة الانتهاء…",0,0,0]]],
- ["crm","العملاء","users",[
+  ["volume","visa","تقارير التأشيرات","8 تقارير لطلبات التأشيرة",0,0,0,["المدفوعات","الاستهلاك","الإلغاءات","قريبة الانتهاء","دورة الطلب","مستحقات الوكلاء","التكلفة الكاملة","تقييم الوكلاء"]]]],
+ ["crm","العملاء والخدمة","users","العملاء والشكاوى والعروض",[
   ["people","clients","العملاء","مين عنده طلبات ومين لأ؟",0,0,1],
-  ["register","complaints","الشكاوى","كام شكوى ومتوسط وقت الحل؟",0,0,1]]],
- ["rent","التأجير","home",[
+  ["register","complaints","الشكاوى","كام شكوى ومتوسط وقت الحل؟",0,0,1],
+  ["people","duplicate_phones","أرقام العملاء المكررة","مين متسجل أكتر من مرة بنفس الرقم؟",0,0,0],
+  ["volume","coupons","الكوبونات","كام كوبون اتستخدم ووفّر كام؟",0,0,0]]],
+ ["rent","التأجير","home","الإيجار الشهري والتأجير بالساعة",[
   ["housing","rent_contracts","عقود الإيجار","النشط والمنتهي والمتأخر في الدفع",0,0,1],
-  ["volume","hourly","تقارير التأجير بالساعة","الزيارات والتحصيل والتقييم",0,0,0]]],
- ["fin","المالية","wallet",[
-  ["finance","financial_requests","الطلبات المالية","إيه الطلبات المستنية اعتماد؟",1,0,1],
+  ["volume","hourly","تقارير التأجير بالساعة","الزيارات والتحصيل ورضا العملاء",0,0,0,["الزيارات","التحصيل","التقييمات","البلاغات"]]]],
+ ["fin","المالية: القوائم والأرصدة","landmark","الدخل والميزان والكشوف والأرصدة",[
+  ["finance","incomeList","قائمة الدخل","كسبنا كام بعد المصروفات؟",1,1,0,0,"من أسبوع"],
+  ["finance","profitability","الربحية","أنهي خدمة وأنهي عقد بيكسب أكتر؟",0,1,0],
   ["finance","trail-balance","ميزان المراجعة","الأرصدة كلها متزنة؟",0,1,0],
-  ["finance","account-statement","كشف حساب","حركة حساب معيّن في فترة",1,0,0],
-  ["finance","clients-balances","أرصدة العملاء وأعمار الديون","مين عليه فلوس ومن إمتى؟",1,1,0],
-  ["finance","suppliers-balances","أرصدة الموردين والوكلاء","علينا كام ولمين؟",0,1,0],
-  ["finance","treasury-and-banks-balances","أرصدة الخزن والبنوك","معانا كام فلوس دلوقتي؟",1,1,0],
-  ["finance","tax-invoice-statement","بيان الفواتير الضريبية","ضريبة الربع كام؟",0,0,0]]],
- ["hr","الموارد البشرية","user-cog",[
+  ["finance","client-trial-balance","ميزان مراجعة العملاء","مدين ودائن كل عميل في الفترة",0,0,0],
+  ["finance","account-statement","كشف حساب","حركة حساب معيّن في فترة",0,0,0,["حساب","عميل","مورد","مزدوج","بنك"]],
+  ["finance","clients-balances","أرصدة العملاء وأعمار الديون","مين عليه فلوس ومن إمتى؟",1,1,0,0,"فتحته النهارده"],
+  ["finance","suppliers-balances","أرصدة الوكلاء الخارجيين","علينا كام ولمين؟",0,1,0],
+  ["finance","treasury-and-banks-balances","أرصدة الخزن والبنوك","معانا كام فلوس دلوقتي؟",0,1,0],
+  ["finance","accounts-balances","أرصدة الحسابات","رصيد كل حساب في الشجرة",0,0,0],
+  ["finance","store-balances","أرصدة المخازن","المخزون بكام وفين؟",0,0,0]]],
+ ["sales","المبيعات والضريبة","receipt","الفواتير والتحليل والطلبات المالية",[
+  ["finance","financial_requests","الطلبات المالية","إيه الطلبات المستنية اعتماد؟",0,0,1],
+  ["finance","sales-analysis","تحليل المبيعات","المبيعات طالعة ولا نازلة، ومن أنهي خدمة؟",0,1,0],
+  ["finance","purchases-analysis","تحليل المشتريات","بنصرف على إيه أكتر؟",0,0,0],
+  ["finance","bill-sales-report","تقرير فواتير المبيعات","كل فاتورة اتطلعت وحالتها",0,0,0],
+  ["finance","tax-invoice-statement","بيان الفواتير الضريبية","ضريبة الربع كام؟",0,1,0]]],
+ ["hr","الموارد البشرية","user-cog","الرواتب والإجازات والعمل اليومي",[
   ["register","payrolls","مسيّر الرواتب","رواتب الشهر بالتفصيل",0,0,0],
   ["register","employeeVacationBalance","أرصدة الإجازات","كل موظف فاضله كام يوم؟",0,0,0],
   ["register","daily-work-reports","تقارير العمل اليومية","كل موظف عمل إيه؟",0,0,0]]]
 ];
-const ALL=CAT.reduce((a,c)=>a+c[3].length,0);
+const ALL=CAT.reduce((a,c)=>a+c[4].length,0);
+const rcCnt=(f)=>CAT.reduce((a,c)=>a+c[4].filter(f).length,0);
 const rcTabs=()=>`<div class="vtabs">${[["ind","bar-chart-3","المؤشرات التشغيلية"],["all","library","كل التقارير",ALL],["mine","bookmark","تقاريري",4],["sched","calendar-clock","المجدولة",3],["log","history","سجل الإرسال"]].map(x=>`<button class="${x[0]===RCTAB?"on":""}" data-rctab="${x[0]}">${X(x[1])}<span>${x[2]}</span>${x[3]!=null?`<em class="num">${x[3]}</em>`:""}</button>`).join("")}</div>`;
 
-const allView=()=>`
- <div class="rc-wrap"><aside class="card rc-side"><b class="rc-st">الأقسام</b>
-  <button class="on">${X("layers")}<span>الكل</span><em class="num">${ALL}</em></button>
-  <button>${X("star")}<span>المفضلة</span><em class="num">5</em></button>
-  <button>${X("user-round")}<span>تخص دورك</span><em class="num">6</em></button><hr>
-  ${CAT.map(c=>`<button>${X(c[2])}<span>${c[1]}</span><em class="num">${c[3].length}</em></button>`).join("")}</aside>
- <div><div class="fbar"><div class="fb grow"><label>بحث</label><div class="inp">${X("search")}<input placeholder="اكتب اللي عايز تعرفه: «متأخر»، «أرصدة»، «وصول»…"></div></div></div>
- ${CAT.map(c=>`<div class="rc-sec"><div class="rc-sh">${X(c[2])}<b>${c[1]}</b><span class="num">${c[3].length}</span></div>
-  <div class="card flush">${c[3].map(r=>`<div class="rc-row"><button class="rc-star ${r[4]?"on":""}" title="مفضلة">${X("star")}</button><div class="rc-t"><b>${r[2]}</b><small>${r[3]}</small></div>
-   <div class="rc-tags">${r[5]?TAG("n","تخص دورك"):""}${r[6]?"":`<span class="tag" title="الجدولة متاحة حالياً لتقارير التصدير الـ 12 بس">الجدولة ${NEWT}</span>`}</div>
-   <div class="rc-act">${B("ghost sm","eye","عرض",`data-report="${r[0]}"`)}${B("ghost sm","calendar-clock","جدولة",'data-rsched="1"')}</div></div>`).join("")}</div></div>`).join("")}
- </div></div>`;
+const rcPass=(r)=>RCF==="fav"?r[4]:RCF==="role"?r[5]:RCF==="sched"?r[6]:true;
+const rcCard=(c,r)=>`<div class="card rc-card" data-report="${r[0]}" data-rq="${r[2]} ${r[3]} ${c[1]} ${(r[7]||[]).join(" ")}">
+ <div class="rc-ch"><span class="rc-ic rc-${c[0]}">${X(c[2])}</span>${r[5]?`<span class="rc-role">${X("user-round")}تخص دورك</span>`:""}<button class="rc-star ${r[4]?"on":""}" title="مفضلة">${X("star")}</button></div>
+ <b class="rc-tt">${r[2]}</b><small class="rc-q">${r[3]}</small>
+ ${r[7]?`<div class="rc-subs">${r[7].map(s=>`<span>${s}</span>`).join("")}</div>`:""}
+ <div class="rc-cf"><span class="rc-meta">${r[8]?`${X("clock-3")}${r[8]}`:r[6]?`${X("file-spreadsheet")}Excel`:`${X("file-text")}عرض وطباعة`}</span>
+  <button class="rc-sb ${r[6]?"":"nw"}" data-rsched="1" title="${r[6]?"جدولة":"جدولة التقرير ده جديدة — في ClickERP الجدولة لتقارير التصدير بس"}">${X("calendar-clock")}</button>
+  <span class="rc-open">فتح${X("arrow-left")}</span></div></div>`;
+
+const allView=()=>{
+ const favs=[];CAT.forEach(c=>c[4].forEach(r=>{if(r[4])favs.push([c,r])}));
+ const secs=CAT.filter(c=>!RCCAT||c[0]===RCCAT).map(c=>[c,c[4].filter(rcPass)]).filter(s=>s[1].length);
+ return `<div class="card rc-tool">
+  <div class="rc-search">${X("search")}<input data-rptq placeholder="دوّر بسؤالك أو اسم التقرير: «متأخر»، «أرصدة»، «وصول»، «ضريبة»…"><kbd>${ALL} تقرير</kbd></div>
+  <div class="rc-qf">${[["","الكل",ALL],["fav","المفضلة",rcCnt(r=>r[4])],["role","تخص دورك",rcCnt(r=>r[5])],["sched","تتصدّر وتتجدول",rcCnt(r=>r[6])]].map(f=>`<button class="${RCF===f[0]?"on":""}" data-rcf="${f[0]}">${f[1]}<em class="num">${f[2]}</em></button>`).join("")}</div>
+  <div class="rc-cats"><button class="${RCCAT?"":"on"}" data-rccat="">${X("layers")}كل الأقسام</button>${CAT.map(c=>`<button class="${RCCAT===c[0]?"on":""}" data-rccat="${c[0]}"><span class="rc-ic rc-${c[0]}">${X(c[2])}</span>${c[1]}<em class="num">${c[4].length}</em></button>`).join("")}</div>
+ </div>
+ ${!RCCAT&&!RCF?`<div class="rc-fav" data-rcfav><div class="rc-sh">${X("star")}<b>المفضلة</b><span>توصلها بضغطة</span></div><div class="rc-fl2">${favs.map(([c,r])=>`<a href="#" class="card rc-fv" data-report="${r[0]}"><span class="rc-ic rc-${c[0]}">${X(c[2])}</span><b>${r[2]}<small>${r[8]||c[1]}</small></b>${X("arrow-left")}</a>`).join("")}</div></div>`:""}
+ ${secs.map(([c,rs])=>`<section class="rc-sec" data-rcsec><div class="rc-sh"><span class="rc-ic rc-${c[0]}">${X(c[2])}</span><b>${c[1]}</b><span>${c[3]} · <i class="num">${rs.length}</i></span></div>
+  <div class="rc-grid">${rs.map(r=>rcCard(c,r)).join("")}</div></section>`).join("")}
+ <div class="card rc-none" data-rcnone ${secs.length?"hidden":""}>${X("search-x")}<b>مفيش تقرير بالاسم ده</b><small>جرّب كلمة تانية، أو شيل الفلتر.</small></div>
+ <p class="rc-foot">${X("info")}<span>في ClickERP الجدولة والتصدير Excel متاحين لـ <b class="num">${rcCnt(r=>r[6])}</b> تقرير بس (فلتر «تتصدّر وتتجدول»). جدولة باقي التقارير ${NEWT}.</span></p>`;
+};
 
 const SAVED=[["العقود المتأخرة — PLATINUM","سجل عقود الاستقدام",["المرحلة: التذكرة","المكتب: PLATINUM","متأخر فقط"],9,"لي",1],["المستحقات فوق 60 يوم","أرصدة العملاء وأعمار الديون",["العمر: +60 يوم","كل الفروع"],6,"دور: المحاسب",0],["وصول هذا الأسبوع","تقرير الوصول",["الفترة: هذا الأسبوع","الفرع الرئيسي"],7,"دور: مشرف العمليات",1],["عقود إيجار تنتهي الشهر الجاي","عقود الإيجار",["ينتهي خلال 30 يوم"],8,"لي",0]];
 const mineView=()=>`
@@ -4945,6 +4973,8 @@ document.addEventListener("click",e=>{
  else if(g("[data-hcmode]")){HCMODE=g("[data-hcmode]").dataset.hcmode}
  else if(g("[data-hc-x]")||(e.target.matches&&e.target.matches("[data-hc-ov]"))){HCUST=false}
  else if(g("[data-rctab]")){RCTAB=g("[data-rctab]").dataset.rctab}
+ else if(g("[data-rcf]")){RCF=g("[data-rcf]").dataset.rcf}
+ else if(g("[data-rccat]")){RCCAT=g("[data-rccat]").dataset.rccat}
  else if(g("[data-rsched]")){RCSCHED=true}
  else if(g("[data-rs-x]")||(e.target.matches&&e.target.matches("[data-rs-ov]"))){RCSCHED=false}
  else if(g("[data-rvsave]")){RCSAVE=true}
@@ -4956,6 +4986,14 @@ document.addEventListener("click",e=>{
  if(hit){e.preventDefault();e.stopImmediatePropagation();render()}
 },true);
 
+document.addEventListener("input",e=>{
+ if(!e.target.matches("[data-rptq]"))return;
+ const q=e.target.value.trim();
+ document.querySelectorAll(".rc-card").forEach(c=>{c.hidden=!!q&&!c.dataset.rq.includes(q)});
+ let any=0;document.querySelectorAll("[data-rcsec]").forEach(s=>{const v=[...s.querySelectorAll(".rc-card")].some(c=>!c.hidden);s.hidden=!v;if(v)any=1});
+ const f=document.querySelector("[data-rcfav]");if(f)f.hidden=!!q;
+ const n=document.querySelector("[data-rcnone]");if(n)n.hidden=!!any;
+});
 Object.assign(T,{dashboard:{ar:"الرئيسية",en:"Home"},reports:{ar:"مركز التقارير",en:"Reports centre"},recDash:{ar:"لوحة الاستقدام",en:"Recruitment dashboard"}});
 window.CERP_PAGES=(window.CERP_PAGES||[]).concat(["recDash"]);
 Object.keys(S).forEach(k=>{screens[k]=S[k]});

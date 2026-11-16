@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="design-version" content="v1.24">
+<title>تسجيل الدخول — Super Admin · Click ERP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Reem+Kufi:wght@500;700&family=Noto+Kufi+Arabic:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/sa.css">
+</head>
+<body>
+<!-- Screen: login · /{locale}/superadmin (DevSuperAdminController@loginForm) · admin/superadmin/login.blade.php -->
+<div class="sa-auth">
+  <div class="sa-auth-form-col">
+    <form class="sa-auth-inner" action="index.html">
+      <a class="sa-brand" href="../index.html" aria-label="Click ERP">
+        <span class="sa-seal sa-seal--lg" data-sa-logo></span>
+        <span><span class="sa-brand-name" style="color:var(--sa-navy-800)">Click ERP</span><span class="sa-brand-sub" style="color:var(--faint)">Super Admin</span></span>
+      </a>
+      <span class="sa-auth-restricted"><i data-lucide="shield-alert"></i>منطقة مقيّدة — للفريق التقني فقط</span>
+      <div>
+        <h1 class="sa-auth-title">تسجيل الدخول</h1>
+        <p class="sa-auth-sub">أدخل بيانات حساب المدير العام للمتابعة.</p>
+      </div>
+
+      <!-- حالة الخطأ (errors->has('username')) -->
+      <div class="sa-alert sa-alert--danger"><i data-lucide="circle-alert"></i><span>بيانات دخول لوحة التطوير غير صحيحة.</span></div>
+
+      <div class="sa-field">
+        <label for="saUsername">اسم الدخول</label>
+        <input class="sa-input" id="saUsername" name="username" value="clickdev" dir="ltr" autocomplete="username">
+      </div>
+      <div class="sa-field">
+        <label for="saPassword">كلمة المرور</label>
+        <div class="sa-pass">
+          <input class="sa-input" id="saPassword" type="password" name="password" value="••••••••••••" dir="ltr" autocomplete="current-password">
+          <button type="button" data-sa-pass aria-label="إظهار كلمة المرور"><i data-lucide="eye"></i></button>
+        </div>
+      </div>
+      <button class="btn btn-primary" type="submit"><i data-lucide="log-in"></i>دخول اللوحة</button>
+      <p class="sa-auth-foot">5 محاولات في الدقيقة · كل دخول بيتسجل</p>
+    </form>
+  </div>
+
+  <div class="sa-auth-panel sa-pattern">
+    <h2>إدارة النسخة بثقة وأمان</h2>
+    <p>لوحة Super Admin للتحكم في اشتراك العميل والموديلات والتحديثات والنسخ الاحتياطية من مكان واحد.</p>
+    <ul>
+      <li><i data-lucide="badge-check"></i>العميل والاشتراك ونوع البرنامج</li>
+      <li><i data-lucide="layout-grid"></i>الموديلات وحدود المستخدمين والفروع</li>
+      <li><i data-lucide="database"></i>النسخ الاحتياطية والاستعادة</li>
+      <li><i data-lucide="clock"></i>المهام المجدولة ووضع التحديث</li>
+    </ul>
+    <div class="sa-auth-note">بعد الدخول: لو قاعدة البيانات أو الجداول الأساسية ناقصة بتروح على <a href="recovery.html">الاستعادة والفحص</a>، وإلا على <a href="index.html">النظرة العامة</a>.</div>
+  </div>
+</div>
+<script src="https://unpkg.com/lucide@0.451.0/dist/umd/lucide.min.js"></script>
+<script src="assets/sa.js"></script>
+<script>document.querySelectorAll('[data-sa-logo]').forEach(function (e) { e.innerHTML = window.SA_LOGO; });</script>
+</body>
+</html>
