@@ -1,10 +1,10 @@
 # Super Admin — منطقة منفصلة بهوية Click & More
 
-لوحة Super Admin مش جزء من لوحة المكتب: ليها دخول منفصل (`/{locale}/superadmin`)، وقالب منفصل، وهوية Click & More (كحلي `#1B2A4A` + أخضر `#7AB948`، خط Reem Kufi للعناوين وNoto Kufi Arabic للنص). عشان كده اتنقلت من جذر المستودع (`sa*.html` جوه قالب المكتب) لفولدر لوحدها هنا.
+لوحة Super Admin مش جزء من لوحة المكتب: ليها دخول منفصل (`/{locale}/superadmin`)، وقالب منفصل، وبنفس ثيم النظام الأساسي (`assets/clickerp.bundle.css`): خط Cairo، كحلي `#16233f` + أخضر `#7ab648`، قائمة جانبية فاتحة والعنصر النشط أخضر فاتح، وشعار Click & More. عشان كده اتنقلت من جذر المستودع (`sa*.html` جوه قالب المكتب) لفولدر لوحدها هنا.
 
 المصدر في ClickERP:
 - القالب: `resources/views/admin/superadmin/layouts/app.blade.php` + `partials/sidebar|topbar|page-header`
-- الأنماط: `public/css/dev-super-admin.css` — **نفس الـ tokens ونفس أسماء الكلاسات** المستخدمة هنا.
+- الأنماط: أسماء الكلاسات زي `public/css/dev-super-admin.css`، والألوان والخط من ثيم التصميم (`assets/clickerp.bundle.css`).
 - المسارات: `routes/ingaz.php` (مجموعة `dev-superadmin.`) و`routes/hourly.php`.
 
 ## الملفات

@@ -4,23 +4,21 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<meta name="design-version" content="v1.25">
+<meta name="design-version" content="v1.25.1">
 <title>تسجيل الدخول — Super Admin · Click ERP</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Reem+Kufi:wght@500;700&family=Noto+Kufi+Arabic:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/sa.css">
 </head>
 <body>
-<!-- Screen: login · /{locale}/superadmin (DevSuperAdminController@loginForm) · admin/superadmin/login.blade.php -->
+<!-- Screen: login · /{locale}/superadmin (DevSuperAdminController@loginForm) · admin/superadmin/login.blade.php
+     الشكل نفس login.html في الثيم: فورم في كارت على خلفية منقطة + صورة الرياض. الحقول زي الكود: اسم وكلمة مرور. -->
 <div class="sa-auth">
   <div class="sa-auth-form-col">
     <form class="sa-auth-inner" action="index.html">
-      <a class="sa-brand" href="../index.html" aria-label="Click ERP">
-        <span class="sa-seal sa-seal--lg" data-sa-logo></span>
-        <span><span class="sa-brand-name" style="color:var(--sa-navy-800)">Click ERP</span><span class="sa-brand-sub" style="color:var(--faint)">Super Admin</span></span>
-      </a>
-      <span class="sa-auth-restricted"><i data-lucide="shield-alert"></i>منطقة مقيّدة — للفريق التقني فقط</span>
-      <div>
+      <div class="sa-auth-logo">
+        <img src="../assets/logo-light-tight.png" alt="Click & More">
+        <span class="sa-auth-restricted"><i data-lucide="shield-alert"></i>Super Admin — للفريق التقني فقط</span>
+      </div>
+      <div class="sa-auth-head">
         <h1 class="sa-auth-title">تسجيل الدخول</h1>
         <p class="sa-auth-sub">أدخل بيانات حساب المدير العام للمتابعة.</p>
       </div>
@@ -39,12 +37,14 @@
           <button type="button" data-sa-pass aria-label="إظهار كلمة المرور"><i data-lucide="eye"></i></button>
         </div>
       </div>
-      <button class="btn btn-primary" type="submit"><i data-lucide="log-in"></i>دخول اللوحة</button>
+      <button class="btn btn-primary" type="submit">دخول اللوحة<i data-lucide="arrow-left"></i></button>
       <p class="sa-auth-foot">5 محاولات في الدقيقة · كل دخول بيتسجل</p>
     </form>
+    <span class="sa-auth-powered">POWERED BY <img src="../assets/logo-light-tight.png" alt="Click & More"><b>Click<span>ERP</span></b></span>
   </div>
 
-  <div class="sa-auth-panel sa-pattern">
+  <div class="sa-auth-panel">
+    <span class="sa-auth-line"></span>
     <h2>إدارة النسخة بثقة وأمان</h2>
     <p>لوحة Super Admin للتحكم في اشتراك العميل والموديلات والتحديثات والنسخ الاحتياطية من مكان واحد.</p>
     <ul>
@@ -53,11 +53,9 @@
       <li><i data-lucide="database"></i>النسخ الاحتياطية والاستعادة</li>
       <li><i data-lucide="clock"></i>المهام المجدولة ووضع التحديث</li>
     </ul>
-    <div class="sa-auth-note">بعد الدخول: لو قاعدة البيانات أو الجداول الأساسية ناقصة بتروح على <a href="recovery.html">الاستعادة والفحص</a>، وإلا على <a href="index.html">النظرة العامة</a>.</div>
   </div>
 </div>
 <script src="https://unpkg.com/lucide@0.451.0/dist/umd/lucide.min.js"></script>
 <script src="assets/sa.js"></script>
-<script>document.querySelectorAll('[data-sa-logo]').forEach(function (e) { e.innerHTML = window.SA_LOGO; });</script>
 </body>
 </html>

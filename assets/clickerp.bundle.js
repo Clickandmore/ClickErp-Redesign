@@ -4797,17 +4797,19 @@ const CAT=[
   ["finance","purchases-analysis","تحليل المشتريات","بنصرف على إيه أكتر؟",0,0,0],
   ["finance","bill-sales-report","تقرير فواتير المبيعات","كل فاتورة اتطلعت وحالتها",0,0,0],
   ["finance","tax-invoice-statement","بيان الفواتير الضريبية","ضريبة الربع كام؟",0,1,0]]],
- ["hr","الموارد البشرية","user-cog","الرواتب والإجازات والعمل اليومي",[
+ ["hr","الموارد البشرية","user-cog","الرواتب والإجازات والعمل اليومي والمهام",[
   ["register","payrolls","مسيّر الرواتب","رواتب الشهر بالتفصيل",0,0,0],
   ["register","employeeVacationBalance","أرصدة الإجازات","كل موظف فاضله كام يوم؟",0,0,0],
-  ["register","daily-work-reports","تقارير العمل اليومية","كل موظف عمل إيه؟",0,0,0]]]
+  ["register","daily-work-reports","تقارير العمل اليومية","كل موظف عمل إيه؟",0,0,0],
+  ["register","task_center.reports","ساعات المهام والتكلفة","كل موظف اشتغل كام ساعة وعلى إيه، وتكلفتها كام؟",0,0,0,0,0,"tcHours"],
+  ["register","task_center.reports.attendance","الحضور مقابل المهام","الحضور على الجهاز متطابق مع الوقت المسجل على المهام؟",0,0,0,0,0,"tcAttend"]]]
 ];
 const ALL=CAT.reduce((a,c)=>a+c[4].length,0);
 const rcCnt=(f)=>CAT.reduce((a,c)=>a+c[4].filter(f).length,0);
 const rcTabs=()=>`<div class="vtabs">${[["ind","bar-chart-3","المؤشرات التشغيلية"],["all","library","كل التقارير",ALL],["mine","bookmark","تقاريري",4],["sched","calendar-clock","المجدولة",3],["log","history","سجل الإرسال"]].map(x=>`<button class="${x[0]===RCTAB?"on":""}" data-rctab="${x[0]}">${X(x[1])}<span>${x[2]}</span>${x[3]!=null?`<em class="num">${x[3]}</em>`:""}</button>`).join("")}</div>`;
 
 const rcPass=(r)=>RCF==="fav"?r[4]:RCF==="role"?r[5]:RCF==="sched"?r[6]:true;
-const rcCard=(c,r)=>`<div class="card rc-card" data-report="${r[0]}" data-rq="${r[2]} ${r[3]} ${c[1]} ${(r[7]||[]).join(" ")}">
+const rcCard=(c,r)=>`<div class="card rc-card" ${r[9]?`data-go="${r[9]}"`:`data-report="${r[0]}"`} data-rq="${r[2]} ${r[3]} ${c[1]} ${(r[7]||[]).join(" ")}">
  <div class="rc-ch"><span class="rc-ic rc-${c[0]}">${X(c[2])}</span>${r[5]?`<span class="rc-role">${X("user-round")}تخص دورك</span>`:""}<button class="rc-star ${r[4]?"on":""}" title="مفضلة">${X("star")}</button></div>
  <b class="rc-tt">${r[2]}</b><small class="rc-q">${r[3]}</small>
  ${r[7]?`<div class="rc-subs">${r[7].map(s=>`<span>${s}</span>`).join("")}</div>`:""}

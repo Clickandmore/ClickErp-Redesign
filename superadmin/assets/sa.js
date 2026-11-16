@@ -47,6 +47,8 @@
   /* شعار Click & More (نفس partials/logo-mark.blade.php) */
   var LOGO = '<svg viewBox="0 0 100 100" aria-hidden="true"><g fill="none" stroke="#1B2A4A" stroke-linecap="round"><path d="M68.51 29.43A32 32 0 1 0 66.63 72.63" stroke-width="15"/><path d="M58.55 37.79A19 19 0 1 0 57.43 63.43" stroke-width="4"/><path d="M51.66 43.57A10 10 0 1 0 51.07 57.07" stroke-width="4"/></g><path d="M50 53L94 66L72 73L65 95Z" fill="#7AB948"/></svg>';
   window.SA_LOGO = LOGO;
+  /* شعار الشركة من ثيم النظام (assets/ في جذر المستودع) */
+  var LOGO_IMG = '../assets/logo-light-tight.png';
 
   var ic = function (n) { return '<i data-lucide="' + n + '"></i>'; };
 
@@ -78,7 +80,7 @@
 
     var sidebar =
       '<aside class="sa-sidebar sa-pattern" id="saSidebar" aria-label="القائمة الرئيسية">' +
-        '<div class="sa-sidebar-brand"><a class="sa-brand" href="index.html"><span class="sa-seal">' + LOGO + '</span><span><span class="sa-brand-name">Click ERP</span><span class="sa-brand-sub">Super Admin</span></span></a></div>' +
+        '<div class="sa-sidebar-brand"><a class="sa-brand" href="index.html" title="Click & More — Super Admin"><img src="' + LOGO_IMG + '" alt="Click & More"><span class="sa-brand-sub">Super Admin</span></a></div>' +
         nav +
         '<div class="sa-sidebar-foot">' +
           '<a class="sa-nav-link" href="../dashboard.html">' + ic('external-link') + '<span>لوحة الإدارة</span></a>' +
