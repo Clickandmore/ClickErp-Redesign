@@ -4726,9 +4726,9 @@ S.dashboard=()=>{
    ${card("المستحقات على العملاء","184,600 ر.س · حسب عمرها",dvAging(),more("finClients","كشف العملاء"))}</div>`:""}
   ${ops?`${secHead("file-text","التشغيل","كل عقد في أي مرحلة، وفين التأخير","recDash","لوحة الاستقدام")}
   <div class="hm-grid">${card("مسار عقود الاستقدام","38 عقد تحت التشغيل · 18 عدّوا المدة المسموحة لمرحلتهم",dvPipe(),more("contracts","كل العقود"),"wide")}</div>`:""}
-  ${secHead("activity","حال كل إدارة","جملة واحدة وأهم 3 أرقام · الأولوية للي محتاج تدخل","","")}${dvStatus(P)}
+  ${secHead("activity","حال كل إدارة","جملة واحدة وأهم 3 أرقام · الأولوية للي محتاج تدخل","reports","كل المؤشرات التشغيلية").replace('data-go="reports"','data-go="reports" data-rcind="1"')}${dvStatus(P)}
   ${follow}`
-  :`${secHead("activity","الشغل ماشي إزاي؟","جملة واحدة لكل إدارة من اللي ليك صلاحيتها، ودوس على الكارت عشان تروح للوحتها","","")}${pulse}${follow}`;
+  :`${secHead("activity","الشغل ماشي إزاي؟","جملة واحدة لكل إدارة من اللي ليك صلاحيتها، ودوس على الكارت عشان تروح للوحتها","","")}${pulse}${homeInd()}${follow}`;
  return `
  <div class="hm-head"><div><small>${hi} يا ${P.nm} · الاثنين 16 نوفمبر · محدّث 10:24</small><h1>${self?"يومك":many?"الشركة النهارده":"شغلك النهارده"}</h1></div>
   <div class="hm-ha">${pv}${many?`<button class="pill">${X("building-2")}<span>كل الفروع</span>${X("chevron-down")}</button><div class="seg dv-per" data-seg><button>الأسبوع</button><button class="on">الشهر</button><button>السنة</button></div>`:""}${B("ghost sm","layout-grid","تخصيص",'data-hcust="1"')}</div></div>
@@ -4787,7 +4787,7 @@ const CAT=[
   ["register","daily-work-reports","تقارير العمل اليومية","كل موظف عمل إيه؟",0,0,0]]]
 ];
 const ALL=CAT.reduce((a,c)=>a+c[3].length,0);
-const rcTabs=()=>`<div class="vtabs">${[["all","library","كل التقارير",ALL],["mine","bookmark","تقاريري",4],["sched","calendar-clock","المجدولة",3],["log","history","سجل الإرسال"]].map(x=>`<button class="${x[0]===RCTAB?"on":""}" data-rctab="${x[0]}">${X(x[1])}<span>${x[2]}</span>${x[3]!=null?`<em class="num">${x[3]}</em>`:""}</button>`).join("")}</div>`;
+const rcTabs=()=>`<div class="vtabs">${[["ind","bar-chart-3","المؤشرات التشغيلية"],["all","library","كل التقارير",ALL],["mine","bookmark","تقاريري",4],["sched","calendar-clock","المجدولة",3],["log","history","سجل الإرسال"]].map(x=>`<button class="${x[0]===RCTAB?"on":""}" data-rctab="${x[0]}">${X(x[1])}<span>${x[2]}</span>${x[3]!=null?`<em class="num">${x[3]}</em>`:""}</button>`).join("")}</div>`;
 
 const allView=()=>`
  <div class="rc-wrap"><aside class="card rc-side"><b class="rc-st">الأقسام</b>
@@ -4838,9 +4838,85 @@ S.reports=()=>`
  ${IDEA("مركز التقارير بقى للتفاصيل بس، والمؤشرات العامة اتنقلت للرئيسية حسب الدور. التقارير متقسمة بالأقسام، وكل تقرير مكتوب تحته السؤال اللي بيجاوبه. أي تقرير تقدر تحفظه بفلاترك في «تقاريري» أو تجدوله يوصلك، وسجل الإرسال بيقولك اتبعت ولا فشل وليه.")}
  ${HEAD("مركز التقارير","كل تقارير النظام في مكان واحد، حسب صلاحياتك.",B("primary","calendar-plus","جدولة تقرير",'data-rsched="1"'))}
  ${rcTabs()}
- ${RCTAB==="all"?allView():RCTAB==="mine"?mineView():RCTAB==="sched"?schedView():logView()}
+ ${RCTAB==="ind"?indView():RCTAB==="all"?allView():RCTAB==="mine"?mineView():RCTAB==="sched"?schedView():logView()}
  ${RCSCHED?schedModal():""}`;
 
+/* ===== v1.23 — Operational indicators (from admin/dashboard-new.blade.php), each block behind its real permission ===== */
+/* roles = which sample employees hold that permission in the preview */
+const IND_ALL=["owner","ops","sales","foreign","finance","cs","hr","hourly"];
+const segBar=(parts)=>{const tot=parts.reduce((a,p)=>a+p[1],0)||1;return `<div class="in-bar">${parts.filter(p=>p[1]).map(p=>`<i style="flex:${p[1]};background:${p[2]}" ${dvT(`${p[0]} · ${p[1]} (${Math.round(p[1]/tot*100)}%)`)}></i>`).join("")}</div><div class="in-lg">${parts.map(p=>`<span><i style="background:${p[2]}"></i>${p[0]}<b class="num">${p[1]}</b></span>`).join("")}</div>`};
+const C1="#16233f",C2="#7ab648",C3="#4a6fa5",C4="#c9d3e2",CR="var(--red)",CA="var(--amber)";
+/* the 12 counters of the old dashboard, as tiles with a status bar */
+const TILES=[
+ ["rc","file-text","عقود الاستقدام",115,"dashboard_recruitment_contracts_count","contracts",["owner","ops","sales"],[["قبل الوصول",27,C1],["مرحلة الوصول",2,C3],["تحت الضمان",2,C2],["مكتملة ومغلقة",84,C4]]],
+ ["ord","shopping-cart","طلبات الاستقدام",121,"dashboard_recruitment_orders_count","orders",["owner","sales","cs"],[["جديدة",6,CA],["تحت الإجراء",7,C1],["مكتملة",108,C2],["ملغاة",0,CR]]],
+ ["cv","files","السير الذاتية",235,"dashboard_cv_count","cvs",["owner","foreign","sales"],[["متاحة",93,C2],["محجوزة",142,C1]]],
+ ["cl","users","العملاء",241,"dashboard_clients_count","clients",["owner","sales","cs"],[["عندهم طلبات",39,C1],["من غير طلبات",202,C4]]],
+ ["sh","home","الإيواء",64,"dashboard_shelter_count","housing",["owner","ops"],[["جاهز للنقل",13,C2],["مرحلة الترحيل",9,CA],["باقي داخل السكن",42,C1]],"خارج 5 · اترحّلوا 5 · أماكن 2"],
+ ["tr","plane-landing","رحلات الاستقدام",78,"travel_view","trips",["owner","ops","foreign"],[["جارية",26,C1],["مكتملة",52,C4]],"2 قادمة"],
+ ["dp","plane-takeoff","رحلات الترحيل",21,"travel_view","trips",["owner","ops","foreign"],[["جارية",6,C1],["مكتملة",15,C4],["ملغاة",0,CR]]],
+ ["st","arrow-left-right","نقل الكفالة",17,"dashboard_sponsorship_transfers_count","transfer",["owner","ops"],[["مستني",2,CA],["فترة التجربة",4,C3],["اتنقلت",11,C2]]],
+ ["rt","key-round","عقود الإيجار",13,"dashboard_rental_contracts_count","rental",["owner","ops"],[["نشطة",3,C1],["موقّعة",2,C3],["مرسلة",1,CA],["مكتملة",7,C4]]],
+ ["rm","user-round","عاملات الإيجار",13,"maids_rental_view","rental",["owner","ops"],[["متاحة",7,C2],["في عقد إيجار",6,C1]]],
+ ["ig","file-signature","تفاويض إنجاز",2,"ingaz_delegations_view","delegations",["owner","ops"],[["تحت الإجراء",2,CA],["اتنفذت",0,C2]]],
+ ["cp","headphones","الشكاوى",4,"complaint_view","claims",["owner","cs"],[["مفتوحة",2,CR],["مقفولة",2,C4]]]
+];
+const tileHTML=t=>`<a href="#" data-go="${t[5]}" class="card in-t"><div class="in-th"><span class="ni n">${X(t[1])}</span><b>${t[2]}</b>${X("arrow-up-left")}</div><div class="in-tv"><b class="num">${dvF(t[3])}</b>${t[8]?`<small>${t[8]}</small>`:""}</div>${segBar(t[7])}</a>`;
+const canSee=roles=>roles.includes(PERSONA);
+
+/* contract movement — 3 years, by contract date (contracts_movement_three_years) */
+const YRS=[["2024",[4,3,6,5,7,9,6,4,3,5,8,6],C4],["2025",[5,4,9,6,11,14,7,5,3,6,12,8],C3],["2026",[3,7,3,15,19,8,13,2,1,1,43],C1]];
+const MON3=["ينا","فبر","مار","أبر","ماي","يون","يول","أغس","سبت","أكت","نوف","ديس"];
+const lineChart=()=>{const W_=900,H=250,pl=12,pr=40,pt=22,pb=28,max=45,cw=(W_-pl-pr)/11,x=i=>W_-pr-i*cw,y=v=>pt+(H-pt-pb)-v/max*(H-pt-pb);
+ const grid=[0,15,30,45].map(v=>`<line x1="${pl}" x2="${W_-pr}" y1="${y(v)}" y2="${y(v)}" class="dv-gl"/><text x="${W_-pr+8}" y="${y(v)+4}" class="dv-ax">${v}</text>`).join("");
+ const lines=YRS.map(s=>`<polyline points="${s[1].map((v,i)=>`${x(i)},${y(v)}`).join(" ")}" fill="none" stroke="${s[2]}" stroke-width="2" stroke-linejoin="round"/>${s[0]==="2026"?`<circle cx="${x(10)}" cy="${y(43)}" r="4" fill="${C1}" stroke="#fff" stroke-width="2"/><text x="${x(10)}" y="${y(43)-10}" class="dv-dl">43 عقد · نوفمبر</text>`:""}`).join("");
+ const hits=MON3.map((m,i)=>`<g class="dv-g" ${dvT(`<b>${m}</b>${YRS.slice().reverse().map(s=>s[1][i]!=null?`${s[0]}: ${s[1][i]}`:`${s[0]}: —`).join("<br>")}`)}><rect x="${x(i)-cw/2}" y="${pt}" width="${cw}" height="${H-pt-pb}" class="dv-hit"/><text x="${x(i)}" y="${H-8}" class="dv-ax mid">${m}</text></g>`).join("");
+ return `<svg class="dv-svg" viewBox="0 0 ${W_} ${H}" dir="ltr">${grid}${hits}${lines}</svg>`};
+
+/* all stages: before arrival / after / closed (contract_stages) */
+const STAGES=[["قبل الوصول",[["عقد جديد",8,1],["مساند",7,0],["التفويض",3,2],["التفييز",3,1],["التذكرة",13,11]]],["بعد الوصول",[["مرحلة الوصول",2,1],["تحت الضمان",2,2],["مكتملة",63,0]]],["مقفولة",[["مرتجع",11,0],["مسترد",3,0]]]];
+const stagesHTML=()=>{const mx=63;return STAGES.map(g=>`<div class="in-sg"><small>${g[0]}</small>${g[1].map(s=>`<div class="dv-pl1" ${dvT(`<b>${s[0]}</b>${s[1]} عقد${s[2]?` · ${s[2]} متأخر`:""}`)}><span class="t">${s[0]}</span><span class="tr">${s[1]-s[2]?`<i style="width:${Math.max(1.5,(s[1]-s[2])/mx*100)}%;background:${g[0]==="مقفولة"?C4:C1}"></i>`:""}${s[2]?`<i style="width:${s[2]/mx*100}%;background:var(--red)"></i>`:""}</span><b class="num">${s[1]}</b></div>`).join("")}</div>`).join("")};
+
+const hbars=(rows,tot,col)=>`<div class="dv-hb">${rows.map(r=>`<div ${dvT(`${r[0]} · ${r[1]} (${Math.round(r[1]/tot*100)}%)`)}><span class="t">${r[0]}</span><span class="tr"><i style="width:${r[1]/rows[0][1]*100}%;background:${r[2]||col}"></i></span><b class="num">${r[1]}</b></div>`).join("")}</div>`;
+const OFF=[["PLATINUM BROTHERS","الفلبين",125,26,5,2,42],["Supreme Link Ltd","أوغندا",28,7,1,2,1],["Al Noor Manpower","إثيوبيا",14,6,2,0,31],["Gulf Bridge Agency","بنغلاديش",9,2,1,0,27]];
+const offHTML=()=>`<div class="tw"><table class="in-off"><thead><tr><th>المكتب</th><th style="width:42%">السير (متاحة · أخرى · مرتجع · باك أوت)</th><th>الإجمالي</th><th>متوسط الوصول</th></tr></thead><tbody>${OFF.map(o=>{const t=o[2]+o[3]+o[4]+o[5];return `<tr><td><b>${o[0]}</b><small class="hm-sm">${o[1]}</small></td><td><div class="in-bar sm">${[[o[2],C2,"متاحة"],[o[3],C4,"أخرى"],[o[4],CA,"مرتجع"],[o[5],CR,"باك أوت"]].filter(p=>p[0]).map(p=>`<i style="flex:${p[0]};background:${p[1]}" ${dvT(`${p[2]} · ${p[0]}`)}></i>`).join("")}</div></td><td class="num"><b>${t}</b></td><td><span class="num ${o[6]>40?"in-late":""}">${o[6]} يوم</span></td></tr>`}).join("")}</tbody></table></div>`;
+const STAFF=[["علي ناصر","مشرف العمليات",12,2,2,1],["Mohameed","موظف عمليات",7,0,0,4],["هند الشمري","موظفة عمليات",5,3,2,0],["أحمد يوسف","موظف عمليات",4,1,1,1]];
+const staffHTML=()=>`<div class="tw"><table><thead><tr><th>الموظف</th><th>العقود</th><th>تفاويض إنجاز</th><th style="width:30%">نسبة التنفيذ</th><th>مرتجع</th></tr></thead><tbody>${STAFF.map(s=>{const r=s[3]?Math.round(s[4]/s[3]*100):null;return `<tr><td><div class="who"><span class="av">${s[0][0]}</span><div><b>${s[0]}</b><small class="hm-sm">${s[1]}</small></div></div></td><td class="num"><b>${s[2]}</b></td><td class="num">${s[3]}</td><td>${r==null?`<small class="hm-sm">مفيش تفاويض</small>`:`<div class="in-rate"><span class="tr"><i style="width:${r}%"></i></span><b class="num">${r}%</b></div>`}</td><td class="num ${s[5]>2?"in-late":""}">${s[5]}</td></tr>`}).join("")}</tbody></table></div>`;
+const EVT=[["16","نوف","وصول","g","2 عاملة · SV-872 · 4:30 م","PLATINUM BROTHERS"],["18","نوف","وصول","g","سائق خاص · EK-819 · 11:10 ص","Supreme Link · من غير تأكيد حجز"],["19","نوف","ترحيل","r","عاملة واحدة · مرحلة الترحيل","من الإيواء"],["23","نوف","انتهاء ضمان","a","CN-2026-0062 · أمينة","90 يوم من الوصول"],["27","نوف","وصول","g","طباخة · SV-881","Al Noor Manpower"]];
+const evtHTML=()=>`<div class="in-ev">${EVT.map(e=>`<div><span class="in-d"><b class="num">${e[0]}</b><small>${e[1]}</small></span><span class="tag ${e[3]}">${e[2]}</span><div><b>${e[4]}</b><small>${e[5]}</small></div></div>`).join("")}</div>`;
+
+const BLOCKS=[
+ ["العقود","file-text",[
+  ["حركة العقود — آخر 3 سنين","حسب تاريخ العقد · 2026: 115 · 2025: 90 · 2024: 66","dashboard_orders_statistics",["owner","ops","sales"],()=>lineChart(),`<div class="hm-legend">${YRS.slice().reverse().map(s=>`<span><i style="background:${s[2]}"></i>${s[0]}</span>`).join("")}</div>`,"wide",`<div class="in-flt"><select><option>كل الجنسيات</option><option>الفلبين</option><option>أوغندا</option></select><select><option>كل المهن</option><option>عاملة منزلية</option><option>سائق خاص</option></select></div>`],
+  ["كل مراحل العقود","115 عقد · الأحمر = متأخر عن مدة المرحلة","dashboard_contracts_overview",["owner","ops"],()=>stagesHTML(),""],
+  ["العقود حسب المهنة","المعروف 107 · غير محدد 8","dashboard_orders_statistics",["owner","ops","sales"],()=>hbars([["عاملة منزلية",71],["سائق خاص",21],["غير محدد",8,C4],["ممرضة منزلية",6],["طباخة",5],["عامل نظافة",4]],115,C1)+`<div class="dv-foot in-info">${X("info")}<span><b class="num">8</b> عقود من غير مهنة — محتاجة تتربط بمهنة عشان تظهر صح</span></div>`,""]]],
+ ["العاملات والمكاتب","globe",[
+  ["السير حسب الجنسية","235 سيرة","dashboard_nationalities_statistics",["owner","foreign","sales"],()=>hbars([["الفلبين",158],["أوغندا",38],["إثيوبيا",22],["بنغلاديش",12],["الهند",5]],235,C1),""],
+  ["الطلبات حسب الجنس","121 طلب","dashboard_orders_types",["owner","sales","cs"],()=>segBar([["أنثى",116,C1],["غير محدد",5,C4],["ذكر",0,C3]])+`<p class="in-p">تقريباً كل الطلبات على عاملات. «غير محدد» = طلب اتسجل من غير ما يتحدد الجنس.</p>`,""],
+  ["مخزون المكاتب الخارجية","أعلى 4 من 22 مكتب · الأحمر = متوسط وصول فوق 40 يوم","dashboard_offices_statistics",["owner","foreign","ops"],()=>offHTML(),"","wide"]]],
+ ["الفريق والمواعيد","users",[
+  ["أداء الموظفين","العقود وتفاويض إنجاز ونسبة التنفيذ","dashboard_employee_performance",["owner","ops","hr"],()=>staffHTML(),"","wide"],
+  ["مواعيد مهمة","الوصول والترحيل وانتهاء الضمان · الأسبوعين الجايين","dashboard_calendar_events",["owner","ops","foreign"],()=>evtHTML(),"","wide"]]]
+];
+const indCount=()=>{const all=TILES.length+BLOCKS.reduce((a,b)=>a+b[2].length,0),mine=TILES.filter(t=>canSee(t[6])).length+BLOCKS.reduce((a,b)=>a+b[2].filter(c=>canSee(c[3])).length,0);return [mine,all]};
+const permChip=p=>`<span class="in-perm" title="الصلاحية المطلوبة">${X("key-round")}<span dir="ltr">${p}</span></span>`;
+const indView=()=>{const P=P_(),[mine,all]=indCount(),tiles=TILES.filter(t=>canSee(t[6]));
+ return `<div class="in-head card"><div class="in-hl">${X("shield-check")}<div><b>ظاهر لـ ${P.nm} (${P.n}): <span class="num">${mine}</span> من <span class="num">${all}</span> مؤشر</b><small>كل مؤشر بيظهر بس للي عنده صلاحيته. الباقي مش بيتحسب أصلاً.</small></div></div>
+  <div class="in-hr"><label>معاينة كـ</label><select data-indrole>${Object.keys(ROLES).filter(k=>k!=="self").map(k=>`<option value="${k}" ${k===PERSONA?"selected":""}>${ROLES[k].nm} · ${ROLES[k].n}</option>`).join("")}</select>
+  <div class="seg" data-seg><button>اليوم</button><button>الأسبوع</button><button class="on">الشهر</button><button>الكل</button></div>
+  <select><option>كل الفروع</option><option>الفرع الرئيسي</option><option>فرع جدة</option></select>${B("ghost sm","download","تصدير")}</div></div>
+ ${!mine?`<div class="card in-empty">${X("lock")}<b>مفيش مؤشرات تشغيلية في صلاحياتك</b><small>أرقامك موجودة في ${P.mods.map(m=>MODS[m]?MODS[m].n:"").filter(Boolean).join("، ")||"لوحتك"}. لو محتاج تشوف التشغيل اطلب الصلاحية من مدير النظام.</small></div>`:""}
+ ${tiles.length?`<div class="rc-sh">${X("layout-grid")}<b>الأعداد</b><span class="num">${tiles.length}</span></div><div class="in-tiles">${tiles.map(tileHTML).join("")}</div>`:""}
+ ${BLOCKS.map(b=>{const cs=b[2].filter(c=>canSee(c[3]));if(!cs.length)return "";let half=cs.filter(c=>c[6]!=="wide");
+  const html=cs.map(c=>{const wide=c[6]==="wide"||(half.length%2&&c===half[half.length-1]);return `<div class="card flush hm-w ${wide?"wide":""}"><div class="card-h pad"><div><h3>${c[0]}</h3><p>${c[1]}</p></div><div class="in-ch">${c[7]||""}${c[5]||""}${permChip(c[2])}</div></div>${c[4]()}</div>`}).join("");
+  return `<div class="rc-sh">${X(b[1])}<b>${b[0]}</b><span class="num">${cs.length}</span></div><div class="hm-grid in-grid">${html}</div>`}).join("")}`};
+
+/* home: the role's own counters, 4 max, with a way to the full page */
+const homeInd=()=>{const t=TILES.filter(x=>canSee(x[6])).slice(0,4);if(!t.length)return "";const [mine]=indCount();
+ return `${secHead("bar-chart-3","أرقامك التشغيلية","حسب صلاحياتك · الصورة الكاملة في مركز التقارير","reports",`كل المؤشرات (${mine})`).replace('data-go="reports"','data-go="reports" data-rcind="1"')}<div class="in-tiles home">${t.map(tileHTML).join("")}</div>`};
+
+/* deep link: reports.html#ind (or #ind-ops, #ind-sales …) opens the indicators tab */
+{const m=location.hash.match(/^#ind(?:-(\w+))?$/);if(m){RCTAB="ind";if(m[1]&&ROLES[m[1]])PERSONA=m[1]}}
 /* report page: keep the existing body, add "save to my reports" + columns + applied filters */
 const _report=screens.report;
 const saveModal=()=>`<div class="ov" data-rv-ov><div class="modal rc-modal"><div class="modal-h"><h3>حفظ في تقاريري</h3><button class="icon-btn" data-rv-x>${X("x")}</button></div><div class="rc-mb">
@@ -4859,7 +4935,8 @@ S.report=()=>{
 document.addEventListener("click",e=>{
  const g=(s)=>e.target.closest(s);
  let hit=true;
- if(g("[data-hcust]")){HCUST=true;HCMODE="me"}
+ if(g("[data-rcind]")){RCTAB="ind";hit=false}
+ else if(g("[data-hcust]")){HCUST=true;HCMODE="me"}
  else if(g("[data-htodo]")){HTODO=g("[data-htodo]").dataset.htodo}
  else if(g("[data-hpv]")){HPV=!HPV}
  else if(g("[data-hidea]")){HIDEA=!HIDEA}
@@ -6387,3 +6464,5 @@ var SOFT=function(to,push){var ids=window.TCNAV_IDS||[];if(ids.indexOf(to)<0||id
 window.addEventListener("popstate",function(){var to=(location.pathname.split("/").pop()||"").replace(/\.html$/,"");if(to&&to!==P&&!SOFT(to,false))location.reload()});
 document.addEventListener("click",function(e){var g=e.target.closest("[data-go]");if(g&&!e.target.closest("[data-pin]")&&PAGES.indexOf(g.dataset.go)>-1&&g.dataset.go!==P){if(!e.ctrlKey&&!e.metaKey&&!e.shiftKey&&SOFT(g.dataset.go,true)){e.preventDefault();e.stopImmediatePropagation();return}e.preventDefault();e.stopImmediatePropagation();location.href=g.dataset.go+".html";return}
 if(e.target.closest("[data-logout]")){e.preventDefault();e.stopImmediatePropagation();location.href="login.html"}},true);})();
+/* v1.23 preview-as select on the indicators tab */
+document.addEventListener("change",e=>{if(e.target.matches&&e.target.matches("[data-indrole]")){PERSONA=e.target.value;try{render()}catch(_){location.reload()}}});
