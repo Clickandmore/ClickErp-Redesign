@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="design-version" content="v1.27">
+<title>مكتب المدار للاستقدام — Super Admin · Click ERP</title>
+<link rel="stylesheet" href="../assets/clickerp.bundle.css">
+<link rel="stylesheet" href="assets/sa.css">
+</head>
+<body dir="rtl" data-page="instance">
+<!-- Screen: instance · «جديد» — تفاصيل نسخة عميل واحدة في مركز التحكم: الحالة، قاعدة البيانات، الكود، الأخطاء، الإحصائيات. -->
+<main class="sa-content">
+
+  <div class="sa-page-header">
+    <div>
+      <a class="sa-back" href="fleet.html"><i data-lucide="arrow-right"></i>مركز التحكم في النسخ</a>
+      <h1 class="sa-page-title">مكتب المدار للاستقدام <span class="sa-badge sa-badge--danger"><i data-lucide="server-crash"></i>واقعة</span></h1>
+      <p class="sa-page-desc"><span class="sa-mono">almadar.clickerp.sa</span> · SRV-05 · قاعدة <span class="sa-mono">almadar_prod</span> · <span class="sa-mono">v4.2.0</span> · عميل من مارس 2025</p>
+    </div>
+    <div class="sa-page-header-end">
+      <a class="btn btn-ghost" href="https://almadar.clickerp.sa" title="فتح الموقع"><i data-lucide="external-link"></i>فتح النسخة</a>
+      <button class="btn btn-primary" data-sa-confirm="هتدخل لوحة Super Admin بتاعة مكتب المدار بدخول مؤقت (15 دقيقة). العملية هتتسجل في المركز وفي النسخة."><i data-lucide="log-in"></i>دخول كـ Super Admin</button>
+    </div>
+  </div>
+
+  <div class="sa-health sa-health--danger">
+    <span class="sa-health-icon"><i data-lucide="server-crash"></i></span>
+    <div class="sa-health-body"><b>النسخة مش بترد من 12 دقيقة</b><small>آخر نبض 14:08 · HTTP 502 Bad Gateway · PHP-FPM pool بتاع النسخة واقف — قاعدة البيانات والسيرفر سليمين</small></div>
+  </div>
+
+  <div class="sa-todo">
+    <div class="sa-todo-item is-danger"><i data-lucide="rotate-cw"></i><span><b>إعادة تشغيل PHP-FPM للنسخة دي بس</b><small>مش هيأثر على «مكتب الرواد» اللي على نفس السيرفر · بياخد ثواني</small></span><button class="btn btn-red sm" data-sa-confirm="هيتعمل restart لـ php8.4-fpm pool الخاص بـ almadar على SRV-05.">إعادة تشغيل</button></div>
+    <div class="sa-todo-item"><i data-lucide="message-circle"></i><span><b>بلّغ العميل إن فيه عطل وجاري الحل</b><small>واتساب لمدير النظام عندهم · 0550•••812</small></span><button class="btn btn-ghost sm" data-sa-toast="اتبعتت الرسالة">إرسال</button></div>
+    <div class="sa-todo-item"><i data-lucide="file-text"></i><span><b>شوف آخر 50 سطر في سجل الأخطاء</b><small>storage/logs/laravel.log · nginx error.log</small></span><a class="btn btn-ghost sm" href="#errors" data-sa-tab="errors">السجل</a></div>
+  </div>
+
+  <div class="sa-tabs" role="tablist">
+    <a class="sa-tab is-active" href="#overview" data-sa-tab="overview"><i data-lucide="activity"></i>الحالة</a>
+    <a class="sa-tab" href="#db" data-sa-tab="db"><i data-lucide="database"></i>قاعدة البيانات</a>
+    <a class="sa-tab" href="#code" data-sa-tab="code"><i data-lucide="git-branch"></i>الكود والتحديثات</a>
+    <a class="sa-tab" href="#errors" data-sa-tab="errors"><i data-lucide="bug"></i>الأخطاء <span class="sa-badge sa-badge--danger">41</span></a>
+    <a class="sa-tab" href="#stats" data-sa-tab="stats"><i data-lucide="chart-column"></i>الإحصائيات</a>
+  </div>
+
+  <div class="sa-stack" data-sa-panel="overview">
+    <div class="sa-grid-4">
+      <div class="sa-kpi"><span class="sa-kpi-label"><i data-lucide="activity"></i>التشغيل آخر 30 يوم</span><b class="sa-kpi-value num">99.2%</b><span class="sa-kpi-sub">3 أعطال · إجمالي 34 دقيقة</span></div>
+      <div class="sa-kpi"><span class="sa-kpi-label"><i data-lucide="gauge"></i>سرعة الاستجابة</span><b class="sa-kpi-value num">—</b><span class="sa-kpi-sub">المعتاد <span class="num">280ms</span></span></div>
+      <div class="sa-kpi"><span class="sa-kpi-label"><i data-lucide="users"></i>المستخدمون</span><b class="sa-kpi-value num">0 / 26</b><span class="sa-kpi-sub">كان 9 متصلين قبل العطل</span></div>
+      <div class="sa-kpi"><span class="sa-kpi-label"><i data-lucide="database"></i>آخر نسخة احتياطية</span><b class="sa-kpi-value">اليوم 03:00</b><span class="sa-kpi-sub">R2 · <span class="num">3.4 GB</span> · سليمة</span></div>
+    </div>
+    <div class="sa-layout">
+      <section class="sa-card ">
+    <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="activity"></i></span><div><h2 class="sa-card-title">التشغيل آخر 30 يوم</h2><p class="sa-card-desc">كل عمود يوم: أخضر شغال · برتقالي بطء أو عطل قصير · أحمر عطل</p></div></div></div>
+    <div class="sa-uptime"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="w"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="w"></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="d"></i></div><div class="sa-uptime-legend"><span>من 30 يوم</span><span>النهارده</span></div>
+  </section>
+      <section class="sa-card ">
+    <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="list-checks"></i></span><div><h2 class="sa-card-title">الفحوصات</h2></div></div></div>
+    <div class="sa-checks">
+        <div class="sa-check is-danger"><i data-lucide="x-circle"></i>الموقع (HTTP)<small>502 من 12 دقيقة</small></div>
+        <div class="sa-check"><i data-lucide="check-circle-2"></i>قاعدة البيانات<small>متصلة · 18 اتصال</small></div>
+        <div class="sa-check is-warning"><i data-lucide="circle-help"></i>Scheduler<small>مش معروف — النسخة مش بترد</small></div>
+        <div class="sa-check"><i data-lucide="check-circle-2"></i>النسخ الاحتياطي<small>من 11 ساعة</small></div>
+        <div class="sa-check"><i data-lucide="check-circle-2"></i>شهادة SSL<small>تنتهي بعد 61 يوم</small></div>
+        <div class="sa-check"><i data-lucide="check-circle-2"></i>مساحة السيرفر<small>58%</small></div>
+      </div>
+  </section>
+    </div>
+  </div>
+
+  <div class="sa-stack" data-sa-panel="db" hidden>
+    <div class="sa-grid-4">
+      <div class="sa-kpi"><span class="sa-kpi-label"><i data-lucide="database"></i>الحجم</span><b class="sa-kpi-value num">3.4 GB</b><span class="sa-kpi-sub">+<span class="num">210 MB</span> آخر 30 يوم</span></div>
+      <div class="sa-kpi"><span class="sa-kpi-label"><i data-lucide="table"></i>الجداول</span><b class="sa-kpi-value num">214</b><span class="sa-kpi-sub">البنية سليمة</span></div>
+      <div class="sa-kpi"><span class="sa-kpi-label"><i data-lucide="git-pull-request"></i>الرقع المعلقة</span><b class="sa-kpi-value is-success num">0</b><span class="sa-kpi-sub">612 مطبقة</span></div>
+      <div class="sa-kpi"><span class="sa-kpi-label"><i data-lucide="turtle"></i>استعلامات بطيئة اليوم</span><b class="sa-kpi-value is-warning num">7</b><span class="sa-kpi-sub">أبطأها 4.2 ثانية</span></div>
+    </div>
+    <section class="sa-card ">
+    <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="database"></i></span><div><h2 class="sa-card-title">إجراءات على قاعدة البيانات</h2><p class="sa-card-desc">نفس عمليات صفحة النسخ الاحتياطية، بتتنفذ على النسخة دي من المركز</p></div></div></div>
+    <div class="sa-todo">
+      <div class="sa-todo-item" style="border-inline-start-color:var(--navy)"><i data-lucide="cloud-upload" style="color:var(--navy)"></i><span><b>نسخة احتياطية الآن</b><small>على R2 في <span class="sa-mono">almadar/db</span></small></span><button class="btn btn-ghost sm" data-sa-toast="بدأت النسخة الاحتياطية">ابدأ</button></div>
+      <div class="sa-todo-item" style="border-inline-start-color:var(--navy)"><i data-lucide="download" style="color:var(--navy)"></i><span><b>تنزيل آخر نسخة</b><small>اليوم 03:00 · <span class="num">3.4 GB</span></small></span><button class="btn btn-ghost sm">تنزيل</button></div>
+      <div class="sa-todo-item is-danger"><i data-lucide="rotate-ccw"></i><span><b>استعادة نسخة</b><small>رمز تحقق ← عبارة تأكيد ← تنفيذ (زي صفحة النسخ الاحتياطية)</small></span><a class="btn btn-ghost sm" href="backups.html#restore">استعادة</a></div>
+    </div>
+  </section>
+  </div>
+
+  <div class="sa-stack" data-sa-panel="code" hidden>
+    <section class="sa-card ">
+    <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="git-branch"></i></span><div><h2 class="sa-card-title">الكود الحالي</h2></div></div><span class="sa-badge sa-badge--success">على آخر إصدار</span></div>
+    <div class="sa-summary">
+      <div class="sa-summary-row">الإصدار<b class="sa-mono">v4.2.0</b></div>
+      <div class="sa-summary-row">الـ commit<b class="sa-mono">7c41e0d</b></div>
+      <div class="sa-summary-row">الفرع<b class="sa-mono">main</b></div>
+      <div class="sa-summary-row">آخر تحديث<b>أمس 23:40 · نجح في 3:12 دقيقة</b></div>
+      <div class="sa-summary-row">PHP · Laravel<b class="sa-mono">8.4 · 10.48</b></div>
+    </div>
+  </section>
+    <section class="sa-card sa-card--flush">
+      <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="history"></i></span><div><h2 class="sa-card-title">سجل التحديثات على النسخة</h2></div></div></div>
+      <div class="sa-table-wrap"><table class="sa-table">
+        <thead><tr><th>الإصدار</th><th>التاريخ</th><th>المدة</th><th>النتيجة</th><th>بواسطة</th></tr></thead>
+        <tbody>
+          <tr><td><span class="sa-mono">v4.2.0</span></td><td>أمس 23:40</td><td><span class="num">3:12</span></td><td><span class="sa-badge sa-badge--success">نجح</span></td><td>أحمد سمير</td></tr>
+          <tr><td><span class="sa-mono">v4.1.3</span></td><td>9 نوفمبر</td><td><span class="num">2:48</span></td><td><span class="sa-badge sa-badge--success">نجح</span></td><td>أحمد سمير</td></tr>
+          <tr><td><span class="sa-mono">v4.1.2</span></td><td>2 نوفمبر</td><td><span class="num">5:30</span></td><td><span class="sa-badge sa-badge--warning">رجع تلقائي</span><small>فشل فحص الصحة بعد الرقع</small></td><td>كريم فتحي</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+  </div>
+
+  <div class="sa-stack" data-sa-panel="errors" hidden>
+    <section class="sa-card sa-card--flush">
+      <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="bug"></i></span><div><h2 class="sa-card-title">الأخطاء آخر 24 ساعة</h2><p class="sa-card-desc">متجمعة حسب نوع الخطأ — العدد وأول وآخر مرة.</p></div></div><button class="btn btn-ghost sm" data-sa-toast="بدأ التنزيل"><i data-lucide="file-down"></i>laravel.log</button></div>
+      <div class="sa-table-wrap"><table class="sa-table">
+        <thead><tr><th>الخطأ</th><th>العدد</th><th>أول مرة</th><th>آخر مرة</th><th>في نسخ تانية؟</th></tr></thead>
+        <tbody>
+          <tr><td><b>502 Bad Gateway — upstream closed connection</b><small class="sa-mono">nginx · php8.4-fpm.sock</small></td><td><span class="num">38</span></td><td>14:08</td><td>14:20</td><td><span class="sa-badge">لا</span></td></tr>
+          <tr><td><b>Allowed memory size exhausted</b><small class="sa-mono">app/Exports/ContractsExport.php:88</small></td><td><span class="num">2</span></td><td>14:05</td><td>14:07</td><td><span class="sa-badge">لا</span></td></tr>
+          <tr><td><b>Division by zero</b><small class="sa-mono">app/Reports/CommissionReport.php:142</small></td><td><span class="num">1</span></td><td>11:30</td><td>11:30</td><td><span class="sa-badge sa-badge--warning">3 نسخ</span></td></tr>
+        </tbody>
+      </table></div>
+      <div class="sa-card-foot"><span class="sa-help">غالبًا السبب: تصدير عقود كبير استهلك ذاكرة الـ pool الساعة 14:05 ووقّعه.</span></div>
+    </section>
+  </div>
+
+  <div class="sa-stack" data-sa-panel="stats" hidden>
+    <div class="sa-grid-4">
+      <div class="sa-kpi"><span class="sa-kpi-label"><i data-lucide="file-text"></i>عقود الاستقدام</span><b class="sa-kpi-value num">612</b><span class="sa-kpi-sub">+38 الشهر ده</span></div>
+      <div class="sa-kpi"><span class="sa-kpi-label"><i data-lucide="files"></i>السير الذاتية</span><b class="sa-kpi-value num">1,240</b><span class="sa-kpi-sub">310 متاحة</span></div>
+      <div class="sa-kpi"><span class="sa-kpi-label"><i data-lucide="users"></i>العملاء</span><b class="sa-kpi-value num">2,318</b><span class="sa-kpi-sub">+92 الشهر ده</span></div>
+      <div class="sa-kpi"><span class="sa-kpi-label"><i data-lucide="hard-drive"></i>الملفات المرفوعة</span><b class="sa-kpi-value num">18 GB</b><span class="sa-kpi-sub">على R2</span></div>
+    </div>
+    <section class="sa-card ">
+    <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="layout-grid"></i></span><div><h2 class="sa-card-title">استخدام الموديلات</h2><p class="sa-card-desc">نسبة الأيام اللي اتفتح فيها الموديل آخر 30 يوم — بتساعد في التجديد والبيع</p></div></div></div>
+    <div class="sa-rank">
+      <div class="sa-rank-row"><span>العقود والطلبات</span><span class="sa-badge">يومي</span><div class="sa-meter"><i style="width:95%"></i></div><em class="num">95</em></div>
+      <div class="sa-rank-row"><span>المالية</span><span class="sa-badge">يومي</span><div class="sa-meter"><i style="width:72%"></i></div><em class="num">72</em></div>
+      <div class="sa-rank-row"><span>CRM والمحادثات</span><span class="sa-badge">يومي</span><div class="sa-meter"><i style="width:58%"></i></div><em class="num">58</em></div>
+      <div class="sa-rank-row"><span>الموارد البشرية</span><span class="sa-badge">أسبوعي</span><div class="sa-meter is-warning"><i style="width:21%"></i></div><em class="num">21</em></div>
+      <div class="sa-rank-row"><span>إيجار الساعات</span><span class="sa-badge sa-badge--warning">مغلق</span><div class="sa-meter"><i style="width:0"></i></div><em class="num">0</em></div>
+    </div>
+  </section>
+  </div>
+
+</main>
+<script src="https://unpkg.com/lucide@0.451.0/dist/umd/lucide.min.js"></script>
+<script src="assets/sa.js"></script>
+</body>
+</html>

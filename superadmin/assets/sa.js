@@ -18,6 +18,13 @@
 
   /* ---------- مصدر القائمة الوحيد: كل مجموعة = زر في الـ rail + قائمتها في الـ side ---------- */
   var SA_NAV = [
+    /* «جديد» — مركز التحكم في كل نسخ العملاء (12 عميل · كود واحد · قاعدة لكل عميل · عميلين لكل سيرفر) */
+    { id: 'fleet', icon: 'layers', label: 'النسخ', desc: 'كل نسخ العملاء: الحالة والكود وقواعد البيانات', items: [
+      { id: 'fleet',     href: 'fleet.html',     icon: 'radar',          label: 'مركز التحكم', alert: 'نسخة واقعة' },
+      { id: 'servers',   href: 'servers.html',   icon: 'server',         label: 'السيرفرات وقواعد البيانات' },
+      { id: 'deploy',    href: 'deploy.html',    icon: 'rocket',         label: 'تحديث الكود' },
+      { id: 'incidents', href: 'incidents.html', icon: 'siren',          label: 'الأعطال والتنبيهات', count: 2 }
+    ]},
     { id: 'system', icon: 'server-cog', label: 'النظام', desc: 'العميل والاشتراك والموديلات والتشغيل', items: [
       { id: 'overview',     href: 'index.html',        icon: 'activity',        label: 'نظرة عامة', isNew: true },
       { id: 'subscription', href: 'subscription.html', icon: 'badge-check',     label: 'العميل والاشتراك', route: 'dev-superadmin.subscription' },
@@ -41,7 +48,8 @@
   /* شاشات فرعية: بتنوّر عنصر الأب وبتظهر في مسار التنقل */
   var SA_PARENT = {
     'update-form': { parent: 'updates', label: 'تحديث جديد' },
-    'invoice-fix': { parent: 'invoices', label: 'تعديل فاتورة' }
+    'invoice-fix': { parent: 'invoices', label: 'تعديل فاتورة' },
+    'instance':    { parent: 'fleet', label: 'مكتب المدار للاستقدام' }
   };
 
   /* بيانات النسخة (في النظام: app()->environment() و SystemModuleManager::productProfileKey()) */

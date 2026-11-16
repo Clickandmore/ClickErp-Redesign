@@ -422,3 +422,78 @@ input[type="color"].sa-input { padding: 4px; height: 42px; }
 .sa-switch::after { width: 16px; height: 16px; }
 .sa-switch.is-on { background: var(--green); }
 .sa-switch.is-on::after { inset-inline-start: 19px; }
+
+/* ---------- 7) مركز التحكم في النسخ (fleet) ---------- */
+/* كارت سيرفر فيه نسختين */
+.sa-server { padding: 0; overflow: hidden; }
+.sa-server-head { display: flex; align-items: center; gap: 12px; padding: 14px 18px; background: var(--surface-2); border-bottom: 1px solid var(--line); }
+.sa-server-head > span:first-of-type { flex: 1 1 auto; min-width: 0; }
+.sa-server-head b { display: block; font-size: 14px; color: var(--ink); }
+.sa-server-head small { color: var(--muted); font-size: 12px; }
+.sa-res { display: flex; gap: 10px; }
+.sa-res > div { width: 64px; }
+.sa-res small { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-bottom: 3px; }
+.sa-res .sa-meter { height: 5px; }
+
+/* صف نسخة */
+.sa-inst { display: flex; align-items: center; gap: 12px; padding: 14px 18px; border-bottom: 1px solid var(--line-2); }
+.sa-inst:last-child { border-bottom: 0; }
+.sa-inst.is-down { background: linear-gradient(90deg, #fff, var(--red-soft)); }
+.sa-inst.is-warn { background: linear-gradient(90deg, #fff, var(--amber-soft)); }
+.sa-inst-logo { width: 40px; height: 40px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 11px; background: var(--navy); color: var(--green); font-weight: 800; font-size: 17px; position: relative; }
+.sa-inst-logo .sa-dot { position: absolute; bottom: -2px; inset-inline-end: -2px; border: 2px solid #fff; width: 12px; height: 12px; }
+.sa-inst-body { flex: 1 1 auto; min-width: 0; }
+.sa-inst-body b { display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--ink); }
+.sa-inst-body b a { color: inherit; }
+.sa-inst-body small { display: block; color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sa-inst-body small.is-danger { color: var(--red); font-weight: 600; }
+.sa-inst-stats { display: flex; gap: 16px; flex: 0 0 auto; }
+.sa-inst-stats > div { text-align: center; min-width: 46px; }
+.sa-inst-stats small { display: block; font-size: 11px; color: var(--muted); }
+.sa-inst-stats b { font-size: 14px; color: var(--ink); }
+.sa-inst-stats b.is-danger { color: var(--red); } .sa-inst-stats b.is-warning { color: var(--amber); }
+.sa-inst-acts { display: flex; gap: 4px; flex: 0 0 auto; }
+
+/* شريط التشغيل آخر 30 يوم */
+.sa-uptime { display: flex; gap: 3px; height: 34px; align-items: stretch; }
+.sa-uptime i { flex: 1; border-radius: 3px; background: var(--green); opacity: .85; }
+.sa-uptime i.w { background: #E3A23A; } .sa-uptime i.d { background: var(--red); } .sa-uptime i.n { background: var(--line); }
+.sa-uptime-legend { display: flex; justify-content: space-between; margin-top: 6px; font-size: 11.5px; color: var(--muted); }
+
+/* مسار التحديث (خطوات لكل نسخة) */
+.sa-pipe { display: flex; flex-wrap: wrap; gap: 6px; }
+.sa-pipe span { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: var(--r-pill); background: var(--navy-soft); color: var(--navy); font-size: 12px; font-weight: 600; }
+.sa-pipe span b { width: 18px; height: 18px; display: grid; place-items: center; border-radius: 50%; background: var(--navy); color: #fff; font-size: 10.5px; }
+.sa-pipe span.is-done { background: var(--green-soft); color: var(--green-d); } .sa-pipe span.is-done b { background: var(--green); }
+.sa-pipe span.is-now { background: var(--amber-soft); color: var(--amber); } .sa-pipe span.is-now b { background: var(--amber); }
+.sa-pipe span.is-fail { background: var(--red-soft); color: var(--red); } .sa-pipe span.is-fail b { background: var(--red); }
+.sa-steps-mini { display: flex; gap: 3px; }
+.sa-steps-mini i { width: 16px; height: 6px; border-radius: 3px; background: var(--line); }
+.sa-steps-mini i.ok { background: var(--green); } .sa-steps-mini i.now { background: #E3A23A; } .sa-steps-mini i.fail { background: var(--red); }
+
+/* دفعات التحديث */
+.sa-waves { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 12px; }
+.sa-wave { display: grid; gap: 8px; align-content: start; padding: 14px; border: 1px solid var(--line); border-radius: var(--r); background: #fff; }
+.sa-wave-h { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 13.5px; color: var(--ink); }
+.sa-wave-h .sa-badge { margin-inline-start: auto; }
+.sa-wave label { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.sa-wave label input { accent-color: var(--navy); }
+.sa-wave.is-done { border-color: #CFE6B8; background: linear-gradient(180deg, #fff, var(--green-soft)); }
+.sa-wave.is-now { border-color: #F1D9AE; box-shadow: inset 0 3px 0 #E3A23A; }
+
+/* أوامر ومفتاح الربط */
+.sa-keybox { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border: 1px dashed var(--line-strong); border-radius: var(--r-s); background: var(--surface-2); }
+.sa-keybox code { flex: 1; font-size: 12.5px; }
+
+@media (max-width: 1100px) {
+  .sa-inst { flex-wrap: wrap; }
+  .sa-inst-stats { order: 3; width: 100%; justify-content: space-between; padding-inline-start: 52px; }
+  .sa-waves { grid-template-columns: minmax(0,1fr); }
+}
+@media (max-width: 720px) {
+  .sa-res { display: none; }
+  .sa-inst-acts { order: 2; }
+}
+.sa-wave label small { display: block; }
+.sa-wave label { align-items: flex-start; }
+.sa-wave label input { margin-top: 5px; }

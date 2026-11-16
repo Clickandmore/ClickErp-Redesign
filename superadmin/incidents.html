@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="design-version" content="v1.27">
+<title>الأعطال والتنبيهات — Super Admin · Click ERP</title>
+<link rel="stylesheet" href="../assets/clickerp.bundle.css">
+<link rel="stylesheet" href="assets/sa.css">
+</head>
+<body dir="rtl" data-page="incidents">
+<!-- Screen: incidents · «جديد» — كل الأعطال (وقوع نسخة، أخطاء متكررة، مساحة، نسخ احتياطي) من كل النسخ + قواعد التنبيه. -->
+<main class="sa-content">
+
+  <div class="sa-page-header">
+    <div>
+      <h1 class="sa-page-title">الأعطال والتنبيهات <span class="sa-new">جديد</span></h1>
+      <p class="sa-page-desc">أي نسخة تقع أو يتكرر فيها خطأ بيوصل هنا وبيتبعت تنبيه للفريق.</p>
+    </div>
+  </div>
+
+  <div class="sa-grid-4">
+    <div class="sa-kpi"><span class="sa-kpi-label"><i data-lucide="siren"></i>مفتوحة</span><b class="sa-kpi-value is-danger num">2</b><span class="sa-kpi-sub">1 وقوع · 1 خطأ متكرر</span></div>
+    <div class="sa-kpi"><span class="sa-kpi-label"><i data-lucide="calendar"></i>آخر 30 يوم</span><b class="sa-kpi-value num">9</b><span class="sa-kpi-sub">3 منهم وقوع نسخة</span></div>
+    <div class="sa-kpi"><span class="sa-kpi-label"><i data-lucide="timer"></i>متوسط وقت الحل</span><b class="sa-kpi-value num">18 د</b><span class="sa-kpi-sub">من أول تنبيه</span></div>
+    <div class="sa-kpi"><span class="sa-kpi-label"><i data-lucide="activity"></i>التشغيل لكل النسخ</span><b class="sa-kpi-value is-success num">99.6%</b><span class="sa-kpi-sub">آخر 30 يوم</span></div>
+  </div>
+
+  <div class="sa-layout">
+    <div class="sa-stack">
+      <section class="sa-card ">
+    <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="siren"></i></span><div><h2 class="sa-card-title">المفتوحة دلوقتي</h2></div></div></div>
+    <div class="sa-todo">
+        <div class="sa-todo-item is-danger"><i data-lucide="server-crash"></i><span><b>مكتب المدار واقعة — HTTP 502</b><small>من 12 دقيقة · اتبعت تنبيه لأحمد وكريم · محدش استلم لسه</small></span><button class="btn btn-ghost sm" data-sa-toast="استلمت العطل — اتبلغ الفريق">استلام</button><a class="btn btn-red sm" href="instance.html">افتح</a></div>
+        <div class="sa-todo-item"><i data-lucide="bug"></i><span><b>Division by zero في تقرير العمولات — 3 نسخ</b><small>CommissionReport.php:142 · الصفوة 21 · الريادة 2 · نجد 1 · بيحصل لما الكوبون يساوي قيمة العقد</small></span><button class="btn btn-ghost sm" data-sa-toast="اتعملت مهمة BUG في مركز المهام">مهمة BUG</button></div>
+      </div>
+  </section>
+
+      <section class="sa-card sa-card--flush">
+        <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="history"></i></span><div><h2 class="sa-card-title">السجل</h2></div></div>
+          <div class="sa-chips"><button class="sa-chip is-on">الكل</button><button class="sa-chip">وقوع</button><button class="sa-chip">أخطاء</button><button class="sa-chip">موارد</button></div></div>
+        <div class="sa-table-wrap"><table class="sa-table">
+          <thead><tr><th>العطل</th><th>النسخة</th><th>بدأ</th><th>المدة</th><th>الحالة</th></tr></thead>
+          <tbody>
+            <tr><td><b>HTTP 502 — PHP-FPM واقف</b></td><td>مكتب المدار</td><td>اليوم 14:08</td><td>12 د</td><td><span class="sa-badge sa-badge--danger">مفتوح</span></td></tr>
+            <tr><td><b>خطأ متكرر — Division by zero</b></td><td>3 نسخ</td><td>اليوم 11:30</td><td>—</td><td><span class="sa-badge sa-badge--warning">مفتوح</span></td></tr>
+            <tr><td><b>Scheduler متوقف</b></td><td>مكتب الريادة</td><td>اليوم 13:02</td><td>3 س</td><td><span class="sa-badge sa-badge--warning">تنبيه</span></td></tr>
+            <tr><td><b>مساحة السيرفر فوق 85%</b></td><td>SRV-03</td><td>أمس</td><td>—</td><td><span class="sa-badge sa-badge--warning">تنبيه</span></td></tr>
+            <tr><td><b>فشل فحص الصحة بعد تحديث v4.1.2</b><small>رجع تلقائي</small></td><td>مكتب المدار</td><td>2 نوفمبر</td><td>6 د</td><td><span class="sa-badge sa-badge--success">اتحل</span></td></tr>
+            <tr><td><b>قاعدة البيانات رافضة الاتصال</b><small>Too many connections</small></td><td>مكتب الصفوة</td><td>28 أكتوبر</td><td>22 د</td><td><span class="sa-badge sa-badge--success">اتحل</span></td></tr>
+          </tbody>
+        </table></div>
+      </section>
+    </div>
+
+    <aside class="sa-layout-side">
+      <section class="sa-card ">
+    <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="bell-ring"></i></span><div><h2 class="sa-card-title">يتبعت لمين؟</h2></div></div></div>
+    <div class="sa-setting" style="padding-top:0"><span><b>واتساب</b><small>أحمد سمير · كريم فتحي</small></span><button class="sa-switch is-on"></button></div>
+      <div class="sa-setting"><span><b>البريد</b><small>dev@clickandmore.sa</small></span><button class="sa-switch is-on"></button></div>
+      <div class="sa-setting"><span><b>مهمة في مركز المهام</b><small>للأخطاء المتكررة — نوع BUG</small></span><button class="sa-switch is-on"></button></div>
+      <div class="sa-setting"><span><b>لو محدش استلم خلال 10 دقايق</b><small>يتصعّد لمدير التقنية</small></span><button class="sa-switch is-on"></button></div>
+  </section>
+      <section class="sa-card ">
+    <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="sliders-horizontal"></i></span><div><h2 class="sa-card-title">إمتى يعتبر عطل؟</h2></div></div></div>
+    <div class="sa-form-grid is-one">
+        <div class="sa-field"><label>النسخة واقعة لو مفيش نبض لمدة</label><select class="sa-select"><option>3 دقايق</option><option>5 دقايق</option><option>10 دقايق</option></select></div>
+        <div class="sa-field"><label>خطأ متكرر لو حصل أكتر من</label><select class="sa-select"><option>20 مرة في الساعة</option><option>50 مرة في الساعة</option></select></div>
+        <div class="sa-field"><label>مساحة السيرفر فوق</label><select class="sa-select"><option>85%</option><option>90%</option></select></div>
+        <div class="sa-field"><label>النسخة الاحتياطية أقدم من</label><select class="sa-select"><option>26 ساعة</option><option>48 ساعة</option></select></div>
+        <div class="sa-field"><label>شهادة SSL تنتهي خلال</label><select class="sa-select"><option>14 يوم</option><option>30 يوم</option></select></div>
+      </div>
+      <div class="sa-card-foot"><button class="btn btn-primary sm" data-sa-toast="اتحفظت قواعد التنبيه">حفظ</button></div>
+  </section>
+    </aside>
+  </div>
+
+</main>
+<script src="https://unpkg.com/lucide@0.451.0/dist/umd/lucide.min.js"></script>
+<script src="assets/sa.js"></script>
+</body>
+</html>

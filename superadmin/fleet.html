@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="design-version" content="v1.27">
+<title>مركز التحكم في النسخ — Super Admin · Click ERP</title>
+<link rel="stylesheet" href="../assets/clickerp.bundle.css">
+<link rel="stylesheet" href="assets/sa.css">
+</head>
+<body dir="rtl" data-page="fleet">
+<!-- Screen: fleet · «جديد» — مركز التحكم في كل نسخ العملاء. مبني على SystemUpdateClient (مفتاح لكل نسخة) + نبض بتبعته كل نسخة كل دقيقة. -->
+<main class="sa-content">
+
+  <div class="sa-page-header">
+    <div>
+      <h1 class="sa-page-title">مركز التحكم في النسخ <span class="sa-new">جديد</span></h1>
+      <p class="sa-page-desc">كل نسخ العملاء على كود واحد — كل عميل بقاعدة بيانات لوحده، وكل عميلين على سيرفر.</p>
+      <div class="sa-page-chips"><span class="heading-chip">آخر تحديث للصفحة: <b>من 8 ثوان</b></span><span class="heading-chip">النبض: <b>كل دقيقة</b></span></div>
+    </div>
+    <div class="sa-page-header-end"><a class="btn btn-ghost" href="#link"><i data-lucide="link-2"></i>ربط نسخة جديدة</a><a class="btn btn-primary" href="deploy.html"><i data-lucide="rocket"></i>تحديث الكود</a></div>
+  </div>
+
+  <div class="sa-health sa-health--danger">
+    <span class="sa-health-icon"><i data-lucide="server-crash"></i></span>
+    <div class="sa-health-body"><b>نسخة واقعة: مكتب المدار للاستقدام — مش بترد من 12 دقيقة</b><small>SRV-05 · HTTP 502 · السيرفر نفسه شغال ونسخة «مكتب الرواد» اللي معاها عليه سليمة — المشكلة في النسخة بس</small></div>
+    <a class="btn btn-red sm" href="instance.html">افتح النسخة</a>
+  </div>
+
+  <div class="sa-todo">
+    <div class="sa-todo-item"><i data-lucide="bug"></i><span><b>نفس الخطأ ظهر في 3 نسخ — غالبًا مشكلة في الكود مش في عميل</b><small>CommissionReport@build · Division by zero — الصفوة 21 · الريادة 2 · نجد 1</small></span><a class="btn btn-ghost sm" href="incidents.html">التفاصيل</a></div>
+    <div class="sa-todo-item"><i data-lucide="git-pull-request-arrow"></i><span><b>نسختين على إصدار قديم (v4.1.3)</b><small>مؤسسة سواعد · مكتب الأفق — فاتهم تحديث 9 نوفمبر</small></span><a class="btn btn-ghost sm" href="deploy.html">حدّثهم</a></div>
+    <div class="sa-todo-item"><i data-lucide="hard-drive"></i><span><b>مساحة SRV-03 وصلت 86%</b><small>عليه الوفاء والصفوة · النسخ المحلية القديمة واخدة <span class="num">14 GB</span></small></span><a class="btn btn-ghost sm" href="servers.html">السيرفرات</a></div>
+  </div>
+
+  <div class="sa-grid-4">
+    <a class="sa-kpi" href="#servers"><span class="sa-kpi-label"><i data-lucide="layers"></i>النسخ</span><b class="sa-kpi-value">11 <span style="font-size:15px;color:var(--muted)">من 12 شغالة</span></b><span class="sa-kpi-sub">1 واقعة · 2 محتاجين انتباه</span></a>
+    <a class="sa-kpi" href="deploy.html"><span class="sa-kpi-label"><i data-lucide="git-branch"></i>إصدار الكود</span><b class="sa-kpi-value"><span class="num">v4.2.0</span></b><span class="sa-kpi-sub">10 على آخر إصدار · 2 متأخرين</span></a>
+    <a class="sa-kpi" href="incidents.html"><span class="sa-kpi-label"><i data-lucide="siren"></i>الأعطال المفتوحة</span><b class="sa-kpi-value is-danger num">2</b><span class="sa-kpi-sub">73 خطأ في آخر 24 ساعة</span></a>
+    <a class="sa-kpi" href="servers.html"><span class="sa-kpi-label"><i data-lucide="server"></i>السيرفرات</span><b class="sa-kpi-value num">6</b><span class="sa-kpi-sub">12 قاعدة بيانات · <span class="num">41 GB</span></span></a>
+  </div>
+
+  <div class="sa-filters" id="servers">
+    <div class="sa-chips"><button class="sa-chip is-on">الكل <b>12</b></button><button class="sa-chip">شغالة <b>9</b></button><button class="sa-chip">محتاجة انتباه <b>2</b></button><button class="sa-chip">واقعة <b>1</b></button><button class="sa-chip">إصدار قديم <b>2</b></button></div>
+    <div class="sa-field is-grow" style="margin-inline-start:auto;max-width:320px"><input class="sa-input" placeholder="ابحث باسم العميل أو الدومين أو السيرفر"></div>
+  </div>
+
+  <div class="sa-grid-2">
+  <section class="sa-card sa-server">
+    <div class="sa-server-head"><i data-lucide="server"></i><span><b>SRV-01 </b><small><span class="sa-mono">10.0.1.11</span> · <span class="sa-mono">8 vCPU · 16 GB</span> · MySQL 8.0</small></span>
+      <div class="sa-res"><div><small><span>CPU</span><span>38%</span></small><div class="sa-meter"><i style="width:38%"></i></div></div><div><small><span>RAM</span><span>61%</span></small><div class="sa-meter"><i style="width:61%"></i></div></div><div><small><span>Disk</span><span>54%</span></small><div class="sa-meter"><i style="width:54%"></i></div></div></div>
+    </div>
+    <div class="sa-inst is-warn">
+      <span class="sa-inst-logo">ر<span class="sa-dot sa-dot--warning"></span></span>
+      <div class="sa-inst-body"><b><a href="instance.html">مكتب الريادة للاستقدام</a> <span class="sa-badge">v4.2.0</span></b><small>Laravel Scheduler متوقف من 3 ساعات</small></div>
+      <div class="sa-inst-stats"><div><small>متصل الآن</small><b>14<span style="color:var(--muted);font-weight:500">/46</span></b></div><div><small>أخطاء 24س</small><b class="is-warning">3</b></div></div>
+      <div class="sa-inst-acts"><a class="icon-btn" href="instance.html" title="تفاصيل النسخة"><i data-lucide="chart-no-axes-column"></i></a><button class="icon-btn" title="دخول النسخة كـ Super Admin" data-sa-confirm="هتدخل لوحة Super Admin بتاعة مكتب الريادة للاستقدام بدخول مؤقت (15 دقيقة). العملية هتتسجل في المركز وفي النسخة."><i data-lucide="log-in"></i></button></div>
+    </div><div class="sa-inst">
+      <span class="sa-inst-logo">أ<span class="sa-dot sa-dot--success"></span></span>
+      <div class="sa-inst-body"><b><a href="instance.html">مكتب الأمانة</a> <span class="sa-badge">v4.2.0</span></b><small><span class="sa-mono">alamana.clickerp.sa</span> · آخر نبض من 15 ثانية</small></div>
+      <div class="sa-inst-stats"><div><small>متصل الآن</small><b>9<span style="color:var(--muted);font-weight:500">/31</span></b></div><div><small>أخطاء 24س</small><b class="">0</b></div></div>
+      <div class="sa-inst-acts"><a class="icon-btn" href="instance.html" title="تفاصيل النسخة"><i data-lucide="chart-no-axes-column"></i></a><button class="icon-btn" title="دخول النسخة كـ Super Admin" data-sa-confirm="هتدخل لوحة Super Admin بتاعة مكتب الأمانة بدخول مؤقت (15 دقيقة). العملية هتتسجل في المركز وفي النسخة."><i data-lucide="log-in"></i></button></div>
+    </div>
+  </section>
+  <section class="sa-card sa-server">
+    <div class="sa-server-head"><i data-lucide="server"></i><span><b>SRV-02 </b><small><span class="sa-mono">10.0.1.12</span> · <span class="sa-mono">8 vCPU · 16 GB</span> · MySQL 8.0</small></span>
+      <div class="sa-res"><div><small><span>CPU</span><span>29%</span></small><div class="sa-meter"><i style="width:29%"></i></div></div><div><small><span>RAM</span><span>52%</span></small><div class="sa-meter"><i style="width:52%"></i></div></div><div><small><span>Disk</span><span>47%</span></small><div class="sa-meter"><i style="width:47%"></i></div></div></div>
+    </div>
+    <div class="sa-inst">
+      <span class="sa-inst-logo">ن<span class="sa-dot sa-dot--success"></span></span>
+      <div class="sa-inst-body"><b><a href="instance.html">مكتب نجد</a> <span class="sa-badge">v4.2.0</span></b><small><span class="sa-mono">najd.clickerp.sa</span> · آخر نبض من 25 ثانية</small></div>
+      <div class="sa-inst-stats"><div><small>متصل الآن</small><b>11<span style="color:var(--muted);font-weight:500">/28</span></b></div><div><small>أخطاء 24س</small><b class="is-warning">1</b></div></div>
+      <div class="sa-inst-acts"><a class="icon-btn" href="instance.html" title="تفاصيل النسخة"><i data-lucide="chart-no-axes-column"></i></a><button class="icon-btn" title="دخول النسخة كـ Super Admin" data-sa-confirm="هتدخل لوحة Super Admin بتاعة مكتب نجد بدخول مؤقت (15 دقيقة). العملية هتتسجل في المركز وفي النسخة."><i data-lucide="log-in"></i></button></div>
+    </div><div class="sa-inst">
+      <span class="sa-inst-logo">س<span class="sa-dot sa-dot--success"></span></span>
+      <div class="sa-inst-body"><b><a href="instance.html">مؤسسة سواعد</a> <span class="sa-badge sa-badge--warning">v4.1.3</span></b><small>إصدار قديم — متأخر تحديث واحد</small></div>
+      <div class="sa-inst-stats"><div><small>متصل الآن</small><b>6<span style="color:var(--muted);font-weight:500">/19</span></b></div><div><small>أخطاء 24س</small><b class="">0</b></div></div>
+      <div class="sa-inst-acts"><a class="icon-btn" href="instance.html" title="تفاصيل النسخة"><i data-lucide="chart-no-axes-column"></i></a><button class="icon-btn" title="دخول النسخة كـ Super Admin" data-sa-confirm="هتدخل لوحة Super Admin بتاعة مؤسسة سواعد بدخول مؤقت (15 دقيقة). العملية هتتسجل في المركز وفي النسخة."><i data-lucide="log-in"></i></button></div>
+    </div>
+  </section>
+  <section class="sa-card sa-server">
+    <div class="sa-server-head"><i data-lucide="server"></i><span><b>SRV-03 <span class="sa-badge sa-badge--warning">المساحة 86%</span></b><small><span class="sa-mono">10.0.1.13</span> · <span class="sa-mono">4 vCPU · 8 GB</span> · MySQL 8.0</small></span>
+      <div class="sa-res"><div><small><span>CPU</span><span>71%</span></small><div class="sa-meter is-warning"><i style="width:71%"></i></div></div><div><small><span>RAM</span><span>78%</span></small><div class="sa-meter is-warning"><i style="width:78%"></i></div></div><div><small><span>Disk</span><span>86%</span></small><div class="sa-meter is-danger"><i style="width:86%"></i></div></div></div>
+    </div>
+    <div class="sa-inst">
+      <span class="sa-inst-logo">و<span class="sa-dot sa-dot--success"></span></span>
+      <div class="sa-inst-body"><b><a href="instance.html">مكتب الوفاء</a> <span class="sa-badge">v4.2.0</span></b><small><span class="sa-mono">alwafa.clickerp.sa</span> · آخر نبض من 10 ثوان</small></div>
+      <div class="sa-inst-stats"><div><small>متصل الآن</small><b>8<span style="color:var(--muted);font-weight:500">/22</span></b></div><div><small>أخطاء 24س</small><b class="">0</b></div></div>
+      <div class="sa-inst-acts"><a class="icon-btn" href="instance.html" title="تفاصيل النسخة"><i data-lucide="chart-no-axes-column"></i></a><button class="icon-btn" title="دخول النسخة كـ Super Admin" data-sa-confirm="هتدخل لوحة Super Admin بتاعة مكتب الوفاء بدخول مؤقت (15 دقيقة). العملية هتتسجل في المركز وفي النسخة."><i data-lucide="log-in"></i></button></div>
+    </div><div class="sa-inst is-warn">
+      <span class="sa-inst-logo">ص<span class="sa-dot sa-dot--warning"></span></span>
+      <div class="sa-inst-body"><b><a href="instance.html">مكتب الصفوة</a> <span class="sa-badge">v4.2.0</span></b><small>24 خطأ في آخر ساعة — نفس الخطأ في تقرير العمولات</small></div>
+      <div class="sa-inst-stats"><div><small>متصل الآن</small><b>12<span style="color:var(--muted);font-weight:500">/35</span></b></div><div><small>أخطاء 24س</small><b class="is-danger">24</b></div></div>
+      <div class="sa-inst-acts"><a class="icon-btn" href="instance.html" title="تفاصيل النسخة"><i data-lucide="chart-no-axes-column"></i></a><button class="icon-btn" title="دخول النسخة كـ Super Admin" data-sa-confirm="هتدخل لوحة Super Admin بتاعة مكتب الصفوة بدخول مؤقت (15 دقيقة). العملية هتتسجل في المركز وفي النسخة."><i data-lucide="log-in"></i></button></div>
+    </div>
+  </section>
+  <section class="sa-card sa-server">
+    <div class="sa-server-head"><i data-lucide="server"></i><span><b>SRV-04 </b><small><span class="sa-mono">10.0.1.14</span> · <span class="sa-mono">4 vCPU · 8 GB</span> · MySQL 8.0</small></span>
+      <div class="sa-res"><div><small><span>CPU</span><span>22%</span></small><div class="sa-meter"><i style="width:22%"></i></div></div><div><small><span>RAM</span><span>44%</span></small><div class="sa-meter"><i style="width:44%"></i></div></div><div><small><span>Disk</span><span>39%</span></small><div class="sa-meter"><i style="width:39%"></i></div></div></div>
+    </div>
+    <div class="sa-inst">
+      <span class="sa-inst-logo">ب<span class="sa-dot sa-dot--success"></span></span>
+      <div class="sa-inst-body"><b><a href="instance.html">مكتب البيان</a> <span class="sa-badge">v4.2.0</span></b><small><span class="sa-mono">albayan.clickerp.sa</span> · آخر نبض من 12 ثانية</small></div>
+      <div class="sa-inst-stats"><div><small>متصل الآن</small><b>5<span style="color:var(--muted);font-weight:500">/14</span></b></div><div><small>أخطاء 24س</small><b class="">0</b></div></div>
+      <div class="sa-inst-acts"><a class="icon-btn" href="instance.html" title="تفاصيل النسخة"><i data-lucide="chart-no-axes-column"></i></a><button class="icon-btn" title="دخول النسخة كـ Super Admin" data-sa-confirm="هتدخل لوحة Super Admin بتاعة مكتب البيان بدخول مؤقت (15 دقيقة). العملية هتتسجل في المركز وفي النسخة."><i data-lucide="log-in"></i></button></div>
+    </div><div class="sa-inst">
+      <span class="sa-inst-logo">ف<span class="sa-dot sa-dot--success"></span></span>
+      <div class="sa-inst-body"><b><a href="instance.html">مكتب الأفق</a> <span class="sa-badge sa-badge--warning">v4.1.3</span></b><small>إصدار قديم — متأخر تحديث واحد</small></div>
+      <div class="sa-inst-stats"><div><small>متصل الآن</small><b>7<span style="color:var(--muted);font-weight:500">/17</span></b></div><div><small>أخطاء 24س</small><b class="is-warning">2</b></div></div>
+      <div class="sa-inst-acts"><a class="icon-btn" href="instance.html" title="تفاصيل النسخة"><i data-lucide="chart-no-axes-column"></i></a><button class="icon-btn" title="دخول النسخة كـ Super Admin" data-sa-confirm="هتدخل لوحة Super Admin بتاعة مكتب الأفق بدخول مؤقت (15 دقيقة). العملية هتتسجل في المركز وفي النسخة."><i data-lucide="log-in"></i></button></div>
+    </div>
+  </section>
+  <section class="sa-card sa-server">
+    <div class="sa-server-head"><i data-lucide="server"></i><span><b>SRV-05 </b><small><span class="sa-mono">10.0.1.15</span> · <span class="sa-mono">8 vCPU · 16 GB</span> · MySQL 8.0</small></span>
+      <div class="sa-res"><div><small><span>CPU</span><span>64%</span></small><div class="sa-meter"><i style="width:64%"></i></div></div><div><small><span>RAM</span><span>70%</span></small><div class="sa-meter is-warning"><i style="width:70%"></i></div></div><div><small><span>Disk</span><span>58%</span></small><div class="sa-meter"><i style="width:58%"></i></div></div></div>
+    </div>
+    <div class="sa-inst is-down">
+      <span class="sa-inst-logo">م<span class="sa-dot sa-dot--danger"></span></span>
+      <div class="sa-inst-body"><b><a href="instance.html">مكتب المدار للاستقدام</a> <span class="sa-badge">v4.2.0</span></b><small class="is-danger">مش بترد — HTTP 502 من 12 دقيقة</small></div>
+      <div class="sa-inst-stats"><div><small>متصل الآن</small><b>0<span style="color:var(--muted);font-weight:500">/26</span></b></div><div><small>أخطاء 24س</small><b class="is-danger">41</b></div></div>
+      <div class="sa-inst-acts"><a class="icon-btn" href="instance.html" title="تفاصيل النسخة"><i data-lucide="chart-no-axes-column"></i></a><button class="icon-btn" title="دخول النسخة كـ Super Admin" data-sa-confirm="هتدخل لوحة Super Admin بتاعة مكتب المدار للاستقدام بدخول مؤقت (15 دقيقة). العملية هتتسجل في المركز وفي النسخة."><i data-lucide="log-in"></i></button></div>
+    </div><div class="sa-inst">
+      <span class="sa-inst-logo">ر<span class="sa-dot sa-dot--success"></span></span>
+      <div class="sa-inst-body"><b><a href="instance.html">مكتب الرواد</a> <span class="sa-badge">v4.2.0</span></b><small><span class="sa-mono">alrowad.clickerp.sa</span> · آخر نبض من 18 ثانية</small></div>
+      <div class="sa-inst-stats"><div><small>متصل الآن</small><b>10<span style="color:var(--muted);font-weight:500">/24</span></b></div><div><small>أخطاء 24س</small><b class="">0</b></div></div>
+      <div class="sa-inst-acts"><a class="icon-btn" href="instance.html" title="تفاصيل النسخة"><i data-lucide="chart-no-axes-column"></i></a><button class="icon-btn" title="دخول النسخة كـ Super Admin" data-sa-confirm="هتدخل لوحة Super Admin بتاعة مكتب الرواد بدخول مؤقت (15 دقيقة). العملية هتتسجل في المركز وفي النسخة."><i data-lucide="log-in"></i></button></div>
+    </div>
+  </section>
+  <section class="sa-card sa-server">
+    <div class="sa-server-head"><i data-lucide="server"></i><span><b>SRV-06 </b><small><span class="sa-mono">10.0.1.16</span> · <span class="sa-mono">4 vCPU · 8 GB</span> · MySQL 8.0</small></span>
+      <div class="sa-res"><div><small><span>CPU</span><span>18%</span></small><div class="sa-meter"><i style="width:18%"></i></div></div><div><small><span>RAM</span><span>41%</span></small><div class="sa-meter"><i style="width:41%"></i></div></div><div><small><span>Disk</span><span>33%</span></small><div class="sa-meter"><i style="width:33%"></i></div></div></div>
+    </div>
+    <div class="sa-inst">
+      <span class="sa-inst-logo">ن<span class="sa-dot sa-dot--success"></span></span>
+      <div class="sa-inst-body"><b><a href="instance.html">مكتب السنابل</a> <span class="sa-badge">v4.2.0</span></b><small><span class="sa-mono">alsanabel.clickerp.sa</span> · آخر نبض من 22 ثانية</small></div>
+      <div class="sa-inst-stats"><div><small>متصل الآن</small><b>4<span style="color:var(--muted);font-weight:500">/12</span></b></div><div><small>أخطاء 24س</small><b class="">0</b></div></div>
+      <div class="sa-inst-acts"><a class="icon-btn" href="instance.html" title="تفاصيل النسخة"><i data-lucide="chart-no-axes-column"></i></a><button class="icon-btn" title="دخول النسخة كـ Super Admin" data-sa-confirm="هتدخل لوحة Super Admin بتاعة مكتب السنابل بدخول مؤقت (15 دقيقة). العملية هتتسجل في المركز وفي النسخة."><i data-lucide="log-in"></i></button></div>
+    </div><div class="sa-inst">
+      <span class="sa-inst-logo">خ<span class="sa-dot sa-dot--success"></span></span>
+      <div class="sa-inst-body"><b><a href="instance.html">مكتب النخبة</a> <span class="sa-badge">v4.2.0</span></b><small><span class="sa-mono">alnokhba.clickerp.sa</span> · آخر نبض من 35 ثانية</small></div>
+      <div class="sa-inst-stats"><div><small>متصل الآن</small><b>9<span style="color:var(--muted);font-weight:500">/20</span></b></div><div><small>أخطاء 24س</small><b class="is-warning">1</b></div></div>
+      <div class="sa-inst-acts"><a class="icon-btn" href="instance.html" title="تفاصيل النسخة"><i data-lucide="chart-no-axes-column"></i></a><button class="icon-btn" title="دخول النسخة كـ Super Admin" data-sa-confirm="هتدخل لوحة Super Admin بتاعة مكتب النخبة بدخول مؤقت (15 دقيقة). العملية هتتسجل في المركز وفي النسخة."><i data-lucide="log-in"></i></button></div>
+    </div>
+  </section>
+  </div>
+
+  <div class="sa-grid-2">
+    <section class="sa-card ">
+    <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="history"></i></span><div><h2 class="sa-card-title">آخر الأحداث في كل النسخ</h2><p class="sa-card-desc">من كل النسخ في مكان واحد</p></div></div></div>
+    <ul class="sa-timeline">
+      <li><span class="sa-timeline-icon" style="background:var(--red-soft);color:var(--red)"><i data-lucide="server-crash"></i></span><div class="sa-timeline-body"><b>مكتب المدار وقعت — HTTP 502</b><small>اتبعت تنبيه واتساب لـ 2 من الفريق</small></div><time>14:08</time></li>
+      <li><span class="sa-timeline-icon"><i data-lucide="database"></i></span><div class="sa-timeline-body"><b>نسخ احتياطي ليلي — 12 من 12</b><small>R2 · <span class="num">41 GB</span> إجمالي</small></div><time>03:00</time></li>
+      <li><span class="sa-timeline-icon"><i data-lucide="rocket"></i></span><div class="sa-timeline-body"><b>تحديث v4.2.0 — 10 نسخ</b><small>سواعد والأفق اتأجلوا بطلب العميل</small></div><time>أمس</time></li>
+      <li><span class="sa-timeline-icon"><i data-lucide="log-in"></i></span><div class="sa-timeline-body"><b>دخول على نسخة مكتب نجد</b><small>كريم فتحي · مشكلة طباعة عقد</small></div><time>أمس</time></li>
+      <li><span class="sa-timeline-icon"><i data-lucide="link-2"></i></span><div class="sa-timeline-body"><b>اتربطت نسخة مكتب النخبة</b><small>SRV-06</small></div><time>3 نوفمبر</time></li>
+    </ul>
+  </section>
+
+    <section class="sa-card" id="link">
+      <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="link-2"></i></span><div><h2 class="sa-card-title">ربط نسخة جديدة</h2><p class="sa-card-desc">نفس فكرة مفتاح التحديثات الموجود (<span class="sa-mono">SystemUpdateClient</span>)، بس النسخة كمان بتبعت نبضها وحالتها للمركز.</p></div></div></div>
+      <div class="sa-form-grid">
+        <div class="sa-field"><label>اسم العميل</label><input class="sa-input" placeholder="مكتب …"></div>
+        <div class="sa-field"><label>الدومين</label><input class="sa-input" dir="ltr" placeholder="name.clickerp.sa"></div>
+        <div class="sa-field"><label>السيرفر</label><select class="sa-select"><option>SRV-06 — عليه 2 (ممتلئ)</option><option>سيرفر جديد…</option></select><span class="sa-help">كل سيرفر عليه عميلين.</span></div>
+        <div class="sa-field"><label>اسم قاعدة البيانات</label><input class="sa-input" dir="ltr" placeholder="name_prod"></div>
+      </div>
+      <div class="sa-field" style="margin-top:14px"><label>بعد الحفظ: حط السطرين دول في ملف .env بتاع النسخة</label>
+        <div class="sa-keybox"><code>CONTROL_CENTER_URL=https://hq.clickerp.sa<br>CONTROL_CENTER_KEY=su_••••••••••••••••</code><button class="icon-btn" title="نسخ" data-sa-toast="اتنسخ"><i data-lucide="copy"></i></button></div>
+        <span class="sa-help">المفتاح بيظهر مرة واحدة بس، وبيتحفظ مشفّر (hash) زي مفاتيح التحديثات.</span></div>
+      <div class="sa-card-foot"><button class="btn btn-primary sm" data-sa-toast="اتربطت النسخة — مستني أول نبض"><i data-lucide="link-2"></i>ربط وإنشاء مفتاح</button></div>
+    </section>
+  </div>
+
+</main>
+<script src="https://unpkg.com/lucide@0.451.0/dist/umd/lucide.min.js"></script>
+<script src="assets/sa.js"></script>
+</body>
+</html>
