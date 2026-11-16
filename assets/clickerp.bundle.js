@@ -5133,10 +5133,10 @@ const rpView=()=>{
 
 /* ---- events ---- */
 document.addEventListener("click",e=>{
- const lg=e.target.closest("[data-report]:not([data-rkey])");if(lg){const m={register:"recruitment_contracts",offices:"offices"}[lg.dataset.report]||"";if(m)rpInit(m);else RKEY="";return}
+ const lg=e.target.closest("[data-report]:not([data-rkey])");if(lg){const m={register:"recruitment_contracts",offices:"offices"}[lg.dataset.report]||"";if(m)rpInit(m);else RKEY="";e.preventDefault();return}
  if(cur!=="report"&&!e.target.closest("[data-rkey]"))return;
  const g=s=>e.target.closest(s);const go=()=>{e.preventDefault();e.stopImmediatePropagation();render()};
- const rk=g("[data-rkey]");if(rk){if(RDEF[rk.dataset.rkey]){rpInit(rk.dataset.rkey,rk.dataset.rpreset?JSON.parse(rk.dataset.rpreset):null);e.preventDefault();e.stopImmediatePropagation();cur="report";render();window.scrollTo(0,0)}else RKEY="";return}
+ const rk=g("[data-rkey]");if(rk){if(RDEF[rk.dataset.rkey]){rpInit(rk.dataset.rkey,rk.dataset.rpreset?JSON.parse(rk.dataset.rpreset):null);e.preventDefault();e.stopImmediatePropagation();cur="report";render();window.scrollTo(0,0)}else{RKEY="";e.preventDefault()}return}
  if(!RKEY||!RDEF[RKEY])return;
  if(RS.add&&!g(".rp-addw")){RS.add=false;if(!g("[data-rpadd]"))render()}
  if(RS.colp&&!g(".rp-addw")){RS.colp=false;if(!g("[data-rpcolp]"))render()}
