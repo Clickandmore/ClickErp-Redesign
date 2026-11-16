@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="design-version" content="v1.10">
+<title>Super Admin — تسجيل الدخول — Click ERP</title>
+<link rel="stylesheet" href="assets/clickerp.bundle.css">
+</head>
+<body dir="rtl">
+<!-- Screen: saLogin · v1.10 · /{locale}/superadmin (DevSuperAdminController@loginForm) -->
+<div class="sa-login">
+  <div class="sa-lf">
+    <span class="sa-lbadge"><i data-lucide="shield-alert"></i>منطقة مقيّدة · بيئة الإنتاج</span>
+    <div>
+      <h1>تسجيل الدخول</h1>
+      <p>أدخل بيانات حساب المدير العام للمتابعة.</p>
+      <div class="fx-idea"><i data-lucide="lightbulb"></i><div><b>ليه الشكل ده؟</b><span>الشارة الحمرا فوق بتقول من أول نظرة إنك داخل على بيئة الإنتاج مش التطوير. ومقترح خطوة تانية برمز تحقق على بريد/جوال الأمان، بنفس الرمز اللي موجود فعلاً في استعادة النسخ الاحتياطية — لأن الدخول دلوقتي باسم وكلمة مرور بس.</span></div></div>
+      <div class="sa-lerr"><i data-lucide="alert-circle"></i>بيانات دخول لوحة التطوير غير صحيحة.</div>
+      <div class="field"><label>اسم الدخول</label><div class="inp"><i data-lucide="user"></i><input value="clickdev" dir="ltr"></div></div>
+      <div class="field"><label>كلمة المرور</label><div class="inp"><i data-lucide="lock"></i><input type="password" value="••••••••••••" dir="ltr"><button class="icon-btn" title="إظهار كلمة المرور"><i data-lucide="eye"></i></button></div></div>
+      <div class="field"><label>رمز التحقق <span class="tag a hm-new">جديد</span></label><div class="inp"><i data-lucide="key-round"></i><input placeholder="الرمز اللي وصل على dev@…sa" dir="ltr"></div><small class="fhint">بيتبعت بعد كلمة المرور الصح · صالح 10 دقايق · 5 محاولات</small></div>
+      <button class="btn btn-primary"><i data-lucide="log-in"></i>دخول اللوحة</button>
+      <div class="sa-lfoot">5 محاولات في الدقيقة · كل دخول بيتسجل</div>
+    </div>
+  </div>
+  <div class="sa-lr">
+    <span class="sa-lbadge" style="background:rgba(255,255,255,.1);color:#f0b35a"><i data-lucide="code"></i>Click ERP / Super Admin</span>
+    <h2>إدارة النسخة بثقة وأمان</h2>
+    <p>لوحة Super Admin للتحكم في اشتراك العميل والموديلات والتحديثات والنسخ الاحتياطية من مكان واحد.</p>
+    <ul>
+      <li><i data-lucide="badge-check"></i>العميل والاشتراك ونوع البرنامج</li>
+      <li><i data-lucide="blocks"></i>الموديلات وحدود المستخدمين والفروع</li>
+      <li><i data-lucide="database-backup"></i>النسخ الاحتياطية والاستعادة</li>
+      <li><i data-lucide="calendar-clock"></i>المهام المجدولة ووضع التحديث</li>
+    </ul>
+    <div class="sa-lnote">بعد الدخول: لو قاعدة البيانات أو الجداول الأساسية ناقصة بتروح على <a href="saRecovery.html" style="color:#b9e08f">الاستعادة والفحص</a>، وإلا على <a href="setDev.html" style="color:#b9e08f">النظرة العامة</a>.</div>
+  </div>
+</div>
+<script src="https://unpkg.com/lucide@0.451.0/dist/umd/lucide.min.js"></script>
+<script>lucide.createIcons({attrs:{"stroke-width":1.8}});</script>
+</body>
+</html>

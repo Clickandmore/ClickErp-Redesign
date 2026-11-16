@@ -1,5 +1,5 @@
 {
-  "version": "v1.9",
+  "version": "v1.10",
   "date": "2026-11-16",
   "entry": "login.html",
   "screens": [
@@ -671,7 +671,7 @@
     {
       "id": "setDev",
       "file": "setDev.html",
-      "title": "المطوّر"
+      "title": "Super Admin — نظرة عامة"
     },
     {
       "id": "visaDash",
@@ -717,6 +717,146 @@
       "id": "hbCollect",
       "file": "hbCollect.html",
       "title": "التحصيل والتعويضات (بالساعة)"
+    },
+    {
+      "id": "tcMy",
+      "file": "tcMy.html",
+      "title": "مركز المهام — مهامي اليوم"
+    },
+    {
+      "id": "tcBoard",
+      "file": "tcBoard.html",
+      "title": "مركز المهام — لوحة المهام"
+    },
+    {
+      "id": "tcTask",
+      "file": "tcTask.html",
+      "title": "مركز المهام — صفحة المهمة"
+    },
+    {
+      "id": "tcForm",
+      "file": "tcForm.html",
+      "title": "مركز المهام — مهمة جديدة"
+    },
+    {
+      "id": "tcTeam",
+      "file": "tcTeam.html",
+      "title": "مركز المهام — متابعة الفريق"
+    },
+    {
+      "id": "tcMember",
+      "file": "tcMember.html",
+      "title": "مركز المهام — متابعة موظف (الخط الزمني)"
+    },
+    {
+      "id": "tcApprovals",
+      "file": "tcApprovals.html",
+      "title": "مركز المهام — موافقات الوقت"
+    },
+    {
+      "id": "tcShots",
+      "file": "tcShots.html",
+      "title": "مركز المهام — لقطات الشاشة"
+    },
+    {
+      "id": "tcSessions",
+      "file": "tcSessions.html",
+      "title": "مركز المهام — الجلسات المباشرة"
+    },
+    {
+      "id": "tcHours",
+      "file": "tcHours.html",
+      "title": "مركز المهام — الساعات والتكلفة"
+    },
+    {
+      "id": "tcAttend",
+      "file": "tcAttend.html",
+      "title": "مركز المهام — الحضور مقابل المهام"
+    },
+    {
+      "id": "tcSettings",
+      "file": "tcSettings.html",
+      "title": "مركز المهام — إعدادات مركز المهام"
+    },
+    {
+      "id": "tcPolicy",
+      "file": "tcPolicy.html",
+      "title": "مركز المهام — سياسة المراقبة"
+    },
+    {
+      "id": "saLogin",
+      "file": "saLogin.html",
+      "title": "Super Admin — تسجيل الدخول"
+    },
+    {
+      "id": "saSubscription",
+      "file": "saSubscription.html",
+      "title": "العميل والاشتراك"
+    },
+    {
+      "id": "saModules",
+      "file": "saModules.html",
+      "title": "الموديلات ونوع البرنامج"
+    },
+    {
+      "id": "saEmployees",
+      "file": "saEmployees.html",
+      "title": "الدخول كموظف"
+    },
+    {
+      "id": "saDesigns",
+      "file": "saDesigns.html",
+      "title": "تصاميم لوحة التحكم"
+    },
+    {
+      "id": "saUpdates",
+      "file": "saUpdates.html",
+      "title": "تحديثات النظام"
+    },
+    {
+      "id": "saUpdateForm",
+      "file": "saUpdateForm.html",
+      "title": "تحديث جديد"
+    },
+    {
+      "id": "saBackups",
+      "file": "saBackups.html",
+      "title": "النسخ الاحتياطية"
+    },
+    {
+      "id": "saScheduler",
+      "file": "saScheduler.html",
+      "title": "المهام المجدولة"
+    },
+    {
+      "id": "saRecovery",
+      "file": "saRecovery.html",
+      "title": "الاستعادة والفحص"
+    },
+    {
+      "id": "saInvoices",
+      "file": "saInvoices.html",
+      "title": "تصحيح الفواتير"
+    },
+    {
+      "id": "saInvoiceFix",
+      "file": "saInvoiceFix.html",
+      "title": "تصحيح فاتورة — تعديل ومعاينة"
+    },
+    {
+      "id": "saMcp",
+      "file": "saMcp.html",
+      "title": "المساعد الذكي (MCP)"
+    },
+    {
+      "id": "saMoyasar",
+      "file": "saMoyasar.html",
+      "title": "بوابة ميسر"
+    },
+    {
+      "id": "saTestAccounts",
+      "file": "saTestAccounts.html",
+      "title": "حسابات اختبار التطبيقات"
     }
   ],
   "states": [
