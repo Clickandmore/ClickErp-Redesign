@@ -4905,7 +4905,12 @@ const ty=t=>`<span class="tc-ty ${TY[t][0]}">${t}</span>`;
 const av=(n,c)=>`<span class="tc-av${c?" "+c:""}" title="${n}">${n.trim()[0]}</span>`;
 const PPL=["أحمد سمير","منى عادل","كريم فتحي","يوسف حسن","سارة نبيل","عمر خالد"];
 const TCP={tcShare:"tcBoard",tcRemind:"tcAdmin",tcVault:"tcAdmin",tcArchive:"tcBoard",tcGeo:"hrAttendance",tcCheckin:"hrAttendance",tcQALib:"tcQA",tcCardQA:"tcBoard",tcBoardD:"tcBoard",tcCard:"tcBoard",tcNew:"tcBoard",tcLanes:"tcBoard",tcList:"tcBoard",tcTask:"tcBoard",tcForm:"tcBoard",tcMember:"tcTeam",tcShots:"tcTeam",tcSessions:"tcTeam",tcAttend:"tcHours",tcClose:"tcMy",tcPolicy:"tcMy",tcMigrate:"tcSettings"};
-const tcTabs=on=>TABS([["tcMy","sun","يومي"],["tcInbox","inbox","الوارد",7],["tcBoard","columns-3","لوحة المهام"],["tcHandoff","arrow-left-right","التسليم والاستلام",3],["tcQA","flask-conical","الاختبار",4],["tcSpecs","file-text","التحليل والمواصفات"],["tcAdmin","briefcase","الإدارة",2],["hrAttendance","map-pin","الحضور"],["tcTeam","users","متابعة الفريق"],["tcApprovals","hourglass","موافقات الوقت",3],["tcHours","bar-chart-3","التقارير"],["tcSettings","settings","الإعدادات"]],TCP[on]||on);
+/* v1.23 — task-center nav: bigger, grouped, sticky; switching tabs doesn't reload the page */
+const TCNAV=[["شغلي",[["tcMy","sun","يومي"],["tcInbox","inbox","الوارد",7,"a"],["tcBoard","columns-3","لوحة المهام"],["tcHandoff","arrow-left-right","التسليم والاستلام",3]]],
+ ["مراحل الشغل",[["tcSpecs","file-text","التحليل والمواصفات"],["tcQA","flask-conical","الاختبار",4],["tcAdmin","briefcase","الإدارة",2]]],
+ ["الفريق والوقت",[["hrAttendance","map-pin","الحضور"],["tcTeam","users","متابعة الفريق"],["tcApprovals","hourglass","موافقات الوقت",3,"a"],["tcHours","bar-chart-3","التقارير"],["tcSettings","settings","الإعدادات"]]]];
+window.TCNAV_IDS=TCNAV.flatMap(g=>g[1].map(x=>x[0]));
+const tcTabs=on=>{on=TCP[on]||on;return `<nav class="tcnav" aria-label="مركز المهام">${TCNAV.map(g=>`<div class="tcnav-g"><small>${g[0]}</small><div>${g[1].map(x=>`<a href="${x[0]}.html" data-go="${x[0]}" class="${x[0]===on?"on":""}"${x[0]===on?' aria-current="page"':""}>${X(x[1])}<span>${x[2]}</span>${x[3]!=null?`<em class="num${x[4]?" "+x[4]:""}">${x[3]}</em>`:""}</a>`).join("")}</div></div>`).join("")}</nav>`};
 const TIMER=(num,title,el)=>`<div class="tc-timer"><span class="tc-pulse"></span>${X("timer")}<span>المؤقت شغال على <a href="#" data-go="tcTask"><b class="num">${num}</b> — ${title}</a></span><b class="num tc-clock">${el}</b><span class="tc-mon">${X("monitor-check")}مشاركة الشاشة شغالة · <span class="num">7</span> لقطات</span>${B("ghost sm","app-window","نافذة المراقبة")}${B("red sm","square","إيقاف")}</div>`;
 
 /* ---- tasks ---- */
@@ -6139,7 +6144,8 @@ let TS;try{TS=JSON.parse(localStorage.getItem(LS))}catch(e){}
 if(!Array.isArray(TS))TS=extra(seed());
 const save=()=>{try{localStorage.setItem(LS,JSON.stringify(TS))}catch(e){}};
 const get=k=>TS.find(t=>t.k===k);
-const UI={q:"",ppl:[],qf:"",dense:"c",group:"none",open:null,share:null,create:false,addcol:null,unfold:{},drag:null,client:false};
+const CAP=25;
+const UI={more:{},q:"",ppl:[],qf:"",dense:"c",group:"none",open:null,share:null,create:false,addcol:null,unfold:{},drag:null,client:false};
 
 /* ---------- helpers ---------- */
 const avs=(list,max)=>{max=max||3;if(!list.length)return `<span class="kb-av none" title="من غير مسؤول">${X("user-plus")}</span>`;return `<span class="lb-avs">${list.slice(0,max).map(n=>av(n)).join("")}${list.length>max?`<span class="kb-av more">+${list.length-max}</span>`:""}</span>`};
@@ -6179,7 +6185,7 @@ const col=c=>{const it=TS.filter(t=>t.status===c[0]&&vis(t));
  const wip=c[0]==="doing"?[TS.filter(t=>t.status==="doing").length,4]:null;
  return `<div class="kb-col lb-drop" data-col="${c[0]}" style="--s:${c[2]}"><div class="kb-ch"><b>${c[1]}</b><span class="num kb-n">${it.length}</span>${wip?`<span class="kb-wip${wip[0]>=wip[1]?" full":""}" title="حد العمل الجاري">${wip[0]} / ${wip[1]}</span>`:""}${UI.unfold[c[0]]?`<button class="kb-more" data-fold="${c[0]}" title="اطوي">${X("chevrons-right")}</button>`:""}</div>
   ${UI.addcol===c[0]?`<div class="kb-new"><textarea rows="2" data-newin="${c[0]}" placeholder="إيه المطلوب؟ Enter للحفظ · Esc للإلغاء"></textarea><div><small class="tc-sub">هتتسند لك · بعد 3 أيام عمل</small><span class="kb-sp"></span>${B("primary sm","","إضافة",`data-newgo="${c[0]}"`)}</div></div>`:""}
-  <div class="kb-cb">${it.map(card).join("")}${it.length?"":`<div class="kb-empty">${X("inbox")}اسحب مهمة هنا</div>`}</div>
+  <div class="kb-cb">${it.slice(0,UI.more[c[0]]||CAP).map(card).join("")}${it.length>(UI.more[c[0]]||CAP)?`<button class="lb-more" data-more="${c[0]}">${X("chevrons-down")}اعرض <span class="num">${Math.min(CAP,it.length-(UI.more[c[0]]||CAP))}</span> كمان · فاضل <span class="num">${it.length-(UI.more[c[0]]||CAP)}</span></button>`:""}${it.length?"":`<div class="kb-empty">${X("inbox")}اسحب مهمة هنا</div>`}</div>
   ${c[0]==="closed"?"":`<button class="kb-add" data-addcol="${c[0]}">${X("plus")}مهمة</button>`}</div>`};
 const lanes=()=>{const L=["none",...PPL];const C=COL.filter(c=>["new","doing","qa","ready","client"].includes(c[0]));
  return `<div class="kb-lanes"><div class="kb-lh"><span></span>${C.map(c=>`<div style="--s:${c[2]}"><b>${c[1]}</b></div>`).join("")}</div>${L.map(p=>{const it=TS.filter(t=>t.status!=="closed"&&t.status!=="hold"&&vis(t)&&(p==="none"?!t.as.length:t.as.includes(p)));if(!it.length&&p!=="none")return "";
@@ -6271,18 +6277,21 @@ const nextKey=type=>{const n=Math.max(0,...TS.filter(t=>t.type===type).map(t=>pa
 const create=(o)=>{const t={k:nextKey(o.type||"UPD"),type:o.type||"UPD",title:o.title,client:o.client||"داخلي",product:"Click ERP",status:o.status||"new",prio:o.prio||"medium",as:o.as&&o.as.length?o.as:[ME],rv:"",due:o.due||"2026-11-19",size:"ساعة",ck:[],cm:[],act:[{w:ME,at:now(),x:"أنشأت المهمة"}],live:[],alert:"",alertCls:"",desc:"",spent:{}};TS.unshift(t);save();return t};
 
 /* ---------- mount / render ---------- */
-const paint=()=>{const a=document.getElementById("lbApp");if(a)a.innerHTML=app();
+/* v1.23: paint only what changed — the board and the dialog are compared as strings first, so opening a task doesn't rebuild the board */
+const paint=()=>{let ch=0;const a=document.getElementById("lbApp");if(a){const h=app();if(a.__h!==h){a.innerHTML=h;a.__h=h;ch=1}}
  let m=document.getElementById("lbM");if(!m){m=document.createElement("div");m.id="lbM";document.body.appendChild(m)}
- m.innerHTML=(UI.open?modal():"")+(UI.share?shModal():"")+(UI.create?newModal():"");
+ const mh=(UI.open?modal():"")+(UI.share?shModal():"")+(UI.create?newModal():"");if(m.__h!==mh){m.innerHTML=mh;m.__h=mh;ch=1}
  document.body.classList.toggle("lb-lock",!!(UI.open||UI.share||UI.create));
- if(window.lucide)lucide.createIcons({attrs:{"stroke-width":1.8}})};
+ if(ch&&window.lucide)lucide.createIcons({attrs:{"stroke-width":1.8}})};
 const setHash=()=>{const h=UI.open?`#task=${UI.open}${UI.client?"&v=client":""}`:"";if(location.hash!==h)history.replaceState(null,"",location.pathname+location.search+h)};
 const openT=k=>{UI.open=k;setHash();paint()};
-screens.tcBoard=()=>{setTimeout(()=>{const m=location.hash.match(/task=([A-Z]+-\d+)/);if(m&&get(m[1])&&!UI.open){UI.open=m[1];UI.client=/v=client/.test(location.hash)}const sh=location.hash.match(/share=([A-Z]+-\d+)/);if(sh&&get(sh[1])){UI.share=sh[1];SH.to=["فهد العتيبي — "+get(sh[1]).client]}paint()},0);return `<div id="lbApp">${app()}</div>`};
+let FIRST="";
+screens.tcBoard=()=>{const h0=app();FIRST=h0;setTimeout(()=>{const a0=document.getElementById("lbApp");if(a0&&a0.__h==null)a0.__h=FIRST;const m=location.hash.match(/task=([A-Z]+-\d+)/);if(m&&get(m[1])&&!UI.open){UI.open=m[1];UI.client=/v=client/.test(location.hash)}const sh=location.hash.match(/share=([A-Z]+-\d+)/);if(sh&&get(sh[1])){UI.share=sh[1];SH.to=["فهد العتيبي — "+get(sh[1]).client]}paint()},0);return `<div id="lbApp">${h0}</div>`};
 
 /* ---------- events ---------- */
 const onBoard=()=>window.CERP_PAGE==="tcBoard";
 document.addEventListener("click",e=>{if(!onBoard())return;const g=s=>e.target.closest(s);let el;
+ if((el=g("[data-more]"))){e.preventDefault();const c=el.dataset.more;UI.more[c]=(UI.more[c]||CAP)+CAP;paint();return}
  if((el=g("[data-share]"))){e.preventDefault();e.stopPropagation();UI.share=el.dataset.share;SH.to=[];SH.msg="";paint();return}
  if((el=g("[data-copy]"))){copy(link(el.dataset.copy));const t=get(el.dataset.copy);if(t){log(t,"نسخ رابط المهمة");save()}return}
  if((el=g("[data-copyc]"))){copy(link(el.dataset.copyc)+"&v=client");return}
@@ -6337,7 +6346,7 @@ document.addEventListener("change",e=>{if(!onBoard())return;const el=e.target;
  if(el.hasAttribute("data-desc")){t.desc=el.value;save();return}
 });
 document.addEventListener("input",e=>{if(!onBoard())return;const el=e.target;
- if(el.hasAttribute("data-q")){UI.q=el.value;const p=el.selectionStart;paint();const n=document.querySelector("[data-q]");if(n){n.focus();n.setSelectionRange(p,p)}}
+ if(el.hasAttribute("data-q")){UI.q=el.value;clearTimeout(window.__lbq);window.__lbq=setTimeout(()=>{const p=(document.querySelector("[data-q]")||{}).selectionStart;paint();const n=document.querySelector("[data-q]");if(n&&document.activeElement!==n){n.focus();if(p!=null)n.setSelectionRange(p,p)}},140)}
  if(el.hasAttribute("data-shmsg")){SH.msg=el.value;const pre=document.querySelector(".lb-pre");if(pre)pre.textContent=shText(get(UI.share))}
 });
 document.addEventListener("focusout",e=>{if(!onBoard())return;const el=e.target;if(el.dataset&&el.dataset.title&&UI.open){const t=get(UI.open);const v=el.textContent.trim();if(v&&v!==t.title){t.title=v;log(t,"عدّل العنوان");save();paint()}}});
@@ -6372,5 +6381,9 @@ document.getElementById("app").classList.remove("hidden");
 /* v1.3.1: معاينة المستخدمين — الدخول بدور محدد عن طريق #persona */
 try{var _ps=location.hash.slice(1);if(_ps&&typeof personas!=="undefined"&&personas[_ps])PERSONA=_ps}catch(_e){}
 cur=P;render();
-document.addEventListener("click",function(e){var g=e.target.closest("[data-go]");if(g&&!e.target.closest("[data-pin]")&&PAGES.indexOf(g.dataset.go)>-1&&g.dataset.go!==P){e.preventDefault();e.stopImmediatePropagation();location.href=g.dataset.go+".html";return}
+var SOFT=function(to,push){var ids=window.TCNAV_IDS||[];if(ids.indexOf(to)<0||ids.indexOf(window.CERP_PAGE)<0||!screens[to])return false;
+ if(push)history.pushState({p:to},"",to+".html");P=to;window.CERP_PAGE=to;cur=to;render();
+ var a=document.querySelector(".tcnav a.on");if(a&&a.scrollIntoView)a.scrollIntoView({block:"nearest",inline:"nearest"});window.scrollTo(0,0);return true};
+window.addEventListener("popstate",function(){var to=(location.pathname.split("/").pop()||"").replace(/\.html$/,"");if(to&&to!==P&&!SOFT(to,false))location.reload()});
+document.addEventListener("click",function(e){var g=e.target.closest("[data-go]");if(g&&!e.target.closest("[data-pin]")&&PAGES.indexOf(g.dataset.go)>-1&&g.dataset.go!==P){if(!e.ctrlKey&&!e.metaKey&&!e.shiftKey&&SOFT(g.dataset.go,true)){e.preventDefault();e.stopImmediatePropagation();return}e.preventDefault();e.stopImmediatePropagation();location.href=g.dataset.go+".html";return}
 if(e.target.closest("[data-logout]")){e.preventDefault();e.stopImmediatePropagation();location.href="login.html"}},true);})();
