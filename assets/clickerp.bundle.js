@@ -4457,14 +4457,14 @@ const MODS={
  ops:{n:"الاستقدام",i:"file-text",p:"rec_contracts_view",go:"recDash",m:["38","عقد تحت التشغيل"],a:["r","18 متأخر عن مدته"],l:"أغلبها في التذاكر · 64 في الإيواء"},
  ext:{n:"المكاتب الخارجية",i:"globe",p:"DASHBOARD_OFFICES_STATISTICS",go:"agents",m:["26","طلب عند المكاتب"],a:["a","4 بدون رد"],l:"14 سيرة وصلت هذا الأسبوع"},
  crm:{n:"العملاء",i:"users",p:"clients_view",go:"clients",m:["241","عميل · 6 جدد هذا الأسبوع"],a:["r","2 شكوى عاجلة"],l:"9 متابعات النهارده · 3 متأخرة"},
- fin:{n:"المالية",i:"wallet",p:"FINANCE_REPORTS",go:"finReport",m:["144,450","صافي الشهر"],a:["r","184,600 لم تُحصّل"],l:"التزامات 30 يوم: 236,900"},
+ fin:{n:"المالية",i:"wallet",p:"FINANCE_REPORTS",go:"finReport",m:["86,400","صافي الشهر"],a:["r","184,600 لم تُحصّل"],l:"التزامات 30 يوم: 236,900"},
  hr:{n:"الموارد البشرية",i:"user-cog",p:"HR_DASHBOARD",go:"hrDash",m:["22/24","حاضرين النهارده"],a:["a","5 طلبات موظفين"],l:"3 إقامات قربت تنتهي"},
  hourly:{n:"التأجير بالساعة",i:"clock",p:"HOURLY_VISITS",go:"hb-board",m:["14","زيارة النهارده"],a:["r","2 متأخرة"],l:"تحصيل 3,450 · 1,200 مع الطاقم"}
 };
 /* sample employees for the preview. mods = what their permissions open; sec = sections in order [module, widgets] */
 const ROLES={
  owner:{n:"المالك / رئيس مجلس الإدارة",nm:"عبدالعزيز",av:"ع",mods:["fin","ops","rent","hourly","crm","hr"],sup:"كل الإدارات",
-  k:[["scale","صافي الشهر","144,450","الإيرادات 412,800 − المصروفات 268,350","g","+12% عن أكتوبر","finReport"],
+  k:[["scale","صافي الشهر","+86,400","الإيرادات 412,800 − المصروفات 326,400","n","زي أكتوبر تقريباً","finReport"],
      ["calendar-clock","التزامات خلال 30 يوم","236,900","رواتب، شيكات، وكلاء، ضريبة","a","أقربها بعد 4 أيام","finChecksOut"],
      ["file-text","عقود تحت التشغيل","38","9 عقود جديدة هذا الشهر","r","18 متأخرة","contracts"],
      ["globe","طلبات عند المكاتب","26","14 سيرة وصلت هذا الأسبوع","a","4 بدون رد","agents"]],
@@ -4656,18 +4656,84 @@ const pulseCard=k=>{const m=MODS[k],p=PULSE[k],st={r:"محتاج تدخل",a:"م
 const grid=ids=>{const h=ids.map(id=>W[id][3]());const half=h.map((x,i)=>x.includes("hm-w wide")?-1:i).filter(i=>i>-1);if(half.length%2)h[half[half.length-1]]=h[half[half.length-1]].replace("hm-w ","hm-w wide ");return `<div class="hm-grid">${h.join("")}</div>`};
 const secHead=(icon,title,sub,go,gl)=>`<div class="hm-sec"><span class="ni n">${X(icon)}</span><div><h2>${title}</h2><small>${sub}</small></div>${go?`<a href="#" class="btn btn-ghost sm" data-go="${go}">${gl}${X("arrow-left")}</a>`:""}</div>`;
 
+/* ---------------- v1.22 — Home with charts: KPI strip → money → operations → each department's state ---------------- */
+/* numbers match finDash (months, 412,800 / 326,400 / +86,400) and recDash (38 contracts · 18 late) */
+const DV={
+ months:[["يونيو",330,276],["يوليو",318,270],["أغسطس",361,288],["سبتمبر",372,290],["أكتوبر",388,301],["نوفمبر",412.8,326.4]],
+ src:[["الاستقدام",286400,"#16233f"],["التأجير",98150,"#7ab648"],["نقل الكفالة",28250,"#9aa7bb"]],
+ age:[["0–30 يوم",98400,"n"],["31–60 يوم",43900,"a"],["61–90 يوم",26100,"r"],["أكتر من 90 يوم",16200,"r"]]
+};
+const dvF=n=>Math.round(n).toLocaleString("en-US");
+const dvT=s=>`data-tip="${String(s).replace(/"/g,"&quot;")}"`;
+/* a mini visual under each KPI (owner only — other roles keep the plain tile) */
+const KVIZ={
+ owner:[
+  ()=>{const v=DV.months.map(m=>m[1]-m[2]),mx=Math.max(...v),mn=Math.min(...v),w=120,h=34,pt=v.map((x,i)=>[w-i*(w/(v.length-1)),h-4-(x-mn)/(mx-mn||1)*(h-10)]);
+   return `<svg class="dv-spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><polyline points="${pt.map(p=>p.join(",")).join(" ")}" fill="none" stroke="var(--green-d)" stroke-width="2" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>${pt.map((p,i)=>`<circle cx="${p[0]}" cy="${p[1]}" r="${i===v.length-1?3.2:0}" fill="var(--green-d)"/>`).join("")}</svg><small class="dv-kc">صافي آخر 6 شهور</small>`},
+  ()=>`<div class="dv-seg">${[["رواتب",96000,"#16233f"],["ضريبة",68000,"#4a6fa5"],["مكاتب خارجية",54400,"#9aa7bb"],["شيكات",18500,"#c9d3e2"]].map(x=>`<i style="flex:${x[1]};background:${x[2]}" ${dvT(`${x[0]} · ${dvF(x[1])} ر.س`)}></i>`).join("")}</div><small class="dv-kc">رواتب 96K · ضريبة 68K · مكاتب 54K · شيكات 18.5K</small>`,
+  ()=>`<div class="dv-seg"><i style="flex:20;background:var(--navy)" ${dvT("في الموعد · 20 عقد")}></i><i style="flex:18;background:var(--red)" ${dvT("متأخر عن مدته · 18 عقد")}></i></div><small class="dv-kc"><span class="dv-dot" style="--c:var(--navy)"></span>20 في الموعد <span class="dv-dot" style="--c:var(--red)"></span>18 متأخر</small>`,
+  ()=>`<div class="dv-seg"><i style="flex:22;background:var(--navy)" ${dvT("ردّوا · 22 طلب")}></i><i style="flex:4;background:var(--amber)" ${dvT("من غير رد · 4 طلبات")}></i></div><small class="dv-kc"><span class="dv-dot" style="--c:var(--navy)"></span>22 ردّوا <span class="dv-dot" style="--c:var(--amber)"></span>4 من غير رد</small>`]
+};
+const dvKpis=P=>{const vz=KVIZ[PERSONA]||[];return (P.k&&P.k.length)?`<div class="dv-kpis">${P.k.map((k,i)=>`<a href="#" class="card dv-kpi" data-go="${k[6]}"><div class="dv-kh"><span class="ni n">${X(k[0])}</span><span>${k[1]}</span>${k[5]?`<em class="${k[4]}">${k[5]}</em>`:""}</div><b class="num">${k[2]}</b><small>${k[3]}</small>${vz[i]?`<div class="dv-kv">${vz[i]()}</div>`:""}</a>`).join("")}</div>`:""};
+
+/* revenue vs expenses: grouped bars, newest on the left (RTL reading), one y-scale, net under each month */
+const dvFin=()=>{
+ const W_=640,H=236,pl=8,pr=44,pt=12,pb=52,max=450,ch=H-pt-pb,gw=(W_-pl-pr)/DV.months.length,bw=Math.min(22,gw/3.2);
+ const y=v=>pt+ch-v/max*ch;
+ const grid=[0,150,300,450].map(v=>`<line x1="${pl}" x2="${W_-pr}" y1="${y(v)}" y2="${y(v)}" class="dv-gl"/><text x="${W_-pr+8}" y="${y(v)+4}" class="dv-ax">${v?v+"K":"0"}</text>`).join("")+`<line x1="${pl}" x2="${W_-pr}" y1="${H-26}" y2="${H-26}" class="dv-gl dash"/><text x="${W_-pr+8}" y="${H-8}" class="dv-ax">الصافي</text>`;
+ const bars=DV.months.map((m,i)=>{const cx=W_-pr-gw*(i+.5),last=i===DV.months.length-1,net=m[1]-m[2];
+  return `<g class="dv-g" ${dvT(`<b>${m[0]}</b>إيرادات ${dvF(m[1]*1000)}<br>مصروفات ${dvF(m[2]*1000)}<br>الصافي <b>+${dvF(net*1000)}</b>`)}><rect x="${cx-gw/2}" y="${pt}" width="${gw}" height="${ch+pb}" class="dv-hit"/>
+  <path d="M${cx-bw-1},${y(0)}V${y(m[1])+4}q0,-4 4,-4h${bw-8}q4,0 4,4V${y(0)}z" fill="var(--navy)"/>
+  <path d="M${cx+1},${y(0)}V${y(m[2])+4}q0,-4 4,-4h${bw-8}q4,0 4,4V${y(0)}z" fill="#c9d3e2"/>
+  ${last?`<text x="${cx-bw/2}" y="${y(m[1])-6}" class="dv-dl">413K</text>`:""}
+  <text x="${cx}" y="${y(0)+17}" class="dv-ax mid${last?" on":""}">${m[0]}</text><text x="${cx}" y="${H-8}" class="dv-nt${last?" on":""}">+${Math.round(net)}K</text></g>`}).join("");
+ return `<svg class="dv-svg" viewBox="0 0 ${W_} ${H}" dir="ltr">${grid}${bars}</svg>`;
+};
+const dvDonut=()=>{const tot=DV.src.reduce((a,x)=>a+x[1],0),r=46,C=2*Math.PI*r,gap=2;let o=0;
+ return `<div class="dv-donut"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="${r}" fill="none" stroke="var(--line-2)" stroke-width="16"/>${DV.src.map(x=>{const f=x[1]/tot*C,s=`<circle cx="60" cy="60" r="${r}" fill="none" stroke="${x[2]}" stroke-width="16" stroke-dasharray="${Math.max(0,f-gap)} ${C}" stroke-dashoffset="${-o}" transform="rotate(-90 60 60)" ${dvT(`${x[0]} · ${dvF(x[1])} ر.س · ${Math.round(x[1]/tot*100)}%`)}/>`;o+=f;return s}).join("")}
+ <text x="60" y="57" class="dv-dc">412.8K</text><text x="60" y="73" class="dv-ds">ر.س الشهر ده</text></svg>
+ <div class="dv-dk">${DV.src.map(x=>`<div><i style="background:${x[2]}"></i><span>${x[0]}</span><b class="num">${dvF(x[1])}</b><em class="num">${Math.round(x[1]/tot*100)}%</em></div>`).join("")}</div></div>`};
+const dvAging=()=>{const mx=Math.max(...DV.age.map(a=>a[1])),tot=DV.age.reduce((a,x)=>a+x[1],0);
+ return `<div class="dv-hb">${DV.age.map(a=>`<div ${dvT(`${a[0]} · ${dvF(a[1])} ر.س · ${Math.round(a[1]/tot*100)}%`)}><span class="t">${a[0]}</span><span class="tr"><i class="${a[2]}" style="width:${a[1]/mx*100}%"></i></span><b class="num">${dvF(a[1])}</b></div>`).join("")}</div>
+ <div class="dv-foot">${X("alert-circle")}<span><b class="num">42,300</b> منهم فوق 60 يوم — أكبرهم شركة نجد للمقاولات</span></div>`};
+/* contract pipeline: one row per stage, on-time vs late stacked (STG = recDash's stages) */
+const dvPipe=()=>{const mx=Math.max(...STG.map(s=>s[1]));
+ return `<div class="dv-pl">${STG.map(s=>`<a href="#" data-go="contracts" ${dvT(`<b>${s[0]}</b>${s[1]} عقد · ${s[1]-s[2]} في الموعد · ${s[2]} متأخر`)}><span class="t">${s[0]}</span><span class="tr">${s[1]-s[2]?`<i class="ok" style="width:${(s[1]-s[2])/mx*100}%"></i>`:""}${s[2]?`<i class="late" style="width:${s[2]/mx*100}%"></i>`:""}</span><b class="num">${s[1]}</b>${s[2]?`<em class="num">${s[2]} متأخر</em>`:`<em class="ok">في الموعد</em>`}</a>`).join("")}</div>
+ <div class="hm-legend dv-lg"><span><i style="background:var(--navy)"></i>في الموعد</span><span><i style="background:var(--red)"></i>عدّى المدة المسموحة</span><span class="dv-sum">أغلب التأخير في <b>التذكرة</b>: <b class="num">11</b> من <b class="num">18</b></span></div>`};
+/* every department in one calm list, worst first */
+const dvStatus=P=>{const ord={r:0,a:1,g:2},ks=P.mods.filter(k=>PULSE[k]).sort((a,b)=>ord[PULSE[a].st]-ord[PULSE[b].st]),lbl={r:"محتاج تدخل",a:"محتاج متابعة",g:"ماشي تمام"};
+ return `<div class="card flush dv-sl">${ks.map(k=>{const m=MODS[k],p=PULSE[k];return `<a href="#" data-go="${p.go}" class="dv-sr"><span class="ni n">${X(m.i)}</span><div class="dv-sb"><div class="dv-sn"><b>${m.n}</b><span class="hm-st ${p.st}"><i></i>${lbl[p.st]}</span></div><p>${p.v}</p></div><div class="dv-sf">${p.f.map(f=>`<div><b class="num ${f[2]}">${f[1]}</b><small>${f[0]}</small></div>`).join("")}</div>${X("chevron-left")}</a>`}).join("")}</div>`};
+/* one shared tooltip for every [data-tip] */
+if(!window.__dvTip){window.__dvTip=1;let el;
+ document.addEventListener("mousemove",e=>{const t=e.target.closest&&e.target.closest("[data-tip]");if(!t){if(el)el.classList.remove("on");return}
+  if(!el){el=document.createElement("div");el.className="dv-tip";document.body.appendChild(el)}
+  el.innerHTML=t.getAttribute("data-tip");el.classList.add("on");const r=el.getBoundingClientRect();
+  el.style.left=Math.min(innerWidth-r.width-8,Math.max(8,e.clientX-r.width/2))+"px";el.style.top=(e.clientY-r.height-14<8?e.clientY+18:e.clientY-r.height-14)+"px"});}
+
 S.dashboard=()=>{
  const P=P_(),many=P.mods.length>2,self=P.mods[0]==="self";
  const hi=new Date().getHours()<12?"صباح الخير":"مساء الخير";
  const pv=`<div class="hm-pvw"><button class="hm-pvb" data-hpv="1">${X("eye")}<span>معاينة كـ: <b>${P.nm}</b> · ${P.n}</span>${X("chevron-down")}</button>${HPV?`<div class="hm-pvm">${Object.keys(ROLES).map(k=>{const r=ROLES[k];return `<button class="${k===PERSONA?"on":""}" data-persona="${k}"><span class="av">${r.av}</span><span><b>${r.nm} · ${r.n}</b><small>${r.mods.map(m=>MODS[m].n).join("، ")}${r.sup?" · مشرف":""}</small></span></button>`}).join("")}</div>`:""}</div>`;
  const details=P.sec.map(s=>secHead(MODS[s[0]].i,secName(s),"","","")+grid(s[1])).join("");
  const pulse=`<div class="hm-pulse ${P.mods.length===1?"one":""}">${P.mods.map(pulseCard).join("")}</div>`;
+ const follow=`${secHead("bell-dot","للمتابعة","الجديد من آخر دخول، والتقارير اللي تخصك","","")}<div class="hm-grid">${W.news[3]()}${W.reps[3]()}</div>`;
+ const fin=P.mods.includes("fin"),ops=P.mods.includes("ops");
+ const body=self?`${secHead("user-round","إنت فين النهارده؟","حضورك وإجازاتك وراتبك","","")}${pulse}<div class="hm-in">${details}</div>`
+  :many?`
+  ${fin?`${secHead("wallet","الفلوس","دخلنا كام، وصرفنا كام، والفلوس فين","finDash","لوحة المالية")}
+  <div class="hm-grid">${card("الإيرادات والمصروفات","آخر 6 شهور · بالألف ر.س",dvFin(),`<div class="hm-legend dv-lg0"><span><i class="in"></i>إيرادات</span><span><i class="out"></i>مصروفات</span></div>`,"wide")}
+   ${card("الإيراد جاي منين؟","نوفمبر · حسب نوع الخدمة",dvDonut(),more("finReport","التفاصيل"))}
+   ${card("المستحقات على العملاء","184,600 ر.س · حسب عمرها",dvAging(),more("finClients","كشف العملاء"))}</div>`:""}
+  ${ops?`${secHead("file-text","التشغيل","كل عقد في أي مرحلة، وفين التأخير","recDash","لوحة الاستقدام")}
+  <div class="hm-grid">${card("مسار عقود الاستقدام","38 عقد تحت التشغيل · 18 عدّوا المدة المسموحة لمرحلتهم",dvPipe(),more("contracts","كل العقود"),"wide")}</div>`:""}
+  ${secHead("activity","حال كل إدارة","جملة واحدة وأهم 3 أرقام · الأولوية للي محتاج تدخل","","")}${dvStatus(P)}
+  ${follow}`
+  :`${secHead("activity","الشغل ماشي إزاي؟","جملة واحدة لكل إدارة من اللي ليك صلاحيتها، ودوس على الكارت عشان تروح للوحتها","","")}${pulse}${follow}`;
  return `
  <div class="hm-head"><div><small>${hi} يا ${P.nm} · الاثنين 16 نوفمبر · محدّث 10:24</small><h1>${self?"يومك":many?"الشركة النهارده":"شغلك النهارده"}</h1></div>
-  <div class="hm-ha">${pv}${many?`<button class="pill">${X("building-2")}<span>كل الفروع</span>${X("chevron-down")}</button>`:""}${B("ghost sm","layout-grid","تخصيص",'data-hcust="1"')}<button class="icon-btn hm-ib ${HIDEA?"on":""}" data-hidea="1" title="ليه الشكل ده؟">${X("lightbulb")}</button></div></div>
- ${HIDEA?IDEA("الرئيسية عامة ومش تبع موديول. بتجاوب على سؤالين: «الشغل ماشي إزاي؟» و«إيه المطلوب مني؟». كل إدارة ليك صلاحيتها بتكتب لك جملة واحدة عن حالها وجنبها 3 أرقام، وهي نفس أرقام لوحة الإدارة دي. ولو عايز التفاصيل (مراحل العقود، التأخيرات، المكاتب، الفلوس) بتدوس على الكارت وتروح للوحة الإدارة نفسها: لوحة الاستقدام، لوحة المالية، لوحة الموارد… كده الرئيسية ما بتتملاش بتفاصيل موديول واحد."):""}
- <div class="hm-main"><div>${secHead(self?"user-round":"activity",self?"إنت فين النهارده؟":"الشغل ماشي إزاي؟",self?"حضورك وإجازاتك وراتبك":"جملة واحدة لكل إدارة من اللي ليك صلاحيتها، ودوس على الكارت عشان تروح للوحتها","","")}${pulse}
-  ${self?`<div class="hm-in">${details}</div>`:`${secHead("bell-dot","للمتابعة","الجديد من آخر دخول، والتقارير اللي تخصك","","")}<div class="hm-grid">${W.news[3]()}${W.reps[3]()}</div>`}</div>
+  <div class="hm-ha">${pv}${many?`<button class="pill">${X("building-2")}<span>كل الفروع</span>${X("chevron-down")}</button><div class="seg dv-per" data-seg><button>الأسبوع</button><button class="on">الشهر</button><button>السنة</button></div>`:""}${B("ghost sm","layout-grid","تخصيص",'data-hcust="1"')}</div></div>
+ ${self?"":dvKpis(P)}
+ <div class="hm-main"><div>${body}</div>
   <aside>${todoCard(P)}</aside></div>
  ${HCUST?custPanel():""}`;
 };
