@@ -957,6 +957,11 @@
       "id": "tcGeo",
       "file": "tcGeo.html",
       "title": "الموارد البشرية — مواقع العمل"
+    },
+    {
+      "id": "tcShare",
+      "file": "tcShare.html",
+      "title": "مركز المهام — مشاركة المهمة (واتساب / إيميل)"
     }
   ],
   "states": [

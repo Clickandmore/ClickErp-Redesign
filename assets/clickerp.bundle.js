@@ -3373,7 +3373,7 @@ const DEPTS=[
   A("setHome","layout-grid","كل الإعدادات","All settings"),A("setGeneral","sliders-horizontal","العامة","General"),A("coupons","ticket-percent","كوبونات الخصم","Coupons"),A("setSite","globe","موقع المكتب","Office website"),A("setRecruit","files","الاستقدام والسير","Recruitment & CVs"),A("setRental","repeat","التأجير","Rental"),
   A("setUsers","shield-check","المستخدمون والصلاحيات","Users & roles"),A("setBranches","git-branch","الفروع","Branches"),A("setLists","list","القوائم المرجعية","Reference lists"),A("setMessages","bell","الرسائل والإشعارات","Messages & notifications"),
   A("setIntegrations","plug","التكاملات","Integrations"),A("setImport","upload","استيراد البيانات","Data import"),A("setAi","sparkles","المساعد الذكي","AI assistant"),A("setSupport","life-buoy","الدعم","Support"),A("setDev","code","المطوّر (Super Admin)","Developer")]}];
-const SUBS={setDev:["saSubscription","saModules","saEmployees","saDesigns","saUpdates","saUpdateForm","saBackups","saScheduler","saRecovery","saInvoices","saInvoiceFix","saMcp","saMoyasar","saTestAccounts"],tcMy:["tcPolicy","tcClose"],tcBoard:["tcTask","tcForm","tcList","tcLanes","tcBoardD","tcCard","tcNew","tcCardQA"],tcQA:["tcQALib"],tcAdmin:["tcRemind"],hrAttendance:["tcCheckin","tcGeo"],tcTeam:["tcMember","tcShots","tcSessions"],tcHours:["tcAttend"],tcSettings:["tcMigrate"],contracts:["contractShow","contractAdd","contractEdit"],cvs:["cvAdd","cvShow","cvEdit"],clients:["clientShow","clientAdd"],orders:["orderShow"],
+const SUBS={setDev:["saSubscription","saModules","saEmployees","saDesigns","saUpdates","saUpdateForm","saBackups","saScheduler","saRecovery","saInvoices","saInvoiceFix","saMcp","saMoyasar","saTestAccounts"],tcMy:["tcPolicy","tcClose"],tcBoard:["tcTask","tcForm","tcList","tcLanes","tcBoardD","tcCard","tcNew","tcCardQA","tcShare"],tcQA:["tcQALib"],tcAdmin:["tcRemind"],hrAttendance:["tcCheckin","tcGeo"],tcTeam:["tcMember","tcShots","tcSessions"],tcHours:["tcAttend"],tcSettings:["tcMigrate"],contracts:["contractShow","contractAdd","contractEdit"],cvs:["cvAdd","cvShow","cvEdit"],clients:["clientShow","clientAdd"],orders:["orderShow"],
  rental:["rentalShow","rentalAdd"],housing:["housingShow","housingAdd"],transfer:["transferShow","transferAdd"],
  reports:["report"],finSales:["finSaleAdd","finBonds","finReturns"],finBanks:["finBoxes","finTransfers","finChecksIn","finChecksOut"],finClients:["finSuppliers","finAgents"],
  finCenters:["finCentersTree"],finReports:["finReport"],finItems:["finStock","finInventory"],finEntries:["finAdd","finShow"],finAccounts:["finSettings"],clArchive:[],delegations:["delAdd","delShow"],trips:["tripShow"],agents:["agentShow"],"hb-board":["hbNew"],"hb-visits":["hbVisit"],coupons:["couponForm","couponShow","couponBulk","couponReport","couponSettings"],claims:["claimAdd","claimShow","claimTypes"],absconding:["abscShow"],campaigns:["campaignNew"],finRequests:["finRequestAdd","finRequestShow"],finAssets:["finAssetShow"],finCommissions:["finCommissionShow","finCommissionRules"],finTax:["finZatca"],hrEmployees:["hrEmployeeShow","hrEmployeeAdd"],hrPayroll:["hrPayrollRun"],setUsers:["setRoles"],visaRequests:["visaAdd","visaShow"]};
@@ -4838,7 +4838,7 @@ const STC={new:"n",doing:"b",qa:"p",ready:"g",client:"a",hold:"r",closed:"n"};
 const ty=t=>`<span class="tc-ty ${TY[t][0]}">${t}</span>`;
 const av=(n,c)=>`<span class="tc-av${c?" "+c:""}" title="${n}">${n.trim()[0]}</span>`;
 const PPL=["أحمد سمير","منى عادل","كريم فتحي","يوسف حسن","سارة نبيل","عمر خالد"];
-const TCP={tcRemind:"tcAdmin",tcVault:"tcAdmin",tcArchive:"tcBoard",tcGeo:"hrAttendance",tcCheckin:"hrAttendance",tcQALib:"tcQA",tcCardQA:"tcBoard",tcBoardD:"tcBoard",tcCard:"tcBoard",tcNew:"tcBoard",tcLanes:"tcBoard",tcList:"tcBoard",tcTask:"tcBoard",tcForm:"tcBoard",tcMember:"tcTeam",tcShots:"tcTeam",tcSessions:"tcTeam",tcAttend:"tcHours",tcClose:"tcMy",tcPolicy:"tcMy",tcMigrate:"tcSettings"};
+const TCP={tcShare:"tcBoard",tcRemind:"tcAdmin",tcVault:"tcAdmin",tcArchive:"tcBoard",tcGeo:"hrAttendance",tcCheckin:"hrAttendance",tcQALib:"tcQA",tcCardQA:"tcBoard",tcBoardD:"tcBoard",tcCard:"tcBoard",tcNew:"tcBoard",tcLanes:"tcBoard",tcList:"tcBoard",tcTask:"tcBoard",tcForm:"tcBoard",tcMember:"tcTeam",tcShots:"tcTeam",tcSessions:"tcTeam",tcAttend:"tcHours",tcClose:"tcMy",tcPolicy:"tcMy",tcMigrate:"tcSettings"};
 const tcTabs=on=>TABS([["tcMy","sun","يومي"],["tcInbox","inbox","الوارد",7],["tcBoard","columns-3","لوحة المهام"],["tcHandoff","arrow-left-right","التسليم والاستلام",3],["tcQA","flask-conical","الاختبار",4],["tcSpecs","file-text","التحليل والمواصفات"],["tcAdmin","briefcase","الإدارة",2],["hrAttendance","map-pin","الحضور"],["tcTeam","users","متابعة الفريق"],["tcApprovals","hourglass","موافقات الوقت",3],["tcHours","bar-chart-3","التقارير"],["tcSettings","settings","الإعدادات"]],TCP[on]||on);
 const TIMER=(num,title,el)=>`<div class="tc-timer"><span class="tc-pulse"></span>${X("timer")}<span>المؤقت شغال على <a href="#" data-go="tcTask"><b class="num">${num}</b> — ${title}</a></span><b class="num tc-clock">${el}</b><span class="tc-mon">${X("monitor-check")}مشاركة الشاشة شغالة · <span class="num">7</span> لقطات</span>${B("ghost sm","app-window","نافذة المراقبة")}${B("red sm","square","إيقاف")}</div>`;
 
@@ -5586,7 +5586,7 @@ const S={};
 /* compact card: title first, one meta line; client = colored edge */
 const kmini=(r,on)=>{const t=TI[r[1]],p=PI[r[6]];return `<a href="#" data-go="tcCard" class="km${r[15]?" live":""}${on?" on":""}" style="--c:${CL[r[3]]||"#5f6c80"}" title="${r[3]}">
  <b class="km-t">${r[2]}</b>
- <div class="km-f"><span class="kb-ty ${t[1]}" title="${t[2]}">${X(t[0])}</span><span class="kb-key num">${r[0]}</span><span class="kb-pi ${p[1]}" title="${p[2]}">${X(p[0])}</span>${r[9]?`<span class="kb-due ${r[10]}">${r[9]}</span>`:""}${r[16]?`<span class="km-al ${r[17]}" title="${r[16]}">${X(r[17]==="r"?"alarm-clock":r[17]==="n"?"pause-circle":"user-x")}</span>`:""}${r[15]?`<span class="km-lv" title="${r[15]} شغال"></span>`:""}<span class="kb-sp"></span>${r[7]?av(r[7]):`<span class="kb-av none">${X("user-plus")}</span>`}</div></a>`};
+ <div class="km-f"><span class="kb-ty ${t[1]}" title="${t[2]}">${X(t[0])}</span><span class="kb-key num">${r[0]}</span><span class="kb-pi ${p[1]}" title="${p[2]}">${X(p[0])}</span>${r[9]?`<span class="kb-due ${r[10]}">${r[9]}</span>`:""}${r[16]?`<span class="km-al ${r[17]}" title="${r[16]}">${X(r[17]==="r"?"alarm-clock":r[17]==="n"?"pause-circle":"user-x")}</span>`:""}${r[15]?`<span class="km-lv" title="${r[15]} شغال"></span>`:""}<span class="kb-sp"></span><span class="km-sh" data-go="tcShare" title="مشاركة على واتساب أو إيميل">${X("share-2")}</span>${r[7]?av(r[7]):`<span class="kb-av none">${X("user-plus")}</span>`}</div></a>`};
 
 const DENS=on=>`<div class="kb-dens">${[["tcBoard","rows-2","مختصر"],["tcBoardD","rows-4","مفصّل"]].map(d=>`<button class="${d[0]===on?"on":""}" data-go="${d[0]}">${X(d[1])}${d[2]}</button>`).join("")}</div>`;
 const BOARD=(mode,sel)=>{const bar=BAR("tcBoard").replace('data-go="tcForm"','data-go="tcNew"').replace('<span class="kb-sp"></span>',`<span class="kb-sp"></span>${DENS(mode==="d"?"tcBoardD":"tcBoard")}`);
@@ -5985,6 +5985,39 @@ screens.tcGeo=()=>`
   ${SEC("map-pin","المكتب الرئيسي",`<div class="fgrid" style="padding:0 20px 14px">${FLD("النوع",SEL(["فرع","موقع عميل مؤقت","سكن / مستودع","عن بعد"]))}${FLD("الإحداثيات",INP("","24.7743, 46.7386",1),0,"من إعدادات الفروع، أو حرّك الدبوس")}${FLD("نصف قطر النطاق",`<div class="ci-r"><input type="range" value="150" min="50" max="500"><b class="num">150 م</b></div>`)}${FLD("مين مسموح له",SEL(["كل موظفين الفرع","موظفين محددين"]))}${FLD("الفترة",SEL(["دايم","من – إلى"]))}${FLD("الأيام",SEL(["كل أيام الدوام","أيام محددة"]))}</div>`)}
   ${SEC("list-checks","القواعد",`${ROW("المؤقت مايشتغلش قبل تسجيل الحضور","",SW(1))}${ROW("برّه كل مواقع العمل يطلب سبب","ويروح للمدير يعتمده",SW(1))}${ROW("موقع العميل المؤقت لازم يتربط بمهمة","زي OPS-0033",SW(1))}${ROW("الموقع بيتاخد عند الحضور والانصراف بس","مش تتبع طول اليوم",SW(1))}${ROW("نبّه لو خرج من الموقع والمؤقت شغال","",SW(0))}`)}</div></div>`;
 Object.assign(T,{tcGeo:{ar:"مواقع العمل",en:"Work sites"}});
+})();
+/* ===== v1.20 — Share a task card on WhatsApp / email ===== */
+(()=>{
+const {X,B,TAG,SW,ROW,FLD,SEL}=window.CXH;
+const {av}=window.KBX;
+const {BOARD}=window.KB2;
+window.CERP_PAGES=(window.CERP_PAGES||[]).concat(["tcShare"]);
+const NEWT=`<span class="tag a hm-new">جديد</span>`;
+const CH={wa:["phone","واتساب","#1f9d55"],mail:["mail","إيميل","#c8862a"],link:["link","نسخ الرابط","#2f5fa8"]};
+const ch=k=>`<span class="am-ch" style="--c:${CH[k][2]}">${X(CH[k][0])}</span>`;
+const INC=[["الحالة ومسارها",1],["موعد التسليم",1],["الوصف (أول سطرين)",1],["تقدّم البنود 3/5",1],["المرفقات (2)",0],["آخر تعليق",0],["الوقت والتكلفة",0,"داخلي بس"]];
+
+screens.tcShare=()=>`${BOARD("c","BUG-0147")}
+<div class="md-ov"><div class="md sh-md" role="dialog" aria-label="مشاركة المهمة">
+ <div class="md-top"><span class="kb-ty r">${X("bug")}</span><b class="num">BUG-0147</b><b>مشاركة المهمة</b><span class="md-bc">تقرير العمولات بيحسب الكوبون مرتين</span><span class="kb-sp"></span><button class="md-ic" data-go="tcCard">${X("x")}</button></div>
+ <div class="sh-b"><div class="sh-f">
+  ${FLD("لمين؟",`<div class="am-rc"><span>${X("building-2")}فهد العتيبي — مكتب الريادة (العميل)<i>${X("x")}</i></span><span>${av("منى عادل")}منى عادل<i>${X("x")}</i></span><input placeholder="موظف، جهة اتصال العميل، رقم أو إيميل…"></div><div class="sh-sug"><small>مقترح:</small>${[["user-check","المراجِع: منى عادل"],["building-2","العميل: فهد العتيبي"],["hash","#الدعم على Slack"]].map(s=>`<button>${X(s[0])}${s[1]}</button>`).join("")}</div>`)}
+  ${FLD("القناة",`<div class="am-chs">${[["wa","واتساب",1],["mail","إيميل",1],["link","نسخ الرابط",0]].map(c=>`<label class="${c[2]?"on":""}">${ch(c[0])}${CH[c[0]][1]}</label>`).join("")}</div>`)}
+  ${FLD("تبعت إيه؟",`<div class="sh-inc">${INC.map(i=>`<label class="${i[1]?"on":""}${i[2]?" int":""}"><input type="checkbox" ${i[1]?"checked":""}>${i[0]}${i[2]?`<em>${i[2]}</em>`:""}</label>`).join("")}</div>`)}
+  ${FLD("الرابط",`<div class="sh-lnk">${[["shield","للفريق بس","لازم يدخل على Click",0],["globe","رابط للعميل","يشوف المهمة من غير دخول · من غير التكلفة والتعليقات الداخلية",1]].map(o=>`<label class="${o[3]?"on":""}">${X(o[0])}<span><b>${o[1]}</b><small>${o[2]}</small></span></label>`).join("")}</div><div class="sh-exp"><span>الرابط بينتهي بعد</span><select><option>7 أيام</option><option>24 ساعة</option><option>لما المهمة تتقفل</option></select>${ROW("العميل يقدر يرد ويوافق من الرابط","ردّه بيتسجل تعليق على المهمة",SW(1))}</div>`)}
+  ${FLD("رسالة",`<textarea rows="2">أهلاً أستاذ فهد، دي آخر حالة لمشكلة تقرير العمولات — الإصلاح في الاختبار ومتوقع نسلّم الثلاثاء.</textarea>`)}
+ </div>
+ <div class="sh-p"><small>معاينة واتساب</small><div class="cx-phone"><div class="cx-msg in tpl sh-wa"><p>أهلاً أستاذ فهد، دي آخر حالة لمشكلة تقرير العمولات — الإصلاح في الاختبار ومتوقع نسلّم الثلاثاء.</p>
+   <div class="sh-card"><div class="sh-ch"><span class="kb-ty r">${X("bug")}</span><b class="num">BUG-0147</b><span class="sh-st">اختبار داخلي</span></div><b>تقرير العمولات بيحسب الكوبون مرتين</b><small>الكوبون بيتخصم مرتين من عمولة المندوب…</small><div class="sh-path">${["جديد","قيد التنفيذ","اختبار","جاهز","تسليم"].map((s,i)=>`<i class="${i<2?"d":i===2?"n":""}" title="${s}"></i>`).join("")}</div><div class="sh-m"><span>${X("calendar")}التسليم: الثلاثاء 17 نوف</span><span>${X("list-checks")}3/5</span></div><span class="sh-url" dir="ltr">click.sa/t/7Kq2-BUG0147</span></div>
+   <div class="sh-btns"><span>${X("eye")}افتح المهمة</span><span>${X("check")}موافق</span><span>${X("message-square")}رد</span></div><small>Click ERP · 11:20</small></div></div>
+  <div class="sh-mail"><small>${X("mail")}الإيميل</small><b>BUG-0147 · تقرير العمولات بيحسب الكوبون مرتين — اختبار داخلي</b><span>نفس الكارت كـ HTML + زرار «افتح المهمة»</span></div></div></div>
+ <div class="md-foot"><span class="tc-sub">${X("history")}هتتسجل في نشاط المهمة وسجل الرسائل</span><span class="kb-sp"></span>${B("ghost","copy","نسخ الرابط")}${B("ghost","","إلغاء",'data-go="tcCard"')}${B("primary","send","مشاركة على واتساب والإيميل",'data-go="tcCard"')}</div>
+</div></div>`;
+
+/* entry points: task dialog top bar + card «⋯» menu */
+const oCard=screens.tcCard;
+screens.tcCard=()=>oCard().replace('<button class="md-ic" title="نسخ الرابط">',`<button class="md-sh" data-go="tcShare">${X("share-2")}مشاركة</button><button class="md-ic" title="نسخ الرابط">`).replace('<div class="md-tabs">',`<div class="sh-act">${X("share-2")}<span>آخر مشاركة: واتساب لـ فهد العتيبي (العميل) · امبارح 18:20 · <b>شافها</b> ورد «تمام مستنيين»</span>${NEWT}</div><div class="md-tabs">`);
+Object.assign(T,{tcShare:{ar:"مشاركة المهمة",en:"Share task"}});
 })();
 (function(){var P=window.CERP_PAGE;if(!P)return;var PAGES=window.CERP_PAGES||[];
 if(P==="login"){renderLogin();return}
