@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="design-version" content="v1.24">
+<title>إعدادات الساعات — Super Admin · Click ERP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Reem+Kufi:wght@500;700&family=Noto+Kufi+Arabic:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/sa.css">
+</head>
+<body data-page="hourly">
+<!-- Screen: hourly · dev-superadmin.hourly-rental-settings (HourlyRentalSettingsController) · admin/hourly_rental_settings/index.blade.php
+     في الكود الصفحة دي بألوان خاصة (teal/بنفسجي) و FontAwesome — هنا بقت بهوية Super Admin زي باقي الصفحات. -->
+<main class="sa-content">
+
+  <div class="sa-page-header">
+    <div>
+      <h1 class="sa-page-title">موديل التأجير بالساعة</h1>
+      <p class="sa-page-desc">التفعيل، أوقات الحجز، الخرائط وتتبع GPS، وقواعد التشغيل الافتراضية.</p>
+      <div class="sa-page-chips"><span class="heading-chip">الموديل: <b>مفعّل</b></span><span class="heading-chip">آخر حفظ: <b class="num">14 نوفمبر 16:20</b></span></div>
+    </div>
+    <div class="sa-page-header-end"><button class="btn btn-primary" data-sa-toast="اتحفظت إعدادات الساعات"><i data-lucide="save"></i>حفظ الإعدادات</button></div>
+  </div>
+
+  <div class="sa-tabs" role="tablist">
+    <a class="sa-tab is-active" href="#activation" data-sa-tab="activation"><i data-lucide="power"></i>التفعيل والربط</a>
+    <a class="sa-tab" href="#booking" data-sa-tab="booking"><i data-lucide="calendar-clock"></i>أوقات الحجز والنطاق</a>
+    <a class="sa-tab" href="#maps" data-sa-tab="maps"><i data-lucide="map"></i>الخرائط وGPS</a>
+    <a class="sa-tab" href="#rules" data-sa-tab="rules"><i data-lucide="list-checks"></i>قواعد التشغيل</a>
+    <a class="sa-tab" href="#caps" data-sa-tab="caps"><i data-lucide="scale"></i>سقوف ساعات العمل</a>
+  </div>
+
+  <div class="sa-layout">
+    <div class="sa-stack">
+
+      <section class="sa-card" data-sa-panel="activation">
+        <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="power"></i></span><div><h2 class="sa-card-title">التفعيل والربط بالمنظومة</h2></div></div></div>
+        <div class="sa-setting"><span><b>الربط بسير العاملات</b><small>العاملة المتاحة للساعات بتظهر من السير الذاتية.</small></span><button class="sa-switch is-on"></button></div>
+        <div class="sa-setting"><span><b>الربط بشاشات الإيواء</b><small>الخروج والعودة بيتسجلوا في الإيواء.</small></span><button class="sa-switch is-on"></button></div>
+        <div class="sa-setting"><span><b>العرض في الموقع الخارجي</b><small>الحجز بالساعة متاح للعملاء من الموقع.</small></span><button class="sa-switch is-on"></button></div>
+      </section>
+
+      <section class="sa-card" data-sa-panel="booking" hidden>
+        <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="calendar-clock"></i></span><div><h2 class="sa-card-title">أوقات الحجز والنطاق التشغيلي</h2></div></div></div>
+        <div class="sa-form-grid is-three">
+          <div class="sa-field"><label>بداية فترات الحجز</label><input class="sa-input" type="time" value="08:00"></div>
+          <div class="sa-field"><label>نهاية فترات الحجز</label><input class="sa-input" type="time" value="22:00"></div>
+          <div class="sa-field"><label>الفاصل بين الفترات</label><select class="sa-select"><option>30 دقيقة</option><option>ساعة</option></select></div>
+          <div class="sa-field is-wide"><label>أيام الإغلاق</label><div class="sa-chips"><button class="sa-chip is-on">الجمعة</button><button class="sa-chip">السبت</button><button class="sa-chip">الأحد</button></div></div>
+          <div class="sa-field"><label>مكان الإيواء الافتراضي للخروج والعودة</label><select class="sa-select"><option>إيواء الرياض — النسيم</option><option>إيواء جدة</option></select></div>
+          <div class="sa-field" style="grid-column:span 2"><label>المدن المغطاة بالخدمة</label><input class="sa-input" value="الرياض، جدة، الدمام"></div>
+        </div>
+      </section>
+
+      <section class="sa-card" data-sa-panel="maps" hidden>
+        <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="map"></i></span><div><h2 class="sa-card-title">مزود الخرائط</h2></div></div></div>
+        <div class="sa-choices">
+          <label class="sa-choice is-on"><input type="radio" name="map" checked><span><b>OpenStreetMap</b><small>مجاني — بدون مفتاح.</small></span></label>
+          <label class="sa-choice"><input type="radio" name="map"><span><b>Google Maps</b><small>مدفوع — محتاج مفتاح للمتصفح.</small></span></label>
+        </div>
+        <div class="sa-form-grid" style="margin-top:14px">
+          <div class="sa-field"><label>مفتاح Google Maps للمتصفح</label><input class="sa-input" dir="ltr" placeholder="AIza…"><span class="sa-help">بيظهر بس لما تختار Google.</span></div>
+          <div class="sa-field"><label>رابط خدمة البحث عن المواقع (Geocoding)</label><input class="sa-input" dir="ltr" value="https://nominatim.openstreetmap.org"></div>
+        </div>
+        <div class="sa-card-head" style="margin:22px 0 10px"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="navigation"></i></span><div><h2 class="sa-card-title">المسارات وتتبع GPS</h2><p class="sa-card-desc">حساب مسافات مهام السائقين في «إدارة المسار»، وإرسال المواقع من تطبيق الموظفين إلى «تتبع GPS».</p></div></div></div>
+        <div class="sa-setting"><span><b>توجيه القيادة من عميل إلى عميل</b><small>المسافة بتتحسب من موقع العميل السابق، وأول مهمة من مقر الفريق.</small></span><button class="sa-switch is-on"></button></div>
+        <div class="sa-setting"><span><b>تفعيل إرسال الموقع من التطبيقات</b><small>عند الإيقاف الخادم بيرفض المواقع الجديدة.</small></span><button class="sa-switch is-on"></button></div>
+        <div class="sa-setting"><span><b>إبقاء التتبع شغالًا والتطبيق في الخلفية</b><small>بيستهلك بطارية أكتر.</small></span><button class="sa-switch"></button></div>
+        <div class="sa-form-grid is-three" style="margin-top:10px">
+          <div class="sa-field"><label>الفاصل بين إرسال المواقع (ثانية)</label><input class="sa-input" type="number" value="10"></div>
+          <div class="sa-field"><label>نشط لو أرسل خلال (دقيقة)</label><input class="sa-input" type="number" value="5"></div>
+          <div class="sa-field"><label>حد التحذير للمسافة (كم)</label><input class="sa-input" type="number" value="25"></div>
+        </div>
+      </section>
+
+      <section class="sa-card" data-sa-panel="rules" hidden>
+        <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="list-checks"></i></span><div><h2 class="sa-card-title">قواعد التشغيل الافتراضية</h2></div></div></div>
+        <div class="sa-form-grid is-three">
+          <div class="sa-field"><label>أقصى زيارات للعاملة في اليوم</label><input class="sa-input" type="number" value="2"></div>
+          <div class="sa-field"><label>أقل مهلة قبل موعد الزيارة (ساعة)</label><input class="sa-input" type="number" value="3"></div>
+          <div class="sa-field"><label>تسجيل الوصول قبل الموعد (دقيقة)</label><input class="sa-input" type="number" value="15"></div>
+          <div class="sa-field"><label>مهلة استلام العاملة بعد الخدمة (دقيقة)</label><input class="sa-input" type="number" value="20"></div>
+          <div class="sa-field"><label>التصعيد بعد مهلة السماح (دقيقة)</label><input class="sa-input" type="number" value="10"></div>
+          <div class="sa-field"><label>وقت الحظر للعودة إلى الإيواء</label><input class="sa-input" type="time" value="23:00"></div>
+          <div class="sa-field"><label>نافذة الإلغاء المتأخر (ساعة)</label><input class="sa-input" type="number" value="6"></div>
+          <div class="sa-field"><label>رسوم الإلغاء المتأخر (%)</label><input class="sa-input" type="number" value="25"></div>
+          <div class="sa-field"><label>تذكير بتجديد الباقة قبل آخر زيارة (يوم)</label><input class="sa-input" type="number" value="2"></div>
+          <div class="sa-field"><label>مهلة قبول السائق للمشوار (دقيقة)</label><input class="sa-input" type="number" value="5"></div>
+          <div class="sa-field"><label>صلاحية رمز دخول الفريق (دقيقة)</label><input class="sa-input" type="number" value="10"></div>
+          <div class="sa-field"><label>نطاق التحقق عند المحطة (متر)</label><input class="sa-input" type="number" value="150"></div>
+          <div class="sa-field"><label>استحقاق السائق لكل محطة (ر.س)</label><input class="sa-input" type="number" value="15"></div>
+          <div class="sa-field"><label>استحقاق العاملة لكل ساعة (ر.س)</label><input class="sa-input" type="number" value="12"></div>
+        </div>
+        <div style="margin-top:10px">
+          <div class="sa-setting"><span><b>احتساب الزيارات المجانية والتعويضية في تاريخ انتهاء العقد</b></span><button class="sa-switch is-on"></button></div>
+          <div class="sa-setting"><span><b>يتطلب المشوار قبول السائق</b></span><button class="sa-switch is-on"></button></div>
+          <div class="sa-setting"><span><b>طلب رمز العميل عند التسليم</b></span><button class="sa-switch is-on"></button></div>
+          <div class="sa-setting"><span><b>طلب رمز العميل عند وصول العاملة بنفسها</b></span><button class="sa-switch"></button></div>
+        </div>
+      </section>
+
+      <section class="sa-card" data-sa-panel="caps" hidden>
+        <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="scale"></i></span><div><h2 class="sa-card-title">سقوف ساعات العمل — الحد القانوني العام</h2></div></div></div>
+        <div class="sa-form-grid is-three">
+          <div class="sa-field"><label>ساعات / يوم</label><input class="sa-input" type="number" value="8"></div>
+          <div class="sa-field"><label>ساعات / أسبوع</label><input class="sa-input" type="number" value="48"></div>
+          <div class="sa-field"><label>ساعات / شهر</label><input class="sa-input" type="number" value="192"></div>
+          <div class="sa-field"><label>أقل راحة بين زيارتين (ساعة)</label><input class="sa-input" type="number" value="1"></div>
+          <div class="sa-field"><label>رمضان: ساعات / يوم</label><input class="sa-input" type="number" value="6"></div>
+          <div class="sa-field"><label>رمضان: ساعات / أسبوع</label><input class="sa-input" type="number" value="36"></div>
+        </div>
+      </section>
+    </div>
+
+    <aside class="sa-layout-side">
+      <section class="sa-card">
+        <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="hammer"></i></span><div><h2 class="sa-card-title">حالة بناء الموديل</h2><p class="sa-card-desc">إيه اللي هيظهر فعلًا بعد التفعيل — بيتحدث مع كل مرحلة بتتنشر.</p></div></div></div>
+        <div class="sa-checks">
+          <div class="sa-check"><i data-lucide="check-circle-2"></i>لوحة الطلبات والحجز<small>مبني</small></div>
+          <div class="sa-check"><i data-lucide="check-circle-2"></i>الزيارات والجدول<small>مبني</small></div>
+          <div class="sa-check"><i data-lucide="check-circle-2"></i>التتبع والمسارات<small>مبني</small></div>
+          <div class="sa-check"><i data-lucide="check-circle-2"></i>التحصيل والتعويضات<small>مبني</small></div>
+          <div class="sa-check is-warning"><i data-lucide="circle-dashed"></i>تطبيق العاملات<small>لم يُبنَ بعد</small></div>
+        </div>
+      </section>
+      <section class="sa-card">
+        <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="link"></i></span><div><h2 class="sa-card-title">مرتبط بـ</h2></div></div></div>
+        <div class="sa-summary">
+          <div class="sa-summary-row">تفعيل الموديل<b><a href="modules.html">الموديلات</a></b></div>
+          <div class="sa-summary-row">حسابات مراجعة المتاجر<b><a href="test-accounts.html">حسابات الاختبار</a></b></div>
+          <div class="sa-summary-row">الدفع الإلكتروني<b><a href="moyasar.html">بوابة ميسر</a></b></div>
+        </div>
+      </section>
+    </aside>
+  </div>
+
+  <div class="sa-savebar" hidden><i data-lucide="circle-dot"></i><span>عندك تغييرات مش محفوظة</span><button class="btn btn-ghost btn-sm" onclick="location.reload()">تراجع</button><button class="btn btn-primary btn-sm" data-sa-toast="اتحفظت إعدادات الساعات"><i data-lucide="save"></i>حفظ</button></div>
+
+</main>
+<script src="https://unpkg.com/lucide@0.451.0/dist/umd/lucide.min.js"></script>
+<script src="assets/sa.js"></script>
+</body>
+</html>

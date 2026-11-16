@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="design-version" content="v1.24">
+<title>بوابة ميسر — Super Admin · Click ERP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Reem+Kufi:wght@500;700&family=Noto+Kufi+Arabic:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/sa.css">
+</head>
+<body data-page="moyasar">
+<!-- Screen: moyasar · dev-superadmin.moyasar-settings (MoyasarSettingsController@edit/update/testConnection) · moyasar-settings.blade.php -->
+<main class="sa-content">
+
+  <div class="sa-page-header">
+    <div>
+      <h1 class="sa-page-title">بوابة الدفع الإلكتروني — ميسر</h1>
+      <p class="sa-page-desc">mada · Visa · Mastercard · Apple Pay</p>
+      <div class="sa-page-chips"><span class="sa-badge sa-badge--success"><i data-lucide="power"></i>البوابة مفعّلة</span><span class="sa-badge sa-badge--env"><i data-lucide="server"></i>البيئة: الإنتاج</span><span class="sa-badge sa-badge--success"><i data-lucide="webhook"></i>الويبهوك مضبوط</span></div>
+    </div>
+    <div class="sa-page-header-end"><a class="btn" href="../finReports.html"><i data-lucide="bar-chart-3"></i>تقارير المدفوعات</a></div>
+  </div>
+
+  <div class="sa-layout">
+    <div class="sa-stack">
+      <section class="sa-card">
+        <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="power"></i></span><div><h2 class="sa-card-title">تشغيل البوابة</h2></div></div></div>
+        <div class="sa-setting"><span><b>استقبال المدفوعات عبر ميسر</b><small>mada / Visa / MC / Apple Pay</small></span><button class="sa-switch is-on"></button></div>
+        <div class="sa-setting"><span><b>تقارير مدفوعات ميسر في موديول المالية</b></span><button class="sa-switch is-on"></button></div>
+      </section>
+      <section class="sa-card">
+        <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="key-round"></i></span><div><h2 class="sa-card-title">مفاتيح الربط</h2><p class="sa-card-desc">المفتاح السري بيتحفظ مشفّر ومش بيظهر تاني.</p></div></div></div>
+        <div class="sa-form-grid">
+          <div class="sa-field is-wide"><label>رابط Moyasar API</label><input class="sa-input" dir="ltr" value="https://api.moyasar.com/v1"></div>
+          <div class="sa-field"><label>Publishable Key</label><input class="sa-input" dir="ltr" value="pk_live_••••••••a1c2"></div>
+          <div class="sa-field"><label>Secret Key</label><input class="sa-input" dir="ltr" placeholder="المحفوظ: sk_live_••••9f0e"><span class="sa-help">اتركه فاضي عشان تحتفظ بالمفتاح الحالي.</span></div>
+        </div>
+        <div class="sa-card-foot"><button class="btn btn-sm" data-sa-toast="الاتصال ناجح — حساب الإنتاج"><i data-lucide="plug"></i>اختبار الاتصال</button></div>
+      </section>
+      <section class="sa-card">
+        <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="webhook"></i></span><div><h2 class="sa-card-title">إشعارات السداد (Webhook)</h2></div></div></div>
+        <div class="sa-form-grid">
+          <div class="sa-field is-wide"><label>رابط الويبهوك</label><div class="sa-input-group"><input class="sa-input" dir="ltr" value="https://alriyada.clickerp.sa/moyasar/webhook" readonly><button class="btn btn-icon" title="نسخ" data-sa-toast="اتنسخ الرابط"><i data-lucide="copy"></i></button></div><span class="sa-help">الأحداث المطلوبة: <span class="sa-mono">payment_paid · payment_failed</span></span></div>
+          <div class="sa-field"><label>سر الويبهوك (Secret Token)</label><input class="sa-input" dir="ltr" value="••••••••"></div>
+        </div>
+      </section>
+      <section class="sa-card">
+        <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="message-square"></i></span><div><h2 class="sa-card-title">رسائل رابط الدفع</h2></div></div></div>
+        <div class="sa-field"><label>رسالة رابط دفع العقد</label><textarea class="sa-textarea" rows="3">أهلاً {client_name}، رابط سداد عقدك رقم {contract_no}: {payment_link}</textarea><span class="sa-help">لازم تحتوي على <span class="sa-mono">{payment_link}</span>.</span></div>
+        <div class="sa-card-foot"><button class="btn btn-sm"><i data-lucide="rotate-ccw"></i>استعادة النص الافتراضي</button><button class="btn btn-sm"><i data-lucide="eye"></i>معاينة بمثال</button></div>
+      </section>
+    </div>
+
+    <aside class="sa-layout-side">
+      <section class="sa-card">
+        <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="list-checks"></i></span><div><h2 class="sa-card-title">جاهزية الربط</h2></div></div><span class="sa-badge sa-badge--success num">4 من 4</span></div>
+        <div class="sa-checks">
+          <div class="sa-check"><i data-lucide="check-circle-2"></i>المفاتيح محفوظة</div>
+          <div class="sa-check"><i data-lucide="check-circle-2"></i>الاتصال ناجح</div>
+          <div class="sa-check"><i data-lucide="check-circle-2"></i>الويبهوك مضبوط</div>
+          <div class="sa-check"><i data-lucide="check-circle-2"></i>البوابة مفعّلة</div>
+        </div>
+      </section>
+      <section class="sa-card">
+        <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="map-pin"></i></span><div><h2 class="sa-card-title">فين بتُستخدم ميسر</h2></div></div></div>
+        <div class="sa-summary">
+          <div class="sa-summary-row">روابط دفع العقود<b><i data-lucide="check"></i></b></div>
+          <div class="sa-summary-row">فواتير التأجير<b><i data-lucide="check"></i></b></div>
+          <div class="sa-summary-row">حجوزات التأجير بالساعة<b><i data-lucide="check"></i></b></div>
+          <div class="sa-summary-row">الموقع الخارجي<b><i data-lucide="check"></i></b></div>
+        </div>
+      </section>
+    </aside>
+  </div>
+
+  <div class="sa-savebar" hidden><i data-lucide="circle-dot"></i><span>عندك تغييرات مش محفوظة</span><button class="btn btn-ghost btn-sm" onclick="location.reload()">تراجع</button><button class="btn btn-primary btn-sm" data-sa-toast="اتحفظت الإعدادات"><i data-lucide="save"></i>حفظ الإعدادات</button></div>
+
+</main>
+<script src="https://unpkg.com/lucide@0.451.0/dist/umd/lucide.min.js"></script>
+<script src="assets/sa.js"></script>
+</body>
+</html>

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="design-version" content="v1.24">
+<title>العميل والاشتراك — Super Admin · Click ERP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Reem+Kufi:wght@500;700&family=Noto+Kufi+Arabic:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/sa.css">
+</head>
+<body data-page="subscription">
+<!-- Screen: subscription · dev-superadmin.subscription (DevSuperAdminController@modules, activeSection=subscription) · modules.blade.php -->
+<main class="sa-content">
+
+  <div class="sa-page-header">
+    <div>
+      <h1 class="sa-page-title">العميل والاشتراك</h1>
+      <p class="sa-page-desc">إدارة بيانات المنشأة والباقة وتواريخ الاشتراك.</p>
+    </div>
+    <div class="sa-page-header-end"><button class="btn btn-primary" data-sa-toast="اتحفظت بيانات الاشتراك"><i data-lucide="save"></i>حفظ بيانات الاشتراك</button></div>
+  </div>
+
+  <div class="sa-alert sa-alert--info"><i data-lucide="info"></i><span>البيانات دي مرجع سريع لفريق الدعم، و<b>مش بتقفل النظام تلقائيًا</b> لو التاريخ عدّى.</span></div>
+
+  <section class="sa-card">
+    <div class="sa-client">
+      <span class="sa-client-logo">ر</span>
+      <div><b>مكتب الريادة للاستقدام</b><small>رقم العميل <span class="sa-mono">CL-014</span> · الخطة الاحترافية</small></div>
+      <span class="sa-badge sa-badge--success"><i data-lucide="badge-check"></i>اشتراك نشط</span>
+    </div>
+    <div class="sa-period">
+      <div class="sa-period-bar"><i style="width:88%"></i><span style="inset-inline-start:88%"></span></div>
+      <div class="sa-period-labels">
+        <span><b>بداية العمل</b><span class="num">3 مارس 2025</span></span>
+        <span><b>بداية الاشتراك</b><span class="num">1 يناير 2026</span></span>
+        <span class="is-now"><b>النهارده</b><span class="num">16 نوفمبر</span></span>
+        <span><b>نهاية الاشتراك</b><span class="num">30 ديسمبر 2026</span></span>
+      </div>
+    </div>
+    <div class="sa-stats">
+      <div><small>مدة استخدام البرنامج</small><b>1 سنة و8 شهور</b></div>
+      <div><small>المتبقي في الاشتراك</small><b class="is-warning num">44 يوم</b></div>
+      <div><small>الموظفون النشطون</small><b class="num">46 من 60</b></div>
+    </div>
+  </section>
+
+  <section class="sa-card">
+    <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="building-2"></i></span><div><h2 class="sa-card-title">بيانات الاشتراك وبدء التشغيل</h2><p class="sa-card-desc">الحقول المعلّمة بـ * إلزامية.</p></div></div></div>
+    <div class="sa-form-grid">
+      <div class="sa-field"><label>اسم العميل / المنشأة <span class="req">*</span></label><input class="sa-input" value="مكتب الريادة للاستقدام"></div>
+      <div class="sa-field"><label>رقم العميل</label><input class="sa-input" dir="ltr" value="CL-014" placeholder="CL-001"></div>
+      <div class="sa-field"><label>اسم الباقة <span class="req">*</span></label><input class="sa-input" value="الخطة الاحترافية" placeholder="الخطة الأساسية"></div>
+      <div class="sa-field"><label>حالة الاشتراك</label><select class="sa-select"><option>اشتراك نشط</option><option>فترة تجريبية</option><option>الاشتراك موقوف</option><option>الاشتراك منتهي</option></select></div>
+      <div class="sa-field"><label>بداية عمل العميل بالبرنامج</label><input class="sa-input" type="date" value="2025-03-03"></div>
+      <div class="sa-field"><label>بداية الاشتراك</label><input class="sa-input" type="date" value="2026-01-01"></div>
+      <div class="sa-field"><label>نهاية الاشتراك</label><input class="sa-input" type="date" value="2026-12-30"><span class="sa-help">بعد التاريخ ده الحالة بتتحسب «منتهي» تلقائيًا في العرض.</span></div>
+      <div class="sa-field is-wide"><label>ملاحظات العميل</label><textarea class="sa-textarea" rows="3" placeholder="أي معلومة تفيد فريق الدعم…"></textarea></div>
+    </div>
+    <div class="sa-card-foot"><button class="btn btn-primary" data-sa-toast="اتحفظت بيانات الاشتراك"><i data-lucide="save"></i>حفظ بيانات الاشتراك</button></div>
+  </section>
+
+</main>
+<script src="https://unpkg.com/lucide@0.451.0/dist/umd/lucide.min.js"></script>
+<script src="assets/sa.js"></script>
+</body>
+</html>

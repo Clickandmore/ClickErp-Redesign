@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="design-version" content="v1.24">
+<title>المهام المجدولة — Super Admin · Click ERP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Reem+Kufi:wght@500;700&family=Noto+Kufi+Arabic:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/sa.css">
+</head>
+<body data-page="scheduler">
+<!-- Screen: scheduler · dev-superadmin.scheduler ($schedulerStatus: active, last_heartbeat_at, crontab_configured, jobs[risk]) -->
+<main class="sa-content">
+
+  <div class="sa-page-header">
+    <div>
+      <h1 class="sa-page-title">المهام المجدولة</h1>
+      <p class="sa-page-desc">مراقبة Cron Jobs وLaravel Scheduler.</p>
+    </div>
+    <div class="sa-page-header-end">
+      <button class="btn" data-sa-toast="اتحدثت الحالة"><i data-lucide="refresh-cw"></i>تحديث الحالة</button>
+      <button class="btn btn-primary" data-sa-confirm="هيتضاف سطر Crontab ويتشغل Scheduler على السيرفر."><i data-lucide="play"></i>تفعيل وتشغيل Scheduler</button>
+    </div>
+  </div>
+
+  <div class="sa-health sa-health--danger">
+    <span class="sa-health-icon"><i data-lucide="calendar-x"></i></span>
+    <div class="sa-health-body"><b>Laravel Scheduler متوقف — ولا مهمة هتشتغل</b><small>آخر نبض النهارده 13:02 (من 3 ساعات) · Crontab موجود · غالبًا السيرفر اتعمل له restart</small></div>
+  </div>
+
+  <div class="sa-grid-3">
+    <div class="sa-kpi"><span class="sa-kpi-label"><i data-lucide="activity"></i>حالة Laravel Scheduler</span><b class="sa-kpi-value is-danger">متوقف</b><span class="sa-kpi-sub">لم يعمل خلال 3 دقائق</span></div>
+    <div class="sa-kpi"><span class="sa-kpi-label"><i data-lucide="terminal"></i>إعداد Crontab</span><b class="sa-kpi-value is-success">موجود</b><span class="sa-kpi-sub sa-mono">* * * * * php artisan schedule:run</span></div>
+    <div class="sa-kpi"><span class="sa-kpi-label"><i data-lucide="heart-pulse"></i>آخر نبض</span><b class="sa-kpi-value num">13:02</b><span class="sa-kpi-sub">16 نوفمبر</span></div>
+  </div>
+
+  <section class="sa-card sa-card--flush">
+    <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="list-checks"></i></span><div><h2 class="sa-card-title">المهام</h2><p class="sa-card-desc">جنب كل مهمة: بتأثر على إيه لو وقفت.</p></div></div><span class="sa-card-meta">عالية الخطورة: 1 · غير صالحة: 1</span></div>
+    <div class="sa-table-wrap"><table class="sa-table">
+      <thead><tr><th>المهمة</th><th>الحالة</th><th>لو وقفت بتأثر على</th><th>الخطورة</th><th>الجدولة والتشغيل القادم</th></tr></thead>
+      <tbody>
+        <tr><td><b>تحديث حالات الضمان</b><small class="sa-mono">contracts:warranty-status</small></td><td><span class="sa-badge sa-badge--warning">مجدولة — Scheduler متوقف</span></td><td>العقود بتفضل «في الضمان» بعد انتهائه</td><td><span class="sa-badge">منخفضة</span></td><td class="num">يوميًا 02:00<small>القادم: بكرة 02:00</small></td></tr>
+        <tr><td><b>معالجة الطلبات المنتهية</b><small class="sa-mono">orders:expire</small></td><td><span class="sa-badge sa-badge--warning">مجدولة — Scheduler متوقف</span></td><td>الطلبات القديمة بتفضل مفتوحة</td><td><span class="sa-badge sa-badge--warning">متوسطة</span></td><td class="num">كل 30 دقيقة<small>القادم: 14:30</small></td></tr>
+        <tr><td><b>إرسال تنبيهات العقود</b><small class="sa-mono">notifications:contracts</small></td><td><span class="sa-badge sa-badge--warning">مجدولة — Scheduler متوقف</span></td><td>العملاء ما يوصلهمش تذكير</td><td><span class="sa-badge sa-badge--warning">متوسطة</span></td><td class="num">يوميًا 09:00<small>القادم: بكرة 09:00</small></td></tr>
+        <tr><td><b>النسخ الاحتياطي</b><small class="sa-mono">backup:run</small></td><td><span class="sa-badge sa-badge--warning">مجدولة — Scheduler متوقف</span></td><td>مفيش نسخة الليلة</td><td><span class="sa-badge sa-badge--danger">عالية</span></td><td class="num">يوميًا 03:00<small>القادم: بكرة 03:00</small></td></tr>
+        <tr><td><b>صيانة مركز المهام والتقرير اليومي</b><small class="sa-mono">task-center:maintenance</small></td><td><span class="sa-badge">غير مفعّلة في هذه البيئة</span></td><td>مفيش تقرير يومي للموظفين</td><td><span class="sa-badge">منخفضة</span></td><td class="num">يوميًا 23:30</td></tr>
+        <tr><td><b>إرسال التقارير المجدولة</b><small class="sa-mono">reports:send-scheduled</small></td><td><span class="sa-badge sa-badge--danger">أمر غير موجود — لن تعمل</span></td><td>التقارير المجدولة ما تتبعتش</td><td><span class="sa-badge sa-badge--warning">متوسطة</span></td><td class="num">كل 5 دقائق<small>القادم: —</small></td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+</main>
+<script src="https://unpkg.com/lucide@0.451.0/dist/umd/lucide.min.js"></script>
+<script src="assets/sa.js"></script>
+</body>
+</html>

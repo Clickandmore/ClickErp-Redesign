@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="design-version" content="v1.24">
+<title>تحديث جديد — Super Admin · Click ERP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Reem+Kufi:wght@500;700&family=Noto+Kufi+Arabic:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/sa.css">
+</head>
+<body data-page="update-form">
+<!-- Screen: update-form · dev-superadmin.system-updates.create/edit · system-updates/form.blade.php -->
+<main class="sa-content">
+
+  <div class="sa-page-header">
+    <div>
+      <a class="sa-back" href="updates.html"><i data-lucide="arrow-right"></i>كل التحديثات</a>
+      <h1 class="sa-page-title">إضافة تحديث جديد</h1>
+      <p class="sa-page-desc">جنب الفورم: مين هيشوف التحديث، وشكله في الشريط قبل النشر.</p>
+    </div>
+    <div class="sa-page-header-end"><a class="btn" href="updates.html">إلغاء</a><button class="btn btn-primary" data-sa-toast="اتحفظ التحديث"><i data-lucide="save"></i>حفظ التحديث</button></div>
+  </div>
+
+  <div class="sa-layout">
+    <div class="sa-stack">
+      <section class="sa-card">
+        <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="file-text"></i></span><div><h2 class="sa-card-title">1. محتوى التحديث</h2></div></div></div>
+        <div class="sa-form-grid is-one">
+          <div class="sa-field"><label>عنوان التحديث <span class="req">*</span></label><input class="sa-input" value="تقارير المالية المجدولة"></div>
+          <div class="sa-field"><label>الملخص</label><input class="sa-input" value="التقارير المالية بقت تتبعت لوحدها على الإيميل"></div>
+          <div class="sa-field"><label>التفاصيل والخطوات</label><textarea class="sa-textarea" rows="5">1. افتح التقارير المالية
+2. اختار التقرير واضغط «جدولة»
+3. حدد الوقت والمستلمين</textarea></div>
+        </div>
+      </section>
+      <section class="sa-card">
+        <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="image"></i></span><div><h2 class="sa-card-title">2. الصور والفيديو والملفات</h2></div></div></div>
+        <div class="sa-drop"><i data-lucide="upload-cloud"></i><span><b>اسحب الملفات هنا</b>صور 5MB · فيديو mp4 100MB · PDF 20MB · حتى 10 ملفات</span></div>
+        <div class="sa-field" style="margin-top:14px"><label>روابط فيديو خارجية</label><input class="sa-input" dir="ltr" placeholder="https://youtube.com/…"></div>
+      </section>
+      <section class="sa-card">
+        <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="send"></i></span><div><h2 class="sa-card-title">3. زر «جرّبه الآن» والنشر</h2></div></div></div>
+        <div class="sa-form-grid">
+          <div class="sa-field"><label>رابط الشاشة</label><input class="sa-input" dir="ltr" value="/finance/reports"></div>
+          <div class="sa-field"><label>نص الزر</label><input class="sa-input" value="جرّبه الآن"></div>
+          <div class="sa-field"><label>حالة التحديث</label><div class="sa-seg"><button>مسودة</button><button class="is-on">منشور</button></div></div>
+          <div class="sa-field"><label>موعد النشر</label><input class="sa-input" type="datetime-local" value="2026-11-20T09:00"></div>
+          <div class="sa-field"><label>يختفي من الشريط في</label><input class="sa-input" type="date" value="2026-11-27"></div>
+        </div>
+      </section>
+    </div>
+
+    <aside class="sa-layout-side">
+      <section class="sa-card">
+        <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="tag"></i></span><div><h2 class="sa-card-title">نوع التحديث</h2></div></div></div>
+        <div class="sa-chips"><button class="sa-chip is-on">ميزة جديدة</button><button class="sa-chip">تحسين</button><button class="sa-chip">إصلاح</button><button class="sa-chip">تغيير مهم</button></div>
+      </section>
+      <section class="sa-card">
+        <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="users"></i></span><div><h2 class="sa-card-title">لمين التحديث ده؟</h2></div></div></div>
+        <div class="sa-form-grid is-one">
+          <div class="sa-field"><label>يخص موديل</label><select class="sa-select"><option>المالية والفوترة</option><option>كل النسخ — بدون شرط</option><option>الموارد البشرية</option><option>CRM</option></select></div>
+          <div class="sa-field"><label>رقم الإصدار</label><input class="sa-input" dir="ltr" value="1.10.0"></div>
+        </div>
+        <div class="sa-setting"><span><b>إرسال لنسخ العملاء المرتبطة</b><small>3 نسخ</small></span><button class="sa-switch is-on"></button></div>
+        <div class="sa-alert sa-alert--info"><i data-lucide="eye"></i><span><b class="num">14 موظف</b> هيشوفوه هنا (عندهم موديل المالية) + <b class="num">3</b> نسخ عملاء.</span></div>
+      </section>
+      <section class="sa-card">
+        <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="megaphone"></i></span><div><h2 class="sa-card-title">معاينة الشريط</h2></div></div></div>
+        <div class="sa-update-card"><span class="sa-badge sa-badge--accent" style="justify-self:start">ميزة جديدة</span><b>تقارير المالية المجدولة</b><small>التقارير المالية بقت تتبعت لوحدها على الإيميل</small><button class="btn btn-primary btn-sm">جرّبه الآن</button></div>
+      </section>
+    </aside>
+  </div>
+
+</main>
+<script src="https://unpkg.com/lucide@0.451.0/dist/umd/lucide.min.js"></script>
+<script src="assets/sa.js"></script>
+</body>
+</html>

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="design-version" content="v1.24">
+<title>تصاميم لوحة التحكم — Super Admin · Click ERP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Reem+Kufi:wght@500;700&family=Noto+Kufi+Arabic:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/sa.css">
+</head>
+<body data-page="designs">
+<!-- Screen: designs · dev-superadmin.dashboard-designs (DashboardDesignsController@edit/update) · dashboard-designs.blade.php -->
+<main class="sa-content">
+
+  <div class="sa-page-header">
+    <div>
+      <h1 class="sa-page-title">إدارة تصاميم لوحة التحكم</h1>
+      <p class="sa-page-desc">لوحة التحكم الجديدة جنب القديمة لهذا العميل، ومين يدخل عليها.</p>
+    </div>
+    <div class="sa-page-header-end"><button class="btn btn-primary" data-sa-toast="اتحفظت الإعدادات"><i data-lucide="save"></i>حفظ الإعدادات</button></div>
+  </div>
+
+  <div class="sa-layout">
+    <div class="sa-stack">
+      <section class="sa-card">
+        <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="layout-dashboard"></i></span><div><h2 class="sa-card-title">لوحة التحكم الجديدة</h2></div></div><span class="sa-badge sa-badge--success">مفعّلة — الافتراضية</span></div>
+        <div class="sa-setting"><span><b>تفعيل لوحة التحكم الجديدة</b></span><button class="sa-switch is-on"></button></div>
+        <div class="sa-setting"><span><b>اللوحة الجديدة هي الافتراضية</b><small>الموظف بيدخل عليها مباشرة بعد تسجيل الدخول.</small></span><button class="sa-switch is-on"></button></div>
+        <div class="sa-setting"><span><b>طلب كلمة المرور عند الانتقال</b></span><button class="sa-switch"></button></div>
+      </section>
+
+      <section class="sa-card">
+        <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="users"></i></span><div><h2 class="sa-card-title">مين يدخل اللوحة الجديدة؟</h2><p class="sa-card-desc">بالعدد الفعلي، مش اسم الصلاحية بس.</p></div></div></div>
+        <div class="sa-choices">
+          <label class="sa-choice is-on"><input type="radio" name="who" checked><span><b>من يملك الصلاحية</b><small><span class="sa-mono">dashboard_v2_access</span> · 12 موظف</small></span></label>
+          <label class="sa-choice"><input type="radio" name="who"><span><b>كل الموظفين</b><small class="num">46 موظف</small></span></label>
+          <label class="sa-choice"><input type="radio" name="who"><span><b>موظفون محددون</b><small>اختار بالاسم</small></span></label>
+        </div>
+      </section>
+
+      <section class="sa-card">
+        <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="palette"></i></span><div><h2 class="sa-card-title">شكل بطاقة الانتقال</h2><p class="sa-card-desc">البطاقة العائمة اللي بتنقل الموظف بين اللوحتين.</p></div></div></div>
+        <div class="sa-form-grid is-three">
+          <div class="sa-field"><label>لون البطاقة</label><input class="sa-input" type="color" value="#16233f"></div>
+          <div class="sa-field"><label>لون الإطار</label><input class="sa-input" type="color" value="#7ab648"></div>
+          <div class="sa-field"><label>لون الكلام</label><input class="sa-input" type="color" value="#ffffff"></div>
+          <div class="sa-field"><label>المكان</label><select class="sa-select"><option>أسفل اليسار</option><option>أسفل اليمين</option><option>أعلى اليسار</option><option>أعلى اليمين</option></select></div>
+          <div class="sa-field"><label>الحركة</label><select class="sa-select"><option>طفو هادئ</option><option>نبض</option><option>دخول من الجانب فقط</option><option>بدون حركة</option></select></div>
+          <div class="sa-field"><label>الظل</label><select class="sa-select"><option>ظل خفيف</option><option>بدون ظل</option><option>ظل واضح</option></select></div>
+          <div class="sa-field"><label>مكان الصورة</label><select class="sa-select"><option>الصورة في البداية (يمين)</option><option>في النهاية (يسار)</option></select></div>
+          <div class="sa-field"><label>ملاءمة الصورة</label><select class="sa-select"><option>تملأ المساحة (قص)</option><option>كاملة داخل المساحة</option></select></div>
+        </div>
+        <div class="sa-grid-2" style="margin-top:16px">
+          <div class="sa-stack" style="gap:12px"><b class="sa-label">بطاقة الانتقال إلى اللوحة الجديدة</b>
+            <div class="sa-field"><label>العنوان</label><input class="sa-input" value="التصميم الجديد"></div>
+            <div class="sa-field"><label>السطر الثاني</label><input class="sa-input" value="جرّب لوحة التحكم الجديدة"></div>
+            <div class="sa-drop"><i data-lucide="image"></i><span>اسحب صورة (حتى 2MB)</span></div></div>
+          <div class="sa-stack" style="gap:12px"><b class="sa-label">بطاقة الرجوع إلى اللوحة القديمة</b>
+            <div class="sa-field"><label>العنوان</label><input class="sa-input" value="اللوحة القديمة"></div>
+            <div class="sa-field"><label>السطر الثاني</label><input class="sa-input" value="الرجوع للتصميم السابق"></div>
+            <div class="sa-drop"><i data-lucide="image"></i><span>اسحب صورة (حتى 2MB)</span></div></div>
+        </div>
+      </section>
+    </div>
+
+    <aside class="sa-layout-side">
+      <section class="sa-card">
+        <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="eye"></i></span><div><h2 class="sa-card-title">المعاينة</h2></div></div></div>
+        <div class="sa-seg" style="margin-bottom:12px"><button class="is-on">في اللوحة القديمة</button><button>في الجديدة</button></div>
+        <div class="sa-preview-screen">
+          <i style="inset:10px 10px auto 10px;height:22px"></i>
+          <i style="top:44px;inset-inline-start:10px;width:58%;height:70px"></i>
+          <i style="top:44px;inset-inline-end:10px;width:32%;height:70px"></i>
+          <i style="top:124px;inset-inline-start:10px;width:40%;height:50px"></i>
+          <div class="sa-preview-card"><i data-lucide="sparkles"></i><span><b>التصميم الجديد</b><small>جرّب لوحة التحكم الجديدة</small></span></div>
+        </div>
+      </section>
+    </aside>
+  </div>
+
+</main>
+<script src="https://unpkg.com/lucide@0.451.0/dist/umd/lucide.min.js"></script>
+<script src="assets/sa.js"></script>
+</body>
+</html>

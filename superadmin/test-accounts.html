@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="design-version" content="v1.24">
+<title>حسابات اختبار التطبيقات — Super Admin · Click ERP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Reem+Kufi:wght@500;700&family=Noto+Kufi+Arabic:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/sa.css">
+</head>
+<body data-page="test-accounts">
+<!-- Screen: test-accounts · dev-superadmin.hourly-app-review-accounts (HourlyAppReviewAccountsController) · admin/hourly_app_review_accounts/index.blade.php -->
+<main class="sa-content">
+
+  <div class="sa-page-header">
+    <div>
+      <h1 class="sa-page-title">حسابات اختبار التطبيقات</h1>
+      <p class="sa-page-desc">حسابات الاختبار ورموز التحقق الثابتة لمراجعة Apple وGoogle.</p>
+    </div>
+    <div class="sa-page-header-end"><button class="btn btn-primary" data-sa-toast="اتحفظ"><i data-lucide="save"></i>حفظ</button></div>
+  </div>
+
+  <section class="sa-card">
+    <div class="sa-setting" style="padding:0"><span><b>تفعيل حسابات الاختبار</b><small>لما يتقفل: كل الرموز الثابتة بتبطل فورًا.</small></span><button class="sa-switch is-on"></button></div>
+  </section>
+
+  <div class="sa-alert sa-alert--warning"><i data-lucide="triangle-alert"></i><span>الرمز الثابت بيتخطى رسالة التحقق. اقفله بعد ما مراجعة المتجر تخلص.</span></div>
+
+  <div class="sa-grid-3">
+    <section class="sa-card">
+      <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-app-icon"><i data-lucide="smartphone"></i></span><div><h2 class="sa-card-title">تطبيق العملاء</h2><p class="sa-card-desc">مراجعة Apple</p></div></div><span class="sa-badge sa-badge--success">مفعّل</span></div>
+      <div class="sa-form-grid is-one">
+        <div class="sa-field"><label>الحساب</label><select class="sa-select"><option>0500000001 — حساب مراجعة Apple</option></select></div>
+        <div class="sa-field"><label>رمز التحقق الثابت</label><input class="sa-input" dir="ltr" value="12345" maxlength="5"></div>
+      </div>
+      <div class="sa-setting"><span><b>تفعيل الرمز الثابت</b></span><button class="sa-switch is-on"></button></div>
+    </section>
+    <section class="sa-card">
+      <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-app-icon"><i data-lucide="car"></i></span><div><h2 class="sa-card-title">تطبيق السائقين</h2><p class="sa-card-desc">سائق تجريبي</p></div></div><span class="sa-badge sa-badge--success">مفعّل</span></div>
+      <div class="sa-form-grid is-one">
+        <div class="sa-field"><label>الحساب</label><select class="sa-select"><option>0500000002 — سائق تجريبي</option></select></div>
+        <div class="sa-field"><label>رمز التحقق الثابت</label><input class="sa-input" dir="ltr" value="54321" maxlength="5"></div>
+      </div>
+      <div class="sa-setting"><span><b>تفعيل الرمز الثابت</b></span><button class="sa-switch is-on"></button></div>
+    </section>
+    <section class="sa-card">
+      <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-app-icon"><i data-lucide="user-round"></i></span><div><h2 class="sa-card-title">تطبيق العاملات</h2><p class="sa-card-desc">عاملة تجريبية</p></div></div><span class="sa-badge">مقفول</span></div>
+      <div class="sa-form-grid is-one">
+        <div class="sa-field"><label>الحساب</label><select class="sa-select"><option>0500000003 — عاملة تجريبية</option></select></div>
+        <div class="sa-field"><label>رمز التحقق الثابت</label><input class="sa-input" dir="ltr" value="11111" maxlength="5"></div>
+      </div>
+      <div class="sa-setting"><span><b>تفعيل الرمز الثابت</b></span><button class="sa-switch"></button></div>
+    </section>
+  </div>
+
+</main>
+<script src="https://unpkg.com/lucide@0.451.0/dist/umd/lucide.min.js"></script>
+<script src="assets/sa.js"></script>
+</body>
+</html>

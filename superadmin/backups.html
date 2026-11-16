@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="design-version" content="v1.24">
+<title>النسخ الاحتياطية — Super Admin · Click ERP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Reem+Kufi:wght@500;700&family=Noto+Kufi+Arabic:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/sa.css">
+</head>
+<body data-page="backups">
+<!-- Screen: backups · dev-superadmin.database-backups (DevDatabaseBackupController) · partials/backups.blade.php
+     الاستعادة/الحذف/الاستيراد: رمز تحقق (database-backups.verification-code) ← عبارة تأكيد ← تنفيذ -->
+<main class="sa-content">
+
+  <div class="sa-page-header">
+    <div>
+      <h1 class="sa-page-title">النسخ الاحتياطية</h1>
+      <p class="sa-page-desc">سحابي على R2 ومحلي على السيرفر.</p>
+    </div>
+    <div class="sa-page-header-end">
+      <button class="btn" data-sa-toast="بدأ تنزيل نسخة من الوضع الحالي"><i data-lucide="download"></i>تنزيل نسخة الآن</button>
+      <button class="btn" data-sa-toast="اتعملت نسخة محلية"><i data-lucide="hard-drive"></i>نسخة محلية</button>
+      <button class="btn btn-primary" data-sa-toast="بدأ إنشاء نسخة في R2"><i data-lucide="cloud-upload"></i>إنشاء نسخة في R2</button>
+    </div>
+  </div>
+
+  <div class="sa-health sa-health--success">
+    <span class="sa-health-icon"><i data-lucide="shield-check"></i></span>
+    <div class="sa-health-body"><b>تقدر ترجع لـ النهارده 03:00</b><small>آخر نسخة سليمة على R2 · 1.8 GB · النسخة الجاية بكرة 03:00</small></div>
+  </div>
+
+  <div class="sa-grid-3">
+    <div class="sa-kpi"><span class="sa-kpi-label"><i data-lucide="clock"></i>النسخ التلقائي</span><b class="sa-kpi-value num">يوميًا 03:00</b><span class="sa-kpi-sub">مفعّل</span></div>
+    <div class="sa-kpi"><span class="sa-kpi-label"><i data-lucide="cloud"></i>التخزين السحابي R2</span><b class="sa-kpi-value num">30 نسخة</b><span class="sa-kpi-sub">الاحتفاظ 30 يوم</span></div>
+    <div class="sa-kpi"><span class="sa-kpi-label"><i data-lucide="hard-drive"></i>نسخ السيرفر المحلية</span><b class="sa-kpi-value num">7 نسخ</b><span class="sa-kpi-sub">الاحتفاظ 7 أيام</span></div>
+  </div>
+
+  <div class="sa-layout">
+    <div class="sa-stack">
+      <section class="sa-card sa-card--flush">
+        <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="cloud"></i></span><div><h2 class="sa-card-title">نسخ R2 السحابية</h2></div></div></div>
+        <div class="sa-table-wrap"><table class="sa-table">
+          <thead><tr><th>النسخة</th><th>التاريخ</th><th>الحجم</th><th class="is-end"></th></tr></thead>
+          <tbody>
+            <tr><td><span class="sa-mono">clickerp-2026-11-16-0300.sql.gz</span></td><td class="num">اليوم 03:00</td><td class="num">1.8 GB</td><td class="is-end"><button class="btn btn-ghost btn-sm btn-icon" title="تحميل"><i data-lucide="download"></i></button><a class="btn btn-ghost btn-sm" href="#restore"><i data-lucide="rotate-ccw"></i>استعادة</a></td></tr>
+            <tr><td><span class="sa-mono">clickerp-2026-11-15-0300.sql.gz</span></td><td class="num">أمس 03:00</td><td class="num">1.8 GB</td><td class="is-end"><button class="btn btn-ghost btn-sm btn-icon" title="تحميل"><i data-lucide="download"></i></button><a class="btn btn-ghost btn-sm" href="#restore"><i data-lucide="rotate-ccw"></i>استعادة</a></td></tr>
+            <tr><td><span class="sa-mono">clickerp-2026-11-14-0300.sql.gz</span></td><td class="num">14 نوفمبر</td><td class="num">1.7 GB</td><td class="is-end"><button class="btn btn-ghost btn-sm btn-icon" title="تحميل"><i data-lucide="download"></i></button><a class="btn btn-ghost btn-sm" href="#restore"><i data-lucide="rotate-ccw"></i>استعادة</a></td></tr>
+          </tbody>
+        </table></div>
+      </section>
+
+      <section class="sa-card sa-card--danger" id="restore">
+        <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="rotate-ccw"></i></span><div><h2 class="sa-card-title">استعادة <span class="sa-mono">clickerp-2026-11-15-0300</span></h2><p class="sa-card-desc">هتتعمل نسخة من الوضع الحالي تلقائيًا قبل الاستعادة.</p></div></div><span class="sa-badge sa-badge--danger">عملية حساسة</span></div>
+        <div class="sa-steps">
+          <div class="sa-step"><span class="sa-step-n"><span>1</span>رمز التحقق</span>
+            <div class="sa-field"><label>إرسال الرمز إلى</label><select class="sa-select"><option>البريد — dev@…sa</option><option>الجوال — 05••••4421</option></select></div>
+            <button class="btn btn-sm" data-sa-toast="اتبعت الرمز — صالح 10 دقايق"><i data-lucide="send"></i>طلب رمز الاستعادة</button>
+            <span class="sa-help">صالح 10 دقايق · 5 محاولات</span></div>
+          <div class="sa-step"><span class="sa-step-n"><span>2</span>التأكيد</span>
+            <div class="sa-field"><label>اكتب <code>RESTORE</code></label><input class="sa-input" dir="ltr" placeholder="RESTORE"></div>
+            <div class="sa-field"><label>رمز التحقق</label><input class="sa-input" dir="ltr" placeholder="••••••"></div></div>
+          <div class="sa-step"><span class="sa-step-n"><span>3</span>التنفيذ</span>
+            <span class="sa-help">قاعدة البيانات الحالية هتتستبدل بالكامل بالنسخة دي.</span>
+            <button class="btn btn-danger" data-sa-confirm="هتتستبدل قاعدة البيانات الحالية بنسخة 15 نوفمبر 03:00. هتتعمل نسخة من الوضع الحالي الأول. متأكد؟"><i data-lucide="rotate-ccw"></i>استعادة النسخة</button></div>
+        </div>
+      </section>
+
+      <section class="sa-card sa-card--flush">
+        <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="hard-drive"></i></span><div><h2 class="sa-card-title">النسخ المحلية على السيرفر</h2></div></div></div>
+        <div class="sa-table-wrap"><table class="sa-table"><tbody>
+          <tr><td><span class="sa-mono">local-2026-11-16.sql.gz</span> <span class="sa-badge sa-badge--success">محمية</span></td><td class="num">1.8 GB</td><td class="is-end"><button class="btn btn-ghost btn-sm btn-icon" title="تحميل"><i data-lucide="download"></i></button><button class="btn btn-ghost btn-sm btn-icon" title="نسخ أمر Terminal" data-sa-toast="اتنسخ الأمر"><i data-lucide="terminal"></i></button></td></tr>
+          <tr><td><span class="sa-mono">local-2026-11-15.sql.gz</span></td><td class="num">1.8 GB</td><td class="is-end"><button class="btn btn-ghost btn-sm btn-icon" title="تحميل"><i data-lucide="download"></i></button><button class="btn btn-ghost btn-sm btn-icon" title="نسخ أمر Terminal" data-sa-toast="اتنسخ الأمر"><i data-lucide="terminal"></i></button><button class="btn btn-ghost btn-sm btn-icon" title="حذف" data-sa-confirm="هتتحذف النسخة المحلية local-2026-11-15 نهائيًا."><i data-lucide="trash-2"></i></button></td></tr>
+        </tbody></table></div>
+      </section>
+    </div>
+
+    <aside class="sa-layout-side">
+      <section class="sa-card">
+        <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="settings-2"></i></span><div><h2 class="sa-card-title">الجدولة والتخزين</h2></div></div></div>
+        <div class="sa-setting" style="padding-top:0"><span><b>النسخ التلقائي اليومي</b></span><button class="sa-switch is-on"></button></div>
+        <div class="sa-setting"><span><b>نسخة خاصة على السيرفر</b></span><button class="sa-switch is-on"></button></div>
+        <div class="sa-form-grid" style="margin-top:8px">
+          <div class="sa-field"><label>وقت التنفيذ</label><input class="sa-input" type="time" value="03:00"></div>
+          <div class="sa-field"><label>المجلد داخل R2</label><input class="sa-input" dir="ltr" value="alriyada/db"></div>
+          <div class="sa-field"><label>الاحتفاظ في R2 (يوم)</label><input class="sa-input" type="number" value="30"></div>
+          <div class="sa-field"><label>الاحتفاظ محليًا (يوم)</label><input class="sa-input" type="number" value="7"></div>
+        </div>
+        <div class="sa-card-foot"><button class="btn btn-primary btn-sm" data-sa-toast="اتحفظ الإعداد"><i data-lucide="save"></i>حفظ الإعداد</button></div>
+      </section>
+      <section class="sa-card">
+        <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="key-round"></i></span><div><h2 class="sa-card-title">أمان Super Admin</h2><p class="sa-card-desc">لرموز التحقق في العمليات الحساسة.</p></div></div></div>
+        <div class="sa-form-grid is-one">
+          <div class="sa-field"><label>بريد التحقق</label><input class="sa-input" dir="ltr" value="dev@clickandmore.sa"></div>
+          <div class="sa-field"><label>جوال التحقق</label><input class="sa-input" dir="ltr" value="05••••4421"></div>
+          <div class="sa-field"><label>كلمة مرور جديدة</label><input class="sa-input" type="password"><span class="sa-help">12 حرف على الأقل بأنواع مختلفة · تغييرها بيعمل خروج.</span></div>
+        </div>
+        <div class="sa-card-foot"><button class="btn btn-sm" data-sa-toast="اتحفظ"><i data-lucide="save"></i>حفظ</button></div>
+      </section>
+      <section class="sa-card sa-card--danger">
+        <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="database-zap"></i></span><div><h2 class="sa-card-title">استيراد قاعدة بيانات</h2><p class="sa-card-desc">بيولّد لك أمر الرفع وأمر الاستيراد تنسخهم.</p></div></div></div>
+        <div class="sa-seg" style="margin-bottom:12px"><button class="is-on">من السيرفر (SSH)</button><button>من المتصفح</button></div>
+        <code class="sa-code">mysql -u clickerp -p alriyada_prod &lt; backup.sql</code>
+        <div class="sa-card-foot"><button class="btn btn-sm" data-sa-toast="اتنسخ"><i data-lucide="copy"></i>نسخ أمر الرفع</button><button class="btn btn-sm" data-sa-toast="اتنسخ"><i data-lucide="copy"></i>نسخ أمر الاستيراد</button></div>
+      </section>
+    </aside>
+  </div>
+
+</main>
+<script src="https://unpkg.com/lucide@0.451.0/dist/umd/lucide.min.js"></script>
+<script src="assets/sa.js"></script>
+</body>
+</html>

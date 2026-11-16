@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="design-version" content="v1.24">
+<title>الموديلات — Super Admin · Click ERP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Reem+Kufi:wght@500;700&family=Noto+Kufi+Arabic:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/sa.css">
+</head>
+<body data-page="modules">
+<!-- Screen: modules · dev-superadmin.modules (DevSuperAdminController@modules) · modules.blade.php + config/superadmin_modules.php
+     الكروت بالترتيب: نوع البرنامج · لوحة التحكم الافتراضية · مكوّنات النظام · وضع التحديث · ملخص النسخة -->
+<main class="sa-content">
+
+  <div class="sa-page-header">
+    <div>
+      <h1 class="sa-page-title">الموديلات</h1>
+      <p class="sa-page-desc">إغلاق أي موديل بيخفيه من القائمة ويمنع الوصول لمساراته داخل لوحة الإدارة.</p>
+      <div class="sa-page-chips"><span class="heading-chip">مفعّل: <b class="num">11</b></span><span class="heading-chip">مغلق: <b class="num">3</b></span><span class="heading-chip">نوع البرنامج: <b>نظام الاستقدام</b></span></div>
+    </div>
+    <div class="sa-page-header-end"><button class="btn btn-primary" data-sa-toast="اتحفظت الموديلات"><i data-lucide="save"></i>حفظ تغييرات الموديلات</button></div>
+  </div>
+
+  <div class="sa-layout">
+    <div class="sa-stack">
+
+      <!-- نوع البرنامج -->
+      <section class="sa-card">
+        <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="package"></i></span><div><h2 class="sa-card-title">نوع البرنامج</h2><p class="sa-card-desc">تغيير النوع لا يحذف أي بيانات أو إعدادات.</p></div></div></div>
+        <div class="sa-choices">
+          <label class="sa-choice is-on"><input type="radio" name="profile" checked><span><b>نظام الاستقدام <span class="sa-badge sa-badge--success">الحالي</span></b><small>النسخة الحالية بكامل عمليات الاستقدام والعقود والعمالة. اللوحة: لوحة الاستقدام.</small></span></label>
+          <label class="sa-choice"><input type="radio" name="profile"><span><b>نظام عام</b><small>نسخة ERP عامة بدون عمليات الاستقدام المتخصصة. اللوحة: لوحة المالية.</small></span></label>
+        </div>
+        <div class="sa-diff" style="margin-top:14px">
+          <div class="is-off"><b><i data-lucide="eye-off"></i>لو حوّلت لـ «نظام عام» — هيختفي ويتقفل</b>إدارة التشغيل · تأشيرات الشركة · فواتير العقود · تحويلات مساند · الوكلاء الخارجيون · الملخص التشغيلي في المالية · صلاحيات الاستقدام في شاشة الأدوار</div>
+          <div class="is-on"><b><i data-lucide="eye"></i>وهيظهر</b>الموديل التشغيلي العام · حسابات شركات التقنية والتسويق · مركز المهام · لوحة المالية كافتراضية</div>
+        </div>
+        <p class="sa-help" style="margin:10px 0 14px">الصلاحيات المسندة بتفضل محفوظة بس بتستخبى. كل تغيير بيتسجل في سجل تغييرات نوع البرنامج.</p>
+        <div class="sa-confirm">
+          <div class="sa-confirm-head"><i data-lucide="lock-keyhole"></i>للتغيير: اكتب العبارة <code>تغيير إلى general</code> + كلمة المرور + السبب</div>
+          <div class="sa-form-grid">
+            <div class="sa-field"><label>عبارة التأكيد <span class="req">*</span></label><input class="sa-input" placeholder="تغيير إلى general"></div>
+            <div class="sa-field"><label>كلمة مرور Super Admin <span class="req">*</span></label><input class="sa-input" type="password"></div>
+            <div class="sa-field is-wide"><label>سبب تغيير نوع البرنامج <span class="req">*</span></label><input class="sa-input" placeholder="اشرح سبب التحويل والجهة الطالبة له"><span class="sa-help">10 حروف على الأقل.</span></div>
+          </div>
+          <div><button class="btn btn-danger" data-sa-confirm="هيتغير نوع البرنامج لـ «نظام عام» وهتختفي شاشات الاستقدام من القائمة. البيانات مش هتتمسح. متأكد؟"><i data-lucide="arrow-left-right"></i>تغيير نوع البرنامج</button></div>
+        </div>
+      </section>
+
+      <!-- مكوّنات النظام -->
+      <section class="sa-card">
+        <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="layout-grid"></i></span><div><h2 class="sa-card-title">مكوّنات النظام</h2><p class="sa-card-desc">لنظام الاستقدام — مقسمة: أساسي، متاح، ومش متاح للنوع ده.</p></div></div><span class="sa-card-meta num">11 / 14</span></div>
+
+        <div class="sa-setting" style="padding-top:0"><span><b>إدارة المستخدمين — حد النسخة</b><small>اترك الحقل فارغًا لعدد غير محدود.</small></span><input class="sa-input" type="number" value="60" style="width:110px"></div>
+
+        <div class="sa-modules" style="margin-top:10px">
+          <p class="sa-group-title">أساسي لهذا النوع</p>
+          <div class="sa-module is-on"><span class="sa-module-icon"><i data-lucide="file-text"></i></span><span class="sa-module-body"><b class="sa-module-name">إدارة التشغيل</b><small class="sa-module-sub">العقود والطلبات والعمالة</small></span><button class="sa-switch is-on is-locked" title="أساسي — مش بيتقفل" aria-checked="true"></button></div>
+
+          <p class="sa-group-title">متاح — شغّل أو اقفل</p>
+          <div class="sa-module is-on"><span class="sa-module-icon"><i data-lucide="hourglass"></i></span><span class="sa-module-body"><b class="sa-module-name">إيجار الساعات</b><small class="sa-module-sub">العرض في الموقع الخارجي · <a href="hourly.html">الإعدادات</a></small></span><button class="sa-switch is-on"></button></div>
+          <div class="sa-module is-on"><span class="sa-module-icon"><i data-lucide="git-branch"></i></span><span class="sa-module-body"><b class="sa-module-name">إدارة الفروع</b><small class="sa-module-sub">عدد الفروع المسموح به: 5</small></span><button class="sa-switch is-on"></button></div>
+          <div class="sa-module is-on"><span class="sa-module-icon"><i data-lucide="globe"></i></span><span class="sa-module-body"><b class="sa-module-name">الموقع الخارجي</b><small class="sa-module-sub">موقع المكتب والحجز</small></span><button class="sa-switch is-on"></button></div>
+          <div class="sa-module"><span class="sa-module-icon"><i data-lucide="plug"></i></span><span class="sa-module-body"><b class="sa-module-name">روابط API والربط</b><small class="sa-module-sub">مغلق</small></span><button class="sa-switch"></button></div>
+          <div class="sa-module is-on"><span class="sa-module-icon"><i data-lucide="users"></i></span><span class="sa-module-body"><b class="sa-module-name">CRM</b><small class="sa-module-sub">العملاء والمحادثات</small></span><button class="sa-switch is-on"></button></div>
+          <div class="sa-module is-on"><span class="sa-module-icon"><i data-lucide="user-cog"></i></span><span class="sa-module-body"><b class="sa-module-name">الموارد البشرية</b><small class="sa-module-sub">الموظفون والرواتب</small></span><button class="sa-switch is-on"></button></div>
+          <div class="sa-module is-on"><span class="sa-module-icon"><i data-lucide="wallet"></i></span><span class="sa-module-body"><b class="sa-module-name">المالية والفوترة</b><small class="sa-module-sub">الحسابات والفواتير</small></span><button class="sa-switch is-on"></button></div>
+          <div class="sa-module is-on"><span class="sa-module-icon"><i data-lucide="stamp"></i></span><span class="sa-module-body"><b class="sa-module-name">تأشيرات الشركة</b><small class="sa-module-sub">للاستقدام فقط</small></span><button class="sa-switch is-on"></button></div>
+          <div class="sa-module is-on"><span class="sa-module-icon"><i data-lucide="ticket-percent"></i></span><span class="sa-module-body"><b class="sa-module-name">كوبونات الخصم</b><small class="sa-module-sub">مفعّل</small></span><button class="sa-switch is-on"></button></div>
+          <div class="sa-module is-on"><span class="sa-module-icon"><i data-lucide="percent"></i></span><span class="sa-module-body"><b class="sa-module-name">نظام العمولات</b><small class="sa-module-sub">مفعّل</small></span><button class="sa-switch is-on"></button></div>
+
+          <p class="sa-group-title">غير متاح لنظام الاستقدام</p>
+          <div class="sa-module is-na"><span class="sa-module-icon"><i data-lucide="briefcase"></i></span><span class="sa-module-body"><b class="sa-module-name">الموديل التشغيلي العام</b><small class="sa-module-sub">للنظام العام فقط</small></span><button class="sa-switch" disabled></button></div>
+          <div class="sa-module is-na"><span class="sa-module-icon"><i data-lucide="laptop"></i></span><span class="sa-module-body"><b class="sa-module-name">حسابات شركات التقنية والتسويق</b><small class="sa-module-sub">للنظام العام فقط</small></span><button class="sa-switch" disabled></button></div>
+          <div class="sa-module is-na"><span class="sa-module-icon"><i data-lucide="columns-3"></i></span><span class="sa-module-body"><b class="sa-module-name">مركز المهام وتسجيل الوقت</b><small class="sa-module-sub">للنظام العام فقط</small></span><button class="sa-switch" disabled></button></div>
+        </div>
+      </section>
+
+      <!-- وضع التحديث -->
+      <section class="sa-card sa-card--feature sa-pattern" id="maintenance">
+        <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="construction"></i></span><div><h2 class="sa-card-title">وضع التحديث</h2><p class="sa-card-desc">بيقفل لوحة التحكم على الموظفين أثناء التحديث. لوحة Super Admin بتفضل متاحة دايمًا.</p></div></div><span class="sa-badge sa-badge--success"><i data-lucide="lock-open"></i>اللوحة متاحة</span></div>
+        <div class="sa-field"><label style="color:#C9D3E3">الرسالة اللي هتظهر للموظفين</label><textarea class="sa-textarea" rows="2">جاري تحديث النظام — هنرجع خلال نص ساعة. شكرًا لصبركم.</textarea><span class="sa-help">من 10 لـ 500 حرف.</span></div>
+        <div class="sa-card-foot" style="border-color:rgba(255,255,255,.12)"><button class="btn btn-danger" data-sa-confirm="هيتقفل الدخول على كل الموظفين لحد ما توقف وضع التحديث. متأكد؟"><i data-lucide="lock"></i>تفعيل وضع التحديث وإغلاق اللوحة</button></div>
+      </section>
+    </div>
+
+    <aside class="sa-layout-side">
+      <section class="sa-card">
+        <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="layout-dashboard"></i></span><div><h2 class="sa-card-title">لوحة التحكم الافتراضية</h2><p class="sa-card-desc">الصفحة اللي بيفتحها المستخدم بعد الدخول.</p></div></div></div>
+        <div class="sa-choices" style="grid-template-columns:1fr">
+          <label class="sa-choice is-on"><input type="radio" name="dash" checked><span><b>لوحة الاستقدام</b></span></label>
+          <label class="sa-choice"><input type="radio" name="dash"><span><b>لوحة المالية</b></span></label>
+        </div>
+      </section>
+      <section class="sa-card">
+        <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="pie-chart"></i></span><div><h2 class="sa-card-title">ملخص النسخة</h2></div></div></div>
+        <div class="sa-meter"><i style="width:79%"></i></div>
+        <div class="sa-summary" style="margin-top:6px">
+          <div class="sa-summary-row">الموديلات المفعّلة<b class="num">11</b></div>
+          <div class="sa-summary-row">المغلقة<b class="num">3</b></div>
+          <div class="sa-summary-row">المستخدمون<b class="num">46 / 60</b></div>
+          <div class="sa-summary-row">نوع البرنامج<b>نظام الاستقدام</b></div>
+          <div class="sa-summary-row">لوحة التحكم الجديدة<b><a href="designs.html">مفعّلة — الافتراضية</a></b></div>
+        </div>
+      </section>
+    </aside>
+  </div>
+
+  <div class="sa-savebar" hidden><i data-lucide="circle-dot"></i><span>عندك تغييرات مش محفوظة</span><button class="btn btn-ghost btn-sm" onclick="location.reload()">تراجع</button><button class="btn btn-primary btn-sm" data-sa-toast="اتحفظت الموديلات"><i data-lucide="save"></i>حفظ</button></div>
+
+</main>
+<script src="https://unpkg.com/lucide@0.451.0/dist/umd/lucide.min.js"></script>
+<script src="assets/sa.js"></script>
+</body>
+</html>
