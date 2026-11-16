@@ -3827,7 +3827,7 @@ window.CXH={X,SEC,KV,TAG,SW,ROW,FLD,SEL,INP,TXT,STAT,PAGER,ACTS,HEAD,B,TABS,CHIP
 const {X,SEC,KV,TAG,SW,ROW,FLD,SEL,INP,TXT,STAT,PAGER,ACTS,HEAD,B,TABS,CHIPS,STEPS,FS}=window.CXH;
 const NEW=["finDash","finRequests","finRequestAdd","finRequestShow","finAssets","finAssetShow","finCommissions","finCommissionShow","finCommissionRules","finTax","finZatca"];
 window.CERP_PAGES=(window.CERP_PAGES||[]).concat(NEW);
-const IDEA=(txt)=>`<div class="fx-idea">${X("lightbulb")}<div><b>ليه الشكل ده؟</b><span>${txt}</span></div></div>`;
+const IDEA=()=>"";
 const MONEY=v=>`<span class="num">${v}</span> <small class="cur">ر.س</small>`;
 const BARS=(rows,max)=>`<div class="fx-bars">${rows.map(r=>`<div class="col"><div class="pair"><i class="in" style="height:${Math.round(r[1]/max*100)}%" title="إيرادات ${r[1]}"></i><i class="out" style="height:${Math.round(r[2]/max*100)}%" title="مصروفات ${r[2]}"></i></div><small>${r[0]}</small></div>`).join("")}</div><div class="fx-legend"><span><i class="in"></i>الإيرادات</span><span><i class="out"></i>المصروفات</span></div>`;
 const SHARE=(rows)=>`<div class="fx-share">${rows.map(r=>`<div class="r"><div class="t"><b>${r[0]}</b><small>${r[1]}</small></div><span class="track"><i style="width:${r[3]}%"></i></span><b class="num">${r[2]}</b></div>`).join("")}</div>`;
@@ -4018,7 +4018,7 @@ Object.keys(S).forEach(k=>{screens[k]=S[k]});
 const {X,SEC,KV,TAG,SW,ROW,FLD,SEL,INP,TXT,STAT,PAGER,ACTS,HEAD,B,TABS,CHIPS,STEPS,FS}=window.CXH;
 const NEW=["hrDash","hrEmployees","hrEmployeeShow","hrEmployeeAdd","hrWorkers","hrAttendance","hrRequests","hrCustody","hrSanctions","hrPayroll","hrPayrollRun","hrDaily"];
 window.CERP_PAGES=(window.CERP_PAGES||[]).concat(NEW);
-const IDEA=t=>`<div class="fx-idea">${X("lightbulb")}<div><b>ليه الشكل ده؟</b><span>${t}</span></div></div>`;
+const IDEA=()=>"";
 const AV=(n,c)=>`<span class="hx-av ${c||""}">${n[0]}</span>`;
 const EMP=[["سارة القحطاني","خدمة العملاء","مسؤولة خدمة عملاء","الفرع الرئيسي","EMP-014","2022-03-01","in","07:52"],["خالد المطيري","المبيعات","مندوب مبيعات","الفرع الرئيسي","EMP-021","2023-01-15","late","08:41"],["نورة السبيعي","المبيعات","مندوبة مبيعات","فرع جدة","EMP-027","2023-09-10","in","07:58"],["فهد الحربي","العمليات","منسق عقود","فرع جدة","EMP-031","2024-02-01","leave",""],["ريم الدوسري","المالية","محاسبة","الفرع الرئيسي","EMP-018","2022-07-20","in","07:45"],["عبدالعزيز الشمري","الإيواء","مشرف إيواء","إيواء الرياض","EMP-035","2024-06-12","absent",""],["هند العتيبي","الموارد البشرية","أخصائية موارد بشرية","الفرع الرئيسي","EMP-009","2021-11-01","in","07:30"]];
 const AT={in:["g","حاضر"],late:["a","متأخر"],leave:["n","إجازة"],absent:["r","غائب"]};
@@ -4172,7 +4172,7 @@ Object.keys(S).forEach(k=>{screens[k]=S[k]});
 const {X,SEC,KV,TAG,SW,ROW,FLD,SEL,INP,TXT,STAT,PAGER,ACTS,HEAD,B,TABS,CHIPS,STEPS,FS}=window.CXH;
 const NEW=["setHome","setGeneral","setSite","setRecruit","setRental","setUsers","setRoles","setBranches","setLists","setMessages","setIntegrations","setImport","setAi","setSupport","setDev"];
 window.CERP_PAGES=(window.CERP_PAGES||[]).concat(NEW);
-const IDEA=t=>`<div class="fx-idea">${X("lightbulb")}<div><b>ليه الشكل ده؟</b><span>${t}</span></div></div>`;
+const IDEA=()=>"";
 const SNAV=(items,on)=>`<aside class="sx-nav card">${items.map((x,i)=>`<a href="#" class="${i===on?"on":""}">${X(x[0])}<span>${x[1]}</span>${x[2]?`<em class="${x[3]||""}">${x[2]}</em>`:""}</a>`).join("")}</aside>`;
 const LAY=(nav,body)=>`<div class="sx-lay">${nav}<div class="sx-body">${body}</div></div>`;
 const SAVEBAR=(t)=>`<div class="sx-save">${X("info")}<span>${t||"التغييرات بتتحفظ للمكتب كله وبتتسجّل في سجل النشاط."}</span>${B("ghost","","تراجع")}${B("primary","save","حفظ التغييرات")}</div>`;
@@ -4345,7 +4345,7 @@ Object.keys(S).forEach(k=>{screens[k]=S[k]});
 const {X,SEC,KV,TAG,SW,ROW,FLD,SEL,INP,TXT,STAT,PAGER,ACTS,HEAD,B,TABS,CHIPS,STEPS,FS}=window.CXH;
 const NEW=["visaDash","visaRequests","visaAdd","visaShow","visaBalance","visaReports","visaPrebook","visaSettings","hbCollect"];
 window.CERP_PAGES=(window.CERP_PAGES||[]).concat(NEW);
-const IDEA=t=>`<div class="fx-idea">${X("lightbulb")}<div><b>ليه الشكل ده؟</b><span>${t}</span></div></div>`;
+const IDEA=()=>"";
 const VS={under_process:["n","تحت الإجراء"],approved:["a","موافق عليه — بانتظار السداد"],paid:["a","مسدد — بانتظار الرقم"],completed:["g","مكتمل"],rejected:["r","مرفوض"],cancelled:["n","ملغي"]};
 const USE=(u,t)=>`<div class="fx-life ${u/t>=.9?"r":u/t>=.6?"a":""}"><span class="track"><i style="width:${Math.round(u/t*100)}%"></i></span><b class="num">${u}/${t}</b></div>`;
 const vTabs=on=>TABS([["visaDash","gauge","المتابعة"],["visaRequests","file-plus-2","الطلبات",23],["visaBalance","wallet-cards","الرصيد"],["visaReports","bar-chart-3","التقارير"],["visaPrebook","calendar-clock","الحجز المسبق",4],["visaSettings","sliders-horizontal","الإعدادات"]],on);
@@ -4447,7 +4447,7 @@ Object.keys(S).forEach(k=>{screens[k]=S[k]});
 /* ===== v1.9 — Home by role template + Reports centre (saved reports, schedules, delivery log) ===== */
 (()=>{
 const {X,SEC,KV,TAG,SW,ROW,FLD,SEL,INP,TXT,STAT,PAGER,ACTS,HEAD,B,TABS,CHIPS,STEPS,FS}=window.CXH;
-const IDEA=t=>`<div class="fx-idea">${X("lightbulb")}<div><b>ليه الشكل ده؟</b><span>${t}</span></div></div>`;
+const IDEA=()=>"";
 const NEWT=`<span class="tag a hm-new">جديد</span>`;
 const S={};
 
@@ -4637,7 +4637,7 @@ S.dashboard=()=>{
    ?secHead("layout-grid","ملخص الإدارات","سطر لكل إدارة: الرقم الأساسي، واللي محتاج تصرف","","")+tiles(P)
    :secHead(MODS[s[0]].i,secName(s),s[2]?"":"حسب صلاحياتك في "+MODS[s[0]].n,MODS[s[0]].go,s[2]?"":MODS[s[0]].p)+grid(s[1])).join("");
  return `
- <div class="hm-bar">${pv}<span class="sp"></span><div class="seg" data-seg>${["اليوم","الأسبوع","الشهر"].map((x,i)=>`<button class="${i===2?"on":""}">${x}</button>`).join("")}</div>${B("ghost sm","layout-grid","تخصيص",'data-hcust="1"')}<button class="icon-btn hm-ib ${HIDEA?"on":""}" data-hidea="1" title="ليه الشكل ده؟">${X("lightbulb")}</button></div>
+ <div class="hm-bar">${pv}<span class="sp"></span><div class="seg" data-seg>${["اليوم","الأسبوع","الشهر"].map((x,i)=>`<button class="${i===2?"on":""}">${x}</button>`).join("")}</div>${B("ghost sm","layout-grid","تخصيص",'data-hcust="1"')}</div>
  ${HIDEA?IDEA("الرئيسية بتتبني من صلاحيات الموظف، مش من قالب ثابت. كل موديول عنده صلاحية عرضه بيظهر له كقسم (العمليات، المالية…)، والمالك عنده كل الصلاحيات فبيشوف ملخص سطر لكل إدارة. أول حاجة الموظف يشوفها هي «مطلوب منك»: المسند له بالاسم، ولو مشرف بيشوف كمان متأخرات فريقه. الأرقام والتحليل بعد كده."):""}
  <div class="card hm-hero"><div class="hh"><small>الاثنين 16 نوفمبر · الفرع الرئيسي</small><h1>${hi} يا ${P.nm}</h1><p>${summary}</p>
   <div class="hm-mods">${X("key-round")}<span>بتشوف حسب صلاحياتك:</span>${P.mods.map(m=>`<span class="chip">${X(MODS[m].i)}${MODS[m].n}</span>`).join("")}</div></div>
@@ -4786,7 +4786,7 @@ Object.keys(S).forEach(k=>{screens[k]=S[k]});
 const {X,SEC,KV,TAG,SW,ROW,FLD,SEL,INP,TXT,STAT,PAGER,ACTS,HEAD,B,TABS,CHIPS,STEPS,FS}=window.CXH;
 const NEW=["tcMy","tcBoard","tcTask","tcForm","tcTeam","tcMember","tcApprovals","tcShots","tcSessions","tcHours","tcAttend","tcSettings","tcPolicy"];
 window.CERP_PAGES=(window.CERP_PAGES||[]).concat(NEW);
-const IDEA=t=>`<div class="fx-idea">${X("lightbulb")}<div><b>ليه الشكل ده؟</b><span>${t}</span></div></div>`;
+const IDEA=()=>"";
 const NEWT=`<span class="tag a hm-new">جديد</span>`;
 const S={};
 
@@ -5030,7 +5030,7 @@ Object.keys(S).forEach(k=>{screens[k]=S[k]});
 const {X,SEC,KV,TAG,SW,ROW,FLD,SEL,INP,TXT,STAT,PAGER,ACTS,HEAD,B,TABS,CHIPS,STEPS,FS}=window.CXH;
 const NEW=["saSubscription","saModules","saEmployees","saDesigns","saUpdates","saUpdateForm","saBackups","saScheduler","saRecovery","saInvoices","saInvoiceFix","saMcp","saMoyasar","saTestAccounts"];
 window.CERP_PAGES=(window.CERP_PAGES||[]).concat(NEW);
-const IDEA=t=>`<div class="fx-idea">${X("lightbulb")}<div><b>ليه الشكل ده؟</b><span>${t}</span></div></div>`;
+const IDEA=()=>"";
 const NEWT=`<span class="tag a hm-new">جديد</span>`;
 const S={};
 /* restricted-area band + grouped nav (sidebar of the real super admin layout) */
@@ -5240,7 +5240,7 @@ const {X,SEC,KV,TAG,SW,ROW,FLD,SEL,INP,TXT,STAT,PAGER,ACTS,HEAD,B,TABS,CHIPS,STE
 const {TK,card,ty,av,tcTabs,TIMER,shot,PR,STN,STC,COLS,TY,PPL}=window.TCX;
 const NEW=["tcList","tcClose"];
 window.CERP_PAGES=(window.CERP_PAGES||[]).concat(NEW);
-const IDEA=t=>`<div class="fx-idea">${X("lightbulb")}<div><b>ليه الشكل ده؟</b><span>${t}</span></div></div>`;
+const IDEA=()=>"";
 const NEWT=`<span class="tag a hm-new">جديد</span>`;
 const S={};
 const SZ={q:["ربع ساعة",15],h:["ساعة",60],h2:["ساعتين",120],d2:["نص يوم",240],d:["يوم",480]};
@@ -5364,7 +5364,7 @@ const {X,SEC,KV,TAG,SW,ROW,FLD,SEL,INP,TXT,STAT,PAGER,ACTS,HEAD,B,TABS,CHIPS,STE
 const {TK,card,ty,av,tcTabs,TIMER,shot,PR,STN,STC,COLS,TY,PPL}=window.TCX;
 const NEW=["tcInbox","tcHandoff","tcSpecs","tcMigrate"];
 window.CERP_PAGES=(window.CERP_PAGES||[]).concat(NEW);
-const IDEA=t=>`<div class="fx-idea">${X("lightbulb")}<div><b>ليه الشكل ده؟</b><span>${t}</span></div></div>`;
+const IDEA=()=>"";
 const NEWT=`<span class="tag a hm-new">جديد</span>`;
 const S={};
 const SRC={slack:["hash","Slack","#4a154b"],chat:["message-circle","Click Chat","#2f5fa8"],live:["messages-square","لايف شات","#0e7c66"],wa:["phone","واتساب","#1f9d55"],mail:["mail","الإيميل","#c8862a"],test:["flask-conical","ملاحظة اختبار","#7044b8"],portal:["globe","بوابة العميل","#16233f"]};
@@ -5463,7 +5463,7 @@ Object.keys(S).forEach(k=>{screens[k]=S[k]});
 const {X,SEC,KV,TAG,SW,ROW,FLD,SEL,INP,TXT,STAT,PAGER,ACTS,HEAD,B,TABS,CHIPS,STEPS,FS}=window.CXH;
 const {tcTabs,PR,STN,STC,PPL}=window.TCX;
 window.CERP_PAGES=(window.CERP_PAGES||[]).concat(["tcLanes"]);
-const IDEA=t=>`<div class="fx-idea">${X("lightbulb")}<div><b>ليه الشكل ده؟</b><span>${t}</span></div></div>`;
+const IDEA=()=>"";
 const S={};
 const TI={BUG:["bug","r","خطأ"],UPD:["sparkles","b","تحديث"],DATA:["database","a","مشكلة بيانات"],OPS:["server","n","سيرفرات ونشر"],MTG:["users","g","متابعة واجتماع"],SUP:["life-buoy","p","استفسار ودعم"]};
 const PI={urgent:["chevrons-up","r","طارئ"],high:["chevron-up","a","مهم"],medium:["equal","n","متوسط"],low:["chevron-down","b","منخفض"]};
@@ -5540,7 +5540,7 @@ const {X,SEC,KV,TAG,SW,ROW,FLD,SEL,INP,TXT,B}=window.CXH;
 const {tcTabs,PR,STN,PPL}=window.TCX;
 const {K,COL,kcard,BAR,av,TI,PI,CL}=window.KBX;
 window.CERP_PAGES=(window.CERP_PAGES||[]).concat(["tcBoardD","tcCard","tcNew"]);
-const IDEA=t=>`<div class="fx-idea">${X("lightbulb")}<div><b>ليه الشكل ده؟</b><span>${t}</span></div></div>`;
+const IDEA=()=>"";
 const NEWT=`<span class="tag a hm-new">جديد</span>`;
 const S={};
 
@@ -5619,7 +5619,7 @@ const {tcTabs,PPL}=window.TCX;
 const {av,CL}=window.KBX;
 const {BOARD,FIELD}=window.KB2;
 window.CERP_PAGES=(window.CERP_PAGES||[]).concat(["tcQA","tcCardQA","tcQALib"]);
-const IDEA=t=>`<div class="fx-idea">${X("lightbulb")}<div><b>ليه الشكل ده؟</b><span>${t}</span></div></div>`;
+const IDEA=()=>"";
 const NEWT=`<span class="tag a hm-new">جديد</span>`;
 const S={};
 const RS={pass:["g","check","نجح"],fail:["r","x","فشل"],block:["a","ban","مش متاح"],todo:["n","circle","لسه"]};
@@ -5704,7 +5704,7 @@ const {tcTabs,PPL}=window.TCX;
 const {av,CL}=window.KBX;
 const NEWL=["tcAdmin","tcRemind","tcVault","tcArchive","tcCheckin","tcGeo"];
 window.CERP_PAGES=(window.CERP_PAGES||[]).concat(NEWL);
-const IDEA=t=>`<div class="fx-idea">${X("lightbulb")}<div><b>ليه الشكل ده؟</b><span>${t}</span></div></div>`;
+const IDEA=()=>"";
 const NEWT=`<span class="tag a hm-new">جديد</span>`;
 const S={};
 const CH={wa:["phone","واتساب","#1f9d55"],mail:["mail","إيميل","#c8862a"],app:["bell","داخل النظام","#2f5fa8"]};
@@ -5847,6 +5847,51 @@ const TEAM=`<div class="card hm-team"><div class="hm-th"><div><b>${X("users")}ف
  <div class="hm-tf">${[["g",3,"في المكتب"],["b",1,"زيارة"],["n",1,"عن بعد"],["r",1,"برّه النطاق"],["v",1,"إجازة"]].map(k=>`<span class="${k[0]}"><i></i><b class="num">${k[1]}</b>${k[2]}</span>`).join("")}</div></div>`;
 const oldDash=screens.dashboard;
 screens.dashboard=()=>{const h=oldDash();return h.includes('<div class="hm-top">')?h.replace('<div class="hm-top">',TEAM+'<div class="hm-top">'):h};
+})();
+/* ===== v1.18 — Attendance + timer + activity in the top bar (Time Doctor-style), check-in prompt on task screens ===== */
+(()=>{
+const {X,B}=window.CXH;
+const KEY="cerp-att";
+const st=()=>{try{return localStorage.getItem(KEY)||"out"}catch(e){return "out"}};
+const setSt=v=>{try{localStorage.setItem(KEY,v)}catch(e){}};
+let OPEN=false;
+if(/^#att-in/.test(location.hash)){try{localStorage.setItem(KEY,"in")}catch(e){}OPEN=location.hash==="#att-in-open"}
+const SEG=[[9.03,9.97,"a"],[9.97,10.1,"i"],[10.1,12.5,"a"],[12.5,13,"m"],[13,13.47,"w"],[13.47,14.3,"a"],[14.3,14.42,"i"],[14.42,14.7,"a"]];
+const pc=h=>((h-9)/(18-9)*100).toFixed(2);
+const POP=`<div class="tw-pop" role="dialog">
+ <div class="tw-ph"><div><b>الاثنين 16 نوفمبر</b><small>${X("map-pin")}المكتب الرئيسي · بالموقع · 18 م</small></div><span class="tw-st g"><i></i>نشط دلوقتي</span></div>
+ <div class="tw-k">${[["الحضور","5:40",""],["على مهام","5:00",""],["نشط","4:52","g"],["خامل","0:38","a"]].map(k=>`<div><small>${k[0]}</small><b class="num ${k[2]}">${k[1]}</b></div>`).join("")}</div>
+ <div class="tw-bar">${SEG.map(s=>`<i class="${s[2]}" style="inset-inline-start:${pc(s[0])}%;width:${(pc(s[1])-pc(s[0])).toFixed(2)}%"></i>`).join("")}</div>
+ <div class="tw-ax"><span class="num">09</span><span class="num">12</span><span class="num">15</span><span class="num">18</span></div>
+ <div class="tw-lg"><span><i class="a"></i>نشط (كيبورد/ماوس)</span><span><i class="i"></i>خامل</span><span><i class="m"></i>اجتماع</span><span><i class="w"></i>بعيد عن الجهاز</span></div>
+ <div class="tw-away">${X("bell-ring")}<div><b>كنت بعيد 28 دقيقة (13:00 – 13:28)</b><small>تحسبهم على إيه؟</small><div>${["اجتماع","مكالمة عميل","استراحة — مش شغل"].map((x,i)=>`<button class="${i===2?"on":""}">${x}</button>`).join("")}</div></div></div>
+ <div class="tw-rule">${X("info")}<span>بعد <b class="num">5</b> دقايق من غير حركة بننبّهك، وبعد <b class="num">10</b> الوقت بيتعلّم «خامل» ومش بيتحسب على المهمة لحد ما ترجع.</span></div>
+ <div class="tw-soon">${X("camera")}<span>لقطات الشاشة</span><em>قريباً</em></div>
+ <div class="tw-acts">${B("ghost sm","coffee","استراحة")}${B("ghost sm","log-out","تسجيل الانصراف",'data-attout="1"')}</div></div>`;
+const W=()=>st()==="out"
+ ?`<div class="tw-att out"><button class="tw-in" data-attin="1">${X("log-in")}<span><b>سجّل حضورك</b><small>${X("map-pin")}في نطاق المكتب الرئيسي</small></span></button></div>`
+ :`<div class="tw-att in"><button class="tw-main" data-attpop="1" title="نشاطك النهارده"><span class="tw-dot"></span><span><b>حاضر <span class="num">09:02</span></b><small>نشط · <span class="num">5:40</span></small></span>${X("chevron-down")}</button>
+   <span class="tw-tm" title="المؤقت شغال على UPD-0812">${X("timer")}<b class="num">UPD-0812</b><span class="num" data-twclock>01:12:40</span><button title="إيقاف المؤقت">${X("square")}</button></span>${OPEN?POP:""}</div>`;
+const BANNER=`<div class="tw-ban">${X("map-pin")}<div><b>لسه ماسجّلتش حضورك النهارده</b><small>انت في نطاق المكتب الرئيسي (18 م). المؤقت والمهام بيشتغلوا بعد تسجيل الحضور.</small></div><button class="btn btn-primary tw-big" data-attin="1">${X("log-in")}سجّل حضوري الآن</button><button class="btn btn-ghost" data-attin="1">${X("home")}عن بعد</button><button class="btn btn-ghost" data-attin="1">${X("car")}زيارة عميل</button></div>`;
+const inject=()=>{
+ const tr=document.querySelector("#app .top-right");if(!tr)return;
+ tr.querySelectorAll(".tw-att").forEach(e=>e.remove());
+ const tc=tr.querySelector(".tclock");if(tc)tc.style.display="none";
+ const w=document.createElement("div");w.innerHTML=W();tr.prepend(w.firstElementChild);
+ const pg=document.querySelector("#app .page");
+ if(pg){pg.querySelectorAll(".tw-ban").forEach(e=>e.remove());
+  const c=window.CERP_PAGE||"";if(st()==="out"&&/^(tc|hrAttendance)/.test(c)&&!/^(tcSettings|tcGeo|tcMigrate|tcVault|tcArchive|tcSpecs|tcQALib|tcAdmin|tcRemind)$/.test(c)){const b=document.createElement("div");b.innerHTML=BANNER;pg.prepend(b.firstElementChild)}}
+ if(window.lucide)lucide.createIcons({attrs:{"stroke-width":1.8}});
+};
+const oRN=window.renderNav;
+window.renderNav=function(c){const r=oRN.apply(this,arguments);setTimeout(inject,0);return r};
+document.addEventListener("click",e=>{
+ if(e.target.closest("[data-attin]")){e.preventDefault();setSt("in");OPEN=false;inject();return}
+ if(e.target.closest("[data-attout]")){e.preventDefault();setSt("out");OPEN=false;inject();return}
+ if(e.target.closest("[data-attpop]")){e.preventDefault();OPEN=!OPEN;inject();return}
+ if(OPEN&&!e.target.closest(".tw-att")){OPEN=false;inject()}
+});
+setInterval(()=>{const el=document.querySelector("[data-twclock]");if(!el)return;const p=el.textContent.split(":").map(Number);let s=p[0]*3600+p[1]*60+p[2]+1;el.textContent=[Math.floor(s/3600),Math.floor(s%3600/60),s%60].map(x=>String(x).padStart(2,"0")).join(":")},1000);
 })();
 (function(){var P=window.CERP_PAGE;if(!P)return;var PAGES=window.CERP_PAGES||[];
 if(P==="login"){renderLogin();return}
