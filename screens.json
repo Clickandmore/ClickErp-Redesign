@@ -1,5 +1,5 @@
 {
-  "version": "v1.16",
+  "version": "v1.17",
   "date": "2026-11-16",
   "entry": "login.html",
   "screens": [
@@ -946,12 +946,12 @@
     {
       "id": "tcCheckin",
       "file": "tcCheckin.html",
-      "title": "مركز المهام — الحضور بالموقع"
+      "title": "الموارد البشرية — الحضور بالموقع (مباشر)"
     },
     {
       "id": "tcGeo",
       "file": "tcGeo.html",
-      "title": "مركز المهام — نطاقات الحضور"
+      "title": "الموارد البشرية — نطاقات الحضور"
     }
   ],
   "states": [

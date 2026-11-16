@@ -3368,17 +3368,17 @@ const DEPTS=[
  {id:"hr",i:"user-cog",ar:"الموارد البشرية",en:"HR",s:"الموارد",d:"الموظفون والحضور والرواتب ومركز المهام",items:[
   A("hrDash","gauge","لوحة الموارد البشرية","HR dashboard"),A("hrEmployees","id-card","الموظفون","Employees"),A("hrWorkers","user-round","العاملات","Workers"),A("hrAttendance","clock","الحضور","Attendance"),
   A("hrRequests","inbox","الطلبات","Requests","7"),A("hrCustody","key-round","العهد","Custody"),A("hrSanctions","gavel","الجزاءات","Sanctions"),A("hrPayroll","banknote","الرواتب","Payroll"),A("hrDaily","notebook-pen","التقارير اليومية","Daily reports"),
-  H("مركز المهام"),A("tcMy","sun","يومي","My day"),A("tcInbox","inbox","الوارد","Intake"),A("tcBoard","columns-3","لوحة المهام","Task board"),A("tcHandoff","arrow-left-right","التسليم والاستلام","Handoffs"),A("tcQA","flask-conical","الاختبار","Testing"),A("tcSpecs","file-text","التحليل والمواصفات","Specs"),A("tcAdmin","briefcase","مهام الإدارة","Management"),A("tcVault","key-round","بيانات الدخول","Credentials"),A("tcArchive","archive","الأرشيف","Archive"),A("tcCheckin","map-pin","الحضور بالموقع","Check-in"),A("tcTeam","users","متابعة الفريق","Team"),A("tcApprovals","hourglass","موافقات الوقت","Time approvals"),A("tcHours","bar-chart-3","الساعات والتكلفة","Hours & cost"),A("tcSettings","settings","إعدادات مركز المهام","Settings")]},
+  H("مركز المهام"),A("tcMy","sun","يومي","My day"),A("tcInbox","inbox","الوارد","Intake"),A("tcBoard","columns-3","لوحة المهام","Task board"),A("tcHandoff","arrow-left-right","التسليم والاستلام","Handoffs"),A("tcQA","flask-conical","الاختبار","Testing"),A("tcSpecs","file-text","التحليل والمواصفات","Specs"),A("tcAdmin","briefcase","مهام الإدارة","Management"),A("tcVault","key-round","بيانات الدخول","Credentials"),A("tcArchive","archive","الأرشيف","Archive"),A("tcTeam","users","متابعة الفريق","Team"),A("tcApprovals","hourglass","موافقات الوقت","Time approvals"),A("tcHours","bar-chart-3","الساعات والتكلفة","Hours & cost"),A("tcSettings","settings","إعدادات مركز المهام","Settings")]},
  {id:"settings",i:"settings",ar:"الإعدادات",en:"Settings",s:"الإعدادات",d:"إعدادات المكتب والمستخدمين والتكاملات",items:[
   A("setHome","layout-grid","كل الإعدادات","All settings"),A("setGeneral","sliders-horizontal","العامة","General"),A("coupons","ticket-percent","كوبونات الخصم","Coupons"),A("setSite","globe","موقع المكتب","Office website"),A("setRecruit","files","الاستقدام والسير","Recruitment & CVs"),A("setRental","repeat","التأجير","Rental"),
   A("setUsers","shield-check","المستخدمون والصلاحيات","Users & roles"),A("setBranches","git-branch","الفروع","Branches"),A("setLists","list","القوائم المرجعية","Reference lists"),A("setMessages","bell","الرسائل والإشعارات","Messages & notifications"),
   A("setIntegrations","plug","التكاملات","Integrations"),A("setImport","upload","استيراد البيانات","Data import"),A("setAi","sparkles","المساعد الذكي","AI assistant"),A("setSupport","life-buoy","الدعم","Support"),A("setDev","code","المطوّر (Super Admin)","Developer")]}];
-const SUBS={setDev:["saSubscription","saModules","saEmployees","saDesigns","saUpdates","saUpdateForm","saBackups","saScheduler","saRecovery","saInvoices","saInvoiceFix","saMcp","saMoyasar","saTestAccounts"],tcMy:["tcPolicy","tcClose"],tcBoard:["tcTask","tcForm","tcList","tcLanes","tcBoardD","tcCard","tcNew","tcCardQA"],tcQA:["tcQALib"],tcAdmin:["tcRemind"],tcCheckin:["tcGeo"],tcTeam:["tcMember","tcShots","tcSessions"],tcHours:["tcAttend"],tcSettings:["tcMigrate"],contracts:["contractShow","contractAdd","contractEdit"],cvs:["cvAdd","cvShow","cvEdit"],clients:["clientShow","clientAdd"],orders:["orderShow"],
+const SUBS={setDev:["saSubscription","saModules","saEmployees","saDesigns","saUpdates","saUpdateForm","saBackups","saScheduler","saRecovery","saInvoices","saInvoiceFix","saMcp","saMoyasar","saTestAccounts"],tcMy:["tcPolicy","tcClose"],tcBoard:["tcTask","tcForm","tcList","tcLanes","tcBoardD","tcCard","tcNew","tcCardQA"],tcQA:["tcQALib"],tcAdmin:["tcRemind"],hrAttendance:["tcCheckin","tcGeo"],tcTeam:["tcMember","tcShots","tcSessions"],tcHours:["tcAttend"],tcSettings:["tcMigrate"],contracts:["contractShow","contractAdd","contractEdit"],cvs:["cvAdd","cvShow","cvEdit"],clients:["clientShow","clientAdd"],orders:["orderShow"],
  rental:["rentalShow","rentalAdd"],housing:["housingShow","housingAdd"],transfer:["transferShow","transferAdd"],
  reports:["report"],finSales:["finSaleAdd","finBonds","finReturns"],finBanks:["finBoxes","finTransfers","finChecksIn","finChecksOut"],finClients:["finSuppliers","finAgents"],
  finCenters:["finCentersTree"],finReports:["finReport"],finItems:["finStock","finInventory"],finEntries:["finAdd","finShow"],finAccounts:["finSettings"],clArchive:[],delegations:["delAdd","delShow"],trips:["tripShow"],agents:["agentShow"],"hb-board":["hbNew"],"hb-visits":["hbVisit"],coupons:["couponForm","couponShow","couponBulk","couponReport","couponSettings"],claims:["claimAdd","claimShow","claimTypes"],absconding:["abscShow"],campaigns:["campaignNew"],finRequests:["finRequestAdd","finRequestShow"],finAssets:["finAssetShow"],finCommissions:["finCommissionShow","finCommissionRules"],finTax:["finZatca"],hrEmployees:["hrEmployeeShow","hrEmployeeAdd"],hrPayroll:["hrPayrollRun"],setUsers:["setRoles"],visaRequests:["visaAdd","visaShow"]};
 /* v1.8.1: sidebar badges = only things that need action (no totals). r=urgent/late, a=waiting for you, n=unread */
-const ALERTS={tcAdmin:[2,"r","مهمتين إدارة متأخرين"],tcVault:[1,"r","حساب باسورده عدّى 90 يوم"],tcCheckin:[1,"r","موظف برّه النطاق مستني اعتماد"],tcQA:[4,"a","4 مهام مستنية اختبارك"],tcInbox:[7,"a","7 حاجات واردة لسه متفرزتش"],tcHandoff:[3,"a","3 مهام مستنياك تستلمها"],tcApprovals:[3,"a","3 تسجيلات وقت بانتظار اعتمادك"],orders:[6,"a","6 طلبات جديدة لسه محدش ردّ عليها"],contracts:[18,"r","18 عقد تجاوز 45 يوم بدون تذاكر"],invoices:[7,"r","7 فواتير متأخرة السداد"],transfer:[4,"a","4 طلبات نقل بانتظار موافقتك"],housing:[2,"a","2 عاملة محتاجين فحص طبي"],followups:[5,"a","5 متابعات مطلوبة النهارده"],chats:[3,"n","3 محادثات غير مقروءة"],claims:[2,"r","شكوتين عاجلتين"],absconding:[2,"r","2 بلاغ هروب مفتوح"],"hb-alerts":[1,"r","بلاغ مفتوح من الطاقم"],visaDash:[2,"a","2 طلب تأشيرة بانتظار الموافقة"],finRequests:[5,"a","5 طلبات مالية بانتظار اعتمادك"],finTax:[4,"r","4 فواتير مرفوضة من ZATCA"],hrRequests:[7,"a","7 طلبات موظفين مستنية قرارك"],hrAttendance:[1,"r","موظف غايب بدون إذن النهارده"],setMessages:[0,"r","مزود الرسائل النصية متوقف"]};
+const ALERTS={tcAdmin:[2,"r","مهمتين إدارة متأخرين"],tcVault:[1,"r","حساب باسورده عدّى 90 يوم"],tcQA:[4,"a","4 مهام مستنية اختبارك"],tcInbox:[7,"a","7 حاجات واردة لسه متفرزتش"],tcHandoff:[3,"a","3 مهام مستنياك تستلمها"],tcApprovals:[3,"a","3 تسجيلات وقت بانتظار اعتمادك"],orders:[6,"a","6 طلبات جديدة لسه محدش ردّ عليها"],contracts:[18,"r","18 عقد تجاوز 45 يوم بدون تذاكر"],invoices:[7,"r","7 فواتير متأخرة السداد"],transfer:[4,"a","4 طلبات نقل بانتظار موافقتك"],housing:[2,"a","2 عاملة محتاجين فحص طبي"],followups:[5,"a","5 متابعات مطلوبة النهارده"],chats:[3,"n","3 محادثات غير مقروءة"],claims:[2,"r","شكوتين عاجلتين"],absconding:[2,"r","2 بلاغ هروب مفتوح"],"hb-alerts":[1,"r","بلاغ مفتوح من الطاقم"],visaDash:[2,"a","2 طلب تأشيرة بانتظار الموافقة"],finRequests:[5,"a","5 طلبات مالية بانتظار اعتمادك"],finTax:[4,"r","4 فواتير مرفوضة من ZATCA"],hrRequests:[7,"a","7 طلبات موظفين مستنية قرارك"],hrAttendance:[1,"r","موظف برّه النطاق مستني اعتمادك"],setMessages:[0,"r","مزود الرسائل النصية متوقف"]};
 DEPTS.forEach(d=>d.items.forEach(p=>{if(p.sec)return;delete p.b;if(ALERTS[p.id])p.al=ALERTS[p.id]}));
 const ALB=p=>p&&p.al?`<span class="nal ${p.al[1]}${p.al[0]?"":" dot"}" title="${p.al[2]}">${p.al[0]?`<b class="num">${p.al[0]}</b>`:""}</span>`:"";
 const DAL=d=>{const al=d.items.filter(p=>p.al);if(!al.length)return "";const r=al.filter(p=>p.al[1]==="r").length,w=al.length-r;return `<span class="dal">${r?`<span class="nal r" title="${r} حاجة عاجلة"><b class="num">${r}</b></span>`:""}${w?`<span class="nal a" title="${w} حاجة مستنياك"><b class="num">${w}</b></span>`:""}</span>`};
@@ -4103,7 +4103,7 @@ S.hrAttendance=()=>{
  <div class="card hx-heat"><div class="hx-heat-h"><span></span>${Array.from({length:DAYS},(_,i)=>`<b class="num">${i+1}</b>`).join("")}<span>تأخير/غياب</span></div>${rows.map(r=>`<div class="r"><span class="n">${AV(r.n)}${r.n}</span>${r.d.map(c=>`<i class="${c}" title="${types[c]}"></i>`).join("")}<span class="s num">${r.d.filter(c=>c==="a").length} / ${r.d.filter(c=>c==="x").length}</span></div>`).join("")}
   <div class="hx-leg">${Object.entries(types).map(([k,v])=>`<span><i class="${k}"></i>${v}</span>`).join("")}</div></div>
  <div class="card flush fx-t"><div class="card-h pad"><div><h3>سجل النهارده</h3><p>الاثنين 16 نوفمبر</p></div></div><div class="tw"><table><thead><tr><th>الموظف</th><th>الحضور</th><th>الانصراف</th><th>النوع</th><th>القائم بالإجراء</th><th class="act"></th></tr></thead><tbody>
- ${EMP.map(e=>`<tr><td><div class="hx-emp">${AV(e[0])}<b>${e[0]}</b></div></td><td class="num">${e[7]||"—"}</td><td class="num">—</td><td>${TAG(AT[e[6]][0],e[6]==="in"?"حضور":e[6]==="late"?"تأخير 41 د":AT[e[6]][1])}</td><td>${e[7]?"البصمة":"—"}</td><td class="act">${ACTS([["pencil","تعديل"]])}</td></tr>`).join("")}
+ ${EMP.map(e=>`<tr><td><div class="hx-emp">${AV(e[0])}<b>${e[0]}</b></div></td><td class="num">${e[7]||"—"}</td><td class="num">—</td><td>${TAG(AT[e[6]][0],e[6]==="in"?"حضور":e[6]==="late"?"تأخير 41 د":AT[e[6]][1])}</td><td>${e[7]?["موقع · المكتب الرئيسي 18 م","موقع · المكتب الرئيسي 40 م","زيارة عميل · مربوطة بمهمة","بصمة","موقع · عن بعد"][e[0].length%5]:"—"}</td><td class="act">${ACTS([["pencil","تعديل"]])}</td></tr>`).join("")}
  </tbody></table></div></div>`};
 
 /* ================= الطلبات (موحّدة: إجازات، أذونات، سلف، مكافآت) ================= */
@@ -4799,8 +4799,8 @@ const STC={new:"n",doing:"b",qa:"p",ready:"g",client:"a",hold:"r",closed:"n"};
 const ty=t=>`<span class="tc-ty ${TY[t][0]}">${t}</span>`;
 const av=(n,c)=>`<span class="tc-av${c?" "+c:""}" title="${n}">${n.trim()[0]}</span>`;
 const PPL=["أحمد سمير","منى عادل","كريم فتحي","يوسف حسن","سارة نبيل","عمر خالد"];
-const TCP={tcRemind:"tcAdmin",tcVault:"tcAdmin",tcArchive:"tcBoard",tcGeo:"tcCheckin",tcQALib:"tcQA",tcCardQA:"tcBoard",tcBoardD:"tcBoard",tcCard:"tcBoard",tcNew:"tcBoard",tcLanes:"tcBoard",tcList:"tcBoard",tcTask:"tcBoard",tcForm:"tcBoard",tcMember:"tcTeam",tcShots:"tcTeam",tcSessions:"tcTeam",tcAttend:"tcHours",tcClose:"tcMy",tcPolicy:"tcMy",tcMigrate:"tcSettings"};
-const tcTabs=on=>TABS([["tcMy","sun","يومي"],["tcInbox","inbox","الوارد",7],["tcBoard","columns-3","لوحة المهام"],["tcHandoff","arrow-left-right","التسليم والاستلام",3],["tcQA","flask-conical","الاختبار",4],["tcSpecs","file-text","التحليل والمواصفات"],["tcAdmin","briefcase","الإدارة",2],["tcCheckin","map-pin","الحضور"],["tcTeam","users","متابعة الفريق"],["tcApprovals","hourglass","موافقات الوقت",3],["tcHours","bar-chart-3","التقارير"],["tcSettings","settings","الإعدادات"]],TCP[on]||on);
+const TCP={tcRemind:"tcAdmin",tcVault:"tcAdmin",tcArchive:"tcBoard",tcGeo:"hrAttendance",tcCheckin:"hrAttendance",tcQALib:"tcQA",tcCardQA:"tcBoard",tcBoardD:"tcBoard",tcCard:"tcBoard",tcNew:"tcBoard",tcLanes:"tcBoard",tcList:"tcBoard",tcTask:"tcBoard",tcForm:"tcBoard",tcMember:"tcTeam",tcShots:"tcTeam",tcSessions:"tcTeam",tcAttend:"tcHours",tcClose:"tcMy",tcPolicy:"tcMy",tcMigrate:"tcSettings"};
+const tcTabs=on=>TABS([["tcMy","sun","يومي"],["tcInbox","inbox","الوارد",7],["tcBoard","columns-3","لوحة المهام"],["tcHandoff","arrow-left-right","التسليم والاستلام",3],["tcQA","flask-conical","الاختبار",4],["tcSpecs","file-text","التحليل والمواصفات"],["tcAdmin","briefcase","الإدارة",2],["hrAttendance","map-pin","الحضور"],["tcTeam","users","متابعة الفريق"],["tcApprovals","hourglass","موافقات الوقت",3],["tcHours","bar-chart-3","التقارير"],["tcSettings","settings","الإعدادات"]],TCP[on]||on);
 const TIMER=(num,title,el)=>`<div class="tc-timer"><span class="tc-pulse"></span>${X("timer")}<span>المؤقت شغال على <a href="#" data-go="tcTask"><b class="num">${num}</b> — ${title}</a></span><b class="num tc-clock">${el}</b><span class="tc-mon">${X("monitor-check")}مشاركة الشاشة شغالة · <span class="num">7</span> لقطات</span>${B("ghost sm","app-window","نافذة المراقبة")}${B("red sm","square","إيقاف")}</div>`;
 
 /* ---- tasks ---- */
@@ -5497,9 +5497,10 @@ const kcard=(r,sm)=>{const t=TI[r[1]],p=PI[r[6]],chk=r[12]?r[12].split("/").map(
 
 /* toolbar shared by board + lanes */
 const LOAD={"أحمد سمير":[9,1],"منى عادل":[7,1],"كريم فتحي":[6,1],"يوسف حسن":[4,0],"سارة نبيل":[5,1],"عمر خالد":[2,0]};
+const PZ={"أحمد سمير":["g","في المكتب"],"منى عادل":["g","في المكتب"],"كريم فتحي":["b","زيارة عميل"],"سارة نبيل":["n","عن بعد"],"يوسف حسن":["r","برّه النطاق"],"عمر خالد":["v","إجازة"]};
 const BAR=(on)=>`<div class="kb-bar">
  <div class="inp kb-q">${X("search")}<input placeholder="ابحث في اللوحة… ( / )"></div>
- <div class="kb-ppl">${PPL.map(n=>`<button class="${n==="أحمد سمير"?"on":""}" title="${n} · ${LOAD[n][0]} مهام مفتوحة${LOAD[n][1]?" · شغال دلوقتي":""}">${av(n,LOAD[n][1]?"on-live":"")}<em class="num">${LOAD[n][0]}</em></button>`).join("")}<button class="kb-none" title="من غير مسؤول">${X("user-x")}<em class="num">1</em></button></div>
+ <div class="kb-ppl">${PPL.map(n=>`<button class="pzb ${PZ[n][0]}${n==="أحمد سمير"?" on":""}" title="${n} · ${PZ[n][1]} · ${LOAD[n][0]} مهام مفتوحة${LOAD[n][1]?" · شغال دلوقتي":""}">${av(n,LOAD[n][1]?"on-live":"")}<em class="num">${LOAD[n][0]}</em><i class="pzd"></i></button>`).join("")}<button class="kb-none" title="من غير مسؤول">${X("user-x")}<em class="num">1</em></button></div>
  <div class="kb-qf">${[["مهامي",""],["متأخرة","r"],["مستني العميل","a"],["طارئ","r"],["المراجعة عندي",""]].map((c,i)=>`<button class="${i===0?"on":""}">${c[1]?`<i class="d ${c[1]}"></i>`:""}${c[0]}</button>`).join("")}</div>
  <span class="kb-sp"></span>
  <div class="kb-grp">${X("rows-3")}<small>تجميع</small>${[["tcBoard","بدون"],["tcLanes","الموظف"],["#c","العميل"],["#p","الأولوية"]].map(g=>`<button class="${g[0]===on?"on":""}" ${g[0][0]==="#"?"":`data-go="${g[0]}"`}>${g[1]}</button>`).join("")}</div>
@@ -5780,7 +5781,7 @@ const PINS=[["أحمد سمير","office",62,40,"09:02","المكتب الرئي
 const PS={office:["g","في المكتب"],field:["b","زيارة ميدانية"],remote:["n","عن بعد"],out:["r","برّه النطاق"],none:["a","لسه"]};
 S.tcCheckin=()=>`
  ${IDEA("الحضور بقى بالموقع ومربوط بالشغل: الموظف بيسجّل من الموبايل أو المتصفح، والنظام بيقارن مكانه بنطاق الفرع (الإحداثيات موجودة أصلاً في الفروع). جوه النطاق = حضور مباشر، برّه = لازم سبب (زيارة عميل مربوطة بمهمة، أو يوم عن بعد متوافق عليه). والمؤقت في «يومي» مش بيشتغل غير بعد تسجيل الحضور — فوقت المهام دايماً جوه ساعات الحضور. والمدير بيشوف الخريطة والجدول مع بعض.")}
- ${HEAD("الحضور بالموقع","مين فين النهارده — مربوط بنطاق كل فرع.",B("ghost","settings-2","النطاقات",'data-go="tcGeo"')+B("ghost","file-spreadsheet","تصدير"))}
+ ${HEAD("الحضور بالموقع — مباشر","مين فين النهارده — جزء من الحضور في الموارد البشرية.",B("ghost","settings-2","النطاقات",'data-go="tcGeo"')+B("ghost","file-spreadsheet","تصدير"),["hrAttendance","الحضور والانصراف"])}
  ${tcTabs("tcCheckin")}
  <div class="ci-wrap">
   <div class="ci-phone"><div class="ci-ph"><small class="num">09:02</small><b>صباح الخير يا أحمد</b></div>
@@ -5807,6 +5808,45 @@ S.tcMy=()=>oldMy().replace('${TIMER','${TIMER').replace('<div class="tc-timer">'
 
 Object.assign(T,{tcAdmin:{ar:"مهام الإدارة",en:"Management tasks"},tcRemind:{ar:"رسالة أو تذكير",en:"Send reminder"},tcVault:{ar:"بيانات الدخول",en:"Credentials"},tcArchive:{ar:"الأرشيف",en:"Archive"},tcCheckin:{ar:"الحضور بالموقع",en:"Location check-in"},tcGeo:{ar:"نطاقات الحضور",en:"Geofences"}});
 Object.keys(S).forEach(k=>{screens[k]=S[k]});
+})();
+/* ===== v1.17 — Attendance is one source (HR): location view in HR attendance, presence on the task board, team presence on home ===== */
+(()=>{
+const {X,SEC,KV,TAG,SW,ROW,B,ACTS}=window.CXH;
+const {av}=window.KBX;
+const NEWT=`<span class="tag a hm-new">جديد</span>`;
+/* presence of the team today (from HR attendance) */
+const PR={"أحمد سمير":["g","في المكتب","09:02"],"منى عادل":["g","في المكتب","08:55"],"كريم فتحي":["b","زيارة عميل","09:40"],"سارة نبيل":["n","عن بعد","09:10"],"يوسف حسن":["r","برّه النطاق","09:31"],"عمر خالد":["v","إجازة",""]};
+const PL={g:"في المكتب",b:"زيارة",n:"عن بعد",r:"برّه النطاق",a:"لسه ماسجّلش",v:"إجازة"};
+const pav=n=>{const p=PR[n];return `<span class="pz ${p[0]}" title="${n} · ${p[1]}${p[2]?" من "+p[2]:""}">${av(n)}<i></i></span>`};
+
+/* ---------- 1) HR attendance: «النهارده بالموقع» on top ---------- */
+const LIVE=`<div class="card ha-live"><div class="ha-lh"><div><b>${X("map-pin")}النهارده بالموقع</b><small>الاثنين 16 نوفمبر · تسجيل من الموبايل أو المتصفح بنطاق الفرع ${NEWT}</small></div>
+ <div class="ha-lk">${[["g","في المكتب",31],["b","زيارة ميدانية",3],["n","عن بعد",2],["r","برّه النطاق",1],["a","لسه ماسجّلش",2],["v","إجازة",3]].map(k=>`<span class="${k[0]}"><b class="num">${k[2]}</b>${k[1]}</span>`).join("")}</div>
+ <div class="ha-la">${B("ghost sm","map","الخريطة المباشرة",'data-go="tcCheckin"')}${B("ghost sm","settings-2","نطاقات الحضور",'data-go="tcGeo"')}</div></div>
+ <div class="ha-ex"><b>محتاج قرارك</b>${[["r","يوسف حسن","سجّل برّه النطاق · 1.2 كم · «عند البنك»",[["check","اعتماد"],["x","رفض"]]],["a","فيصل القحطاني","لسه ماسجّلش · ميعاده 08:30",[["send","فكّره",'data-go="tcRemind"']]],["b","كريم فتحي","زيارة عميل · مكتب نجد · مربوطة بـ OPS-0033",[["eye","التفاصيل"]]]].map(e=>`<div class="${e[0]}"><i></i><b>${e[1]}</b><span>${e[2]}</span>${ACTS(e[3])}</div>`).join("")}</div></div>`;
+const oldHR=screens.hrAttendance;
+screens.hrAttendance=()=>oldHR()
+ .replace('<div class="fbar">',LIVE+'<div class="fbar">')
+ .replace('<th>القائم بالإجراء</th>','<th>الطريقة والمكان</th>')
+ .replace("الحضور والانصراف</h1><p>نوفمبر 2026 · 42 موظف","الحضور والانصراف</h1><p>نوفمبر 2026 · 42 موظف · مصدر الحضور للرئيسية ومركز المهام");
+/* table cell: method + place (bundle text patched at integration) */
+
+/* ---------- 2) Task board: presence on people + cards ---------- */
+const {K}=window.KBX;
+K.forEach(r=>{if(r[0]==="SUP-0288"){r[16]="عمر إجازة النهارده — حوّلها لحد؟";r[17]="a"}});
+const PRES=`<a href="#" data-go="hrAttendance" class="pz-sum">${X("map-pin")}<span><b class="num">3</b> حاضرين · <b class="num">1</b> زيارة · <b class="num">1</b> عن بعد · <b class="num r">1</b> برّه النطاق · <b class="num">1</b> إجازة</span></a>`;
+const fixBoard=h=>h.replace('<span class="kb-sp"></span>',`<span class="kb-sp"></span>${PRES}`);
+["tcBoard","tcBoardD","tcLanes","tcCard","tcNew","tcCardQA"].forEach(k=>{const o=screens[k];if(o)screens[k]=()=>fixBoard(o())});
+/* lanes: presence next to each person */
+const oLanes=screens.tcLanes;
+screens.tcLanes=()=>oLanes().replace(/<div class="kb-lt">([\s\S]*?)<b>([^<]+)<\/b><small>/g,(m,pre,n)=>{const p=PR[n];return p?`<div class="kb-lt">${pre}<b>${n}</b><span class="pz-t ${p[0]}">${p[1]}${p[2]?" · "+p[2]:""}</span><small>`:m});
+
+/* ---------- 3) Home: «فريقك النهارده» ---------- */
+const TEAM=`<div class="card hm-team"><div class="hm-th"><div><b>${X("users")}فريقك النهارده</b><small>من الحضور في الموارد البشرية · للمشرفين</small></div><a href="#" data-go="hrAttendance">الحضور ←</a></div>
+ <div class="hm-tp">${Object.keys(PR).map(n=>{const p=PR[n];return `<div class="hm-tm ${p[0]}">${pav(n)}<span><b>${n.split(" ")[0]}</b><small>${p[1]}${p[2]?" · "+p[2]:""}</small></span>${n==="أحمد سمير"?`<em>${X("timer")}UPD-0812</em>`:n==="كريم فتحي"?`<em>${X("car")}OPS-0033</em>`:n==="عمر خالد"?`<em class="w">2 مهام محتاجة تتحوّل</em>`:n==="يوسف حسن"?`<em class="w">مستني اعتمادك</em>`:""}</div>`}).join("")}</div>
+ <div class="hm-tf">${[["g",3,"في المكتب"],["b",1,"زيارة"],["n",1,"عن بعد"],["r",1,"برّه النطاق"],["v",1,"إجازة"]].map(k=>`<span class="${k[0]}"><i></i><b class="num">${k[1]}</b>${k[2]}</span>`).join("")}</div></div>`;
+const oldDash=screens.dashboard;
+screens.dashboard=()=>{const h=oldDash();return h.includes('<div class="hm-top">')?h.replace('<div class="hm-top">',TEAM+'<div class="hm-top">'):h};
 })();
 (function(){var P=window.CERP_PAGE;if(!P)return;var PAGES=window.CERP_PAGES||[];
 if(P==="login"){renderLogin();return}
