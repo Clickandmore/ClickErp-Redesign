@@ -5268,9 +5268,9 @@ const STC={new:"n",doing:"b",qa:"p",ready:"g",client:"a",hold:"r",closed:"n"};
 const ty=t=>`<span class="tc-ty ${TY[t][0]}">${t}</span>`;
 const av=(n,c)=>`<span class="tc-av${c?" "+c:""}" title="${n}">${n.trim()[0]}</span>`;
 const PPL=["أحمد سمير","منى عادل","كريم فتحي","يوسف حسن","سارة نبيل","عمر خالد"];
-const TCP={tcShare:"tcBoard",tcRemind:"tcAdmin",tcVault:"tcAdmin",tcArchive:"tcBoard",tcGeo:"hrAttendance",tcCheckin:"hrAttendance",tcQALib:"tcQA",tcCardQA:"tcBoard",tcBoardD:"tcBoard",tcCard:"tcBoard",tcNew:"tcBoard",tcLanes:"tcBoard",tcList:"tcBoard",tcTask:"tcBoard",tcForm:"tcBoard",tcMember:"tcTeam",tcShots:"tcTeam",tcSessions:"tcTeam",tcAttend:"tcHours",tcClose:"tcMy",tcPolicy:"tcMy",tcMigrate:"tcSettings"};
+const TCP={tcShare:"tcBoard",tcRemind:"tcAdmin",tcVault:"tcAdmin",tcGeo:"hrAttendance",tcCheckin:"hrAttendance",tcQALib:"tcQA",tcCardQA:"tcBoard",tcBoardD:"tcBoard",tcCard:"tcBoard",tcNew:"tcBoard",tcLanes:"tcBoard",tcList:"tcBoard",tcTask:"tcBoard",tcForm:"tcBoard",tcMember:"tcTeam",tcShots:"tcTeam",tcSessions:"tcTeam",tcAttend:"tcHours",tcClose:"tcMy",tcPolicy:"tcMy",tcMigrate:"tcSettings"};
 /* v1.23 — task-center nav: bigger, grouped, sticky; switching tabs doesn't reload the page */
-const TCNAV=[["شغلي",[["tcMy","sun","يومي"],["tcInbox","inbox","الوارد",7,"a"],["tcBoard","columns-3","لوحة المهام"],["tcHandoff","arrow-left-right","التسليم والاستلام",3]]],
+const TCNAV=[["شغلي",[["tcMy","sun","يومي"],["tcInbox","inbox","الوارد",7,"a"],["tcBoard","columns-3","لوحة المهام"],["tcHandoff","arrow-left-right","التسليم والاستلام",3],["tcArchive","folder-open","الملفات",1,"a"]]],
  ["مراحل الشغل",[["tcSpecs","file-text","التحليل والمواصفات"],["tcQA","flask-conical","الاختبار",4],["tcAdmin","briefcase","الإدارة",2]]],
  ["الفريق والوقت",[["hrAttendance","map-pin","الحضور"],["tcTeam","users","متابعة الفريق"],["tcApprovals","hourglass","موافقات الوقت",3,"a"],["tcHours","bar-chart-3","التقارير"],["tcSettings","settings","الإعدادات"]]]];
 window.TCNAV_IDS=TCNAV.flatMap(g=>g[1].map(x=>x[0]));
@@ -6827,6 +6827,245 @@ document.addEventListener("drop",e=>{if(!onBoard()||!UI.drag)return;const d=e.ta
  const from=t.status;t.status=to;log(t,`نقلها من «${STN[from]}» لـ «${STN[to]}»`);save();paint();
  const cc=CC(to),wip=TS.filter(x=>x.status===to).length;toast(`${t.k} ← ${STN[to]}${cc&&cc.wip&&wip>cc.wip?` · «${cc.name}» عدّت الحد (${wip}/${cc.wip})`:""}`,"move")});
 })();
+/* ===== v1.28 — «الملفات»: a real files library in the task center (send to someone, share, link to a project) ===== */
+(()=>{
+const {X,B}=window.CXH;
+const {tcTabs,PPL}=window.TCX;
+const {av,K}=window.KBX;
+const ME="أحمد سمير",LS="cerp-files-v1";
+const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+/* products = «المشروع» — the real tc_tasks.product values */
+const PRJ={erp:["Click ERP System","#2f5fa8"],chat:["Click Chat","#0e7c66"],hourly:["نظام تأجير بالساعة","#c8862a"],sites:["مواقع خارجية","#7044b8"],apps:["تطبيقات","#c2417a"]};
+const CLI=["مكتب الريادة","مؤسسة سواعد","مكتب الأمانة","مكتب نجد","داخلي"];
+const KIND={update:["rocket","تحديث","ملاحظات إصدار وتغييرات"],guide:["book-open","شرح","طريقة استخدام أو خطوات"],spec:["file-text","مواصفات","تحليل ومتطلبات"],contract:["file-check-2","عقد وعرض سعر",""],design:["palette","تصميم","شاشات وصور"],media:["film","فيديو وصور","تسجيل شاشة"],other:["file","تاني",""]};
+const EXT={pdf:["file-text","#d4453c"],docx:["file-text","#2f5fa8"],xlsx:["file-spreadsheet","#0e7c66"],png:["file-image","#7044b8"],jpg:["file-image","#7044b8"],mp4:["file-video","#c8862a"],zip:["file-archive","#5f6c80"],md:["file-code","#1f8fb3"],fig:["palette","#c2417a"]};
+const TASKS=K.map(r=>[r[0],r[2]]);
+const tname=k=>(TASKS.find(t=>t[0]===k)||[k,""])[1];
+const D=(n,ext,kind,prj,cli,tasks,by,at,size,ver,acc,extra)=>Object.assign({id:"f"+Math.random().toString(36).slice(2,8),n,ext,kind,prj,cli,tasks,by,at,size,ver,acc,link:null,sent:[],star:false,desc:"",src:"",act:[{w:by,at,x:"رفع الملف"}],vers:Array.from({length:ver},(_,i)=>({v:ver-i,by,at:i?`${10-i} نوف`:at}))},extra||{});
+const seed=()=>[
+ D("ملاحظات إصدار 4.12 — الكوبونات والعمولات","pdf","update","erp","داخلي",["BUG-0147","UPD-0812"],"منى عادل","اليوم 11:20","420 KB",3,{m:"team",p:[]},{desc:"كل اللي اتغير في نسخة 4.12: حساب العمولة مع الكوبون، وفلتر الفرع في تقرير التحصيل.",sent:[{to:"كريم فتحي",at:"اليوم 11:25",seen:"اليوم 11:40",ack:true},{to:"يوسف حسن",at:"اليوم 11:25",seen:"",ack:false}],star:true}),
+ D("شرح — إعداد الفروع لموظف جديد","mp4","guide","erp","داخلي",["SUP-0288"],"سارة نبيل","امبارح","38 MB",1,{m:"team",p:[]},{desc:"فيديو 6 دقايق: إضافة فرع، وربط الصندوق، وصلاحيات الموظف.",sent:[{to:ME,at:"امبارح 15:10",seen:"",ack:false,need:true}]}),
+ D("مواصفات — ربط الدفع في الفاتورة","docx","spec","erp","مكتب الريادة",["UPD-0814"],"أحمد سمير","14 نوف","96 KB",2,{m:"people",p:["أحمد سمير","منى عادل"]}),
+ D("عرض سعر — موديول الكوبونات","pdf","contract","erp","مؤسسة سواعد",[],"عمر خالد","28 أكت","340 KB",1,{m:"people",p:["عمر خالد","سارة نبيل"]},{link:{mode:"client",exp:"7 أيام",dl:true}}),
+ D("لقطة — رسالة الخطأ في صفحة الدفع","png","media","erp","مكتب الأمانة",["BUG-0150"],"يوسف حسن","اليوم 09:40","210 KB",1,{m:"team",p:[]},{src:"من تعليق على BUG-0150"}),
+ D("تصميم شاشة المحادثات — النسخة الجديدة","fig","design","chat","داخلي",[],"منى عادل","12 نوف","—",4,{m:"team",p:[]}),
+ D("خطوات نقل السيرفر — مكتب نجد","md","guide","erp","مكتب نجد",["OPS-0033"],"كريم فتحي","اليوم 08:15","12 KB",2,{m:"people",p:["كريم فتحي","أحمد سمير"]},{sent:[{to:ME,at:"اليوم 08:20",seen:"اليوم 08:31",ack:true}]}),
+ D("تحديث تطبيق الجوال 2.3 — ملاحظات الإصدار","pdf","update","apps","داخلي",[],"سارة نبيل","10 نوف","180 KB",1,{m:"team",p:[]}),
+ D("كشف عملاء مكررين بعد الاستيراد","xlsx","other","erp","مؤسسة سواعد",["DATA-0061"],"منى عادل","امبارح","64 KB",1,{m:"team",p:[]},{src:"من تعليق على DATA-0061"}),
+ D("دليل حجز الساعات للعميل","pdf","guide","hourly","مكتب الريادة",[],"سارة نبيل","5 نوف","1.2 MB",2,{m:"team",p:[]},{link:{mode:"client",exp:"لما المهمة تتقفل",dl:true}}),
+ D("صور الموقع الجديد — الصفحة الرئيسية","zip","design","sites","مكتب الأمانة",[],"منى عادل","3 نوف","8.4 MB",1,{m:"team",p:[]}),
+ D("نسخة احتياطية من الإعدادات قبل الترحيل","zip","other","erp","مكتب الريادة",["DATA-0059"],"أحمد سمير","9 نوف","22 MB",1,{m:"private",p:["أحمد سمير"]})];
+let F;try{F=JSON.parse(localStorage.getItem(LS))}catch(e){}
+if(!Array.isArray(F))F=seed();
+const save=()=>{try{localStorage.setItem(LS,JSON.stringify(F))}catch(e){}};
+const get=id=>F.find(f=>f.id===id);
+const UI={tab:"files",nav:"all",q:"",kind:"",prj:"",cli:"",view:"list",sort:"new",sel:[],open:null,dlg:null,ids:[],S:{to:[],msg:"",ack:true,wa:false},SH:{},L:{},U:{files:[],kind:"guide",prj:"erp",cli:"داخلي",task:"",acc:"team",to:[]}};
+const inbox=f=>f.sent.some(s=>s.to===ME);
+const unread=f=>f.sent.some(s=>s.to===ME&&!s.seen);
+const NAV=[["all","files","كل الملفات",()=>F.length],["inbox","inbox","اتبعتت لي",()=>F.filter(unread).length,"a"],["mine","upload","اللي رفعتها",()=>F.filter(f=>f.by===ME).length],["star","star","المميزة",()=>F.filter(f=>f.star).length],["shared","link-2","ليها رابط مشاركة",()=>F.filter(f=>f.link).length],["loose","unlink","مش مربوطة بمهمة",()=>F.filter(f=>!f.tasks.length).length]];
+const match=f=>{const n=UI.nav;
+ if(n==="inbox"&&!inbox(f))return false;if(n==="mine"&&f.by!==ME)return false;if(n==="star"&&!f.star)return false;if(n==="shared"&&!f.link)return false;if(n==="loose"&&f.tasks.length)return false;
+ if(n.startsWith("p:")&&f.prj!==n.slice(2))return false;if(n.startsWith("k:")&&f.kind!==n.slice(2))return false;
+ if(UI.kind&&f.kind!==UI.kind)return false;if(UI.prj&&f.prj!==UI.prj)return false;if(UI.cli&&f.cli!==UI.cli)return false;
+ if(f.acc.m==="private"&&f.by!==ME&&!f.acc.p.includes(ME))return false;
+ const q=UI.q.trim();if(q&&!(f.n+" "+f.tasks.join(" ")+" "+f.cli+" "+f.desc+" "+PRJ[f.prj][0]).includes(q))return false;return true};
+const list=()=>{const l=F.filter(match);return UI.sort==="name"?l.slice().sort((a,b)=>a.n.localeCompare(b.n,"ar")):UI.sort==="size"?l:l};
+const ic=f=>{const e=EXT[f.ext]||["file","#5f6c80"];return `<span class="fl-ic" style="--x:${e[1]}">${X(e[0])}<em>${f.ext}</em></span>`};
+const accTxt=f=>f.acc.m==="team"?[X("users"),"الفريق كله"]:f.acc.m==="private"?[X("lock"),"أنا بس"]:[X("user-check"),`${f.acc.p.length} أشخاص`];
+const kt=f=>`<span class="fl-k k-${f.kind}">${X(KIND[f.kind][0])}${KIND[f.kind][1]}</span>`;
+const pj=f=>`<span class="fl-p" style="--p:${PRJ[f.prj][1]}"><i></i>${PRJ[f.prj][0]}</span>`;
+const tk=f=>f.tasks.length?f.tasks.slice(0,2).map(k=>`<span class="fl-t num" title="${esc(tname(k))}">${k}</span>`).join("")+(f.tasks.length>2?`<span class="fl-t">+${f.tasks.length-2}</span>`:""):`<span class="fl-none">—</span>`;
+const toast=(m,i)=>{let el=document.querySelector(".lb-toast");if(!el){el=document.createElement("div");el.className="lb-toast";document.body.appendChild(el)}el.innerHTML=`${X(i||"check-circle-2")}<span>${m}</span>`;el.classList.add("on");if(window.lucide)lucide.createIcons({attrs:{"stroke-width":1.8}});clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove("on"),2600)};
+const now=()=>{const d=new Date();return `اليوم ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`};
+const log=(f,x)=>f.act.unshift({w:ME,at:now(),x});
+
+/* ---------- list ---------- */
+const row=f=>{const a=accTxt(f),on=UI.sel.includes(f.id);
+ return `<tr class="${on?"on":""}${unread(f)?" new":""}" data-fo="${f.id}">
+ <td class="fl-cb"><label><input type="checkbox" data-fsel="${f.id}"${on?" checked":""}></label></td>
+ <td><div class="fl-n">${ic(f)}<div><b>${esc(f.n)}${unread(f)?`<i class="fl-dot" title="اتبعتلك ولسه ماتفتحش"></i>`:""}</b><small>${kt(f)}<span class="num">${f.size}</span>${f.ver>1?`<span class="fl-v">نسخة ${f.ver}</span>`:""}${f.src?`<span class="fl-src">${X("message-square")}${f.src}</span>`:""}</small></div></div></td>
+ <td><div class="fl-pc">${pj(f)}<small>${esc(f.cli)}</small></div></td>
+ <td>${tk(f)}</td>
+ <td><span class="fl-acc">${a[0]}${a[1]}${f.link?`<span class="fl-lk" title="ليه رابط مشاركة${f.link.mode==="client"?" للعميل":""}">${X("link-2")}</span>`:""}</span></td>
+ <td><div class="fl-by">${av(f.by)}<span><b>${f.by.split(" ")[0]}</b><small>${f.at}</small></span></div></td>
+ <td class="fl-ac"><button data-fsend="${f.id}" title="ابعته لموظف">${X("send")}</button><button data-fshare="${f.id}" title="مشاركة">${X("share-2")}</button><button data-flink="${f.id}" title="ربط بمشروع أو مهمة">${X("link")}</button><button data-fstar="${f.id}" class="${f.star?"st":""}" title="مميز">${X("star")}</button></td></tr>`};
+const tile=f=>{const a=accTxt(f),on=UI.sel.includes(f.id);return `<div class="fl-tile${on?" on":""}" data-fo="${f.id}"><label class="fl-tcb"><input type="checkbox" data-fsel="${f.id}"${on?" checked":""}></label><div class="fl-th" style="--x:${(EXT[f.ext]||[0,"#5f6c80"])[1]}">${X((EXT[f.ext]||["file"])[0])}<em>${f.ext}</em>${unread(f)?`<i class="fl-dot"></i>`:""}</div><b>${esc(f.n)}</b><div class="fl-tm">${kt(f)}${pj(f)}</div><div class="fl-tf">${av(f.by)}<small>${f.at}</small><span class="kb-sp"></span><span class="fl-acc" title="${a[1]}">${a[0]}</span>${f.link?X("link-2"):""}</div></div>`};
+const filesView=()=>{const l=list(),n=UI.sel.length;
+ return `<div class="fl-wrap">
+ <aside class="fl-nav card">
+  <div class="fl-ns">${NAV.map(x=>{const c=x[3]();return `<button class="${UI.nav===x[0]?"on":""}" data-fnav="${x[0]}">${X(x[1])}<span>${x[2]}</span>${c?`<em class="num${x[4]?" "+x[4]:""}">${c}</em>`:""}</button>`}).join("")}</div>
+  <small class="fl-nt">المشاريع</small><div class="fl-ns">${Object.keys(PRJ).map(k=>`<button class="${UI.nav==="p:"+k?"on":""}" data-fnav="p:${k}"><i class="fl-pd" style="--p:${PRJ[k][1]}"></i><span>${PRJ[k][0]}</span><em class="num">${F.filter(f=>f.prj===k).length}</em></button>`).join("")}</div>
+  <small class="fl-nt">النوع</small><div class="fl-ns">${Object.keys(KIND).filter(k=>F.some(f=>f.kind===k)).map(k=>`<button class="${UI.nav==="k:"+k?"on":""}" data-fnav="k:${k}">${X(KIND[k][0])}<span>${KIND[k][1]}</span><em class="num">${F.filter(f=>f.kind===k).length}</em></button>`).join("")}</div>
+  <div class="fl-quota"><div><b>المساحة</b><small class="num">71 MB من 5 GB</small></div><span class="tc-bar"><i style="width:2%"></i></span><small>الملف الواحد لحد <span class="num">10</span> MB زي مرفقات التعليقات · الفيديو لحد <span class="num">100</span> MB</small></div>
+ </aside>
+ <section class="fl-main">
+  <div class="fl-bar card"><div class="inp fl-q">${X("search")}<input data-fq value="${esc(UI.q)}" placeholder="ابحث باسم الملف، أو رقم مهمة، أو عميل…"></div>
+   <select data-ff="kind"><option value="">كل الأنواع</option>${Object.keys(KIND).map(k=>`<option value="${k}"${UI.kind===k?" selected":""}>${KIND[k][1]}</option>`).join("")}</select>
+   <select data-ff="prj"><option value="">كل المشاريع</option>${Object.keys(PRJ).map(k=>`<option value="${k}"${UI.prj===k?" selected":""}>${PRJ[k][0]}</option>`).join("")}</select>
+   <select data-ff="cli"><option value="">كل العملاء</option>${CLI.map(c=>`<option${UI.cli===c?" selected":""}>${c}</option>`).join("")}</select>
+   <span class="kb-sp"></span>
+   <div class="fl-vw">${[["list","list","قايمة"],["grid","layout-grid","شبكة"]].map(v=>`<button class="${UI.view===v[0]?"on":""}" data-fview="${v[0]}" title="${v[2]}">${X(v[1])}</button>`).join("")}</div></div>
+  ${n?`<div class="fl-bulk">${X("check-square")}<b class="num">${n}</b> متحدد<span class="kb-sp"></span>${B("ghost sm","send","ابعت لموظف",'data-fsend="sel"')}${B("ghost sm","share-2","مشاركة",'data-fshare="sel"')}${B("ghost sm","link","ربط بمشروع أو مهمة",'data-flink="sel"')}${B("ghost sm","download","تنزيل")}<button class="fl-x" data-fclr="1" title="إلغاء التحديد">${X("x")}</button></div>`:""}
+  ${l.length?(UI.view==="grid"?`<div class="fl-grid">${l.map(tile).join("")}</div>`:`<div class="card flush fl-tbl"><table><thead><tr><th class="fl-cb"><label><input type="checkbox" data-fall${l.every(f=>UI.sel.includes(f.id))?" checked":""}></label></th><th>الملف</th><th>المشروع والعميل</th><th>مربوط بـ</th><th>مين يشوفه</th><th>رفعه</th><th></th></tr></thead><tbody>${l.map(row).join("")}</tbody></table></div>`)
+   :`<div class="card fl-empty">${X("folder-search")}<b>مفيش ملفات هنا</b><small>جرّب تشيل الفلاتر، أو ارفع ملف جديد.</small>${B("primary sm","upload","رفع ملف",'data-fup="1"')}</div>`}
+ </section></div>`};
+
+/* ---------- details drawer ---------- */
+const panel=()=>{const f=get(UI.open);if(!f)return "";const a=accTxt(f);
+ return `<div class="cf-ov" data-fx="1"><aside class="cf fl-dr" role="dialog" aria-label="${esc(f.n)}">
+ <div class="cf-h">${ic(f)}<div><b>${esc(f.n)}</b><small>${kt(f)} · <span class="num">${f.size}</span> · نسخة <span class="num">${f.ver}</span></small></div><button class="md-ic" data-fstar="${f.id}" title="مميز">${X("star")}</button><button class="md-ic" data-fx="1" title="قفل (Esc)">${X("x")}</button></div>
+ <div class="cf-b">
+  <div class="fl-prev" style="--x:${(EXT[f.ext]||[0,"#5f6c80"])[1]}">${X((EXT[f.ext]||["file"])[0])}<span>معاينة ${f.ext.toUpperCase()}</span><div>${B("ghost sm","eye","فتح")}${B("ghost sm","download","تنزيل")}</div></div>
+  ${f.sent.some(s=>s.to===ME&&s.need&&!s.ack)?`<div class="fl-need">${X("bell-ring")}<div><b>${f.by} بعتلك الملف ده ومستني تأكيد إنك قريته</b><small>${esc(f.sent.find(s=>s.to===ME).msg||"")}</small></div>${B("primary sm","check","قريته",`data-fack="${f.id}"`)}</div>`:""}
+  <div class="fl-sec"><h4>التفاصيل</h4>
+   <div class="fl-kv"><span>النوع</span><select data-fe="kind">${Object.keys(KIND).map(k=>`<option value="${k}"${f.kind===k?" selected":""}>${KIND[k][1]}</option>`).join("")}</select></div>
+   <div class="fl-kv"><span>المشروع</span><select data-fe="prj">${Object.keys(PRJ).map(k=>`<option value="${k}"${f.prj===k?" selected":""}>${PRJ[k][0]}</option>`).join("")}</select></div>
+   <div class="fl-kv"><span>العميل</span><select data-fe="cli">${CLI.map(c=>`<option${f.cli===c?" selected":""}>${c}</option>`).join("")}</select></div>
+   <div class="fl-kv"><span>مربوط بالمهام</span><div class="fl-tks">${f.tasks.map(k=>`<span class="fl-t num" title="${esc(tname(k))}">${k}<button data-ftrm="${k}" title="شيل">${X("x")}</button></span>`).join("")}<button class="fl-add" data-flink="${f.id}">${X("plus")}ربط</button></div></div>
+   <div class="fl-kv top"><span>الوصف</span><textarea data-fe="desc" rows="2" placeholder="الملف ده عن إيه؟ سطر يفيد اللي هيفتحه">${esc(f.desc)}</textarea></div>
+   ${f.src?`<div class="fl-kv"><span>المصدر</span><small>${X("message-square")}${f.src}</small></div>`:""}
+  </div>
+  <div class="fl-sec"><h4>مين يقدر يشوفه <button class="fl-ed" data-fshare="${f.id}">تعديل</button></h4>
+   <div class="fl-who">${a[0]}<b>${a[1]}</b>${f.acc.m==="people"?`<span class="fl-avs">${f.acc.p.map(p=>av(p)).join("")}</span>`:""}</div>
+   ${f.link?`<div class="fl-who lk">${X("link-2")}<b>رابط مشاركة ${f.link.mode==="client"?"للعميل — من غير دخول":"لفريق Click"}</b><small>بينتهي: ${f.link.exp}${f.link.dl?" · التنزيل مسموح":""}</small><button class="fl-ed" data-fcopy="${f.id}">نسخ</button></div>`:`<small class="fl-mut">مفيش رابط مشاركة.</small>`}</div>
+  <div class="fl-sec"><h4>اتبعت لـ <button class="fl-ed" data-fsend="${f.id}">ابعت</button></h4>
+   ${f.sent.length?f.sent.map(s=>`<div class="fl-snt">${av(s.to)}<div><b>${s.to}</b><small>${s.at}${s.via?` · ${s.via}`:""}</small></div><span class="fl-st ${s.ack?"g":s.seen?"b":"a"}">${s.ack?`${X("check-check")}أكّد إنه قرأه`:s.seen?`${X("eye")}شافه ${s.seen.replace("اليوم ","")}`:`${X("clock")}لسه ماشافوش`}</span></div>`).join(""):`<small class="fl-mut">لسه مااتبعتش لحد.</small>`}</div>
+  <div class="fl-sec"><h4>النسخ <button class="fl-ed" data-fver="${f.id}">${X("upload")}نسخة جديدة</button></h4>
+   ${f.vers.map((v,i)=>`<div class="fl-ver${i===0?" cur":""}"><span class="num">ن${v.v}</span><div><b>${i===0?"الحالية":"نسخة "+v.v}</b><small>${v.by} · ${v.at}</small></div>${i?`<button class="fl-ed">رجّعها</button>`:""}</div>`).join("")}</div>
+  <div class="fl-sec"><h4>النشاط</h4>${f.act.slice(0,6).map(x=>`<div class="fl-act"><i></i><span><b>${x.w.split(" ")[0]}</b> ${x.x}</span><small>${x.at}</small></div>`).join("")}</div>
+ </div>
+ <div class="cf-f">${B("primary","send","ابعت لموظف",`data-fsend="${f.id}"`)}${B("ghost","share-2","مشاركة",`data-fshare="${f.id}"`)}<span class="kb-sp"></span><button class="btn btn-ghost fl-del" data-fdel="${f.id}">${X("trash-2")}حذف</button></div>
+ </aside></div>`};
+
+/* ---------- dialogs ---------- */
+const who=()=>UI.ids.map(get).filter(Boolean);
+const dlgHead=(ic,t,sub)=>`<div class="fd-h"><span>${X(ic)}</span><div><b>${t}</b><small>${sub}</small></div><button class="md-ic" data-fdx="1">${X("x")}</button></div>`;
+const names=()=>{const w=who();return w.length===1?`«${esc(w[0].n)}»`:`${w.length} ملفات`};
+const dlg=()=>{const d=UI.dlg;if(!d)return "";let body="";
+ if(d==="send"){const S=UI.S,w=who();body=`${dlgHead("send","ابعت لموظف",names())}
+  <div class="fd-b"><label class="fd-l">لمين؟</label><div class="fd-ppl">${PPL.filter(p=>p!==ME).map(p=>`<button class="${S.to.includes(p)?"on":""}" data-fto="${p}">${av(p)}<span>${p}</span>${S.to.includes(p)?X("check"):""}</button>`).join("")}</div>
+   <label class="fd-l">رسالة (اختياري)</label><textarea data-fmsg rows="3" placeholder="مثلاً: اقرا الجزء التالت قبل ما تبدأ في OPS-0033">${esc(S.msg)}</textarea>
+   <button class="fd-tg" data-fopt="ack">${S.ack?X("check-square"):X("square")}<span><b>لازم يأكد إنه قرأه</b><small>يفضل عنده في «الوارد» لحد ما يضغط «قريته» — مناسب للشروحات والتحديثات</small></span></button>
+   <button class="fd-tg" data-fopt="wa">${S.wa?X("check-square"):X("square")}<span><b>ابعته كمان على واتساب</b><small>رسالة فيها الاسم والرابط — للفريق بس</small></span></button>
+   ${w.some(f=>f.acc.m!=="team")&&S.to.some(p=>w.some(f=>f.acc.m!=="team"&&!f.acc.p.includes(p)))?`<div class="fd-warn">${X("alert-triangle")}<span>فيه ملف مش متاح للي اخترتهم — هيتضافوا لـ«مين يقدر يشوفه» تلقائي.</span></div>`:""}
+   <div class="fd-sum">${X("info")}<span>${S.to.length?`هيوصل لـ <b>${S.to.join("، ")}</b> في «الوارد» وكإشعار${S.wa?" وعلى واتساب":""}.`:"اختار موظف واحد على الأقل."}</span></div></div>
+  <div class="fd-f"><button class="btn btn-ghost" data-fdx="1">إلغاء</button>${B("primary","send","ابعت",`data-fdo="send"${S.to.length?"":" disabled"}`)}</div>`}
+ if(d==="share"){const H=UI.SH;body=`${dlgHead("share-2","مشاركة",names())}
+  <div class="fd-b"><label class="fd-l">مين يقدر يشوفه جوه Click</label><div class="fd-rad">${[["team","users","الفريق كله"],["people","user-check","أشخاص محددين"],["private","lock","أنا بس"]].map(o=>`<button class="${H.m===o[0]?"on":""}" data-fam="${o[0]}">${X(o[1])}${o[2]}</button>`).join("")}</div>
+   ${H.m==="people"?`<div class="fd-ppl sm">${PPL.map(p=>`<button class="${H.p.includes(p)?"on":""}" data-fap="${p}">${av(p)}<span>${p.split(" ")[0]}</span></button>`).join("")}</div>`:""}
+   <label class="fd-l">رابط مشاركة</label><div class="fd-rad">${[["","x-circle","مفيش"],["team","shield","لفريق Click (بدخول)"],["client","globe","للعميل (من غير دخول)"]].map(o=>`<button class="${(H.l||"")===o[0]?"on":""}" data-flm="${o[0]}">${X(o[1])}${o[2]}</button>`).join("")}</div>
+   ${H.l?`<div class="fd-row"><label>بينتهي<select data-fexp>${["24 ساعة","7 أيام","30 يوم","لما المهمة تتقفل"].map(x=>`<option${H.exp===x?" selected":""}>${x}</option>`).join("")}</select></label><button class="fd-tg in" data-fopt2="dl">${H.dl?X("check-square"):X("square")}<span><b>التنزيل مسموح</b></span></button></div>
+   <div class="fd-link"><span class="num" dir="ltr">${location.origin}/f/${UI.ids[0]}${H.l==="client"?"?c=1":""}</span>${B("ghost sm","copy","نسخ",'data-fcopy="dlg"')}</div>`:""}
+   ${H.l==="client"?`<div class="fd-warn">${X("alert-triangle")}<span>أي حد معاه الرابط هيقدر يفتحه لحد ما ينتهي. كل فتح بيتسجل في نشاط الملف.</span></div>`:""}</div>
+  <div class="fd-f"><button class="btn btn-ghost" data-fdx="1">إلغاء</button>${B("primary","check","حفظ",'data-fdo="share"')}</div>`}
+ if(d==="link"){const L=UI.L;body=`${dlgHead("link","ربط بمشروع أو مهمة",names())}
+  <div class="fd-b"><div class="fd-2"><label><span class="fd-l">المشروع</span><select data-flp>${Object.keys(PRJ).map(k=>`<option value="${k}"${L.prj===k?" selected":""}>${PRJ[k][0]}</option>`).join("")}</select></label>
+   <label><span class="fd-l">العميل</span><select data-flc>${CLI.map(c=>`<option${L.cli===c?" selected":""}>${c}</option>`).join("")}</select></label></div>
+   <label class="fd-l">المهام <small>(الملف هيظهر في «المرفقات» جوه كل مهمة)</small></label>
+   <div class="inp fd-ts">${X("search")}<input data-flq value="${esc(L.q||"")}" placeholder="رقم أو عنوان المهمة…"></div>
+   <div class="fd-tl">${TASKS.filter(t=>!L.q||(t[0]+t[1]).includes(L.q)).slice(0,7).map(t=>`<button class="${L.tasks.includes(t[0])?"on":""}" data-flt="${t[0]}">${L.tasks.includes(t[0])?X("check-square"):X("square")}<b class="num">${t[0]}</b><span>${esc(t[1])}</span></button>`).join("")}</div></div>
+  <div class="fd-f"><button class="btn btn-ghost" data-fdx="1">إلغاء</button>${B("primary","link","ربط",'data-fdo="link"')}</div>`}
+ if(d==="up"){const U=UI.U;body=`${dlgHead("upload","رفع ملفات","بتتحفظ مرتبة من أول مرة")}
+  <div class="fd-b"><label class="fd-drop"><input type="file" multiple data-ffile>${X("cloud-upload")}<b>اسحب الملفات هنا أو اضغط تختار</b><small>لحد <span class="num">10</span> MB للملف · الفيديو لحد <span class="num">100</span> MB</small></label>
+   ${U.files.length?`<div class="fd-fl">${U.files.map((x,i)=>`<div>${X("file")}<b>${esc(x.n)}</b><small class="num">${x.size}</small><button data-fufr="${i}">${X("x")}</button></div>`).join("")}</div>`:""}
+   <div class="fd-2"><label><span class="fd-l">النوع</span><select data-fu="kind">${Object.keys(KIND).map(k=>`<option value="${k}"${U.kind===k?" selected":""}>${KIND[k][1]}${KIND[k][2]?" — "+KIND[k][2]:""}</option>`).join("")}</select></label>
+    <label><span class="fd-l">المشروع</span><select data-fu="prj">${Object.keys(PRJ).map(k=>`<option value="${k}"${U.prj===k?" selected":""}>${PRJ[k][0]}</option>`).join("")}</select></label>
+    <label><span class="fd-l">العميل</span><select data-fu="cli">${CLI.map(c=>`<option${U.cli===c?" selected":""}>${c}</option>`).join("")}</select></label>
+    <label><span class="fd-l">مربوط بمهمة</span><select data-fu="task"><option value="">من غير</option>${TASKS.map(t=>`<option value="${t[0]}"${U.task===t[0]?" selected":""}>${t[0]} · ${esc(t[1]).slice(0,34)}</option>`).join("")}</select></label></div>
+   <label class="fd-l">مين يقدر يشوفه</label><div class="fd-rad">${[["team","users","الفريق كله"],["private","lock","أنا بس"]].map(o=>`<button class="${U.acc===o[0]?"on":""}" data-fuacc="${o[0]}">${X(o[1])}${o[2]}</button>`).join("")}</div>
+   <label class="fd-l">وابعته لـ <small>(اختياري)</small></label><div class="fd-ppl sm">${PPL.filter(p=>p!==ME).map(p=>`<button class="${U.to.includes(p)?"on":""}" data-futo="${p}">${av(p)}<span>${p.split(" ")[0]}</span></button>`).join("")}</div></div>
+  <div class="fd-f"><button class="btn btn-ghost" data-fdx="1">إلغاء</button>${B("primary","upload",U.files.length?`رفع ${U.files.length} ملف`:"رفع",`data-fdo="up"${U.files.length?"":" disabled"}`)}</div>`}
+ return `<div class="md-ov fd-ov" data-fdx="1"><div class="fd" role="dialog">${body}</div></div>`};
+
+/* ---------- other archive tabs (kept from v1.x) ---------- */
+const tasksView=()=>`<div class="card flush fl-tbl"><table><thead><tr><th>المهمة</th><th>العميل</th><th>اتقفلت</th><th></th></tr></thead><tbody>${[["BUG-0141","البحث في السير الذاتية بطيء","مكتب الريادة","10 نوف"],["UPD-0790","استهداف الكوبونات حسب الفرع","مؤسسة سواعد","2 نوف"],["SUP-0244","العميل مش لاقي حقل الكوبون في التطبيق","مكتب الأمانة","9 أكت"]].map(r=>`<tr><td><div class="fl-n"><span class="fl-ic" style="--x:var(--green-d)">${X("check-circle-2")}</span><div><b><span class="num">${r[0]}</span> ${r[1]}</b><small>بتتنقل للأرشيف بعد 30 يوم من القفل</small></div></div></td><td>${r[2]}</td><td class="num">${r[3]}</td><td class="fl-ac"><button title="رجّعها للوحة">${X("rotate-ccw")}</button></td></tr>`).join("")}</tbody></table></div>`;
+const trelloView=()=>`<div class="card fl-empty">${X("trello")}<b>9 كروت مستوردة من Trello</b><small>بتتدوّر مع الأرشيف، ومرفقاتها اتنقلت لـ«الملفات».</small></div>`;
+
+const app=()=>{const un=F.filter(unread).length,loose=F.filter(f=>!f.tasks.length).length;
+ return `<div class="kb-top"><div class="kb-tr"><div class="kb-tt"><small class="kb-bc">مركز المهام</small><h1>الملفات</h1></div>
+  <div class="kb-stats"><span><b class="num">${F.length}</b>ملف</span><button data-fnav="inbox" class="a${UI.nav==="inbox"?" on":""}"><b class="num">${un}</b>اتبعتت لي ولسه ماشفتهاش</button><button data-fnav="loose" class="${UI.nav==="loose"?"on":""}"><b class="num">${loose}</b>مش مربوطة بمهمة</button></div>
+  <span class="kb-sp"></span>${B("primary","upload","رفع ملفات",'data-fup="1"')}</div>${tcTabs("tcArchive")}</div>
+ <div class="fl-tabs">${[["files","folder-open","الملفات",F.length],["tasks","check-circle-2","المهام المقفولة",96],["trello","trello","أرشيف Trello",9]].map(t=>`<button class="${UI.tab===t[0]?"on":""}" data-ftab="${t[0]}">${X(t[1])}${t[2]}<em class="num">${t[3]}</em></button>`).join("")}<span class="kb-sp"></span><span class="fl-new">${X("sparkles")}مكتبة الملفات <span class="tag a">جديد</span></span></div>
+ ${UI.tab==="files"?filesView():UI.tab==="tasks"?tasksView():trelloView()}`};
+
+const paint=()=>{let ch=0;const a=document.getElementById("flApp");if(a){const h=app();if(a.__h!==h){a.innerHTML=h;a.__h=h;ch=1}}
+ let m=document.getElementById("flM");if(!m){m=document.createElement("div");m.id="flM";document.body.appendChild(m)}
+ const mh=(UI.open?panel():"")+dlg();if(m.__h!==mh){m.innerHTML=mh;m.__h=mh;ch=1}
+ document.body.classList.toggle("lb-lock",!!(UI.open||UI.dlg));
+ if(ch&&window.lucide)lucide.createIcons({attrs:{"stroke-width":1.8}})};
+screens.tcArchive=()=>{const h=app();setTimeout(()=>{const a=document.getElementById("flApp");if(a&&a.__h==null)a.__h=h;const m=location.hash.match(/file=(\w+)/);if(m&&get(m[1]))UI.open=m[1];paint()},0);return `<div id="flApp">${h}</div>`};
+Object.assign(T,{tcArchive:{ar:"الملفات",en:"Files"}});
+
+/* ---------- events ---------- */
+const on=()=>window.CERP_PAGE==="tcArchive";
+const openDlg=(d,id)=>{UI.ids=id==="sel"?UI.sel.slice():[id];const f=get(UI.ids[0]);
+ if(d==="send")UI.S={to:[],msg:"",ack:UI.ids.map(get).some(x=>x&&(x.kind==="guide"||x.kind==="update")),wa:false};
+ if(d==="share")UI.SH={m:f.acc.m,p:f.acc.p.slice(),l:f.link?f.link.mode:"",exp:f.link?f.link.exp:"7 أيام",dl:f.link?f.link.dl:true};
+ if(d==="link")UI.L={prj:f.prj,cli:f.cli,tasks:UI.ids.length===1?f.tasks.slice():[],q:""};
+ UI.dlg=d;paint()};
+const copy=t=>{const ok=()=>toast("اتنسخ الرابط","link");if(navigator.clipboard&&window.isSecureContext)navigator.clipboard.writeText(t).then(ok,ok);else ok()};
+document.addEventListener("click",e=>{if(!on())return;const g=s=>e.target.closest(s);let el;
+ if(UI.dlg){
+  if((el=g("[data-fto]"))){const p=el.dataset.fto,S=UI.S;S.to=S.to.includes(p)?S.to.filter(x=>x!==p):[...S.to,p];paint();return}
+  if((el=g("[data-fopt]"))){UI.S[el.dataset.fopt]=!UI.S[el.dataset.fopt];paint();return}
+  if((el=g("[data-fam]"))){UI.SH.m=el.dataset.fam;if(UI.SH.m==="people"&&!UI.SH.p.length)UI.SH.p=[ME];paint();return}
+  if((el=g("[data-fap]"))){const p=el.dataset.fap,H=UI.SH;H.p=H.p.includes(p)?H.p.filter(x=>x!==p):[...H.p,p];paint();return}
+  if((el=g("[data-flm]"))){UI.SH.l=el.dataset.flm;paint();return}
+  if((el=g("[data-fopt2]"))){UI.SH.dl=!UI.SH.dl;paint();return}
+  if(g("[data-fcopy]")){copy(`${location.origin}${location.pathname}#file=${UI.ids[0]}`);return}
+  if((el=g("[data-flt]"))){const k=el.dataset.flt,L=UI.L;L.tasks=L.tasks.includes(k)?L.tasks.filter(x=>x!==k):[...L.tasks,k];paint();return}
+  if((el=g("[data-fuacc]"))){UI.U.acc=el.dataset.fuacc;paint();return}
+  if((el=g("[data-futo]"))){const p=el.dataset.futo,U=UI.U;U.to=U.to.includes(p)?U.to.filter(x=>x!==p):[...U.to,p];paint();return}
+  if((el=g("[data-fufr]"))){UI.U.files.splice(+el.dataset.fufr,1);paint();return}
+  if((el=g("[data-fdo]"))&&!el.disabled){const d=el.dataset.fdo,w=who();
+   if(d==="send"){const S=UI.S;w.forEach(f=>{S.to.forEach(p=>{f.sent.unshift({to:p,at:now(),seen:"",ack:false,need:S.ack,msg:S.msg,via:S.wa?"واتساب":""});if(f.acc.m!=="team"&&!f.acc.p.includes(p))f.acc.p.push(p)});log(f,`بعته لـ ${S.to.join("، ")}`)});toast(`اتبعت لـ ${S.to.join("، ")}`,"send")}
+   if(d==="share"){const H=UI.SH;w.forEach(f=>{f.acc={m:H.m,p:H.m==="people"?H.p.slice():H.m==="private"?[ME]:[]};f.link=H.l?{mode:H.l,exp:H.exp,dl:H.dl}:null;log(f,H.l==="client"?"عمل رابط مشاركة للعميل":"غيّر مين يقدر يشوفه")});toast("اتحفظت المشاركة","share-2")}
+   if(d==="link"){const L=UI.L;w.forEach(f=>{f.prj=L.prj;f.cli=L.cli;if(w.length===1)f.tasks=L.tasks.slice();else L.tasks.forEach(k=>{if(!f.tasks.includes(k))f.tasks.push(k)});log(f,`ربطه بـ ${PRJ[L.prj][0]}${L.tasks.length?" و"+L.tasks.join("، "):""}`)});toast("اتربط","link")}
+   if(d==="up"){const U=UI.U;U.files.forEach(x=>{const ext=(x.n.split(".").pop()||"").toLowerCase();const f=D(x.n.replace(/\.[^.]+$/,""),ext,U.kind,U.prj,U.cli,U.task?[U.task]:[],ME,now(),x.size,1,{m:U.acc,p:U.acc==="private"?[ME]:[]});U.to.forEach(p=>f.sent.push({to:p,at:now(),seen:"",ack:false,need:U.kind==="guide"||U.kind==="update"}));F.unshift(f)});toast(`اترفع ${U.files.length} ملف`,"upload");UI.U={files:[],kind:"guide",prj:"erp",cli:"داخلي",task:"",acc:"team",to:[]};UI.nav="all"}
+   save();UI.dlg=null;if(d!=="up")UI.sel=[];paint();return}
+  if((el=g("[data-fdx]"))&&(el.classList.contains("fd-ov")?e.target===el:true)){UI.dlg=null;paint();return}
+  return}
+ if((el=g("[data-fsend]"))){e.preventDefault();openDlg("send",el.dataset.fsend);return}
+ if((el=g("[data-fshare]"))){e.preventDefault();openDlg("share",el.dataset.fshare);return}
+ if((el=g("[data-flink]"))){e.preventDefault();openDlg("link",el.dataset.flink);return}
+ if(g("[data-fup]")){UI.dlg="up";paint();return}
+ if((el=g("[data-fstar]"))){const f=get(el.dataset.fstar);f.star=!f.star;save();paint();return}
+ if(UI.open){const f=get(UI.open);
+  if((el=g("[data-fack]"))){f.sent.forEach(s=>{if(s.to===ME){s.ack=true;s.seen=s.seen||now()}});log(f,"أكّد إنه قرأه");save();paint();toast("اتسجل إنك قريته","check-check");return}
+  if((el=g("[data-ftrm]"))){f.tasks=f.tasks.filter(k=>k!==el.dataset.ftrm);log(f,`شال الربط بـ ${el.dataset.ftrm}`);save();paint();return}
+  if(g("[data-fcopy]")){copy(`${location.origin}${location.pathname}#file=${f.id}`);return}
+  if(g("[data-fver]")){f.ver++;f.vers.unshift({v:f.ver,by:ME,at:now()});log(f,`رفع نسخة ${f.ver}`);save();paint();toast(`نسخة ${f.ver} بقت الحالية — القديمة محفوظة`,"upload");return}
+  if(g("[data-fdel]")){if(confirm("تحذف الملف؟ هيفضل في سلة المحذوفات 30 يوم.")){F=F.filter(x=>x!==f);UI.open=null;save();paint();toast("اتحذف","trash-2")}return}
+  if((el=g("[data-fx]"))&&(el.classList.contains("cf-ov")?e.target===el:true)){UI.open=null;history.replaceState(null,"",location.pathname);paint();return}
+  return}
+ if((el=g("[data-fnav]"))){UI.nav=el.dataset.fnav;UI.tab="files";UI.sel=[];paint();return}
+ if((el=g("[data-ftab]"))){UI.tab=el.dataset.ftab;paint();return}
+ if((el=g("[data-fview]"))){UI.view=el.dataset.fview;paint();return}
+ if(g("[data-fclr]")){UI.sel=[];paint();return}
+ if(g("input[data-fsel],input[data-fall],.fl-cb,.fl-tcb"))return;
+ if((el=g("[data-fo]"))){const f=get(el.dataset.fo);UI.open=f.id;f.sent.forEach(s=>{if(s.to===ME&&!s.seen)s.seen=now()});save();history.replaceState(null,"",location.pathname+"#file="+f.id);paint();return}
+},true);
+document.addEventListener("change",e=>{if(!on())return;const el=e.target,d=el.dataset;
+ if(d.fsel!=null){const id=d.fsel;UI.sel=el.checked?[...UI.sel,id]:UI.sel.filter(x=>x!==id);paint();return}
+ if(el.hasAttribute("data-fall")){UI.sel=el.checked?list().map(f=>f.id):[];paint();return}
+ if(d.ff){UI[d.ff]=el.value;paint();return}
+ if(d.fe&&UI.open){const f=get(UI.open);f[d.fe]=el.value;log(f,{kind:"غيّر النوع",prj:"غيّر المشروع",cli:"غيّر العميل",desc:"عدّل الوصف"}[d.fe]);save();paint();return}
+ if(el.hasAttribute("data-flp")){UI.L.prj=el.value;return}
+ if(el.hasAttribute("data-flc")){UI.L.cli=el.value;return}
+ if(el.hasAttribute("data-fexp")){UI.SH.exp=el.value;return}
+ if(d.fu){UI.U[d.fu]=el.value;return}
+ if(el.hasAttribute("data-ffile")){const fmt=b=>b>1048576?(b/1048576).toFixed(1)+" MB":Math.max(1,Math.round(b/1024))+" KB";[...el.files].forEach(x=>UI.U.files.push({n:x.name,size:fmt(x.size)}));paint();return}
+});
+document.addEventListener("input",e=>{if(!on())return;const el=e.target;
+ if(el.hasAttribute("data-fq")){UI.q=el.value;clearTimeout(window.__flq);window.__flq=setTimeout(()=>{const p=el.selectionStart;paint();const n=document.querySelector("[data-fq]");if(n&&document.activeElement!==n){n.focus();n.setSelectionRange(p,p)}},140);return}
+ if(el.hasAttribute("data-fmsg")){UI.S.msg=el.value;return}
+ if(el.hasAttribute("data-flq")){UI.L.q=el.value;clearTimeout(window.__flq2);window.__flq2=setTimeout(()=>{paint();const n=document.querySelector("[data-flq]");if(n){n.focus();n.setSelectionRange(n.value.length,n.value.length)}},140)}
+});
+document.addEventListener("keydown",e=>{if(!on())return;if(e.key==="Escape"&&(UI.dlg||UI.open)){if(UI.dlg)UI.dlg=null;else{UI.open=null;history.replaceState(null,"",location.pathname)}paint()}});
+document.addEventListener("dragover",e=>{if(on()&&UI.dlg==="up"&&e.target.closest&&e.target.closest(".fd-drop")){e.preventDefault();e.target.closest(".fd-drop").classList.add("over")}});
+document.addEventListener("drop",e=>{if(!on()||UI.dlg!=="up")return;const z=e.target.closest&&e.target.closest(".fd-drop");if(!z)return;e.preventDefault();const fmt=b=>b>1048576?(b/1048576).toFixed(1)+" MB":Math.max(1,Math.round(b/1024))+" KB";[...e.dataTransfer.files].forEach(x=>UI.U.files.push({n:x.name,size:fmt(x.size)}));paint()});
+})();
+
 (function(){var P=window.CERP_PAGE;if(!P)return;var PAGES=window.CERP_PAGES||[];
 if(P==="login"){renderLogin();return}
 var lg=document.getElementById("login");if(lg)lg.classList.add("hidden");
