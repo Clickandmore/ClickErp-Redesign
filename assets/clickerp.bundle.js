@@ -3368,17 +3368,17 @@ const DEPTS=[
  {id:"hr",i:"user-cog",ar:"الموارد البشرية",en:"HR",s:"الموارد",d:"الموظفون والحضور والرواتب ومركز المهام",items:[
   A("hrDash","gauge","لوحة الموارد البشرية","HR dashboard"),A("hrEmployees","id-card","الموظفون","Employees"),A("hrWorkers","user-round","العاملات","Workers"),A("hrAttendance","clock","الحضور","Attendance"),
   A("hrRequests","inbox","الطلبات","Requests","7"),A("hrCustody","key-round","العهد","Custody"),A("hrSanctions","gavel","الجزاءات","Sanctions"),A("hrPayroll","banknote","الرواتب","Payroll"),A("hrDaily","notebook-pen","التقارير اليومية","Daily reports"),
-  H("مركز المهام"),A("tcMy","sun","يومي","My day"),A("tcInbox","inbox","الوارد","Intake"),A("tcBoard","columns-3","لوحة المهام","Task board"),A("tcHandoff","arrow-left-right","التسليم والاستلام","Handoffs"),A("tcSpecs","file-text","التحليل والمواصفات","Specs"),A("tcTeam","users","متابعة الفريق","Team"),A("tcApprovals","hourglass","موافقات الوقت","Time approvals"),A("tcHours","bar-chart-3","الساعات والتكلفة","Hours & cost"),A("tcSettings","settings","إعدادات مركز المهام","Settings")]},
+  H("مركز المهام"),A("tcMy","sun","يومي","My day"),A("tcInbox","inbox","الوارد","Intake"),A("tcBoard","columns-3","لوحة المهام","Task board"),A("tcHandoff","arrow-left-right","التسليم والاستلام","Handoffs"),A("tcQA","flask-conical","الاختبار","Testing"),A("tcSpecs","file-text","التحليل والمواصفات","Specs"),A("tcTeam","users","متابعة الفريق","Team"),A("tcApprovals","hourglass","موافقات الوقت","Time approvals"),A("tcHours","bar-chart-3","الساعات والتكلفة","Hours & cost"),A("tcSettings","settings","إعدادات مركز المهام","Settings")]},
  {id:"settings",i:"settings",ar:"الإعدادات",en:"Settings",s:"الإعدادات",d:"إعدادات المكتب والمستخدمين والتكاملات",items:[
   A("setHome","layout-grid","كل الإعدادات","All settings"),A("setGeneral","sliders-horizontal","العامة","General"),A("coupons","ticket-percent","كوبونات الخصم","Coupons"),A("setSite","globe","موقع المكتب","Office website"),A("setRecruit","files","الاستقدام والسير","Recruitment & CVs"),A("setRental","repeat","التأجير","Rental"),
   A("setUsers","shield-check","المستخدمون والصلاحيات","Users & roles"),A("setBranches","git-branch","الفروع","Branches"),A("setLists","list","القوائم المرجعية","Reference lists"),A("setMessages","bell","الرسائل والإشعارات","Messages & notifications"),
   A("setIntegrations","plug","التكاملات","Integrations"),A("setImport","upload","استيراد البيانات","Data import"),A("setAi","sparkles","المساعد الذكي","AI assistant"),A("setSupport","life-buoy","الدعم","Support"),A("setDev","code","المطوّر (Super Admin)","Developer")]}];
-const SUBS={setDev:["saSubscription","saModules","saEmployees","saDesigns","saUpdates","saUpdateForm","saBackups","saScheduler","saRecovery","saInvoices","saInvoiceFix","saMcp","saMoyasar","saTestAccounts"],tcMy:["tcPolicy","tcClose"],tcBoard:["tcTask","tcForm","tcList","tcLanes","tcBoardD","tcCard","tcNew"],tcTeam:["tcMember","tcShots","tcSessions"],tcHours:["tcAttend"],tcSettings:["tcMigrate"],contracts:["contractShow","contractAdd","contractEdit"],cvs:["cvAdd","cvShow","cvEdit"],clients:["clientShow","clientAdd"],orders:["orderShow"],
+const SUBS={setDev:["saSubscription","saModules","saEmployees","saDesigns","saUpdates","saUpdateForm","saBackups","saScheduler","saRecovery","saInvoices","saInvoiceFix","saMcp","saMoyasar","saTestAccounts"],tcMy:["tcPolicy","tcClose"],tcBoard:["tcTask","tcForm","tcList","tcLanes","tcBoardD","tcCard","tcNew","tcCardQA"],tcQA:["tcQALib"],tcTeam:["tcMember","tcShots","tcSessions"],tcHours:["tcAttend"],tcSettings:["tcMigrate"],contracts:["contractShow","contractAdd","contractEdit"],cvs:["cvAdd","cvShow","cvEdit"],clients:["clientShow","clientAdd"],orders:["orderShow"],
  rental:["rentalShow","rentalAdd"],housing:["housingShow","housingAdd"],transfer:["transferShow","transferAdd"],
  reports:["report"],finSales:["finSaleAdd","finBonds","finReturns"],finBanks:["finBoxes","finTransfers","finChecksIn","finChecksOut"],finClients:["finSuppliers","finAgents"],
  finCenters:["finCentersTree"],finReports:["finReport"],finItems:["finStock","finInventory"],finEntries:["finAdd","finShow"],finAccounts:["finSettings"],clArchive:[],delegations:["delAdd","delShow"],trips:["tripShow"],agents:["agentShow"],"hb-board":["hbNew"],"hb-visits":["hbVisit"],coupons:["couponForm","couponShow","couponBulk","couponReport","couponSettings"],claims:["claimAdd","claimShow","claimTypes"],absconding:["abscShow"],campaigns:["campaignNew"],finRequests:["finRequestAdd","finRequestShow"],finAssets:["finAssetShow"],finCommissions:["finCommissionShow","finCommissionRules"],finTax:["finZatca"],hrEmployees:["hrEmployeeShow","hrEmployeeAdd"],hrPayroll:["hrPayrollRun"],setUsers:["setRoles"],visaRequests:["visaAdd","visaShow"]};
 /* v1.8.1: sidebar badges = only things that need action (no totals). r=urgent/late, a=waiting for you, n=unread */
-const ALERTS={tcInbox:[7,"a","7 حاجات واردة لسه متفرزتش"],tcHandoff:[3,"a","3 مهام مستنياك تستلمها"],tcApprovals:[3,"a","3 تسجيلات وقت بانتظار اعتمادك"],orders:[6,"a","6 طلبات جديدة لسه محدش ردّ عليها"],contracts:[18,"r","18 عقد تجاوز 45 يوم بدون تذاكر"],invoices:[7,"r","7 فواتير متأخرة السداد"],transfer:[4,"a","4 طلبات نقل بانتظار موافقتك"],housing:[2,"a","2 عاملة محتاجين فحص طبي"],followups:[5,"a","5 متابعات مطلوبة النهارده"],chats:[3,"n","3 محادثات غير مقروءة"],claims:[2,"r","شكوتين عاجلتين"],absconding:[2,"r","2 بلاغ هروب مفتوح"],"hb-alerts":[1,"r","بلاغ مفتوح من الطاقم"],visaDash:[2,"a","2 طلب تأشيرة بانتظار الموافقة"],finRequests:[5,"a","5 طلبات مالية بانتظار اعتمادك"],finTax:[4,"r","4 فواتير مرفوضة من ZATCA"],hrRequests:[7,"a","7 طلبات موظفين مستنية قرارك"],hrAttendance:[1,"r","موظف غايب بدون إذن النهارده"],setMessages:[0,"r","مزود الرسائل النصية متوقف"]};
+const ALERTS={tcQA:[4,"a","4 مهام مستنية اختبارك"],tcInbox:[7,"a","7 حاجات واردة لسه متفرزتش"],tcHandoff:[3,"a","3 مهام مستنياك تستلمها"],tcApprovals:[3,"a","3 تسجيلات وقت بانتظار اعتمادك"],orders:[6,"a","6 طلبات جديدة لسه محدش ردّ عليها"],contracts:[18,"r","18 عقد تجاوز 45 يوم بدون تذاكر"],invoices:[7,"r","7 فواتير متأخرة السداد"],transfer:[4,"a","4 طلبات نقل بانتظار موافقتك"],housing:[2,"a","2 عاملة محتاجين فحص طبي"],followups:[5,"a","5 متابعات مطلوبة النهارده"],chats:[3,"n","3 محادثات غير مقروءة"],claims:[2,"r","شكوتين عاجلتين"],absconding:[2,"r","2 بلاغ هروب مفتوح"],"hb-alerts":[1,"r","بلاغ مفتوح من الطاقم"],visaDash:[2,"a","2 طلب تأشيرة بانتظار الموافقة"],finRequests:[5,"a","5 طلبات مالية بانتظار اعتمادك"],finTax:[4,"r","4 فواتير مرفوضة من ZATCA"],hrRequests:[7,"a","7 طلبات موظفين مستنية قرارك"],hrAttendance:[1,"r","موظف غايب بدون إذن النهارده"],setMessages:[0,"r","مزود الرسائل النصية متوقف"]};
 DEPTS.forEach(d=>d.items.forEach(p=>{if(p.sec)return;delete p.b;if(ALERTS[p.id])p.al=ALERTS[p.id]}));
 const ALB=p=>p&&p.al?`<span class="nal ${p.al[1]}${p.al[0]?"":" dot"}" title="${p.al[2]}">${p.al[0]?`<b class="num">${p.al[0]}</b>`:""}</span>`:"";
 const DAL=d=>{const al=d.items.filter(p=>p.al);if(!al.length)return "";const r=al.filter(p=>p.al[1]==="r").length,w=al.length-r;return `<span class="dal">${r?`<span class="nal r" title="${r} حاجة عاجلة"><b class="num">${r}</b></span>`:""}${w?`<span class="nal a" title="${w} حاجة مستنياك"><b class="num">${w}</b></span>`:""}</span>`};
@@ -4799,8 +4799,8 @@ const STC={new:"n",doing:"b",qa:"p",ready:"g",client:"a",hold:"r",closed:"n"};
 const ty=t=>`<span class="tc-ty ${TY[t][0]}">${t}</span>`;
 const av=(n,c)=>`<span class="tc-av${c?" "+c:""}" title="${n}">${n.trim()[0]}</span>`;
 const PPL=["أحمد سمير","منى عادل","كريم فتحي","يوسف حسن","سارة نبيل","عمر خالد"];
-const TCP={tcBoardD:"tcBoard",tcCard:"tcBoard",tcNew:"tcBoard",tcLanes:"tcBoard",tcList:"tcBoard",tcTask:"tcBoard",tcForm:"tcBoard",tcMember:"tcTeam",tcShots:"tcTeam",tcSessions:"tcTeam",tcAttend:"tcHours",tcClose:"tcMy",tcPolicy:"tcMy",tcMigrate:"tcSettings"};
-const tcTabs=on=>TABS([["tcMy","sun","يومي"],["tcInbox","inbox","الوارد",7],["tcBoard","columns-3","لوحة المهام"],["tcHandoff","arrow-left-right","التسليم والاستلام",3],["tcSpecs","file-text","التحليل والمواصفات"],["tcTeam","users","متابعة الفريق"],["tcApprovals","hourglass","موافقات الوقت",3],["tcHours","bar-chart-3","التقارير"],["tcSettings","settings","الإعدادات"]],TCP[on]||on);
+const TCP={tcQALib:"tcQA",tcCardQA:"tcBoard",tcBoardD:"tcBoard",tcCard:"tcBoard",tcNew:"tcBoard",tcLanes:"tcBoard",tcList:"tcBoard",tcTask:"tcBoard",tcForm:"tcBoard",tcMember:"tcTeam",tcShots:"tcTeam",tcSessions:"tcTeam",tcAttend:"tcHours",tcClose:"tcMy",tcPolicy:"tcMy",tcMigrate:"tcSettings"};
+const tcTabs=on=>TABS([["tcMy","sun","يومي"],["tcInbox","inbox","الوارد",7],["tcBoard","columns-3","لوحة المهام"],["tcHandoff","arrow-left-right","التسليم والاستلام",3],["tcQA","flask-conical","الاختبار",4],["tcSpecs","file-text","التحليل والمواصفات"],["tcTeam","users","متابعة الفريق"],["tcApprovals","hourglass","موافقات الوقت",3],["tcHours","bar-chart-3","التقارير"],["tcSettings","settings","الإعدادات"]],TCP[on]||on);
 const TIMER=(num,title,el)=>`<div class="tc-timer"><span class="tc-pulse"></span>${X("timer")}<span>المؤقت شغال على <a href="#" data-go="tcTask"><b class="num">${num}</b> — ${title}</a></span><b class="num tc-clock">${el}</b><span class="tc-mon">${X("monitor-check")}مشاركة الشاشة شغالة · <span class="num">7</span> لقطات</span>${B("ghost sm","app-window","نافذة المراقبة")}${B("red sm","square","إيقاف")}</div>`;
 
 /* ---- tasks ---- */
@@ -5572,7 +5572,7 @@ S.tcCard=()=>`${BOARD("c","BUG-0147")}
   <div class="md-path">${["جديد","قيد التنفيذ","اختبار داخلي","جاهز للنشر","بانتظار قبول العميل","مغلق"].map((s,i)=>`<span class="${i<2?"done":i===2?"now":""}">${s}</span>`).join("")}</div>
   <div class="md-sec"><h4>${X("align-right")}الوصف</h4><div class="md-desc">لما العقد يكون عليه كوبون خصم، تقرير العمولات بيخصم قيمة الكوبون مرة من الإجمالي ومرة تانية من صافي العمولة، فالمندوب بياخد أقل من المستحق.<br><b>المتوقع:</b> الكوبون يتخصم مرة واحدة من أساس العمولة. <b>للتجربة:</b> CN-2026-0115 · RAMADAN26</div></div>
   <div class="md-sec"><h4>${X("list-checks")}قائمة التحقق <small class="num">3 / 5</small></h4><span class="tc-bar"><i style="width:60%"></i></span><div class="md-ck">${[["إعادة إنتاج المشكلة على نسخة الاختبار",1],["تعديل حساب أساس العمولة",1],["اختبار عقد بكوبون نسبة",1],["اختبار عقد بكوبون مبلغ ثابت",0],["مراجعة تقرير الشهر اللي فات",0]].map(c=>`<label class="${c[1]?"on":""}"><input type="checkbox" ${c[1]?"checked":""}>${c[0]}</label>`).join("")}<button class="md-add">${X("plus")}بند</button></div></div>
-  <div class="md-tabs"><button class="on">التعليقات <em class="num">3</em></button><button>النشاط</button><button>الوقت <em class="num">4</em></button></div>
+  <div class="md-tabs"><button class="on">التعليقات <em class="num">3</em></button><button data-go="tcCardQA">الاختبار <em class="num">5</em></button><button>النشاط</button><button>الوقت <em class="num">4</em></button></div>
   <div class="md-cm">${[["منى عادل","من ساعة","اختبرت كوبون النسبة على CN-2026-0115 — العمولة طلعت صح 1,150 ر.س. فاضل المبلغ الثابت."],["أحمد سمير","امبارح 16:40","الإصلاح اترفع على نسخة الاختبار. نقلتها لاختبار داخلي."]].map(c=>`<div>${av(c[0])}<div><b>${c[0]} <small>${c[1]}</small></b><p>${c[2]}</p></div></div>`).join("")}
    <div class="md-comp">${av("أحمد سمير")}<div><textarea rows="2" placeholder="اكتب تعليق… استخدم @ للإشارة لحد"></textarea><div>${B("ghost sm","paperclip","")}<span class="kb-sp"></span>${B("primary sm","","إرسال")}</div></div></div></div>
  </div><aside class="md-side">
@@ -5607,7 +5607,93 @@ S.tcNew=()=>`${BOARD("c")}
  <div class="md-foot"><label class="mn-more"><span class="sw on"></span>اعمل مهمة تانية بعدها</label><span class="kb-sp"></span>${B("ghost","","إلغاء",'data-go="tcBoard"')}${B("primary","plus","إنشاء <kbd>Ctrl</kbd><kbd>Enter</kbd>",'data-go="tcCard"')}</div>
 </div></div>`;
 
+window.KB2={BOARD,kmini,FIELD};
 Object.assign(T,{tcBoardD:{ar:"لوحة المهام — مفصّل",en:"Task board (detailed)"},tcCard:{ar:"BUG-0147",en:"Task"},tcNew:{ar:"مهمة جديدة",en:"New task"}});
+Object.keys(S).forEach(k=>{screens[k]=S[k]});
+})();
+/* ===== v1.15 — Testing & review: dev hands over with scenarios + files, tester runs cases with evidence, scenario library ===== */
+(()=>{
+const {X,SEC,KV,TAG,SW,ROW,FLD,SEL,INP,TXT,B,HEAD}=window.CXH;
+const {tcTabs,PPL}=window.TCX;
+const {av,CL}=window.KBX;
+const {BOARD,FIELD}=window.KB2;
+window.CERP_PAGES=(window.CERP_PAGES||[]).concat(["tcQA","tcCardQA","tcQALib"]);
+const IDEA=t=>`<div class="fx-idea">${X("lightbulb")}<div><b>ليه الشكل ده؟</b><span>${t}</span></div></div>`;
+const NEWT=`<span class="tag a hm-new">جديد</span>`;
+const S={};
+const RS={pass:["g","check","نجح"],fail:["r","x","فشل"],block:["a","ban","مش متاح"],todo:["n","circle","لسه"]};
+/* [id,title,steps[],expected,data,result,actual,evidence[]] */
+const CASES=[
+ ["TC-1","كوبون نسبة على عقد استقدام",["افتح العقد CN-2026-0115","طبّق كوبون RAMADAN26 (10%)","افتح تقرير العمولات لشهر نوفمبر"],"عمولة المندوب = 1,150 ر.س (الكوبون اتخصم مرة واحدة)","CN-2026-0115 · RAMADAN26","pass","",[["image","commission-pct.png"]]],
+ ["TC-2","كوبون مبلغ ثابت",["افتح العقد CN-2026-0112","طبّق كوبون FLAT500 (500 ر.س)","افتح تقرير العمولات"],"عمولة المندوب = 1,100 ر.س","CN-2026-0112 · FLAT500","fail","طلعت 1,050 — الخصم اتطبق على الضريبة كمان",[["image","flat-wrong.png"],["video","flat-steps.mp4 · 0:42"]]],
+ ["TC-3","عقد من غير كوبون",["افتح أي عقد من غير كوبون","افتح تقرير العمولات"],"العمولة زي ما كانت قبل التعديل","CN-2026-0098","pass","",[]],
+ ["TC-4","تقرير الشهر اللي فات بيطابق",["افتح تقرير أكتوبر","قارن بالنسخة المصدّرة قبل التعديل (مرفقة)"],"نفس الأرقام بالظبط","report-oct.xlsx","todo","",[]],
+ ["TC-5","المندوب يشوف عمولته بس",["ادخل بحساب مندوب","افتح تقرير العمولات"],"يظهر له سطره بس","حساب مندوب","block","مفيش حساب مندوب على نسخة الاختبار",[]]];
+const REG=[["العربي والإنجليزي",1],["الموبايل",1],["فرعين مختلفين",0],["صلاحية من غير «المالية»",0]];
+
+const HANDOFF=(edit)=>`<div class="qa-ho${edit?" edit":""}">
+ <div class="qa-hoh">${av("أحمد سمير")}<div><b>تسليم للاختبار من أحمد سمير</b><small>امبارح 16:40 · للمختبِرة منى عادل</small></div>${TAG("n","اختبار داخلي")}</div>
+ <div class="qa-grid">
+  <div><small>${X("git-commit-horizontal")}إيه اللي اتغير</small><p>حساب أساس العمولة في <code>CommissionService</code> — الكوبون بيتخصم مرة واحدة بدل مرتين.</p></div>
+  <div><small>${X("globe")}فين أختبر</small><p><a href="#" dir="ltr">test.clickerp.sa ↗</a> · فرع <code>fix/commission-coupon</code> · بيلد <span class="num">#482</span></p></div>
+  <div><small>${X("database")}بيانات التجربة</small><p><span class="qa-chip">CN-2026-0115</span><span class="qa-chip">CN-2026-0112</span><span class="qa-chip">RAMADAN26</span><span class="qa-chip">FLAT500</span></p></div>
+  <div><small>${X("layout-template")}الشاشات المتأثرة</small><p>تقرير العمولات · تفاصيل العمولة · تصدير Excel</p></div>
+  <div class="full warn"><small>${X("alert-triangle")}خلي بالك من</small><p>العقود اللي اتعملت قبل التعديل — المفروض أرقامها ماتتغيرش.</p></div>
+ </div>
+ <div class="qa-files">${[["image","before-fix.png","قبل الإصلاح"],["video","how-to-test.mp4","شرح 1:20"],["file-spreadsheet","test-data.xlsx","بيانات"],["file-text","report-oct.xlsx","للمقارنة"]].map(f=>`<a href="#" class="qa-f"><span class="qa-fi ${f[0]==="video"?"v":f[0]==="image"?"i":"d"}">${X(f[0])}</span><span><b dir="ltr">${f[1]}</b><small>${f[2]}</small></span></a>`).join("")}${edit?`<div class="qa-drop">${X("upload-cloud")}<span><b>اسحب ملفات أو الصق صورة <kbd>Ctrl</kbd><kbd>V</kbd></b><small>صور · فيديو · Excel · PDF</small></span></div>`:""}</div></div>`;
+
+/* ================= Dev side: task dialog → «الاختبار» tab ================= */
+S.tcCardQA=()=>`${BOARD("c","BUG-0147")}
+<div class="md-ov"><div class="md" role="dialog">
+ <div class="md-top"><span class="kb-ty r">${X("bug")}</span><b class="num">BUG-0147</b><span class="md-bc">مكتب الريادة <i>/</i> Click ERP</span><span class="kb-sp"></span><button class="md-st" style="--s:#2f5fa8">قيد التنفيذ${X("chevron-down")}</button>${B("primary sm","send","سلّم لمنى للاختبار")}<span class="md-sep"></span><button class="md-ic" data-go="tcTask">${X("maximize-2")}</button><button class="md-ic" data-go="tcBoard">${X("x")}</button></div>
+ <div class="md-body"><div class="md-main">
+  <h2 class="md-tt">تقرير العمولات بيحسب الكوبون مرتين</h2>
+  <div class="md-tabs"><button>التفاصيل</button><button class="on">الاختبار <em class="num">5</em></button><button>التعليقات <em class="num">3</em></button><button>الوقت</button></div>
+  <div class="qa-ready">${[["تسليم مكتوب",1],["مكان الاختبار",1],["بيانات تجربة",1],["سيناريوهات (5)",1],["ملفات",1]].map(r=>`<span class="${r[1]?"ok":""}">${X(r[1]?"check-circle-2":"circle")}${r[0]}</span>`).join("")}<b>جاهزة تتسلّم</b></div>
+  ${HANDOFF(1)}
+  <div class="md-sec"><h4>${X("flask-conical")}سيناريوهات الاختبار <small>5</small><span class="kb-sp"></span><button class="qa-lnk">${X("library")}من المكتبة</button><button class="qa-lnk">${X("sparkles")}اقترح من الوصف</button></h4>
+   <div class="qa-ed">${CASES.map((c,i)=>`<div class="qa-er"><span class="tp-grip">${X("grip-vertical")}</span><b class="num">${c[0]}</b><div><b>${c[1]}</b><small>${c[2].length} خطوات · المتوقع: ${c[3]}</small></div><button class="md-ic">${X("pencil")}</button></div>`).join("")}
+   <div class="qa-new"><div class="fgrid"><div class="fld full"><label>اسم الحالة</label>${INP("مثلاً: كوبون على عقد تأجير")}</div><div class="fld"><label>الخطوات</label>${TXT("خطوة في كل سطر",3)}</div><div class="fld"><label>النتيجة المتوقعة</label>${TXT("",3)}</div></div><div class="cx-right">${B("ghost sm","","إلغاء")}${B("primary sm","plus","إضافة الحالة")}</div></div></div></div>
+  <div class="md-sec"><h4>${X("repeat")}حالات كل مهمة (Regression)</h4><div class="qa-reg">${REG.map(r=>`<label class="${r[1]?"on":""}"><input type="checkbox" ${r[1]?"checked":""}>${r[0]}</label>`).join("")}</div></div>
+ </div><aside class="md-side">
+  <div class="md-fs">${FIELD("user-check","المختبِر",`${av("منى عادل")}منى عادل`)}${FIELD("calendar","الاختبار قبل","الثلاثاء 17 نوف")}${FIELD("flask-conical","البيئة","نسخة الاختبار")}${FIELD("git-branch","الفرع","fix/commission-coupon")}</div>
+  <div class="qa-tip">${X("info")}<span>زرار «سلّم للاختبار» بيتفتح لما الخمس حاجات فوق يبقوا جاهزين — عشان التستر مايسألش «أختبر فين وإزاي؟».</span></div>
+ </aside></div></div></div>`;
+
+/* ================= Tester workspace ================= */
+const QUEUE=[["BUG-0147","تقرير العمولات بيحسب الكوبون مرتين","أحمد سمير","مكتب الريادة","2/5","run","16 نوف","late"],["DATA-0059","تصحيح أرصدة أول المدة","كريم فتحي","مكتب نجد","0/3","new","17 نوف","soon"],["UPD-0806","الحجز المسبق لعاملة قبل الوصول","يوسف حسن","مكتب الريادة","0/6","new","19 نوف",""],["UPD-0812","فلتر الفرع في تقرير التحصيل","أحمد سمير","مؤسسة سواعد","—","missing","18 نوف",""]];
+S.tcQA=()=>{const c=CASES[1];return `
+ ${IDEA("التستر بيشتغل من شاشة واحدة: على اليمين المهام اللي مستنياه، وفي النص بيمشي على الحالات واحدة واحدة — الخطوات مرقّمة، والمتوقع قدامه، والبيانات chips تتنسخ بضغطة، و3 أزرار كبيرة (نجح / فشل / مش متاح). الإثبات بيتلزق بـ Ctrl+V أو تسجيل شاشة جوه الحالة نفسها، ولو فشلت بيطلب «إيه اللي حصل». في الآخر زرار واحد: لو كله نجح ← جاهز للنشر، ولو فيه فشل ← ترجع للمطوّر والحالة الفاشلة بصورها مكتوبة في التعليق لوحدها.")}
+ ${HEAD("الاختبار","المهام اللي مستنية اختبارك — نفّذ الحالات وسجّل النتيجة بالإثبات.",B("ghost","library","مكتبة السيناريوهات",'data-go="tcQALib"'))}
+ ${tcTabs("tcQA")}
+ <div class="qa-wrap"><div class="qa-q"><div class="tp-ch">${X("flask-conical")}<b>مستني اختبارك</b><span class="num">4</span></div>
+  ${QUEUE.map((q,i)=>`<a href="#" class="qa-qi${i===0?" on":""}${q[5]==="missing"?" miss":""}"><b><span class="num">${q[0]}</span> ${q[1]}</b><small>${q[2]} · ${q[3]}</small><div>${q[5]==="missing"?`<span class="qa-miss">${X("alert-circle")}من غير سيناريوهات — رجّعها</span>`:`<span class="qa-pg num">${q[4]}</span>`}<span class="kb-due ${q[7]}">${q[6]}</span></div></a>`).join("")}</div>
+ <div class="qa-run">
+  <div class="qa-rh"><div><small class="num">BUG-0147 · من أحمد سمير · مكتب الريادة</small><h2>تقرير العمولات بيحسب الكوبون مرتين</h2></div><a href="#" data-go="tcCard" class="tc-clear">فتح المهمة</a></div>
+  <details class="card qa-hd"><summary>${X("package-open")}<b>التسليم: إيه اللي اتغير وفين أختبر</b><span class="kb-sp"></span><a href="#" dir="ltr" class="qa-env">test.clickerp.sa ↗</a></summary>${HANDOFF(0)}</details>
+  <div class="qa-sum">${CASES.map((x,i)=>`<button class="${RS[x[5]][0]}${i===1?" on":""}" title="${x[1]}">${X(RS[x[5]][1])}<b class="num">${x[0]}</b></button>`).join("")}<span class="kb-sp"></span><span class="qa-cnt"><b class="num g">2</b> نجح · <b class="num r">1</b> فشل · <b class="num a">1</b> مش متاح · <b class="num">1</b> لسه</span></div>
+  <div class="card qa-case"><div class="qa-ch"><b class="num">${c[0]}</b><h3>${c[1]}</h3><span class="kb-sp"></span><span class="tc-sub">2 من 5</span><button class="md-ic">${X("chevron-right")}</button><button class="md-ic">${X("chevron-left")}</button></div>
+   <div class="qa-cg"><div><small>الخطوات</small><ol>${c[2].map(s=>`<li>${s}</li>`).join("")}</ol></div><div><small>النتيجة المتوقعة</small><p class="qa-exp">${c[3]}</p><small>البيانات</small><p>${c[4].split(" · ").map(d=>`<button class="qa-chip">${d}${X("copy")}</button>`).join("")}</p></div></div>
+   <div class="qa-res">${["pass","fail","block"].map(k=>`<button class="${RS[k][0]}${k===c[5]?" on":""}">${X(RS[k][1])}${RS[k][2]}</button>`).join("")}</div>
+   <div class="qa-act"><label>إيه اللي حصل فعلاً؟ <i class="rq">*</i></label><textarea rows="2">${c[6]}</textarea></div>
+   <div class="qa-ev"><small>الإثبات</small><div class="qa-files">${c[7].map(f=>`<a href="#" class="qa-f"><span class="qa-fi ${f[0]==="video"?"v":"i"}">${X(f[0])}</span><span><b dir="ltr">${f[1]}</b></span></a>`).join("")}<div class="qa-drop sm">${X("clipboard-paste")}<span><b>الصق صورة <kbd>Ctrl</kbd><kbd>V</kbd></b><small>أو اسحب ملف</small></span></div><button class="qa-rec">${X("video")}سجّل الشاشة</button></div></div>
+   <div class="qa-fx">${ROW("اعمل BUG منفصل للحالة دي","لو المشكلة مش من التعديل ده",SW(0))}</div></div>
+  <div class="card qa-reg2"><b>${X("repeat")}حالات كل مهمة</b>${REG.slice(0,2).map(r=>`<label class="on"><input type="checkbox" checked>${r[0]}</label>`).join("")}</div>
+  <div class="qa-done"><div>${X("x-circle")}<span><b>حالة واحدة فشلت وواحدة مش متاحة</b><small>هترجع لأحمد ومعاها TC-2 بصورها والفيديو، وTC-5 مستنية حساب مندوب.</small></span></div>${B("ghost","","احفظ وكمّل بعدين")}${B("primary","corner-up-right","رجّعها لأحمد بالنتيجة")}<button class="btn btn-ghost" disabled title="لما كل الحالات تنجح">${X("check")}نجح ← جاهز للنشر</button></div>
+ </div></div>`};
+
+/* ================= Scenario library ================= */
+const LIB=[["ticket-percent","الكوبونات",18,"آخر استخدام: BUG-0147",1],["percent","العمولات",12,""],["file-text","عقود الاستقدام",34,""],["repeat","عقود التأجير",21,""],["wallet","الفواتير و ZATCA",26,""],["users","الصلاحيات",15,""],["smartphone","تطبيق العميل",9,""]];
+S.tcQALib=()=>`
+ ${IDEA("الحالات اللي بتتكرر بتتكتب مرة واحدة لكل موديول وتتسحب في أي مهمة بضغطة، بدل ما كل مطوّر يكتبها من أول وجديد. و«حالات كل مهمة» (عربي/إنجليزي، موبايل، فروع، صلاحيات) بتتضاف لوحدها حسب نوع المهمة. وكل حالة ظاهر جنبها آخر مرة فشلت فيها، فتعرف الحتة الحساسة.")}
+ ${HEAD("مكتبة السيناريوهات","حالات اختبار جاهزة لكل موديول.",B("ghost","upload","استيراد من Excel")+B("primary","plus","حالة جديدة"),["tcQA","الاختبار"])}
+ ${tcTabs("tcQA")}
+ <div class="ts-wrap"><div class="ts-nav">${LIB.map(l=>`<a href="#" class="${l[4]?"on":""}">${X(l[0])}<span><b>${l[1]}</b><small class="num">${l[2]} حالة</small></span></a>`).join("")}<a href="#" class="qa-regnav">${X("repeat")}<span><b>حالات كل مهمة</b><small>4 · بتتضاف لوحدها</small></span></a></div>
+  <div class="card ts-doc"><div class="ts-dh"><div><h2>الكوبونات</h2><small>18 حالة · مربوطة بمهام النوع UPD و BUG على موديول الكوبونات</small></div>${B("primary sm","copy-plus","أضف المحدد لمهمة…")}</div>
+   <div class="tw fit"><table><thead><tr><th style="width:28px"><input type="checkbox"></th><th>الحالة</th><th>الخطوات</th><th>آخر نتيجة</th><th>استُخدمت</th></tr></thead><tbody>${[["كوبون نسبة على عقد استقدام",3,"pass","BUG-0147 · امبارح",11,1],["كوبون مبلغ ثابت",3,"fail","BUG-0147 · النهارده",9,1],["كوبون منتهي الصلاحية",2,"pass","UPD-0790",7],["تجاوز عدد مرات الاستخدام",4,"pass","UPD-0790",6],["كوبون مقصور على فرع",3,"fail","UPD-0781 · من أسبوعين",4],["حماية عمولة المسوّق",3,"pass","UPD-0790",5],["كوبون من تطبيق العميل",4,"todo","—",2]].map(r=>`<tr><td><input type="checkbox" ${r[5]?"checked":""}></td><td><b>${r[0]}</b></td><td class="num">${r[1]}</td><td>${TAG(RS[r[2]][0],RS[r[2]][2])} <small class="tc-sub">${r[3]}</small></td><td class="num">${r[4]} مرة</td></tr>`).join("")}</tbody></table></div>
+   <div class="ts-sel">${X("lightbulb")}<span>الحالة اللي فشلت مرتين في آخر شهر بتتعلّم «حساسة» وبتتضاف تلقائي لأي مهمة على نفس الموديول.</span></div></div></div>`;
+
+Object.assign(T,{tcQA:{ar:"الاختبار",en:"Testing"},tcCardQA:{ar:"BUG-0147 — الاختبار",en:"Task testing"},tcQALib:{ar:"مكتبة السيناريوهات",en:"Test library"}});
 Object.keys(S).forEach(k=>{screens[k]=S[k]});
 })();
 (function(){var P=window.CERP_PAGE;if(!P)return;var PAGES=window.CERP_PAGES||[];

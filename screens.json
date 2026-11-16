@@ -1,5 +1,5 @@
 {
-  "version": "v1.14",
+  "version": "v1.15",
   "date": "2026-11-16",
   "entry": "login.html",
   "screens": [
@@ -907,6 +907,21 @@
       "id": "tcNew",
       "file": "tcNew.html",
       "title": "مركز المهام — إضافة مهمة (dialog)"
+    },
+    {
+      "id": "tcQA",
+      "file": "tcQA.html",
+      "title": "مركز المهام — الاختبار (للتستر)"
+    },
+    {
+      "id": "tcCardQA",
+      "file": "tcCardQA.html",
+      "title": "مركز المهام — تسليم المهمة للاختبار"
+    },
+    {
+      "id": "tcQALib",
+      "file": "tcQALib.html",
+      "title": "مركز المهام — مكتبة السيناريوهات"
     }
   ],
   "states": [
