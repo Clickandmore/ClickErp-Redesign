@@ -5458,3 +5458,16 @@ body[dir="ltr"] .coa-body .coa-r.sel{box-shadow:inset 3px 0 0 var(--navy)}
 @keyframes coaIn{from{transform:translateX(-24px);opacity:0}}
 body[dir="ltr"] .coa-drawer{animation-name:coaInL}
 @keyframes coaInL{from{transform:translateX(24px);opacity:0}}
+
+.coa-nav{display:flex;align-items:stretch;gap:2px;padding:0 12px;border-bottom:1px solid var(--line);overflow-x:auto}
+.coa-nav>button{display:flex;align-items:center;gap:6px;border:0;background:none;font:inherit;font-size:13px;font-weight:600;color:var(--muted);padding:13px 10px 11px;border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap}
+.coa-nav>button:hover{color:var(--ink)}
+.coa-nav>button.on{color:var(--navy);border-bottom-color:var(--navy);font-weight:700}
+.coa-nav>button .num{font-size:11px;background:var(--bg);border-radius:6px;padding:0 6px;color:var(--muted)}
+.coa-nav>button .num.cd{background:none;padding:0;color:var(--muted-2)}
+.coa-nav-end{margin-inline-start:auto;display:flex;align-items:center;gap:4px}
+.coa-tools{align-items:flex-end}
+.coa-f{display:flex;flex-direction:column;gap:4px}
+.coa-f label{font-size:11.5px;font-weight:600;color:var(--muted)}
+.coa-lv{padding:3px;height:38px;box-sizing:border-box}
+.coa-sel{height:38px;min-width:150px}

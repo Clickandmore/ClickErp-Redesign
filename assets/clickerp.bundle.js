@@ -2106,7 +2106,7 @@ const acRow=({n,depth,guides,last})=>{
    ${root?`<span class="coa-ri">${I(acRootIcon(n[8]))}</span>`:`<span class="coa-ic">${I(has?(open?"folder-open":"folder"):"file-text")}</span>`}
    <button class="coa-code num" data-acstatement="${n[0]}" title="${t("فتح كشف الحساب","Open account statement")}">${acHi(n[0])}</button>
    <span class="coa-nm">${acHi(t(n[1],n[2]))}</span>
-   ${n[7]===2?`<span class="coa-lk" title="${t("حساب خاص — حساباته الفرعية بتتعمل من شاشتها","Special — sub-accounts come from their screen")}">${I("link-2")}</span>`:""}
+   ${n[7]===2?`<span class="coa-lk" title="${t("حساب خاص — تُنشأ حساباته الفرعية من شاشتها","Special — sub-accounts come from their screen")}">${I("link-2")}</span>`:""}
   </div>
   <div class="coa-c nat" role="gridcell">${!x||root||x.parent&&x.parent[3]!==n[3]?acSide(n):""}</div>
   <div class="coa-c money" role="gridcell">${d?acMoney(d):`<span class="dash">—</span>`}</div>
@@ -2116,32 +2116,32 @@ const acRow=({n,depth,guides,last})=>{
  </div>`};
 /* the account card — everything about the selected account, and why an action is or isn't allowed */
 const acCard=code=>{
- const x=acFind(code);if(!x)return `<div class="coa-card empty">${I("mouse-pointer-click")}<b>${t("اختار حساب من الدليل","Pick an account from the guide")}</b><p>${t("هتظهر هنا بياناته ورصيده وآخر حركاته.","Its details, balance and latest movements show here.")}</p></div>`;
+ const x=acFind(code);if(!x)return `<div class="coa-card empty">${I("mouse-pointer-click")}<b>${t("اختر حساباً من الدليل","Pick an account from the guide")}</b><p>${t("تظهر هنا بيانات الحساب ورصيده وآخر حركاته.","Its details, balance and latest movements show here.")}</p></div>`;
  const n=x.n,has=n[9].length,[d,c]=acDC(n),bal=acBal(n),path=acPath(code),ent=acEntries(n),moves=acMoves(n);
  const op=n[7],tot=d+c||1;
- const opInfo=op===1?[t("أساسي","Basic"),t("حساب أساسي في الدليل — تقدر تضيف تحته، لكن ما يتعدّلش ولا يتحذف.","A basic account — you can add under it, but it can't be edited or deleted.")]
-  :op===2?[t("خاص","Special"),t("مربوط بشاشة ","Linked to the ")+`<a data-go="${AC_SPECIAL[n[0]]}">${t({finBanks:"البنوك والخزن",finClients:"العملاء",finSuppliers:"الموردين"}[AC_SPECIAL[n[0]]],{finBanks:"Banks & cashboxes",finClients:"Clients",finSuppliers:"Suppliers"}[AC_SPECIAL[n[0]]])}</a>`+t(" — الحسابات الفرعية بتتعمل تلقائياً لما تضيف من هناك."," screen — sub-accounts are created automatically from there.")]
-  :[t("عام","General"),ent?t(`عليه ${ent} قيد — التعديل والحذف مقفولين علشان الكشوف ما تتغيرش.`,`${ent} entries posted — edit and delete are locked so statements stay intact.`):t("ما عليهوش قيود — تقدر تعدّله أو تحذفه.","No entries yet — you can edit or delete it.")];
+ const opInfo=op===1?[t("أساسي","Basic"),t("حساب أساسي — يمكن إضافة حسابات فرعية تحته، ولا يمكن تعديله أو حذفه.","A basic account — you can add under it, but it can't be edited or deleted.")]
+  :op===2?[t("خاص","Special"),t("مرتبط بشاشة ","Linked to the ")+`<a data-go="${AC_SPECIAL[n[0]]}">${t({finBanks:"البنوك والخزن",finClients:"العملاء",finSuppliers:"الموردين"}[AC_SPECIAL[n[0]]],{finBanks:"Banks & cashboxes",finClients:"Clients",finSuppliers:"Suppliers"}[AC_SPECIAL[n[0]]])}</a>`+t(" — تُنشأ الحسابات الفرعية تلقائياً عند الإضافة منها."," screen — sub-accounts are created automatically from there.")]
+  :[t("عام","General"),ent?t(`مسجَّل عليه ${ent} قيداً — التعديل والحذف غير متاحين حفاظاً على كشوف الحساب.`,`${ent} entries posted — edit and delete are locked so statements stay intact.`):t("لا توجد قيود على الحساب — يمكن تعديله أو حذفه.","No entries yet — you can edit or delete it.")];
  const canAdd=op!==2,canEdit=op===3&&!ent,canDel=op===3&&!ent;
  const scope=(AC_SCOPE[n[0]]||[]).map(b=>{const r=AC_BRANCHES.find(z=>z[0]===b);return t(r[1],r[2])}).join("، ")||t("كل الفروع","All branches");
  const kids=n[9].map(k=>({k,b:acBal(k)})),kmax=Math.max(1,...kids.map(z=>Math.abs(z.b)));
  return `<div class="coa-card">
   <nav class="cc-path">${path.map((p,i)=>i<path.length-1?`<button data-acsel="${p[0]}"><span class="num">${p[0]}</span> ${t(p[1],p[2])}</button>${I("chevron-left")}`:"").join("")}<span>${t("المستوى","Level")} <b class="num">${n[4]}</b></span></nav>
   <div class="cc-h"><span class="cc-ic ${n[3]}">${I(n[4]===1?acRootIcon(n[8]):has?"folder-open":"file-text")}</span><div><small class="num">${n[0]}</small><h3>${t(n[1],n[2])}</h3></div></div>
-  <div class="cc-tags">${acSide(n)}<span class="tag">${acTypeName(n[8])}</span><span class="tag">${has?t("تجميعي — رصيده من الحسابات تحته","Summary — rolls up its sub-accounts"):t("حساب حركة — بيقبل قيود","Posting — accepts entries")}</span></div>
+  <div class="cc-tags">${acSide(n)}<span class="tag">${acTypeName(n[8])}</span><span class="tag">${has?t("حساب تجميعي","Summary account"):t("حساب حركة","Posting account")}</span></div>
   <div class="cc-bal"><small>${t("الرصيد","Balance")}${ACBR?` · ${t((AC_BRANCHES.find(b=>b[0]===ACBR))[1],(AC_BRANCHES.find(b=>b[0]===ACBR))[2])}`:""}</small><b>${acMoney(bal)}</b><span>${t("ر.س","SAR")} · ${t(bal>=0?(n[3]==="debtor"?"مدين":"دائن"):(n[3]==="debtor"?"دائن":"مدين"),bal>=0?(n[3]==="debtor"?"Dr":"Cr"):(n[3]==="debtor"?"Cr":"Dr"))}</span></div>
   <div class="cc-dc"><div class="cc-bar"><i class="dr" style="width:${Math.round(d/tot*100)}%"></i><i class="cr" style="width:${Math.round(c/tot*100)}%"></i></div>
    <div class="cc-dcl"><span><i class="dr"></i>${t("مدين","Debit")} ${acMoney(d)}</span><span><i class="cr"></i>${t("دائن","Credit")} ${acMoney(c)}</span></div></div>
-  ${has?`<section class="cc-sec"><h4>${t("يتكوّن من","Made up of")} <small>${n[9].length} ${t("حساب","accounts")}</small></h4>
+  ${has?`<section class="cc-sec"><h4>${t("الحسابات الفرعية","Sub-accounts")} <small>${n[9].length} ${t("حساب","accounts")}</small></h4>
    ${kids.map(({k,b})=>`<button class="cc-kid" data-acsel="${k[0]}"><span class="num">${k[0]}</span><span class="nm">${t(k[1],k[2])}</span><span class="tr"><i style="width:${Math.round(Math.abs(b)/kmax*100)}%"></i></span>${acMoney(b)}</button>`).join("")}</section>`
   :`<section class="cc-sec"><h4>${t("آخر الحركات","Latest movements")} <small>${ent} ${t("قيد","entries")}</small></h4>
    ${moves.length?moves.slice(0,4).map(m=>`<div class="cc-mv"><span class="num d">${m.date.slice(5)}</span><span class="ds"><b>${m.desc}</b><small class="num">${m.no}</small></span><span class="am ${m.dr?"dr":"cr"}">${acMoney(m.amt)}<small>${t(m.dr?"مدين":"دائن",m.dr?"Dr":"Cr")}</small></span></div>`).join("")
-    :`<p class="cc-none">${ent?t("الحركات كلها في كشف الحساب.","All movements are in the account statement."):t("لسه ما اتسجلش عليه أي قيد.","No entries posted yet.")}</p>`}</section>`}
+    :`<p class="cc-none">${ent?t("جميع الحركات متاحة في كشف الحساب.","All movements are in the account statement."):t("لم تُسجَّل على الحساب قيود بعد.","No entries posted yet.")}</p>`}</section>`}
   <dl class="cc-meta"><div><dt>${t("نوع العملية","Operation type")}</dt><dd>${opInfo[0]}</dd></div><div><dt>${t("الفروع","Branches")}</dt><dd>${scope}</dd></div><div><dt>${t("القيود","Entries")}</dt><dd class="num">${ent}</dd></div></dl>
   <p class="cc-why">${I(op===3&&!ent?"unlock":"lock")}<span>${opInfo[1]}</span></p>
   <div class="cc-acts">
    <button class="btn btn-primary" data-acstatement="${n[0]}">${I("file-search")}${t("كشف الحساب","Account statement")}</button>
-   <button class="btn btn-ghost" data-acprint="${n[0]}">${I("printer")}${t("مطبوع","Print")}</button>
+   <button class="btn btn-ghost" data-acprint="${n[0]}">${I("printer")}${t("طباعة","Print")}</button>
   </div>
   <div class="cc-acts sm">
    <button class="btn btn-ghost" data-acadd="${n[0]}"${canAdd?"":" disabled"}>${I("plus")}${t("حساب فرعي","Sub-account")}</button>
@@ -2156,24 +2156,25 @@ const financeScreens={
   const diff=totals[0]-totals[1],hits=ACQ.trim()?all.filter(x=>acSelfMatch(x.n)).length:0;
   const maxLvl=Math.max(...all.map(x=>x.n[4]));
   return `
- <div class="page-head"><div><h1>${t("الدليل المحاسبي","Chart of accounts")}</h1><p>${t("شجرة الحسابات بمستوياتها — الرصيد بيتجمّع من الحسابات الفرعية، واختار أي حساب تشوف بطاقته.","The account tree by level — balances roll up from sub-accounts; pick any account to see its card.")}</p></div>
+ <div class="page-head"><div><h1>${t("الدليل المحاسبي","Chart of accounts")}</h1><p>${t("شجرة الحسابات بمستوياتها؛ يُجمَّع رصيد كل حساب رئيسي من حساباته الفرعية.","The account tree by level — balances roll up from sub-accounts; pick any account to see its card.")}</p></div>
  <div class="actions"><button class="btn btn-ghost" data-go="finReports">${I("folder-open")}${t("التقارير المالية","Financial reports")}</button><button class="btn btn-ghost">${I("file-spreadsheet")}Excel</button><button class="btn btn-ghost">${I("printer")}${t("طباعة الدليل","Print guide")}</button><button class="btn btn-primary" data-fiaddent="account" data-acadd="root">${I("plus")}${t("إضافة حساب","Add account")}</button></div></div>
- <div class="coa-tabs" role="tablist">
-  <button role="tab" class="${!ACROOT?"on":""}" data-acrootb=""><span class="ct-i">${I("list-tree")}</span><span class="ct-b"><b>${t("كل الحسابات","All accounts")}</b><small><span class="num">${all.length}</span> ${t("حساب","accounts")} · <span class="num">${all.filter(x=>!x.n[9].length).length}</span> ${t("حساب حركة","posting")}</small></span></button>
-  ${acTree.map(n=>`<button role="tab" class="${ACROOT===n[0]?"on":""} t-${n[8]}" data-acrootb="${n[0]}"><span class="ct-i">${I(acRootIcon(n[8]))}</span><span class="ct-b"><b><span class="num">${n[0]}</span> · ${t(n[1],n[2])}</b><small>${acMoney(acBal(n))} ${acSide(n)}</small></span></button>`).join("")}
- </div>
  <div class="card flush coa">
+  <div class="coa-nav" role="tablist">
+   <button role="tab" class="${!ACROOT?"on":""}" data-acrootb="">${t("جميع الحسابات","All accounts")}<span class="num">${all.length}</span></button>
+   ${acTree.map(n=>`<button role="tab" class="${ACROOT===n[0]?"on":""}" data-acrootb="${n[0]}"><span class="num cd">${n[0]}</span>${t(n[1],n[2])}</button>`).join("")}
+   <span class="coa-nav-end"><button class="icon-btn" data-acexpand title="${t("توسيع الكل","Expand all")}">${I("unfold-vertical")}</button><button class="icon-btn" data-accollapse title="${t("طي الكل","Collapse all")}">${I("fold-vertical")}</button></span>
+  </div>
   <div class="coa-tools">
-   <div class="inp coa-q">${I("search")}<input data-acq value="${ACQ}" placeholder="${t("ابحث بكود الحساب أو اسمه","Search by account code or name")}">${ACQ?`<span class="coa-hits"><span class="num">${hits}</span> ${t("نتيجة","results")}</span><button class="coa-x" data-acqclear title="${t("مسح","Clear")}">${I("x")}</button>`:""}</div>
-   <div class="coa-lv" role="group" aria-label="${t("عرض حتى المستوى","Show down to level")}"><span>${t("اعرض حتى المستوى","Show to level")}</span>${Array.from({length:maxLvl},(_,i)=>i+1).map(l=>`<button class="${ACDEPTH===l?"on":""}" data-acdepth="${l}">${l}</button>`).join("")}</div>
-   <label class="coa-br">${I("building-2")}<select data-acbr>${AC_BRANCHES.map(b=>`<option value="${b[0]}"${ACBR===b[0]?" selected":""}>${t(b[1],b[2])}</option>`).join("")}</select></label>
+   <div class="inp coa-q">${I("search")}<input data-acq value="${ACQ}" placeholder="${t("البحث بكود الحساب أو اسمه","Search by account code or name")}">${ACQ?`<span class="coa-hits"><span class="num">${hits}</span> ${t("نتيجة","results")}</span><button class="coa-x" data-acqclear title="${t("مسح","Clear")}">${I("x")}</button>`:""}</div>
+   <div class="coa-f"><label>${t("المستوى","Level")}</label><div class="coa-lv" role="group">${Array.from({length:maxLvl},(_,i)=>i+1).map(l=>`<button class="${ACDEPTH===l?"on":""}" data-acdepth="${l}" title="${t("عرض الحسابات حتى المستوى "+l,"Show accounts down to level "+l)}">${l}</button>`).join("")}</div></div>
+   <div class="coa-f"><label>${t("الفرع","Branch")}</label><select class="coa-sel" data-acbr>${AC_BRANCHES.map(b=>`<option value="${b[0]}"${ACBR===b[0]?" selected":""}>${t(b[1],b[2])}</option>`).join("")}</select></div>
   </div>
   <div class="coa-split">
    <div class="coa-grid" role="treegrid" aria-label="${t("الدليل المحاسبي","Chart of accounts")}">
     <div class="coa-r head" role="row"><div class="coa-c name">${t("الحساب","Account")}</div><div class="coa-c nat">${t("الطبيعة","Nature")}</div><div class="coa-c money">${t("مدين","Debit")}</div><div class="coa-c money">${t("دائن","Credit")}</div><div class="coa-c money">${t("الرصيد","Balance")}</div><div class="coa-c acts"></div></div>
-    <div class="coa-body">${rows.length?rows.map(acRow).join(""):`<div class="tempty">${I("search-x")}<b>${t("مفيش حساب بالكود أو الاسم ده","No account matches that code or name")}</b></div>`}</div>
-    <div class="coa-r foot" role="row"><div class="coa-c name">${diff===0?`<span class="coa-ok">${I("check-circle-2")}${t("الدليل متوازن — إجمالي المدين = إجمالي الدائن","Balanced — total debit = total credit")}</span>`:`<span class="coa-bad">${I("alert-triangle")}${t("فرق","Difference")} ${acMoney(Math.abs(diff))}</span>`}</div><div class="coa-c nat"></div><div class="coa-c money">${acMoney(totals[0])}</div><div class="coa-c money">${acMoney(totals[1])}</div><div class="coa-c money"></div><div class="coa-c acts"></div></div>
-    <div class="coa-keys"><span><kbd>↑</kbd><kbd>↓</kbd> ${t("تنقّل","Move")}</span><span><kbd>←</kbd><kbd>→</kbd> ${t("فتح / طي","Expand / collapse")}</span><span><kbd>Enter</kbd> ${t("كشف الحساب","Statement")}</span><span class="tag a">${t("جديد","New")}</span></div>
+    <div class="coa-body">${rows.length?rows.map(acRow).join(""):`<div class="tempty">${I("search-x")}<b>${t("لا يوجد حساب مطابق للكود أو الاسم","No account matches that code or name")}</b></div>`}</div>
+    <div class="coa-r foot" role="row"><div class="coa-c name">${diff===0?`<span class="coa-ok">${I("check-circle-2")}${t("الدليل متوازن: إجمالي المدين يساوي إجمالي الدائن","Balanced: total debit equals total credit")}</span>`:`<span class="coa-bad">${I("alert-triangle")}${t("فرق","Difference")} ${acMoney(Math.abs(diff))}</span>`}</div><div class="coa-c nat"></div><div class="coa-c money">${acMoney(totals[0])}</div><div class="coa-c money">${acMoney(totals[1])}</div><div class="coa-c money"></div><div class="coa-c acts"></div></div>
+    <div class="coa-keys"><span><kbd>↑</kbd><kbd>↓</kbd> ${t("التنقل","Navigate")}</span><span><kbd>←</kbd><kbd>→</kbd> ${t("توسيع / طي","Expand / collapse")}</span><span><kbd>Enter</kbd> ${t("كشف الحساب","Statement")}</span><span class="tag a">${t("جديد","New")}</span></div>
    </div>
   </div>
   ${ACSEL?`<div class="coa-shade" data-acclose></div><aside class="coa-drawer" role="dialog" aria-label="${t("بطاقة الحساب","Account card")}"><button class="coa-close" data-acclose title="${t("إغلاق","Close")}">${I("x")}</button>${acCard(ACSEL)}</aside>`:""}
@@ -2225,6 +2226,8 @@ document.addEventListener("click",e=>{
  const tg=e.target.closest("[data-actoggle]");if(tg){const k=tg.dataset.actoggle;const x=acFind(k);ACOPEN[k]=!(x&&acOpen(x.n));ACDEPTH=null;render();return}
  const dp=e.target.closest("[data-acdepth]");if(dp){ACDEPTH=+dp.dataset.acdepth;acFlat().forEach(x=>{if(x.n[9].length)ACOPEN[x.n[0]]=x.n[4]<ACDEPTH});render();return}
  const rb=e.target.closest("[data-acrootb]");if(rb){ACROOT=rb.dataset.acrootb;render();return}
+ const ex=e.target.closest("[data-acexpand]");if(ex){acFlat().forEach(x=>{if(x.n[9].length)ACOPEN[x.n[0]]=true});ACDEPTH=null;render();return}
+ const co=e.target.closest("[data-accollapse]");if(co){acFlat().forEach(x=>{if(x.n[9].length)ACOPEN[x.n[0]]=false});ACDEPTH=null;render();return}
  const cl=e.target.closest("[data-acclose]");if(cl){ACSEL=null;render();return}
  const qc=e.target.closest("[data-acqclear]");if(qc){ACQ="";render();return}
  const stm=e.target.closest("[data-acstatement]");if(stm){FRACC=stm.dataset.acstatement;FRID="account_statement";cur="finReport";render();window.scrollTo(0,0);return}
