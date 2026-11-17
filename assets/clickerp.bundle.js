@@ -2108,10 +2108,7 @@ const acRow=({n,depth,guides,last})=>{
    <span class="coa-nm">${acHi(t(n[1],n[2]))}</span>
    ${n[7]===2?`<span class="coa-lk" title="${t("حساب خاص — تُنشأ حساباته الفرعية من شاشتها","Special — sub-accounts come from their screen")}">${I("link-2")}</span>`:""}
   </div>
-  <div class="coa-c nat" role="gridcell">${!x||root||x.parent&&x.parent[3]!==n[3]?acSide(n):""}</div>
-  <div class="coa-c money" role="gridcell">${d?acMoney(d):`<span class="dash">—</span>`}</div>
-  <div class="coa-c money" role="gridcell">${c?acMoney(c):`<span class="dash">—</span>`}</div>
-  <div class="coa-c money bal${bal<0?" neg":""}" role="gridcell">${zero?`<span class="dash">0.00</span>`:acMoney(bal)}</div>
+  <div class="coa-c money bal${bal<0?" neg":""}" role="gridcell">${zero?`<span class="dash">0.00</span>`:acMoney(bal)}<small class="coa-dn ${(bal>=0)===(n[3]==="debtor")?"debtor":"creditor"}">${zero?"":t((bal>=0)===(n[3]==="debtor")?"مدين":"دائن",(bal>=0)===(n[3]==="debtor")?"Dr":"Cr")}</small></div>
   <div class="coa-c acts" role="gridcell">${ops.join("")}<button class="icon-btn" title="${t("كشف الحساب","Account statement")}" data-acstatement="${n[0]}">${I("file-search")}</button></div>
  </div>`};
 /* the account card — everything about the selected account, and why an action is or isn't allowed */
@@ -2171,10 +2168,9 @@ const financeScreens={
   </div>
   <div class="coa-split">
    <div class="coa-grid" role="treegrid" aria-label="${t("الدليل المحاسبي","Chart of accounts")}">
-    <div class="coa-r head" role="row"><div class="coa-c name">${t("الحساب","Account")}</div><div class="coa-c nat">${t("الطبيعة","Nature")}</div><div class="coa-c money">${t("مدين","Debit")}</div><div class="coa-c money">${t("دائن","Credit")}</div><div class="coa-c money">${t("الرصيد","Balance")}</div><div class="coa-c acts"></div></div>
+    <div class="coa-r head" role="row"><div class="coa-c name">${t("الحساب","Account")}</div><div class="coa-c money bal">${t("الرصيد","Balance")}</div><div class="coa-c acts"></div></div>
     <div class="coa-body">${rows.length?rows.map(acRow).join(""):`<div class="tempty">${I("search-x")}<b>${t("لا يوجد حساب مطابق للكود أو الاسم","No account matches that code or name")}</b></div>`}</div>
-    <div class="coa-r foot" role="row"><div class="coa-c name">${diff===0?`<span class="coa-ok">${I("check-circle-2")}${t("الدليل متوازن: إجمالي المدين يساوي إجمالي الدائن","Balanced: total debit equals total credit")}</span>`:`<span class="coa-bad">${I("alert-triangle")}${t("فرق","Difference")} ${acMoney(Math.abs(diff))}</span>`}</div><div class="coa-c nat"></div><div class="coa-c money">${acMoney(totals[0])}</div><div class="coa-c money">${acMoney(totals[1])}</div><div class="coa-c money"></div><div class="coa-c acts"></div></div>
-    <div class="coa-keys"><span><kbd>↑</kbd><kbd>↓</kbd> ${t("التنقل","Navigate")}</span><span><kbd>←</kbd><kbd>→</kbd> ${t("توسيع / طي","Expand / collapse")}</span><span><kbd>Enter</kbd> ${t("كشف الحساب","Statement")}</span><span class="tag a">${t("جديد","New")}</span></div>
+    <div class="coa-r foot" role="row"><div class="coa-c name">${diff===0?`<span class="coa-ok">${I("check-circle-2")}${t("الدليل متوازن","The chart is balanced")}</span>`:`<span class="coa-bad">${I("alert-triangle")}${t("الدليل غير متوازن — الفرق","Out of balance — difference")} ${acMoney(Math.abs(diff))}</span>`}</div><div class="coa-c money bal"></div><div class="coa-c acts"></div></div>
    </div>
   </div>
   ${ACSEL?`<div class="coa-shade" data-acclose></div><aside class="coa-drawer" role="dialog" aria-label="${t("بطاقة الحساب","Account card")}"><button class="coa-close" data-acclose title="${t("إغلاق","Close")}">${I("x")}</button>${acCard(ACSEL)}</aside>`:""}
