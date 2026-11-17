@@ -30,22 +30,37 @@
       <section class="sa-card">
         <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="package"></i></span><div><h2 class="sa-card-title">نوع البرنامج</h2><p class="sa-card-desc">تغيير النوع لا يحذف أي بيانات أو إعدادات.</p></div></div></div>
         <div class="sa-choices">
-          <label class="sa-choice is-on"><input type="radio" name="profile" checked><span><b>نظام الاستقدام <span class="sa-badge sa-badge--success">الحالي</span></b><small>النسخة الحالية بكامل عمليات الاستقدام والعقود والعمالة. اللوحة: لوحة الاستقدام.</small></span></label>
-          <label class="sa-choice"><input type="radio" name="profile"><span><b>نظام عام</b><small>نسخة ERP عامة بدون عمليات الاستقدام المتخصصة. اللوحة: لوحة المالية.</small></span></label>
+          <label class="sa-choice is-on"><input type="radio" name="profile" value="recruitment" checked><span><b>نظام الاستقدام <span class="sa-badge sa-badge--success">الحالي</span></b><small>كامل عمليات الاستقدام والعقود والعمالة. الرئيسية: لوحة الاستقدام.</small></span></label>
+          <label class="sa-choice"><input type="radio" name="profile" value="general"><span><b>نظام عام — المالية</b><small>ERP عام بالمالية والفوترة، من غير عمليات الاستقدام. الرئيسية: الشركة اليوم + لوحة المالية.</small></span></label>
+          <label class="sa-choice"><input type="radio" name="profile" value="tasks"><span><b>نظام المهام <span class="sa-badge sa-badge--warning">جديد</span></b><small>مركز المهام وتسجيل الوقت من غير مالية. الرئيسية: الشركة اليوم من غير مالية، أو مركز المهام.</small></span></label>
         </div>
-        <div class="sa-diff" style="margin-top:14px">
-          <div class="is-off"><b><i data-lucide="eye-off"></i>لو حوّلت لـ «نظام عام» — هيختفي ويتقفل</b>إدارة التشغيل · تأشيرات الشركة · فواتير العقود · تحويلات مساند · الوكلاء الخارجيون · الملخص التشغيلي في المالية · صلاحيات الاستقدام في شاشة الأدوار</div>
-          <div class="is-on"><b><i data-lucide="eye"></i>وهيظهر</b>الموديل التشغيلي العام · حسابات شركات التقنية والتسويق · مركز المهام · لوحة المالية كافتراضية</div>
+        <div class="sa-table-wrap" style="margin-top:14px"><table class="sa-table sa-profiles">
+          <thead><tr><th>النوع والموديلات الأساسية</th><th>الرئيسية</th><th>الملخص المالي</th></tr></thead>
+          <tbody>
+            <tr data-profile-row="recruitment" class="is-on"><td><b>نظام الاستقدام</b><small class="sa-profiles-mods">أساسي: إدارة التشغيل</small></td><td>لوحة الاستقدام</td><td>حسب الصلاحية</td></tr>
+            <tr data-profile-row="general"><td><b>نظام عام — المالية</b><small class="sa-profiles-mods">أساسي: الموديل التشغيلي العام · المالية</small></td><td>الشركة اليوم + لوحة المالية</td><td><span class="sa-badge sa-badge--success">يظهر</span></td></tr>
+            <tr data-profile-row="tasks"><td><b>نظام المهام</b><small class="sa-profiles-mods">أساسي: مركز المهام · الموارد البشرية</small></td><td>الشركة اليوم من غير مالية، أو مركز المهام</td><td><span class="sa-badge sa-badge--muted">مخفي</span></td></tr>
+          </tbody></table></div>
+        <div class="sa-diff" style="margin-top:12px" data-profile-diff="recruitment" hidden>
+          <div class="is-on"><b><i data-lucide="check"></i>ده النوع الحالي</b>اختار نوع تاني عشان تشوف إيه اللي هيتقفل وإيه اللي هيظهر.</div>
+        </div>
+        <div class="sa-diff" style="margin-top:12px" data-profile-diff="general" hidden>
+          <div class="is-off"><b><i data-lucide="eye-off"></i>لو حوّلت لـ «نظام عام — المالية» — هيختفي ويتقفل</b>إدارة التشغيل · تأشيرات الشركة · فواتير العقود · تحويلات مساند · الوكلاء الخارجيون · الملخص التشغيلي في المالية · صلاحيات الاستقدام في شاشة الأدوار</div>
+          <div class="is-on"><b><i data-lucide="eye"></i>وهيظهر</b>الموديل التشغيلي العام · حسابات شركات التقنية والتسويق · مركز المهام (اختياري) · لوحة المالية كافتراضية</div>
+        </div>
+        <div class="sa-diff" style="margin-top:12px" data-profile-diff="tasks" hidden>
+          <div class="is-off"><b><i data-lucide="eye-off"></i>لو حوّلت لـ «نظام المهام» — هيختفي ويتقفل</b>إدارة التشغيل · التأشيرات · المالية والفوترة كلها (القيود، الفواتير، الضريبة، ZATCA) · الملخص المالي في الرئيسية · صلاحيات المالية والاستقدام في شاشة الأدوار</div>
+          <div class="is-on"><b><i data-lucide="eye"></i>وهيظهر</b>مركز المهام وتسجيل الوقت (أساسي) · الموارد البشرية للموظفين والحضور · الرئيسية «الشركة اليوم» من غير أرقام مالية. ربط المهمة بمركز تكلفة بيتشال لأن مراكز التكلفة جزء من المالية.</div>
         </div>
         <p class="sa-help" style="margin:10px 0 14px">الصلاحيات المسندة بتفضل محفوظة بس بتستخبى. كل تغيير بيتسجل في سجل تغييرات نوع البرنامج.</p>
         <div class="sa-confirm">
-          <div class="sa-confirm-head"><i data-lucide="lock-keyhole"></i>للتغيير: اكتب العبارة <code>تغيير إلى general</code> + كلمة المرور + السبب</div>
+          <div class="sa-confirm-head"><i data-lucide="lock-keyhole"></i>للتغيير: اكتب العبارة <code data-profile-phrase>تغيير إلى general</code> + كلمة المرور + السبب</div>
           <div class="sa-form-grid">
-            <div class="sa-field"><label>عبارة التأكيد <span class="req">*</span></label><input class="sa-input" placeholder="تغيير إلى general"></div>
+            <div class="sa-field"><label>عبارة التأكيد <span class="req">*</span></label><input class="sa-input" placeholder="تغيير إلى general" data-profile-ph></div>
             <div class="sa-field"><label>كلمة مرور Super Admin <span class="req">*</span></label><input class="sa-input" type="password"></div>
             <div class="sa-field is-wide"><label>سبب تغيير نوع البرنامج <span class="req">*</span></label><input class="sa-input" placeholder="اشرح سبب التحويل والجهة الطالبة له"><span class="sa-help">10 حروف على الأقل.</span></div>
           </div>
-          <div><button class="btn btn-red" data-sa-confirm="هيتغير نوع البرنامج لـ «نظام عام» وهتختفي شاشات الاستقدام من القائمة. البيانات مش هتتمسح. متأكد؟"><i data-lucide="arrow-left-right"></i>تغيير نوع البرنامج</button></div>
+          <div><button class="btn btn-red" data-sa-confirm="هيتغير نوع البرنامج والشاشات اللي مش تبع النوع الجديد هتختفي من القائمة. البيانات مش هتتمسح. متأكد؟"><i data-lucide="arrow-left-right"></i>تغيير نوع البرنامج</button></div>
         </div>
       </section>
 
@@ -74,7 +89,7 @@
           <p class="sa-group-title">غير متاح لنظام الاستقدام</p>
           <div class="sa-module is-na"><span class="sa-module-icon"><i data-lucide="briefcase"></i></span><span class="sa-module-body"><b class="sa-module-name">الموديل التشغيلي العام</b><small class="sa-module-sub">للنظام العام فقط</small></span><button class="sa-switch" disabled></button></div>
           <div class="sa-module is-na"><span class="sa-module-icon"><i data-lucide="laptop"></i></span><span class="sa-module-body"><b class="sa-module-name">حسابات شركات التقنية والتسويق</b><small class="sa-module-sub">للنظام العام فقط</small></span><button class="sa-switch" disabled></button></div>
-          <div class="sa-module is-na"><span class="sa-module-icon"><i data-lucide="columns-3"></i></span><span class="sa-module-body"><b class="sa-module-name">مركز المهام وتسجيل الوقت</b><small class="sa-module-sub">للنظام العام فقط</small></span><button class="sa-switch" disabled></button></div>
+          <div class="sa-module is-na"><span class="sa-module-icon"><i data-lucide="columns-3"></i></span><span class="sa-module-body"><b class="sa-module-name">مركز المهام وتسجيل الوقت</b><small class="sa-module-sub">للنظام العام ونظام المهام</small></span><button class="sa-switch" disabled></button></div>
         </div>
       </section>
 
@@ -92,6 +107,7 @@
         <div class="sa-choices" style="grid-template-columns:1fr">
           <label class="sa-choice is-on"><input type="radio" name="dash" checked><span><b>لوحة الاستقدام</b></span></label>
           <label class="sa-choice"><input type="radio" name="dash"><span><b>لوحة المالية</b></span></label>
+          <label class="sa-choice"><input type="radio" name="dash"><span><b>مركز المهام</b><small>لنظام المهام</small></span></label>
         </div>
       </section>
       <section class="sa-card">

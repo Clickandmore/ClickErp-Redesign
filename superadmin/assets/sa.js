@@ -218,3 +218,18 @@
   icons();
   bind();
 })();
+
+/* v1.32 — program type: three profiles; show the matching row, diff and confirm phrase */
+(function () {
+  function sync() {
+    var on = document.querySelector('input[name="profile"]:checked'); if (!on) return;
+    var k = on.value;
+    document.querySelectorAll('[data-profile-row]').forEach(function (r) { r.classList.toggle('is-on', r.dataset.profileRow === k); });
+    document.querySelectorAll('[data-profile-diff]').forEach(function (d) { d.hidden = d.dataset.profileDiff !== k; });
+    var ph = 'تغيير إلى ' + k;
+    document.querySelectorAll('[data-profile-phrase]').forEach(function (c) { c.textContent = ph; });
+    document.querySelectorAll('[data-profile-ph]').forEach(function (i) { i.placeholder = ph; });
+  }
+  document.addEventListener('change', function (e) { if (e.target.name === 'profile') sync(); });
+  document.addEventListener('DOMContentLoaded', sync); if (document.readyState !== 'loading') sync();
+})();

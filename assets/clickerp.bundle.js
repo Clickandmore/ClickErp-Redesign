@@ -5484,7 +5484,7 @@ const EXPM=[241000,231000,238000,242000,259000,268000,276000,270000,288000,29000
 const BANKS_=[["مصرف الراجحي","جاري · ••4410",284500],["البنك الأهلي","جاري · ••0921",176200],["بنك الرياض","حساب مساند · ••7713",92600],["الخزنة الرئيسية","نقدي",41000],["خزنة فرع جدة","نقدي",18000]];
 
 /* program-type switch (SuperAdmin «نوع البرنامج»: نظام الاستقدام / نظام عام) */
-const MODE=on=>`<div class="fd-mode" role="tablist" aria-label="نوع البرنامج"><span>${X("layers")}شكل اللوحة حسب نوع البرنامج</span>${[["finDash","نظام الاستقدام"],["finDashGen","نظام عام"]].map(m=>`<a href="#" role="tab" data-go="${m[0]}" class="${m[0]===on?"on":""}"${m[0]===on?' aria-selected="true"':""}>${m[1]}</a>`).join("")}</div>`;
+const MODE=on=>`<div class="fd-mode" role="tablist" aria-label="نوع البرنامج"><span>${X("layers")}شكل اللوحة حسب نوع البرنامج</span>${[["finDash","نظام الاستقدام"],["finDashGen","نظام عام — المالية"]].map(m=>`<a href="#" role="tab" data-go="${m[0]}" class="${m[0]===on?"on":""}"${m[0]===on?' aria-selected="true"':""}>${m[1]}</a>`).join("")}</div>`;
 const PIPE=(items,seps)=>`<div class="fd-pipe">${items.map((x,i)=>`<div class="${x[2]}"><small>${x[0]}</small><b class="num">${x[1]}</b></div>`+(i<items.length-1?`<i class="op">${seps[i]}</i>`:"")).join("")}</div>`;
 const HERO=(why,m)=>`<div class="fx-hero-t fd-hero"><small>نتيجة نوفمبر · حتى 16 نوفمبر</small>
  <div class="fd-hv"><b class="num">+86,400</b><span>ر.س صافي ربح</span><em>هامش <span class="num">20.9%</span></em><em class="g"><span class="num">↑ 18%</span> عن أكتوبر</em></div>
@@ -5612,7 +5612,7 @@ S.finDashGen=()=>`
  ${ENTRIES([["JE-24118","تحصيل فاتورة INV-9921 — شركة المدار للتجارة","سند قبض","9,250","سارة القحطاني","10:12"],["JE-24117","فاتورة مشتريات PUR-0388 — مؤسسة التوريدات الحديثة","مشتريات","12,640","خالد المطيري","09:40"],["JE-24116","إيجار المستودع — نوفمبر","سند صرف","8,500","خالد المطيري","09:02"],["JE-24115","إهلاك شهري — أصول نوفمبر","إهلاك","4,120","آلي","08:00"]])}`;
 
 screens.finDash=S.finDash;screens.finDashGen=S.finDashGen;
-Object.assign(T,{finDashGen:{ar:"لوحة المالية — نظام عام",en:"Finance dashboard (general)"}});
+Object.assign(T,{finDashGen:{ar:"لوحة المالية — نظام عام (المالية)",en:"Finance dashboard (general)"}});
 window.CERP_PAGES=(window.CERP_PAGES||[]).concat(["finDashGen"]);
 /* todo links that point inside the page scroll to their card */
 document.addEventListener("click",e=>{const j=e.target.closest("[data-fdjump]");if(!j)return;e.preventDefault();const t=document.getElementById("fd-"+j.dataset.fdjump);if(t){t.scrollIntoView({behavior:"smooth",block:"center"});t.classList.remove("fd-flash");void t.offsetWidth;t.classList.add("fd-flash")}});
