@@ -5278,3 +5278,21 @@ button.rp-k:hover{border-color:var(--navy)}
 @keyframes fdflash{0%,60%{box-shadow:0 0 0 3px rgba(122,182,72,.55);border-radius:var(--r)}100%{box-shadow:none}}
 @media (max-width:1180px){.fd-kpis{grid-template-columns:1fr 1fr}.fd-g3{grid-template-columns:1fr 1fr}.fd-g2,.fd-g2.wide{grid-template-columns:1fr}}
 @media (max-width:720px){.fd-kpis,.fd-g3{grid-template-columns:1fr}.fd-mini,.fd-acts{grid-template-columns:1fr 1fr}.fd-flow>i{display:none}.fd-sh{flex-wrap:wrap}}
+
+/* v1.31.1 — finance hero: one figure, the reason, three indicators */
+.fd-hero{display:flex;flex-direction:column;gap:10px}
+.fd-hv{display:flex;align-items:baseline;flex-wrap:wrap;gap:6px 10px}
+.fd-hv>b{font-size:38px;font-weight:800;color:#9fd36f;line-height:1.1}
+.fd-hv>span{font-size:15px;font-weight:600;color:rgba(255,255,255,.85)}
+.fd-hv>em{font-style:normal;font-size:12.5px;font-weight:700;padding:3px 10px;border-radius:999px;background:rgba(255,255,255,.1);color:#fff}
+.fd-hv>em.g{color:#b7e08f;background:rgba(122,182,72,.18)}
+.fd-hero>p{margin:0;font-size:14px;line-height:1.8;color:rgba(255,255,255,.8)}
+.fd-hm{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:6px}
+.fd-hm>div{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.fd-hm>div[data-rkey]{cursor:pointer}
+.fd-hm>div[data-rkey]:hover,.fd-hm>div[data-rkey]:focus-visible{background:rgba(255,255,255,.13);outline:0}
+.fd-hm small{font-size:12px;color:rgba(255,255,255,.65);display:flex;align-items:center;gap:6px}
+.fd-hm small .tag{font-size:10.5px;padding:1px 6px}
+.fd-hm b{font-size:18px;font-weight:800;color:#fff}
+.fd-hm>div>span{font-size:11.5px;color:rgba(255,255,255,.6);line-height:1.5}
+@media (max-width:720px){.fd-hm{grid-template-columns:1fr}}
