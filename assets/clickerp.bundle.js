@@ -2067,7 +2067,7 @@ acTree[4][9][1][9].push(["5204","عمولات بنكية","Bank charges","debtor
 /* operation_type as in OperationTypeEnum: 1 Basics (أساسي) · 2 Special (خاص — child accounts come from the banks/clients/suppliers screens) · 3 General (عام) */
 const AC_SPECIAL={"1102":"finBanks","110201":"finBanks","110202":"finBanks","1103":"finClients","110301":"finClients","110302":"finClients","110303":"finClients","2101":"finSuppliers","210101":"finSuppliers","210102":"finSuppliers","210103":"finSuppliers"};
 (function fixOps(ns){ns.forEach(n=>{n[7]=AC_SPECIAL[n[0]]?2:n[9].length?1:3;fixOps(n[9])})})(acTree);
-let ACQ="",ACLEVEL="",ACROOT="",ACOPEN={},ACSEL="1101",ACDEPTH=null,ACBR="";
+let ACQ="",ACLEVEL="",ACROOT="",ACOPEN={},ACSEL=null,ACDEPTH=null,ACBR="";
 const acFlat=(nodes=acTree,out=[],parent=null)=>{nodes.forEach(n=>{out.push({n,parent});acFlat(n[9],out,n)});return out};
 const acBalance=n=>{let d=n[5],c=n[6];const walk=k=>k.forEach(x=>{d+=x[5];c+=x[6];walk(x[9])});walk(n[9]);return n[3]==="debtor"?d-c:c-d};
 const acSums=n=>{let d=n[5],c=n[6];const walk=k=>k.forEach(x=>{d+=x[5];c+=x[6];walk(x[9])});walk(n[9]);return [d,c]};
@@ -2175,8 +2175,8 @@ const financeScreens={
     <div class="coa-r foot" role="row"><div class="coa-c name">${diff===0?`<span class="coa-ok">${I("check-circle-2")}${t("الدليل متوازن — إجمالي المدين = إجمالي الدائن","Balanced — total debit = total credit")}</span>`:`<span class="coa-bad">${I("alert-triangle")}${t("فرق","Difference")} ${acMoney(Math.abs(diff))}</span>`}</div><div class="coa-c nat"></div><div class="coa-c money">${acMoney(totals[0])}</div><div class="coa-c money">${acMoney(totals[1])}</div><div class="coa-c money"></div><div class="coa-c acts"></div></div>
     <div class="coa-keys"><span><kbd>↑</kbd><kbd>↓</kbd> ${t("تنقّل","Move")}</span><span><kbd>←</kbd><kbd>→</kbd> ${t("فتح / طي","Expand / collapse")}</span><span><kbd>Enter</kbd> ${t("كشف الحساب","Statement")}</span><span class="tag a">${t("جديد","New")}</span></div>
    </div>
-   ${acCard(ACSEL)}
   </div>
+  ${ACSEL?`<div class="coa-shade" data-acclose></div><aside class="coa-drawer" role="dialog" aria-label="${t("بطاقة الحساب","Account card")}"><button class="coa-close" data-acclose title="${t("إغلاق","Close")}">${I("x")}</button>${acCard(ACSEL)}</aside>`:""}
  </div>`},
  finEntries:()=>{
   const rows=[
@@ -2224,7 +2224,8 @@ Object.assign(screens,financeScreens);
 document.addEventListener("click",e=>{
  const tg=e.target.closest("[data-actoggle]");if(tg){const k=tg.dataset.actoggle;const x=acFind(k);ACOPEN[k]=!(x&&acOpen(x.n));ACDEPTH=null;render();return}
  const dp=e.target.closest("[data-acdepth]");if(dp){ACDEPTH=+dp.dataset.acdepth;acFlat().forEach(x=>{if(x.n[9].length)ACOPEN[x.n[0]]=x.n[4]<ACDEPTH});render();return}
- const rb=e.target.closest("[data-acrootb]");if(rb){ACROOT=rb.dataset.acrootb;if(ACROOT)ACSEL=ACROOT;render();return}
+ const rb=e.target.closest("[data-acrootb]");if(rb){ACROOT=rb.dataset.acrootb;render();return}
+ const cl=e.target.closest("[data-acclose]");if(cl){ACSEL=null;render();return}
  const qc=e.target.closest("[data-acqclear]");if(qc){ACQ="";render();return}
  const stm=e.target.closest("[data-acstatement]");if(stm){FRACC=stm.dataset.acstatement;FRID="account_statement";cur="finReport";render();window.scrollTo(0,0);return}
  const pr=e.target.closest("[data-acprint]");if(pr){clToast("جارٍ تحضير كشف الحساب للطباعة","Preparing printed statement");return}
@@ -2234,6 +2235,7 @@ document.addEventListener("click",e=>{
  const sel=e.target.closest("[data-acsel]");if(sel){ACSEL=sel.dataset.acsel;const x=acFind(ACSEL);if(x){let p=x.parent;while(p){ACOPEN[p[0]]=true;const q=acFind(p[0]);p=q&&q.parent}}render();const r=document.querySelector(`.coa-r[data-acsel="${ACSEL}"]`);if(r)r.focus({preventScroll:true});return}
 });
 document.addEventListener("keydown",e=>{
+ if(e.key==="Escape"&&ACSEL&&document.querySelector(".coa-drawer")){ACSEL=null;render();return}
  const row=e.target.closest&&e.target.closest(".coa-r[data-acsel]");if(!row)return;
  const rows=[...document.querySelectorAll(".coa-body .coa-r[data-acsel]")],i=rows.indexOf(row),code=row.dataset.acsel,x=acFind(code),rtl=document.body.dir!=="ltr";
  const go=r=>{if(!r)return;ACSEL=r.dataset.acsel;render();const n=document.querySelector(`.coa-r[data-acsel="${ACSEL}"]`);if(n)n.focus()};

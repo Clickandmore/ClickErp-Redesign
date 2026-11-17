@@ -5326,8 +5326,8 @@ button.rp-k:hover{border-color:var(--navy)}
 .coa-br{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:10px;padding:0 10px;height:36px;color:var(--muted)}
 .coa-br svg{width:15px;height:15px}
 .coa-br select{border:0;background:none;font:inherit;font-size:13px;color:var(--ink);height:34px;padding:0;outline:none;box-shadow:none;min-width:120px}
-.coa-split{display:grid;grid-template-columns:minmax(0,1fr) 340px;align-items:start}
-.coa-grid{min-width:0;border-inline-end:1px solid var(--line)}
+.coa-split{overflow-x:auto}
+.coa-grid{min-width:720px}
 .coa-r{display:grid;grid-template-columns:minmax(260px,1fr) 64px 118px 118px 128px 64px;align-items:center;min-height:38px;border-bottom:1px solid var(--line-2);outline:none}
 .coa-c{padding:0 10px;min-width:0}
 .coa-c.money{text-align:end;font-size:12.5px;font-variant-numeric:tabular-nums;color:var(--body)}
@@ -5384,7 +5384,7 @@ body[dir="ltr"] .coa-body .coa-r.sel{box-shadow:inset 3px 0 0 var(--navy)}
 .coa-keys{display:flex;align-items:center;gap:14px;padding:9px 16px;font-size:11.5px;color:var(--muted);border-top:1px solid var(--line-2)}
 .coa-keys kbd{font:inherit;font-size:10.5px;border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:0 5px;background:#fff;margin-inline-end:2px}
 .coa-keys .tag{margin-inline-start:auto}
-.coa-card{position:sticky;top:76px;padding:16px;display:flex;flex-direction:column;gap:14px}
+.coa-card{padding:18px;display:flex;flex-direction:column;gap:14px}
 .coa-card.empty{align-items:center;text-align:center;color:var(--muted);padding:48px 20px}
 .coa-card.empty svg{width:28px;height:28px}
 .cc-path{display:flex;align-items:center;flex-wrap:wrap;gap:3px;font-size:11.5px;color:var(--muted)}
@@ -5447,5 +5447,14 @@ body[dir="ltr"] .coa-body .coa-r.sel{box-shadow:inset 3px 0 0 var(--navy)}
 .cc-acts .btn[disabled]{opacity:.45;cursor:not-allowed}
 .cc-acts .btn.danger:not([disabled]){color:var(--red)}
 @media(max-width:1440px){.coa-tabs{grid-template-columns:repeat(3,minmax(0,1fr))}}
-@media(max-width:1280px){.coa-split{grid-template-columns:1fr}.coa-grid{border-inline-end:0}.coa-card{position:static;border-top:1px solid var(--line)}}
+
 @media(max-width:820px){.coa-tabs{grid-template-columns:repeat(2,minmax(0,1fr))}.coa-r{grid-template-columns:minmax(200px,1fr) 104px}.coa-c.nat,.coa-c.money:not(.bal),.coa-c.acts{display:none}.coa-r.foot .coa-c.money{display:none}}
+
+.coa-shade{position:fixed;inset:0;background:rgba(13,22,38,.18);z-index:60}
+.coa-drawer{position:fixed;inset-block:0;inset-inline-end:0;width:380px;max-width:100vw;background:var(--surface);z-index:61;box-shadow:0 0 40px -8px rgba(13,22,38,.35);overflow-y:auto;animation:coaIn .18s ease-out}
+.coa-close{position:absolute;top:12px;inset-inline-end:12px;width:30px;height:30px;border:1px solid var(--line);border-radius:8px;background:#fff;display:grid;place-items:center;cursor:pointer;color:var(--muted);z-index:1}
+.coa-close svg{width:16px;height:16px}
+.coa-drawer .cc-path{padding-inline-end:40px}
+@keyframes coaIn{from{transform:translateX(-24px);opacity:0}}
+body[dir="ltr"] .coa-drawer{animation-name:coaInL}
+@keyframes coaInL{from{transform:translateX(24px);opacity:0}}
