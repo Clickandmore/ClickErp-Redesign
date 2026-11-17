@@ -2061,69 +2061,122 @@ const acTree=[
    ["5201","رواتب وأجور","Salaries & wages","debtor",3,1284000,42000,3,"expenses",[]],
    ["5202","إيجارات","Rents","debtor",3,384000,0,3,"expenses",[]],
    ["5203","اتصالات وأنظمة","Telecom & systems","debtor",3,96400,4200,3,"expenses",[]]]]]]];
-let ACQ="",ACLEVEL="",ACROOT="",ACOPEN={},ACSEL=null;
+/* two new zero-balance posting accounts (no entries yet) — show when edit/delete is allowed */
+acTree[0][9][0][9].push(["1105","عهد الموظفين","Employee custody","debtor",3,0,0,3,"assets",[]]);
+acTree[4][9][1][9].push(["5204","عمولات بنكية","Bank charges","debtor",3,0,0,3,"expenses",[]]);
+/* operation_type as in OperationTypeEnum: 1 Basics (أساسي) · 2 Special (خاص — child accounts come from the banks/clients/suppliers screens) · 3 General (عام) */
+const AC_SPECIAL={"1102":"finBanks","110201":"finBanks","110202":"finBanks","1103":"finClients","110301":"finClients","110302":"finClients","110303":"finClients","2101":"finSuppliers","210101":"finSuppliers","210102":"finSuppliers","210103":"finSuppliers"};
+(function fixOps(ns){ns.forEach(n=>{n[7]=AC_SPECIAL[n[0]]?2:n[9].length?1:3;fixOps(n[9])})})(acTree);
+let ACQ="",ACLEVEL="",ACROOT="",ACOPEN={},ACSEL="1101",ACDEPTH=null,ACBR="";
 const acFlat=(nodes=acTree,out=[],parent=null)=>{nodes.forEach(n=>{out.push({n,parent});acFlat(n[9],out,n)});return out};
 const acBalance=n=>{let d=n[5],c=n[6];const walk=k=>k.forEach(x=>{d+=x[5];c+=x[6];walk(x[9])});walk(n[9]);return n[3]==="debtor"?d-c:c-d};
 const acSums=n=>{let d=n[5],c=n[6];const walk=k=>k.forEach(x=>{d+=x[5];c+=x[6];walk(x[9])});walk(n[9]);return [d,c]};
 const acMoney=v=>`<span class="num">${(v<0?"-":"")+Math.abs(v).toLocaleString("en",{minimumFractionDigits:2,maximumFractionDigits:2})}</span>`;
-const acMatch=n=>{const q=ACQ.trim().toLowerCase();
- const self=(!q||(n[0]+n[1]+n[2]).toLowerCase().includes(q))&&(!ACLEVEL||String(n[4])===ACLEVEL);
- return self||n[9].some(acMatch)};
-const acNode=(n,depth)=>{
- const has=n[9].length,open=ACOPEN[n[0]]!==undefined?ACOPEN[n[0]]:(n[8]!=="clients"&&depth<3);
- const kids=n[9].filter(acMatch);
- const [d,c]=acSums(n),bal=acBalance(n);
- return `<div class="acnode ${ACSEL===n[0]?"sel":""}" data-aclevel="${n[4]}">
-  <div class="acrow" style="--d:${depth}">
-   ${has?`<button class="actog" data-actoggle="${n[0]}">${I(open?"chevron-down":"chevron-left")}</button>`:'<span class="actog dot"></span>'}
-   <span class="acicon ${has?"folder":"leaf"}">${I(has?(open?"folder-open":"folder"):"file-text")}</span>
-   <span class="aclvl num">${n[4]}</span>
-   <button class="accode num" data-acstatement="${n[0]}" title="${t("فتح كشف الحساب","Open account statement")}">${n[0]}</button>
-   <button class="acname" data-acsel="${n[0]}">${t(n[1],n[2])}</button>
-   <span class="acside ${n[3]}">${t(n[3]==="debtor"?"مدين":"دائن",n[3]==="debtor"?"Debtor":"Creditor")}</span>
-   <span class="actrail">
-   <span class="acdc"><small>${t("مدين","Dr")}</small>${acMoney(d)}<small>${t("دائن","Cr")}</small>${acMoney(c)}</span>
-   <span class="acbal ${bal<0?"neg":""}">${t("الرصيد","Balance")} ${acMoney(bal)}</span>
-   <span class="acacts">
-    ${n[7]!==2?`<button class="icon-btn pri" title="${t("إضافة حساب فرعي","Add sub-account")}" data-acadd="${n[0]}">${I("plus")}</button>`:""}
-    ${n[7]===3?`<button class="icon-btn pri" title="${t("تعديل","Edit")}" data-acedit="${n[0]}">${I("pencil")}</button><button class="icon-btn" title="${t("حذف","Delete")}" data-acdel="${n[0]}">${I("trash-2")}</button>`:""}
-    <button class="icon-btn" title="${t("كشف مطبوع","Printed statement")}" data-acprint="${n[0]}">${I("printer")}</button>
-   </span>
-   </span>
+/* branch filter (admin.partials.branch-filter): balances are rebuilt server-side per branch */
+const AC_BRANCHES=[["","كل الفروع","All branches",1],["main","الفرع الرئيسي","Main branch",.62],["jed","فرع جدة","Jeddah branch",.26],["dmm","فرع الدمام","Dammam branch",.12]];
+const AC_SCOPE={"110202":["jed"],"1105":["main","jed"]};
+const acK=()=>(AC_BRANCHES.find(b=>b[0]===ACBR)||AC_BRANCHES[0])[3];
+const acDC=n=>{const [d,c]=acSums(n),k=acK();return [Math.round(d*k),Math.round(c*k)]};
+const acBal=n=>{const [d,c]=acDC(n);return n[3]==="debtor"?d-c:c-d};
+const acFind=code=>acFlat().find(x=>x.n[0]===code);
+const acPath=code=>{const out=[];let x=acFind(code);while(x){out.unshift(x.n);x=x.parent?acFind(x.parent[0]):null}return out};
+const acEntries=n=>n[9].length?n[9].reduce((a,k)=>a+acEntries(k),0):(n[5]+n[6]?Math.max(4,Math.round((n[5]+n[6])/26000)):0);
+const acSelfMatch=n=>{const q=ACQ.trim().toLowerCase();return !q||(n[0]+" "+n[1]+" "+n[2]).toLowerCase().includes(q)};
+const acMatch=n=>acSelfMatch(n)||n[9].some(acMatch);
+const acOpen=n=>ACQ.trim()?true:ACOPEN[n[0]]!==undefined?ACOPEN[n[0]]:(n[8]!=="clients"&&n[4]<3);
+const acHi=s=>{const q=ACQ.trim();if(!q)return s;const i=s.toLowerCase().indexOf(q.toLowerCase());return i<0?s:s.slice(0,i)+"<mark>"+s.slice(i,i+q.length)+"</mark>"+s.slice(i+q.length)};
+const acTypeName=k=>{const x=acType.find(a=>a[0]===k);return x?t(x[1],x[2]):k};
+const acRootIcon=k=>({assets:"wallet",liabilities:"scale",equity:"landmark",revenue:"trending-up",expenses:"trending-down"}[k]||"folder");
+const acSide=n=>`<span class="coa-side ${n[3]}">${t(n[3]==="debtor"?"مدين":"دائن",n[3]==="debtor"?"Dr":"Cr")}</span>`;
+/* visible rows of the tree grid, in order — guides[] says which ancestor levels still have siblings below */
+const acRows=()=>{const out=[];
+ const walk=(ns,depth,guides)=>{const vis=ns.filter(acMatch);vis.forEach((n,i)=>{const last=i===vis.length-1;out.push({n,depth,guides,last});if(n[9].length&&acOpen(n))walk(n[9],depth+1,guides.concat(!last))})};
+ walk(acTree.filter(n=>!ACROOT||n[0]===ACROOT),0,[]);return out};
+/* journal lines from finEntries that touch an account — the card's «آخر الحركات» preview */
+const AC_MOVES=[["JV-2026-0412","2026-08-19","قيد إعاشة الإيواء — أغسطس","Shelter living expense — August","5101","1101",420],["JV-2026-0411","2026-08-18","فاتورة عقد CN-2026-0113","Invoice for CN-2026-0113","110301","4101",19200],["JV-2026-0410","2026-08-18","سداد مستحقات مكتب مانيلا","Payment to Manila office","210101","110201",64200],["JV-2026-0409","2026-08-17","ضريبة القيمة المضافة — فواتير أغسطس","VAT — August invoices","110301","2102",41260],["JV-2026-0408","2026-08-16","تذاكر سفر عاملات","Worker travel tickets","5102","1101",8400],["RB-2026-0221","2026-08-19","سند قبض — منيرة الشهري","Receipt — Munira Alshehri","1101","110301",9250],["RB-2026-0220","2026-08-18","سند قبض — شركة نجد للمقاولات","Receipt — Najd Contracting","110201","110301",5000]];
+const acMoves=n=>{const codes=new Set(acFlat([n]).map(x=>x.n[0]));return AC_MOVES.filter(m=>codes.has(m[4])||codes.has(m[5])).map(m=>({no:m[0],date:m[1],desc:t(m[2],m[3]),dr:codes.has(m[4]),amt:m[6]}))};
+const acRow=({n,depth,guides,last})=>{
+ const x=acFind(n[0]);
+ const has=n[9].length,open=has&&acOpen(n),[d,c]=acDC(n),bal=acBal(n),root=n[4]===1,zero=!d&&!c;
+ const ops=n[7]===2?[]:[`<button class="icon-btn" title="${t("إضافة حساب فرعي","Add sub-account")}" data-acadd="${n[0]}">${I("plus")}</button>`];
+ return `<div class="coa-r${root?" root":""}${has?" parent":" leaf"}${ACSEL===n[0]?" sel":""}${zero?" zero":""}${ACQ.trim()&&acSelfMatch(n)?" hit":""}" data-acsel="${n[0]}" role="row" aria-level="${n[4]}"${has?` aria-expanded="${open}"`:""} tabindex="${ACSEL===n[0]?0:-1}">
+  <div class="coa-c name" role="gridcell">
+   ${guides.map(g=>`<span class="ig${g?" on":""}"></span>`).join("")}${depth?`<span class="ig elbow${last?" last":""}"></span>`:""}
+   ${has?`<button class="coa-tog" data-actoggle="${n[0]}" aria-label="${t(open?"طي":"فتح",open?"Collapse":"Expand")}">${I(open?"chevron-down":"chevron-left")}</button>`:`<span class="coa-tog none"></span>`}
+   ${root?`<span class="coa-ri">${I(acRootIcon(n[8]))}</span>`:`<span class="coa-ic">${I(has?(open?"folder-open":"folder"):"file-text")}</span>`}
+   <button class="coa-code num" data-acstatement="${n[0]}" title="${t("فتح كشف الحساب","Open account statement")}">${acHi(n[0])}</button>
+   <span class="coa-nm">${acHi(t(n[1],n[2]))}</span>
+   ${n[7]===2?`<span class="coa-lk" title="${t("حساب خاص — حساباته الفرعية بتتعمل من شاشتها","Special — sub-accounts come from their screen")}">${I("link-2")}</span>`:""}
   </div>
-  ${has&&open?`<div class="acbranch">${kids.map(k=>acNode(k,depth+1)).join("")}</div>`:""}
+  <div class="coa-c nat" role="gridcell">${!x||root||x.parent&&x.parent[3]!==n[3]?acSide(n):""}</div>
+  <div class="coa-c money" role="gridcell">${d?acMoney(d):`<span class="dash">—</span>`}</div>
+  <div class="coa-c money" role="gridcell">${c?acMoney(c):`<span class="dash">—</span>`}</div>
+  <div class="coa-c money bal${bal<0?" neg":""}" role="gridcell">${zero?`<span class="dash">0.00</span>`:acMoney(bal)}</div>
+  <div class="coa-c acts" role="gridcell">${ops.join("")}<button class="icon-btn" title="${t("كشف الحساب","Account statement")}" data-acstatement="${n[0]}">${I("file-search")}</button></div>
+ </div>`};
+/* the account card — everything about the selected account, and why an action is or isn't allowed */
+const acCard=code=>{
+ const x=acFind(code);if(!x)return `<div class="coa-card empty">${I("mouse-pointer-click")}<b>${t("اختار حساب من الدليل","Pick an account from the guide")}</b><p>${t("هتظهر هنا بياناته ورصيده وآخر حركاته.","Its details, balance and latest movements show here.")}</p></div>`;
+ const n=x.n,has=n[9].length,[d,c]=acDC(n),bal=acBal(n),path=acPath(code),ent=acEntries(n),moves=acMoves(n);
+ const op=n[7],tot=d+c||1;
+ const opInfo=op===1?[t("أساسي","Basic"),t("حساب أساسي في الدليل — تقدر تضيف تحته، لكن ما يتعدّلش ولا يتحذف.","A basic account — you can add under it, but it can't be edited or deleted.")]
+  :op===2?[t("خاص","Special"),t("مربوط بشاشة ","Linked to the ")+`<a data-go="${AC_SPECIAL[n[0]]}">${t({finBanks:"البنوك والخزن",finClients:"العملاء",finSuppliers:"الموردين"}[AC_SPECIAL[n[0]]],{finBanks:"Banks & cashboxes",finClients:"Clients",finSuppliers:"Suppliers"}[AC_SPECIAL[n[0]]])}</a>`+t(" — الحسابات الفرعية بتتعمل تلقائياً لما تضيف من هناك."," screen — sub-accounts are created automatically from there.")]
+  :[t("عام","General"),ent?t(`عليه ${ent} قيد — التعديل والحذف مقفولين علشان الكشوف ما تتغيرش.`,`${ent} entries posted — edit and delete are locked so statements stay intact.`):t("ما عليهوش قيود — تقدر تعدّله أو تحذفه.","No entries yet — you can edit or delete it.")];
+ const canAdd=op!==2,canEdit=op===3&&!ent,canDel=op===3&&!ent;
+ const scope=(AC_SCOPE[n[0]]||[]).map(b=>{const r=AC_BRANCHES.find(z=>z[0]===b);return t(r[1],r[2])}).join("، ")||t("كل الفروع","All branches");
+ const kids=n[9].map(k=>({k,b:acBal(k)})),kmax=Math.max(1,...kids.map(z=>Math.abs(z.b)));
+ return `<div class="coa-card">
+  <nav class="cc-path">${path.map((p,i)=>i<path.length-1?`<button data-acsel="${p[0]}"><span class="num">${p[0]}</span> ${t(p[1],p[2])}</button>${I("chevron-left")}`:"").join("")}<span>${t("المستوى","Level")} <b class="num">${n[4]}</b></span></nav>
+  <div class="cc-h"><span class="cc-ic ${n[3]}">${I(n[4]===1?acRootIcon(n[8]):has?"folder-open":"file-text")}</span><div><small class="num">${n[0]}</small><h3>${t(n[1],n[2])}</h3></div></div>
+  <div class="cc-tags">${acSide(n)}<span class="tag">${acTypeName(n[8])}</span><span class="tag">${has?t("تجميعي — رصيده من الحسابات تحته","Summary — rolls up its sub-accounts"):t("حساب حركة — بيقبل قيود","Posting — accepts entries")}</span></div>
+  <div class="cc-bal"><small>${t("الرصيد","Balance")}${ACBR?` · ${t((AC_BRANCHES.find(b=>b[0]===ACBR))[1],(AC_BRANCHES.find(b=>b[0]===ACBR))[2])}`:""}</small><b>${acMoney(bal)}</b><span>${t("ر.س","SAR")} · ${t(bal>=0?(n[3]==="debtor"?"مدين":"دائن"):(n[3]==="debtor"?"دائن":"مدين"),bal>=0?(n[3]==="debtor"?"Dr":"Cr"):(n[3]==="debtor"?"Cr":"Dr"))}</span></div>
+  <div class="cc-dc"><div class="cc-bar"><i class="dr" style="width:${Math.round(d/tot*100)}%"></i><i class="cr" style="width:${Math.round(c/tot*100)}%"></i></div>
+   <div class="cc-dcl"><span><i class="dr"></i>${t("مدين","Debit")} ${acMoney(d)}</span><span><i class="cr"></i>${t("دائن","Credit")} ${acMoney(c)}</span></div></div>
+  ${has?`<section class="cc-sec"><h4>${t("يتكوّن من","Made up of")} <small>${n[9].length} ${t("حساب","accounts")}</small></h4>
+   ${kids.map(({k,b})=>`<button class="cc-kid" data-acsel="${k[0]}"><span class="num">${k[0]}</span><span class="nm">${t(k[1],k[2])}</span><span class="tr"><i style="width:${Math.round(Math.abs(b)/kmax*100)}%"></i></span>${acMoney(b)}</button>`).join("")}</section>`
+  :`<section class="cc-sec"><h4>${t("آخر الحركات","Latest movements")} <small>${ent} ${t("قيد","entries")}</small></h4>
+   ${moves.length?moves.slice(0,4).map(m=>`<div class="cc-mv"><span class="num d">${m.date.slice(5)}</span><span class="ds"><b>${m.desc}</b><small class="num">${m.no}</small></span><span class="am ${m.dr?"dr":"cr"}">${acMoney(m.amt)}<small>${t(m.dr?"مدين":"دائن",m.dr?"Dr":"Cr")}</small></span></div>`).join("")
+    :`<p class="cc-none">${ent?t("الحركات كلها في كشف الحساب.","All movements are in the account statement."):t("لسه ما اتسجلش عليه أي قيد.","No entries posted yet.")}</p>`}</section>`}
+  <dl class="cc-meta"><div><dt>${t("نوع العملية","Operation type")}</dt><dd>${opInfo[0]}</dd></div><div><dt>${t("الفروع","Branches")}</dt><dd>${scope}</dd></div><div><dt>${t("القيود","Entries")}</dt><dd class="num">${ent}</dd></div></dl>
+  <p class="cc-why">${I(op===3&&!ent?"unlock":"lock")}<span>${opInfo[1]}</span></p>
+  <div class="cc-acts">
+   <button class="btn btn-primary" data-acstatement="${n[0]}">${I("file-search")}${t("كشف الحساب","Account statement")}</button>
+   <button class="btn btn-ghost" data-acprint="${n[0]}">${I("printer")}${t("مطبوع","Print")}</button>
+  </div>
+  <div class="cc-acts sm">
+   <button class="btn btn-ghost" data-acadd="${n[0]}"${canAdd?"":" disabled"}>${I("plus")}${t("حساب فرعي","Sub-account")}</button>
+   <button class="btn btn-ghost" data-acedit="${n[0]}"${canEdit?"":" disabled"}>${I("pencil")}${t("تعديل","Edit")}</button>
+   <button class="btn btn-ghost danger" data-acdel="${n[0]}"${canDel?"":" disabled"}>${I("trash-2")}${t("حذف","Delete")}</button>
+  </div>
  </div>`};
 const financeScreens={
  finAccounts:()=>{
-  const roots=acTree.filter(n=>(!ACROOT||n[0]===ACROOT)).filter(acMatch);
-  const all=acFlat();
-  const totals=acTree.reduce((a,n)=>{const [d,c]=acSums(n);return [a[0]+d,a[1]+c]},[0,0]);
+  const rows=acRows(),all=acFlat();
+  const totals=acTree.reduce((a,n)=>{const [d,c]=acDC(n);return [a[0]+d,a[1]+c]},[0,0]);
+  const diff=totals[0]-totals[1],hits=ACQ.trim()?all.filter(x=>acSelfMatch(x.n)).length:0;
+  const maxLvl=Math.max(...all.map(x=>x.n[4]));
   return `
- <div class="page-head"><div><h1>${t("شجرة الحسابات","Chart of accounts")}</h1><p>${t("الدليل المحاسبي بمستوياته — الرصيد يُجمَّع من الحسابات الفرعية، والكود يفتح كشف الحساب.","The accounting guide by level — balances roll up from sub-accounts, and the code opens the account statement.")}</p></div>
- <div class="actions"><button class="btn btn-ghost" data-go="finReports">${I("folder-open")}${t("التقارير المالية","Financial reports")}</button><button class="btn btn-ghost">${I("printer")}${t("طباعة الدليل","Print guide")}</button><button class="btn btn-primary" data-fiaddent="account" data-acadd="root">${I("plus")}${t("إضافة حساب","Add account")}</button></div></div>
- <div class="pipe">
-  ${[["إجمالي الحسابات","Total accounts","list-tree",all.length,"run"],["حسابات رئيسية","Parent accounts","folder",all.filter(x=>x.n[9].length).length,"run"],["حسابات فرعية (ترحيل)","Posting accounts","file-text",all.filter(x=>!x.n[9].length).length,"post"],["أعلى مستوى","Deepest level","layers",Math.max(...all.map(x=>x.n[4])),"run"]].map(x=>`<div class="pg ${x[4]}"><span class="pg-i">${I(x[2])}</span><span class="pg-b"><span class="pg-t">${t(x[0],x[1])}</span><span class="pg-m"><b class="num">${x[3]}</b></span></span></div>`).join("")}
+ <div class="page-head"><div><h1>${t("الدليل المحاسبي","Chart of accounts")}</h1><p>${t("شجرة الحسابات بمستوياتها — الرصيد بيتجمّع من الحسابات الفرعية، واختار أي حساب تشوف بطاقته.","The account tree by level — balances roll up from sub-accounts; pick any account to see its card.")}</p></div>
+ <div class="actions"><button class="btn btn-ghost" data-go="finReports">${I("folder-open")}${t("التقارير المالية","Financial reports")}</button><button class="btn btn-ghost">${I("file-spreadsheet")}Excel</button><button class="btn btn-ghost">${I("printer")}${t("طباعة الدليل","Print guide")}</button><button class="btn btn-primary" data-fiaddent="account" data-acadd="root">${I("plus")}${t("إضافة حساب","Add account")}</button></div></div>
+ <div class="coa-tabs" role="tablist">
+  <button role="tab" class="${!ACROOT?"on":""}" data-acrootb=""><span class="ct-i">${I("list-tree")}</span><span class="ct-b"><b>${t("كل الحسابات","All accounts")}</b><small><span class="num">${all.length}</span> ${t("حساب","accounts")} · <span class="num">${all.filter(x=>!x.n[9].length).length}</span> ${t("حساب حركة","posting")}</small></span></button>
+  ${acTree.map(n=>`<button role="tab" class="${ACROOT===n[0]?"on":""} t-${n[8]}" data-acrootb="${n[0]}"><span class="ct-i">${I(acRootIcon(n[8]))}</span><span class="ct-b"><b><span class="num">${n[0]}</span> · ${t(n[1],n[2])}</b><small>${acMoney(acBal(n))} ${acSide(n)}</small></span></button>`).join("")}
  </div>
- <div class="fbar">
-  <div class="fb grow"><label>${t("بحث","Search")}</label><div class="inp">${I("search")}<input data-acq value="${ACQ}" placeholder="${t("كود الحساب أو اسمه","Account code or name")}"></div></div>
-  <div class="fb"><label>${t("المستوى","Level")}</label><select data-aclevelf><option value="">${t("كل المستويات","All levels")}</option>${[1,2,3,4].map(l=>`<option value="${l}"${ACLEVEL===String(l)?" selected":""}>${t("المستوى "+l,"Level "+l)}</option>`).join("")}</select></div>
-  <div class="fb"><label>${t("الحساب الرئيسي","Root account")}</label><select data-acroot><option value="">${t("كل الحسابات","All accounts")}</option>${acTree.map(n=>`<option value="${n[0]}"${ACROOT===n[0]?" selected":""}>${n[0]} / ${t(n[1],n[2])}</option>`).join("")}</select></div>
-  <button class="btn btn-ghost" data-acexpand>${I("unfold-vertical")}${t("فتح الكل","Expand all")}</button>
-  <button class="btn btn-ghost" data-accollapse>${I("fold-vertical")}${t("طي الكل","Collapse all")}</button>
- </div>
- <div class="card flush">
-  <div class="card-h"><div><h3>${t("الدليل المحاسبي","Accounting guide")}</h3><p>${t("مدين بالأحمر، دائن بالأزرق — كما في النظام.","Debtor in red, creditor in blue — as in the system.")}</p></div>
-   <div class="acsum"><span>${t("إجمالي المدين","Total debit")} ${acMoney(totals[0])}</span><span>${t("إجمالي الدائن","Total credit")} ${acMoney(totals[1])}</span></div></div>
-  <div class="actree grouped">${roots.length?roots.map(n=>{const [d,c]=acSums(n);const bal=acBalance(n);const share=Math.round(Math.abs(bal)/3500000*100);
-   const tone=n[8]==="revenue"?"post":n[8]==="expenses"?"closed":"run";
-   return `<section class="acgroup ${tone}">
-    <header class="acg-h">
-     <span class="acg-i">${I({assets:"wallet",liabilities:"scale",equity:"landmark",revenue:"trending-up",expenses:"trending-down"}[n[8]]||"folder")}</span>
-     <span class="acg-t"><b>${n[0]} · ${t(n[1],n[2])}</b><small>${t("المستوى الأول","Level one")} · ${n[9].length} ${t("مجموعة فرعية","sub-groups")}</small></span>
-     <span class="acg-m"><span class="acside ${n[3]}">${t(n[3]==="debtor"?"مدين":"دائن",n[3]==="debtor"?"Debtor":"Creditor")}</span><span class="acg-b">${t("الرصيد","Balance")} ${acMoney(bal)}</span><span class="acg-bar"><i style="width:${Math.min(100,share)}%"></i></span></span>
-    </header>
-    <div class="acg-body">${n[9].filter(acMatch).map(k=>acNode(k,0)).join("")||`<div class="acempty">${t("لا حسابات فرعية مطابقة","No matching sub-accounts")}</div>`}</div>
-   </section>`}).join(""):`<div class="tempty">${I("inbox")}<b>${t("لا حسابات مطابقة","No matching accounts")}</b></div>`}</div>
+ <div class="card flush coa">
+  <div class="coa-tools">
+   <div class="inp coa-q">${I("search")}<input data-acq value="${ACQ}" placeholder="${t("ابحث بكود الحساب أو اسمه","Search by account code or name")}">${ACQ?`<span class="coa-hits"><span class="num">${hits}</span> ${t("نتيجة","results")}</span><button class="coa-x" data-acqclear title="${t("مسح","Clear")}">${I("x")}</button>`:""}</div>
+   <div class="coa-lv" role="group" aria-label="${t("عرض حتى المستوى","Show down to level")}"><span>${t("اعرض حتى المستوى","Show to level")}</span>${Array.from({length:maxLvl},(_,i)=>i+1).map(l=>`<button class="${ACDEPTH===l?"on":""}" data-acdepth="${l}">${l}</button>`).join("")}</div>
+   <label class="coa-br">${I("building-2")}<select data-acbr>${AC_BRANCHES.map(b=>`<option value="${b[0]}"${ACBR===b[0]?" selected":""}>${t(b[1],b[2])}</option>`).join("")}</select></label>
+  </div>
+  <div class="coa-split">
+   <div class="coa-grid" role="treegrid" aria-label="${t("الدليل المحاسبي","Chart of accounts")}">
+    <div class="coa-r head" role="row"><div class="coa-c name">${t("الحساب","Account")}</div><div class="coa-c nat">${t("الطبيعة","Nature")}</div><div class="coa-c money">${t("مدين","Debit")}</div><div class="coa-c money">${t("دائن","Credit")}</div><div class="coa-c money">${t("الرصيد","Balance")}</div><div class="coa-c acts"></div></div>
+    <div class="coa-body">${rows.length?rows.map(acRow).join(""):`<div class="tempty">${I("search-x")}<b>${t("مفيش حساب بالكود أو الاسم ده","No account matches that code or name")}</b></div>`}</div>
+    <div class="coa-r foot" role="row"><div class="coa-c name">${diff===0?`<span class="coa-ok">${I("check-circle-2")}${t("الدليل متوازن — إجمالي المدين = إجمالي الدائن","Balanced — total debit = total credit")}</span>`:`<span class="coa-bad">${I("alert-triangle")}${t("فرق","Difference")} ${acMoney(Math.abs(diff))}</span>`}</div><div class="coa-c nat"></div><div class="coa-c money">${acMoney(totals[0])}</div><div class="coa-c money">${acMoney(totals[1])}</div><div class="coa-c money"></div><div class="coa-c acts"></div></div>
+    <div class="coa-keys"><span><kbd>↑</kbd><kbd>↓</kbd> ${t("تنقّل","Move")}</span><span><kbd>←</kbd><kbd>→</kbd> ${t("فتح / طي","Expand / collapse")}</span><span><kbd>Enter</kbd> ${t("كشف الحساب","Statement")}</span><span class="tag a">${t("جديد","New")}</span></div>
+   </div>
+   ${acCard(ACSEL)}
+  </div>
  </div>`},
  finEntries:()=>{
   const rows=[
@@ -2169,20 +2222,31 @@ const financeScreens={
 Object.assign(T,{finAccounts:{ar:"شجرة الحسابات",en:"Chart of accounts"},finEntries:{ar:"القيود اليومية",en:"Journal entries"},finBonds:{ar:"سندات القبض والصرف",en:"Receipt & payment bonds"}});
 Object.assign(screens,financeScreens);
 document.addEventListener("click",e=>{
- const tg=e.target.closest("[data-actoggle]");if(tg){const k=tg.dataset.actoggle;const cur2=ACOPEN[k];const node=acFlat().find(x=>x.n[0]===k);const def=node?(node.n[8]!=="clients"&&node.n[4]<4):true;ACOPEN[k]=cur2===undefined?!def:!cur2;render();return}
- const sel=e.target.closest("[data-acsel]");if(sel){ACSEL=ACSEL===sel.dataset.acsel?null:sel.dataset.acsel;render();return}
- const ex=e.target.closest("[data-acexpand]");if(ex){acFlat().forEach(x=>{if(x.n[9].length)ACOPEN[x.n[0]]=true});render();return}
- const co=e.target.closest("[data-accollapse]");if(co){acFlat().forEach(x=>{if(x.n[9].length)ACOPEN[x.n[0]]=false});render();return}
+ const tg=e.target.closest("[data-actoggle]");if(tg){const k=tg.dataset.actoggle;const x=acFind(k);ACOPEN[k]=!(x&&acOpen(x.n));ACDEPTH=null;render();return}
+ const dp=e.target.closest("[data-acdepth]");if(dp){ACDEPTH=+dp.dataset.acdepth;acFlat().forEach(x=>{if(x.n[9].length)ACOPEN[x.n[0]]=x.n[4]<ACDEPTH});render();return}
+ const rb=e.target.closest("[data-acrootb]");if(rb){ACROOT=rb.dataset.acrootb;if(ACROOT)ACSEL=ACROOT;render();return}
+ const qc=e.target.closest("[data-acqclear]");if(qc){ACQ="";render();return}
  const stm=e.target.closest("[data-acstatement]");if(stm){FRACC=stm.dataset.acstatement;FRID="account_statement";cur="finReport";render();window.scrollTo(0,0);return}
  const pr=e.target.closest("[data-acprint]");if(pr){clToast("جارٍ تحضير كشف الحساب للطباعة","Preparing printed statement");return}
  const ad=e.target.closest("[data-acadd]");if(ad){clToast(ad.dataset.acadd==="root"?"إضافة حساب رئيسي":"إضافة حساب فرعي تحت "+ad.dataset.acadd,"Add account");return}
  const ed2=e.target.closest("[data-acedit]");if(ed2){clToast("تعديل الحساب "+ed2.dataset.acedit,"Edit account");return}
- const dl=e.target.closest("[data-acdel]");if(dl){clToast("لا يمكن حذف حساب عليه قيود","Accounts with entries cannot be deleted");return}
+ const dl=e.target.closest("[data-acdel]");if(dl){clToast("تم حذف الحساب "+dl.dataset.acdel,"Account deleted");return}
+ const sel=e.target.closest("[data-acsel]");if(sel){ACSEL=sel.dataset.acsel;const x=acFind(ACSEL);if(x){let p=x.parent;while(p){ACOPEN[p[0]]=true;const q=acFind(p[0]);p=q&&q.parent}}render();const r=document.querySelector(`.coa-r[data-acsel="${ACSEL}"]`);if(r)r.focus({preventScroll:true});return}
+});
+document.addEventListener("keydown",e=>{
+ const row=e.target.closest&&e.target.closest(".coa-r[data-acsel]");if(!row)return;
+ const rows=[...document.querySelectorAll(".coa-body .coa-r[data-acsel]")],i=rows.indexOf(row),code=row.dataset.acsel,x=acFind(code),rtl=document.body.dir!=="ltr";
+ const go=r=>{if(!r)return;ACSEL=r.dataset.acsel;render();const n=document.querySelector(`.coa-r[data-acsel="${ACSEL}"]`);if(n)n.focus()};
+ if(e.key==="ArrowDown"){e.preventDefault();go(rows[i+1])}
+ else if(e.key==="ArrowUp"){e.preventDefault();go(rows[i-1])}
+ else if(e.key==="Enter"){e.preventDefault();FRACC=code;FRID="account_statement";cur="finReport";render();window.scrollTo(0,0)}
+ else if(e.key==="ArrowLeft"||e.key==="ArrowRight"){e.preventDefault();const into=(e.key==="ArrowLeft")===rtl;
+  if(x&&x.n[9].length&&acOpen(x.n)!==into){ACOPEN[code]=into;ACDEPTH=null;render();const n=document.querySelector(`.coa-r[data-acsel="${code}"]`);if(n)n.focus()}
+  else if(!into&&x&&x.parent)go(document.querySelector(`.coa-r[data-acsel="${x.parent[0]}"]`))}
 });
 document.addEventListener("input",e=>{if(e.target.matches("[data-acq]")){ACQ=e.target.value;const p=e.target.selectionStart;render();const n=document.querySelector("[data-acq]");if(n){n.focus();n.setSelectionRange(p,p)}}});
 document.addEventListener("change",e=>{
- if(e.target.matches("[data-aclevelf]")){ACLEVEL=e.target.value;render()}
- if(e.target.matches("[data-acroot]")){ACROOT=e.target.value;render()}
+ if(e.target.matches("[data-acbr]")){ACBR=e.target.value;render()}
 });
 
 /* ===== clickerp-finance-reports.js ===== */
