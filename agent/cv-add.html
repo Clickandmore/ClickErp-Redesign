@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="design-version" content="v1.34">
+<title>إضافة سيرة — بوابة الوكيل · Click ERP</title>
+<link rel="stylesheet" href="../assets/clickerp.bundle.css">
+<link rel="stylesheet" href="assets/ag.css">
+</head>
+<body dir="rtl" data-page="cv-add">
+<!-- Screen: cv-add · agent.maids.create / store (Agent\DashboardController@createMaid/storeMaid) · agent/maids/create.blade.php
+             + agent.maids.create_rapid_cv / store_rapid_cv (createRapidMaid/storeRapidMaid) · agent/maids/rapid_cv_add.blade.php
+             + agent.maids.edit / update (editMaid/updateMaid) · agent/maids/edit.blade.php  (حالة «تصحيح سيرة مرفوضة»)
+     قراءة بيانات السيرة: agent.maids.extract-cv (extractCv) — يقرأ نص ملف PDF في المتصفح ثم يستخرج بالمطابقة النصية:
+       الاسم · رقم الجواز · العمر · الجنسية (ليست قراءة بالذكاء الاصطناعي).
+     الحقول المطلوبة في storeMaid: name:en · passport_num (فريد) · nationality_id · office_id · type_id · job_id[] · image · experience_status
+       (+ cooking_experience إذا لديها خبرة). السيرة المختصرة: gender · nationality_id · passport_num · type_id · job_id · office_id.
+     كل سيرة تُحفظ submission_status=pending_review وتبقى مخفية حتى يعتمدها مكتب الاستقدام. -->
+<main class="ag-content">
+
+  <div class="ag-page-header">
+    <div>
+      <a class="ag-back" href="cvs.html"><i data-lucide="arrow-right"></i><span data-en="CVs">السير الذاتية</span></a>
+      <h1 class="ag-page-title" data-en="Add New CV">إضافة سيرة ذاتية جديدة</h1>
+      <p class="ag-page-desc" data-en="Fill the worker data accurately. Required fields are marked with a red asterisk.">املأ بيانات العاملة بدقة. الحقول المطلوبة محددة بنجمة حمراء.</p>
+    </div>
+  </div>
+
+  <!-- تصحيح سيرة مرفوضة (يظهر عند فتح الصفحة من زر «تصحيح») -->
+  <div class="ag-health ag-health--danger" data-ag-fix hidden>
+    <span class="ag-health-icon"><i data-lucide="file-x"></i></span>
+    <div class="ag-health-body"><b><span data-en="Fixing a rejected CV:">تصحيح سيرة مرفوضة:</span> <span class="ag-latin">JENNY LYN OCAMPO · P8402263J</span></b><small><span data-en="Rejection reason:">سبب الرفض:</span> <span data-en="the age written (25) does not match the birth date 12 Mar 1998.">العمر المكتوب (25) لا يطابق تاريخ الميلاد 12 مارس 1998.</span> <span class="tag a hm-new">جديد</span></small></div>
+  </div>
+
+  <div class="ag-ways" data-ag-tabs>
+    <button class="ag-way is-on" data-ag-tab="full"><span class="ag-way-ic"><i data-lucide="file-user"></i></span><span><b data-en="Full CV">سيرة كاملة</b><small data-en="All data, photo and files — the CV is generated automatically.">كل البيانات والصورة والملفات — تُولَّد السيرة تلقائيًا.</small></span></button>
+    <button class="ag-way" data-ag-tab="rapid"><span class="ag-way-ic"><i data-lucide="zap"></i></span><span><b data-en="Short CV">سيرة مختصرة</b><small data-en="Save the CV with minimal required data — fill the rest later.">احفظ السيرة بأقل البيانات الضرورية، ويمكنك إكمال الباقي لاحقًا.</small></span></button>
+    <a class="ag-way" href="cv-import.html"><span class="ag-way-ic"><i data-lucide="file-spreadsheet"></i></span><span><b data-en="Import from file">استيراد من ملف</b><small data-en="Many workers at once from Excel, Word or PDF.">عدة عاملات دفعة واحدة من Excel أو Word أو PDF.</small></span></a>
+  </div>
+
+  <!-- ===== سيرة كاملة ===== -->
+  <div class="ag-layout" data-ag-panel="full">
+    <div class="ag-stack">
+      <div class="ag-extract">
+        <span class="ag-extract-ic"><i data-lucide="scan-text"></i></span>
+        <div><b data-en="Read CV data from a PDF">قراءة بيانات السيرة من ملف PDF</b><small data-ag-extract-status data-en="Choose the worker's CV file; name, passport number, age and nationality are filled for you to check.">اختر ملف سيرة العاملة، فتُعبّأ الاسم ورقم الجواز والعمر والجنسية لتراجعها.</small></div>
+        <button class="btn btn-primary" data-ag-extract><i data-lucide="file-search"></i><span data-en="Read CV">قراءة بيانات السيرة</span></button>
+      </div>
+
+      <section class="ag-card">
+        <div class="ag-card-head"><div class="ag-card-head-start"><span class="ag-card-icon"><i data-lucide="user-round"></i></span><div><h2 class="ag-card-title" data-en="Worker Information">بيانات العاملة</h2></div></div></div>
+        <div class="ag-form-grid is-three">
+          <div class="ag-field"><label><span data-en="CV Type">نوع السيرة</span> <span class="req">*</span></label><select class="ag-select"><option data-en="Recruitment">استقدام</option><option data-en="Rental">تأجير</option></select></div>
+          <div class="ag-field" style="grid-column:span 2"><label><span data-en="Worker Name (EN)">اسم العامل/ة</span> <span class="req">*</span></label><input class="ag-input" id="agName" dir="ltr" placeholder="FULL NAME AS IN PASSPORT" data-ag-x="JOANNA MARIE BAUTISTA"></div>
+          <div class="ag-field"><label><span data-en="Nationality">الجنسية</span> <span class="req">*</span></label><select class="ag-select" data-ag-x="ph"><option value="" data-en="Choose">اختر</option><option value="ph" data-en="Philippines">الفلبين</option><option value="ke" data-en="Kenya">كينيا</option><option value="ug" data-en="Uganda">أوغندا</option></select></div>
+          <div class="ag-field"><label data-en="Gender">النوع</label><select class="ag-select"><option data-en="Female">أنثى</option><option data-en="Male">ذكر</option></select></div>
+          <div class="ag-field"><label data-en="Religion">الديانة</label><select class="ag-select"><option data-en="Christian">مسيحية</option><option data-en="Muslim">مسلمة</option></select></div>
+          <div class="ag-field"><label><span data-en="Marital Status">الحالة الاجتماعية</span> <span class="req">*</span></label><select class="ag-select"><option data-en="Single (F)">عازبة</option><option data-en="Married (F)">متزوجة</option></select></div>
+          <div class="ag-field"><label><span data-en="Birth Date">تاريخ الميلاد</span> <span class="req">*</span></label><input class="ag-input" id="agBirth" type="date"></div>
+          <div class="ag-field"><label><span data-en="Age">العمر</span> <small class="ag-help" data-en="Calculated">تُحسب تلقائيًا</small></label><input class="ag-input num" id="agAge" readonly data-ag-x="30"></div>
+          <div class="ag-field"><label data-en="Height (cm)">الطول (سم)</label><input class="ag-input num" placeholder="—"></div>
+          <div class="ag-field"><label data-en="Weight (kg)">الوزن (كجم)</label><input class="ag-input num" placeholder="—"></div>
+          <div class="ag-field"><label data-en="Children Count">عدد الأطفال</label><input class="ag-input num" placeholder="0"></div>
+        </div>
+      </section>
+
+      <section class="ag-card">
+        <div class="ag-card-head"><div class="ag-card-head-start"><span class="ag-card-icon"><i data-lucide="book-user"></i></span><div><h2 class="ag-card-title" data-en="Passport & ID Data">بيانات الجواز والهوية</h2></div></div></div>
+        <div class="ag-form-grid is-three">
+          <div class="ag-field"><label><span data-en="Passport Number">رقم الجواز</span> <span class="req">*</span></label><input class="ag-input" id="agPass" dir="ltr" placeholder="P0000000X" data-ag-x="P6630471R"><span class="ag-help" data-en="Must not exist on another CV.">يجب ألا يكون مسجّلًا على سيرة أخرى.</span></div>
+          <div class="ag-field"><label data-en="Passport Issue Date">تاريخ إصدار الجواز</label><input class="ag-input" type="date"></div>
+          <div class="ag-field"><label data-en="Passport Expiry Date">تاريخ انتهاء الجواز</label><input class="ag-input" type="date"></div>
+          <div class="ag-field"><label data-en="Passport Issue Place">مكان إصدار الجواز</label><input class="ag-input" dir="ltr" placeholder="DFA MANILA"></div>
+          <div class="ag-field"><label data-en="ID Number">رقم الهوية</label><input class="ag-input" dir="ltr" placeholder="—"></div>
+          <div class="ag-field"><label data-en="Border Number">رقم الحدود</label><input class="ag-input" dir="ltr" placeholder="—"></div>
+        </div>
+      </section>
+
+      <section class="ag-card">
+        <div class="ag-card-head"><div class="ag-card-head-start"><span class="ag-card-icon"><i data-lucide="briefcase"></i></span><div><h2 class="ag-card-title" data-en="Work & Recruitment Data">بيانات العمل والاستقدام</h2></div></div></div>
+        <div class="ag-form-grid is-three">
+          <div class="ag-field"><label><span data-en="Recruitment Office">مكتب الاستقدام</span> <span class="req">*</span></label><select class="ag-select"><option>PLATINUM BROTHERS</option></select><span class="ag-help" data-en="Your registered office">مكتبك المسجل</span></div>
+          <div class="ag-field"><label><span data-en="Jobs">الوظائف</span> <span class="req">*</span></label><select class="ag-select"><option data-en="Housemaid">عاملة منزلية</option><option data-en="Babysitter">مربية أطفال</option><option data-en="Cook">طباخة</option></select></div>
+          <div class="ag-field"><label data-en="Request Type">نوع الطلب</label><select class="ag-select"><option data-en="Custom Specifications">حسب المواصفات</option><option data-en="Known">معروفة</option><option data-en="Assigned">معينة</option></select></div>
+          <div class="ag-field"><label data-en="Salary">الراتب</label><input class="ag-input num" placeholder="0"></div>
+          <div class="ag-field"><label data-en="Contract Duration">مدة العقد</label><select class="ag-select"><option data-en="24 months">24 شهر</option></select></div>
+          <div class="ag-field"><label><span data-en="Experience Status">حالة الخبرة</span> <span class="req">*</span></label><select class="ag-select"><option data-en="Has Experience">لديها خبرة</option><option data-en="No Experience">بدون خبرة</option></select></div>
+          <div class="ag-field"><label><span data-en="Cooking Experience">خبرة الطبخ</span> <span class="req">*</span></label><select class="ag-select"><option data-en="Experienced in Arabic cooking">لديها خبرة بالطبخ العربي</option><option data-en="Experienced in regular cooking">لديها خبرة بالطبخ العادي</option><option data-en="Has general cooking experience">لديها خبرة بالطبخ عامة</option><option data-en="No experience, but willing to learn">ليس لديها خبرة بالطبخ لكن قابلة للتعلم</option><option data-en="Has no cooking experience">لا يوجد لديها خبرة في الطبخ</option></select><span class="ag-help" data-en="Required when she has experience.">مطلوبة إذا كانت لديها خبرة.</span></div>
+          <div class="ag-field" style="grid-column:span 2"><label data-en="Previous Experience">الخبرات السابقة</label>
+            <div class="ag-input-group"><select class="ag-select" style="max-width:150px"><option data-en="Saudi Arabia">السعودية</option><option data-en="Kuwait">الكويت</option></select><input class="ag-input num" type="number" value="2021" title="من"><input class="ag-input num" type="number" value="2023" title="إلى"><button class="btn btn-ghost" type="button"><i data-lucide="plus"></i><span data-en="Add">إضافة</span></button></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="ag-card">
+        <div class="ag-card-head"><div class="ag-card-head-start"><span class="ag-card-icon"><i data-lucide="languages"></i></span><div><h2 class="ag-card-title" data-en="Contact, education, languages and skills">التواصل والمؤهل واللغات والمهارات</h2></div></div></div>
+        <div class="ag-form-grid is-three">
+          <div class="ag-field"><label data-en="Worker Phone">رقم جوال العاملة</label><input class="ag-input" dir="ltr" placeholder="+63 9xx xxx xxxx"></div>
+          <div class="ag-field"><label data-en="Relative Name">اسم أحد أقارب العاملة</label><input class="ag-input" dir="ltr" placeholder="—"></div>
+          <div class="ag-field"><label data-en="Relative Phone">رقم جوال قريب العاملة</label><input class="ag-input" dir="ltr" placeholder="+63 9xx xxx xxxx"></div>
+          <div class="ag-field"><label data-en="Residence City">مدينة سكن العاملة</label><input class="ag-input" dir="ltr" placeholder="Quezon City"></div>
+          <div class="ag-field"><label data-en="Education">المؤهل</label><input class="ag-input" placeholder="ثانوية عامة" data-en="High school"></div>
+          <div class="ag-field"><label data-en="Has a driving license?">هل تحمل رخصة قيادة؟</label><select class="ag-select"><option data-en="No">لا</option><option data-en="Yes">نعم</option></select></div>
+          <div class="ag-field is-wide"><label data-en="Languages and proficiency">اللغات ونسبة الإتقان</label>
+            <div class="ag-cols"><span data-en="English · 80%">الإنجليزية · 80%</span><span data-en="Arabic · 40%">العربية · 40%</span><span data-en="Tagalog · mother language">التاغالوغية · لغة الأم</span><button type="button" class="btn btn-ghost sm"><i data-lucide="plus"></i><span data-en="Add language">إضافة لغة</span></button></div></div>
+          <div class="ag-field is-wide"><label data-en="Skills">المهارات</label>
+            <div class="ag-chips"><button type="button" class="ag-chip is-on" data-en="Cleaning">التنظيف</button><button type="button" class="ag-chip is-on" data-en="Ironing">الكي</button><button type="button" class="ag-chip is-on" data-en="Child care">رعاية الأطفال</button><button type="button" class="ag-chip" data-en="Elderly care">رعاية كبار السن</button><button type="button" class="ag-chip" data-en="Cooking">الطبخ</button></div></div>
+          <div class="ag-field is-wide"><label data-en="Additional Notes">ملاحظات إضافية</label><textarea class="ag-textarea" placeholder="—"></textarea></div>
+        </div>
+      </section>
+
+      <section class="ag-card">
+        <div class="ag-card-head"><div class="ag-card-head-start"><span class="ag-card-icon"><i data-lucide="images"></i></span><div><h2 class="ag-card-title" data-en="Files & Photos">الملفات والصور</h2></div></div></div>
+        <div class="ag-form-grid is-three">
+          <div class="ag-field"><label><span data-en="Personal Photo">الصورة الشخصية</span> <span class="req">*</span></label><div class="ag-drop"><i data-lucide="image-plus"></i><span><b data-en="Choose photo">اختر الصورة</b><small>JPG · PNG</small></span></div></div>
+          <div class="ag-field"><label data-en="Full CV File">ملف السيرة الكامل</label><div class="ag-drop"><i data-lucide="file-up"></i><span><b>PDF · JPG · PNG</b><small data-en="up to 10 MB">حتى 10 ميجابايت</small></span></div></div>
+          <div class="ag-field"><label data-en="Video Link">رابط الفيديو</label><input class="ag-input" dir="ltr" placeholder="https://youtu.be/…"><span class="ag-help" data-en="Upload a video file or use the link; maximum size is 100 MB.">يمكن رفع ملف فيديو أو استخدام الرابط، والحد الأقصى 100 ميجابايت.</span></div>
+        </div>
+      </section>
+    </div>
+
+    <aside class="ag-layout-side">
+      <section class="ag-card">
+        <div class="ag-card-head"><div class="ag-card-head-start"><span class="ag-card-icon"><i data-lucide="list-checks"></i></span><div><h2 class="ag-card-title" data-en="Before saving">قبل الحفظ</h2></div></div></div>
+        <div class="ag-checks">
+          <div class="ag-check is-warning"><i data-lucide="circle-dashed"></i><span data-en="Name and passport number">الاسم ورقم الجواز</span></div>
+          <div class="ag-check is-warning"><i data-lucide="circle-dashed"></i><span data-en="Nationality and birth date">الجنسية وتاريخ الميلاد</span></div>
+          <div class="ag-check"><i data-lucide="circle-check"></i><span data-en="CV type, job and experience">نوع السيرة والوظيفة والخبرة</span></div>
+          <div class="ag-check is-warning"><i data-lucide="circle-dashed"></i><span data-en="Personal photo">الصورة الشخصية</span></div>
+        </div>
+        <div class="ag-alert ag-alert--info" style="margin-top:14px"><i data-lucide="eye-off"></i><span data-en="CV will be submitted for review before becoming visible.">سيتم إرسال السيرة للمراجعة قبل الظهور للعملاء.</span></div>
+        <div class="ag-card-foot"><a class="btn btn-ghost" href="cvs.html" data-en="Cancel">إلغاء</a><button class="btn btn-primary" data-ag-toast="حُفظت السيرة وأُرسلت للمراجعة"><i data-lucide="send"></i><span data-en="Save CV">حفظ السيرة</span></button></div>
+      </section>
+    </aside>
+  </div>
+
+  <!-- ===== سيرة مختصرة ===== -->
+  <div class="ag-layout" data-ag-panel="rapid" hidden>
+    <section class="ag-card">
+      <div class="ag-card-head"><div class="ag-card-head-start"><span class="ag-card-icon"><i data-lucide="zap"></i></span><div><h2 class="ag-card-title" data-en="Short CV Data">بيانات السيرة المختصرة</h2><p class="ag-card-desc" data-en="Save the CV with minimal required data — fill the rest later.">احفظ السيرة بأقل البيانات الضرورية، ويمكنك إكمال الباقي لاحقًا.</p></div></div></div>
+      <div class="ag-form-grid">
+        <div class="ag-field"><label><span data-en="Worker Name">اسم العامل/ة</span> <small class="ag-help" data-en="optional">اختياري</small></label><input class="ag-input" dir="ltr" placeholder="You can leave it empty" data-en="You can leave it empty"></div>
+        <div class="ag-field"><label><span data-en="Passport Number">رقم الجواز</span> <span class="req">*</span></label><input class="ag-input" dir="ltr" placeholder="P0000000X"></div>
+        <div class="ag-field"><label><span data-en="Gender">الجنس</span> <span class="req">*</span></label><select class="ag-select"><option data-en="Female">أنثى</option><option data-en="Male">ذكر</option></select></div>
+        <div class="ag-field"><label><span data-en="Nationality">الجنسية</span> <span class="req">*</span></label><select class="ag-select"><option data-en="Philippines">الفلبين</option></select></div>
+        <div class="ag-field"><label><span data-en="CV Type">نوع السيرة</span> <span class="req">*</span></label><select class="ag-select"><option data-en="Recruitment">استقدام</option><option data-en="Rental">تأجير</option></select></div>
+        <div class="ag-field"><label><span data-en="Job">المهنة</span> <span class="req">*</span></label><select class="ag-select"><option data-en="Housemaid">عاملة منزلية</option></select></div>
+        <div class="ag-field"><label><span data-en="Recruitment Office">مكتب الاستقدام</span> <span class="req">*</span></label><select class="ag-select"><option>PLATINUM BROTHERS</option></select></div>
+        <div class="ag-field"><label><span data-en="Passport File">ملف الجواز</span> <small class="ag-help" data-en="optional">اختياري</small></label><div class="ag-drop" style="padding:12px"><i data-lucide="file-up"></i><span><b>PDF · JPG · PNG</b><small data-en="up to 5 MB">حتى 5 ميجابايت</small></span></div></div>
+      </div>
+      <div class="ag-card-foot"><span class="ag-help" data-en="Hidden from clients until reviewed and completed.">تبقى مخفية عن العملاء حتى تُراجع وتُستكمل.</span><a class="btn btn-ghost" href="cvs.html" data-en="Cancel">إلغاء</a><button class="btn btn-primary" data-ag-toast="حُفظت السيرة المختصرة وأُرسلت للمراجعة"><i data-lucide="save"></i><span data-en="Save Short CV">حفظ سيرة مختصرة</span></button></div>
+    </section>
+  </div>
+
+</main>
+<script src="https://unpkg.com/lucide@0.451.0/dist/umd/lucide.min.js"></script>
+<script src="assets/ag.js"></script>
+<script>
+  /* فتح الصفحة من زر «تصحيح» (#fix): لافتة سبب الرفض + السيرة الكاملة */
+  if (location.hash === '#fix') { document.querySelector('[data-ag-fix]').hidden = false; document.querySelector('[data-ag-tab="full"]').click(); document.querySelector('.ag-page-title').textContent = window.agLang() === 'en' ? 'Edit CV' : 'تعديل السيرة الذاتية';
+    var v = { agName: 'JENNY LYN OCAMPO', agPass: 'P8402263J', agBirth: '1998-03-12', agAge: '28' };
+    Object.keys(v).forEach(function (k) { var f = document.getElementById(k); f.value = v[k]; });
+    document.getElementById('agAge').classList.add('ag-filled'); document.getElementById('agBirth').classList.add('ag-filled');
+    document.querySelector('[data-ag-extract]').closest('.ag-extract').hidden = true; }
+</script>
+</body>
+</html>

@@ -1,6 +1,6 @@
 {
-  "version": "v1.28",
-  "date": "2026-11-16",
+  "version": "v1.34",
+  "date": "2026-11-17",
   "entry": "login.html",
   "screens": [
     {
@@ -967,6 +967,311 @@
       "id": "tcShare",
       "file": "tcShare.html",
       "title": "مركز المهام — مشاركة المهمة (واتساب / إيميل)"
+    },
+    {
+      "id": "arrivals",
+      "file": "arrivals.html",
+      "title": "تقرير العاملات الواصلات"
+    },
+    {
+      "id": "cvReview",
+      "file": "cvReview.html",
+      "title": "مراجعة السير الذاتية"
+    },
+    {
+      "id": "cvShares",
+      "file": "cvShares.html",
+      "title": "مشاركة السير الذاتية"
+    },
+    {
+      "id": "rcExtensions",
+      "file": "rcExtensions.html",
+      "title": "طلبات تمديد العقود"
+    },
+    {
+      "id": "rcRenewals",
+      "file": "rcRenewals.html",
+      "title": "طلبات تجديد العقود"
+    },
+    {
+      "id": "rcReturns",
+      "file": "rcReturns.html",
+      "title": "طلبات استرجاع العقود"
+    },
+    {
+      "id": "rcReturnShow",
+      "file": "rcReturnShow.html",
+      "title": "طلب الاسترجاع #214"
+    },
+    {
+      "id": "rcArchive",
+      "file": "rcArchive.html",
+      "title": "أرشيف العقود"
+    },
+    {
+      "id": "selectWorkers",
+      "file": "selectWorkers.html",
+      "title": "اختيار العاملات"
+    },
+    {
+      "id": "rcFinance",
+      "file": "rcFinance.html",
+      "title": "الملف المالي للعقود"
+    },
+    {
+      "id": "rcFinanceShow",
+      "file": "rcFinanceShow.html",
+      "title": "الملف المالي للعقد #0109"
+    },
+    {
+      "id": "rcRefunds",
+      "file": "rcRefunds.html",
+      "title": "الاسترداد بعد الوصول"
+    },
+    {
+      "id": "musanedTransfers",
+      "file": "musanedTransfers.html",
+      "title": "تحويلات مساند"
+    },
+    {
+      "id": "dispatches",
+      "file": "dispatches.html",
+      "title": "فواتير الموردين"
+    },
+    {
+      "id": "supplierPayments",
+      "file": "supplierPayments.html",
+      "title": "دفعات الوكلاء الخارجيين"
+    },
+    {
+      "id": "finCreditNotes",
+      "file": "finCreditNotes.html",
+      "title": "الإشعارات الدائنة والمدينة"
+    },
+    {
+      "id": "finCreditNoteAdd",
+      "file": "finCreditNoteAdd.html",
+      "title": "إصدار إشعار دائن"
+    },
+    {
+      "id": "finNetSales",
+      "file": "finNetSales.html",
+      "title": "فواتير المبيعات بالصافي"
+    },
+    {
+      "id": "finMoyasar",
+      "file": "finMoyasar.html",
+      "title": "مدفوعات ميسر"
+    },
+    {
+      "id": "inbound",
+      "file": "inbound.html",
+      "title": "الطلبات الواردة"
+    },
+    {
+      "id": "inboundShow",
+      "file": "inboundShow.html",
+      "title": "طلب خاص #318"
+    },
+    {
+      "id": "rentalOrders",
+      "file": "rentalOrders.html",
+      "title": "طلبات الإيجار"
+    },
+    {
+      "id": "rentalOrderShow",
+      "file": "rentalOrderShow.html",
+      "title": "RO-2611-0042"
+    },
+    {
+      "id": "rentalRecruit",
+      "file": "rentalRecruit.html",
+      "title": "عقود الاستقدام للتأجير"
+    },
+    {
+      "id": "transferTerms",
+      "file": "transferTerms.html",
+      "title": "بنود عقد نقل الخدمات"
+    },
+    {
+      "id": "couponsHourly",
+      "file": "couponsHourly.html",
+      "title": "كوبونات الساعات"
+    },
+    {
+      "id": "crmDispatch",
+      "file": "crmDispatch.html",
+      "title": "الإرسال الجماعي"
+    },
+    {
+      "id": "waTemplates",
+      "file": "waTemplates.html",
+      "title": "قوالب واتساب"
+    },
+    {
+      "id": "setCountry",
+      "file": "setCountry.html",
+      "title": "سياسات الدول"
+    },
+    {
+      "id": "hbDrivers",
+      "file": "hbDrivers.html",
+      "title": "السائقون"
+    },
+    {
+      "id": "hbRenewals",
+      "file": "hbRenewals.html",
+      "title": "التجديدات"
+    },
+    {
+      "id": "hbExceptions",
+      "file": "hbExceptions.html",
+      "title": "استثناءات الزيارات"
+    },
+    {
+      "id": "hbSos",
+      "file": "hbSos.html",
+      "title": "نداءات الطوارئ SOS"
+    },
+    {
+      "id": "hbMerge",
+      "file": "hbMerge.html",
+      "title": "العملاء المكررون والدمج"
+    },
+    {
+      "id": "cmsHome",
+      "file": "cmsHome.html",
+      "title": "محتوى الموقع"
+    },
+    {
+      "id": "cmsBlogs",
+      "file": "cmsBlogs.html",
+      "title": "المدونة والمقالات"
+    },
+    {
+      "id": "cmsBlogForm",
+      "file": "cmsBlogForm.html",
+      "title": "تعديل مقال"
+    },
+    {
+      "id": "cmsOffers",
+      "file": "cmsOffers.html",
+      "title": "العروض والأخبار السريعة"
+    },
+    {
+      "id": "cmsHero",
+      "file": "cmsHero.html",
+      "title": "الواجهة والسلايدر"
+    },
+    {
+      "id": "cmsSections",
+      "file": "cmsSections.html",
+      "title": "أقسام الصفحة الرئيسية"
+    },
+    {
+      "id": "cmsTestimonials",
+      "file": "cmsTestimonials.html",
+      "title": "آراء العملاء"
+    },
+    {
+      "id": "cmsPartners",
+      "file": "cmsPartners.html",
+      "title": "شركاؤنا"
+    },
+    {
+      "id": "cmsFaq",
+      "file": "cmsFaq.html",
+      "title": "الأسئلة الشائعة"
+    },
+    {
+      "id": "myProfile",
+      "file": "myProfile.html",
+      "title": "الملف الشخصي"
+    },
+    {
+      "id": "notifCenter",
+      "file": "notifCenter.html",
+      "title": "مركز الإشعارات"
+    },
+    {
+      "id": "noPerm",
+      "file": "noPerm.html",
+      "title": "لا تملك صلاحية"
+    },
+    {
+      "id": "agent-login",
+      "file": "agent/login.html",
+      "title": "بوابة الوكيل — دخول الوكلاء"
+    },
+    {
+      "id": "agent-index",
+      "file": "agent/index.html",
+      "title": "بوابة الوكيل — لوحة الوكيل"
+    },
+    {
+      "id": "agent-contracts",
+      "file": "agent/contracts.html",
+      "title": "بوابة الوكيل — العقود"
+    },
+    {
+      "id": "agent-contract",
+      "file": "agent/contract.html",
+      "title": "بوابة الوكيل — تفاصيل العقد"
+    },
+    {
+      "id": "agent-cvs",
+      "file": "agent/cvs.html",
+      "title": "بوابة الوكيل — السير الذاتية"
+    },
+    {
+      "id": "agent-cv-add",
+      "file": "agent/cv-add.html",
+      "title": "بوابة الوكيل — إضافة سيرة"
+    },
+    {
+      "id": "agent-cv-import",
+      "file": "agent/cv-import.html",
+      "title": "بوابة الوكيل — رفع السير من ملف"
+    },
+    {
+      "id": "agent-status-requests",
+      "file": "agent/status-requests.html",
+      "title": "بوابة الوكيل — طلبات تغيير الحالة"
+    },
+    {
+      "id": "agent-complaints",
+      "file": "agent/complaints.html",
+      "title": "بوابة الوكيل — الشكاوى"
+    },
+    {
+      "id": "agent-complaint",
+      "file": "agent/complaint.html",
+      "title": "بوابة الوكيل — تفاصيل الشكوى"
+    },
+    {
+      "id": "agent-complaint-new",
+      "file": "agent/complaint-new.html",
+      "title": "بوابة الوكيل — شكوى جديدة"
+    },
+    {
+      "id": "agent-tracking",
+      "file": "agent/tracking.html",
+      "title": "بوابة الوكيل — تتبع إجراءات الفلبين"
+    },
+    {
+      "id": "agent-dispatches",
+      "file": "agent/dispatches.html",
+      "title": "بوابة الوكيل — الإرساليات"
+    },
+    {
+      "id": "agent-invoices",
+      "file": "agent/invoices.html",
+      "title": "بوابة الوكيل — الفواتير"
+    },
+    {
+      "id": "agent-notifications",
+      "file": "agent/notifications.html",
+      "title": "بوابة الوكيل — الإشعارات"
     }
   ],
   "states": [

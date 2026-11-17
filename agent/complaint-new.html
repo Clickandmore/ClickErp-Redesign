@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="design-version" content="v1.34">
+<title>شكوى جديدة — بوابة الوكيل · Click ERP</title>
+<link rel="stylesheet" href="../assets/clickerp.bundle.css">
+<link rel="stylesheet" href="assets/ag.css">
+</head>
+<body dir="rtl" data-page="complaint-new">
+<!-- Screen: complaint-new · agent.complaints.create / store / search-contracts (Agent\AgentComplaintController@create/store/searchContracts) · agent/complaints/create.blade.php
+     الحقول من store(): complainant_name* · complainant_phone · office_id (مكتبك تلقائيًا) · subject* · complaint_type_id* · details*
+       · priority* (low · medium · high · urgent) · relation_type* (none · contract · manual)
+       · contract_id (إذا «عقد» — عقود مكتبك فقط) · against_name* + against_phone (إذا «بيانات يدوية») · relation_notes · attachments (حتى 10، 5 ميغابايت). -->
+<main class="ag-content">
+
+  <div class="ag-page-header">
+    <div>
+      <a class="ag-back" href="complaints.html"><i data-lucide="arrow-right"></i><span data-en="All Complaints">كل الشكاوى</span></a>
+      <h1 class="ag-page-title" data-en="New Complaint">شكوى جديدة</h1>
+      <p class="ag-page-desc" data-en="The complaint is filed under your office automatically.">تُسجَّل الشكوى باسم مكتبك تلقائيًا.</p>
+    </div>
+  </div>
+
+  <div class="ag-layout">
+    <div class="ag-stack">
+      <section class="ag-card">
+        <div class="ag-card-head"><div class="ag-card-head-start"><span class="ag-card-icon"><i data-lucide="user-round"></i></span><div><h2 class="ag-card-title" data-en="Complainant Details">بيانات مُقدّم الشكوى</h2></div></div></div>
+        <div class="ag-form-grid is-three">
+          <div class="ag-field"><label><span data-en="Contact Name">اسم المسؤول</span> <span class="req">*</span></label><input class="ag-input" dir="ltr" value="Rowena Villanueva"></div>
+          <div class="ag-field"><label data-en="Contact Phone">رقم التواصل</label><input class="ag-input" dir="ltr" value="+63 917 555 0142"></div>
+          <div class="ag-field"><label data-en="Office">المكتب</label><select class="ag-select" disabled><option>PLATINUM BROTHERS</option></select></div>
+        </div>
+      </section>
+
+      <section class="ag-card">
+        <div class="ag-card-head"><div class="ag-card-head-start"><span class="ag-card-icon"><i data-lucide="message-square-warning"></i></span><div><h2 class="ag-card-title" data-en="Complaint Details">تفاصيل الشكوى</h2></div></div></div>
+        <div class="ag-form-grid">
+          <div class="ag-field is-wide"><label><span data-en="Subject">الموضوع</span> <span class="req">*</span></label><input class="ag-input" placeholder="مثال: تأخر ختم التأشيرة للعقد 10467" data-en="e.g. Visa stamping delayed for contract 10467"></div>
+          <div class="ag-field"><label><span data-en="Complaint Type">نوع الشكوى</span> <span class="req">*</span></label><select class="ag-select"><option data-en="Select a type">اختر النوع</option><option>تسوية مالية</option><option>تأخر المستندات</option><option>سلوك صاحب العمل</option></select></div>
+          <div class="ag-field"><label><span data-en="Priority">الأولوية</span> <span class="req">*</span></label>
+            <div class="ag-seg"><button type="button" data-en="Low">منخفضة</button><button type="button" class="is-on" data-en="Medium">متوسطة</button><button type="button" data-en="High">عالية</button><button type="button" data-en="Urgent">عاجلة</button></div></div>
+          <div class="ag-field is-wide"><label><span data-en="Details">التفاصيل</span> <span class="req">*</span></label><textarea class="ag-textarea" style="min-height:120px"></textarea></div>
+        </div>
+      </section>
+
+      <section class="ag-card">
+        <div class="ag-card-head"><div class="ag-card-head-start"><span class="ag-card-icon"><i data-lucide="link"></i></span><div><h2 class="ag-card-title" data-en="Complaint Subject Party">الجهة المشكو بشأنها</h2></div></div></div>
+        <div class="ag-choices" data-ag-tabs style="grid-template-columns:repeat(3,minmax(0,1fr))">
+          <label class="ag-choice" data-ag-tab="rel-none"><input type="radio" name="rel"><span><b data-en="Not linked">غير مرتبطة</b><small data-en="A general complaint">شكوى عامة</small></span></label>
+          <label class="ag-choice is-on" data-ag-tab="rel-contract"><input type="radio" name="rel" checked><span><b data-en="Contract">عقد</b><small data-en="Only your office contracts are listed.">تظهر عقود مكتبك فقط.</small></span></label>
+          <label class="ag-choice" data-ag-tab="rel-manual"><input type="radio" name="rel"><span><b data-en="Manual data">بيانات يدوية</b><small data-en="Name and phone of the other party">اسم الطرف الآخر وهاتفه</small></span></label>
+        </div>
+        <div data-ag-panel="rel-contract" style="margin-top:14px" class="ag-field"><label><span data-en="Contract">العقد</span> <span class="req">*</span></label><div class="inp"><i data-lucide="search"></i><input placeholder="ابحث برقم العقد، العميل، أو العاملة" data-en="Search by contract #, client, or worker" value="10467 · JOCELYN REYES BAUTISTA · نورة بنت سعد العتيبي"></div><span class="ag-help" data-en="The other party is filled from the contract (client or worker, by complaint type).">يُعبّأ الطرف الآخر من العقد (العميل أو العاملة بحسب نوع الشكوى).</span></div>
+        <div data-ag-panel="rel-manual" hidden style="margin-top:14px" class="ag-form-grid"><div class="ag-field"><label><span data-en="Other Party Name">اسم الطرف الآخر</span> <span class="req">*</span></label><input class="ag-input"></div><div class="ag-field"><label data-en="Other Party Phone">هاتف الطرف الآخر</label><input class="ag-input" dir="ltr"></div></div>
+        <div class="ag-field" style="margin-top:14px"><label data-en="Additional Notes">ملاحظات إضافية</label><textarea class="ag-textarea"></textarea></div>
+      </section>
+    </div>
+
+    <aside class="ag-layout-side">
+      <section class="ag-card">
+        <div class="ag-card-head"><div class="ag-card-head-start"><span class="ag-card-icon"><i data-lucide="paperclip"></i></span><div><h2 class="ag-card-title" data-en="Attachments">المرفقات</h2></div></div></div>
+        <div class="ag-drop"><i data-lucide="upload"></i><span><b data-en="Attach files">إرفاق ملفات</b><small data-en="Up to 10 files, 5 MB each.">حتى 10 ملفات، وحجم كل ملف 5 ميغابايت كحد أقصى.</small></span></div>
+        <div class="ag-card-foot"><a class="btn btn-ghost" href="complaints.html" data-en="Cancel">إلغاء</a><button class="btn btn-primary" data-ag-toast="أُرسلت الشكوى إلى مكتب الاستقدام"><i data-lucide="send"></i><span data-en="Submit Complaint">إرسال الشكوى</span></button></div>
+      </section>
+    </aside>
+  </div>
+
+</main>
+<script src="https://unpkg.com/lucide@0.451.0/dist/umd/lucide.min.js"></script>
+<script src="assets/ag.js"></script>
+</body>
+</html>

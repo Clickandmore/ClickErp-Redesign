@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="design-version" content="v1.34">
+<title>لوحة التحكم — بوابة الوكيل · Click ERP</title>
+<link rel="stylesheet" href="../assets/clickerp.bundle.css">
+<link rel="stylesheet" href="assets/ag.css">
+</head>
+<body dir="rtl" data-page="dashboard">
+<!-- Screen: dashboard · agent.dashboard (Agent\DashboardController@index) · agent/dashboard.blade.php
+     من الكود: الترحيب، معلومات المكتب (الاسم، الجنسية، الهاتف، مدير المكتب)، 4 مؤشرات
+     (maids_count · available_maids_count · contracts_count · active_contracts_count)، أحدث السير وأحدث العقود.
+     «جديد»: قائمة «المطلوب منك الآن» تجمع: السير المرفوضة (submission_status=rejected + rejection_reason)،
+     ردود الإدارة على طلبات تغيير الحالة (maid_status_change_requests.status/review_note)،
+     العقود في التفويض/التفييز/التذكرة مع الخطوة الناقصة من maid_recruitment_procedures، والشكاوى التي عليها رد. -->
+<main class="ag-content">
+
+  <div class="ag-page-header">
+    <div>
+      <h1 class="ag-page-title" data-en="Welcome back, Rowena">مرحبًا بعودتك، Rowena</h1>
+      <p class="ag-page-desc" data-en="Here is what needs your action today, then a clear overview of your office activity.">هذا ما يحتاج إجراءً منك اليوم، ثم نظرة واضحة على نشاط مكتبك.</p>
+    </div>
+    <div class="ag-page-header-end">
+      <a class="btn btn-ghost" href="cv-import.html"><i data-lucide="file-spreadsheet"></i><span data-en="Import from file">رفع سير من ملف</span></a>
+      <a class="btn btn-primary" href="cv-add.html"><i data-lucide="user-plus"></i><span data-en="Add New CV">إضافة سيرة ذاتية</span></a>
+    </div>
+  </div>
+
+  <!-- هوية العلاقة: مكتب الوكيل ↔ مكتب الاستقدام (agentOfficeLinks → recruitment_offices) -->
+  <div class="ag-link">
+    <div class="ag-party"><span class="ag-party-logo">PB</span><div><b class="ag-latin">PLATINUM BROTHERS MANPOWER</b><small data-en="Your office · Manila, Philippines">مكتبك · مانيلا، الفلبين</small></div></div>
+    <span class="ag-link-arrow" data-en="agent for">وكيل لدى</span>
+    <div class="ag-party"><span class="ag-party-logo"><svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="16" fill="#16233f"/><path d="M40 14c-9 2-15 9-15 18v18" stroke="#7ab648" stroke-width="5" stroke-linecap="round" fill="none"/><path d="M25 32c0-7 6-12 13-12" stroke="#fff" stroke-width="5" stroke-linecap="round" fill="none"/><circle cx="44" cy="46" r="5" fill="#7ab648"/></svg></span><div><b data-en="Al-Riyada Recruitment Office">مكتب الريادة للاستقدام</b><small data-en="Recruitment office · Riyadh, Saudi Arabia">مكتب الاستقدام · الرياض، السعودية</small></div></div>
+    <div class="ag-link-meta">
+      <span class="ag-badge ag-badge--brand"><i data-lucide="flag"></i><span data-en="Nationality: Philippines">الجنسية: الفلبين</span></span>
+      <span class="ag-badge"><i data-lucide="user-round"></i><span data-en="Manager:">مدير المكتب:</span>&nbsp;<span class="ag-latin">Rowena Villanueva</span></span>
+      <span class="ag-badge"><i data-lucide="phone"></i><span dir="ltr">+63 917 555 0142</span></span>
+    </div>
+  </div>
+
+  <div class="ag-grid-4">
+    <a class="ag-kpi" href="cvs.html"><span class="ag-kpi-label"><i data-lucide="contact"></i><span data-en="Total CVs">إجمالي السير الذاتية</span></span><b class="ag-kpi-value num">14</b><span class="ag-kpi-sub" data-en="2 rejected · 1 pending review">2 مرفوضة · 1 بانتظار المراجعة</span></a>
+    <a class="ag-kpi" href="cvs.html#available"><span class="ag-kpi-label"><i data-lucide="user-check"></i><span data-en="Available CVs">السير الذاتية المتاحة</span></span><b class="ag-kpi-value num is-success">6</b><span class="ag-kpi-sub" data-en="Visible to clients after approval">تظهر للعملاء بعد الاعتماد</span></a>
+    <a class="ag-kpi" href="contracts.html"><span class="ag-kpi-label"><i data-lucide="file-text"></i><span data-en="Total Contracts">إجمالي العقود</span></span><b class="ag-kpi-value num">7</b><span class="ag-kpi-sub" data-en="1 completed · 1 returned">1 مكتمل · 1 مرتجع</span></a>
+    <a class="ag-kpi" href="contracts.html"><span class="ag-kpi-label"><i data-lucide="activity"></i><span data-en="Active Contracts">العقود النشطة</span></span><b class="ag-kpi-value num is-warning">5</b><span class="ag-kpi-sub" data-en="3 waiting for a step from you">3 بانتظار خطوة منك</span></a>
+  </div>
+
+  <div class="ag-layout">
+    <div class="ag-stack">
+      <section class="ag-card">
+        <div class="ag-card-head">
+          <div class="ag-card-head-start"><span class="ag-card-icon"><i data-lucide="list-checks"></i></span><div><h2 class="ag-card-title"><span data-en="What needs your action now">المطلوب منك الآن</span> <span class="tag a hm-new">جديد</span></h2><p class="ag-card-desc" data-en="Sorted by what delays the worker's travel first.">مرتّبة بحسب ما يؤخّر سفر العاملة أولًا.</p></div></div>
+          <span class="ag-card-meta" data-en="7 need action">7 تحتاج إجراءً</span>
+        </div>
+
+        <div class="ag-todo-group">
+          <div class="ag-todo-h"><i data-lucide="plane"></i><span data-en="Contracts waiting for visa or ticket">عقود بانتظار التأشيرة أو التذكرة</span><span class="ag-badge ag-badge--warning">3</span></div>
+          <div class="ag-todo">
+            <div class="ag-todo-item is-danger"><i data-lucide="ticket"></i><span><b><span data-en="Book the travel ticket — contract 10455">احجز تذكرة السفر — العقد 10455</span> · <span class="ag-latin">ANALYN GARCIA MENDOZA</span></b><small data-en="Stage: Ticket · ticket paid on 12 Nov, booking not entered yet · arrival station: Riyadh">المرحلة: تذكرة · سُدّدت التذكرة في 12 نوفمبر ولم يُسجَّل الحجز بعد · محطة الوصول: الرياض</small></span><a class="btn btn-primary sm" href="contract.html"><span data-en="Open contract">فتح العقد</span></a></div>
+            <div class="ag-todo-item"><i data-lucide="stamp"></i><span><b><span data-en="Embassy stamping is pending — contract 10467">ختم السفارة لم يكتمل — العقد 10467</span> · <span class="ag-latin">JOCELYN REYES BAUTISTA</span></b><small data-en="Stage: Visa (Taffez) · OEC released on 08 Nov · update the step once stamped">المرحلة: التفييز · صدر OEC في 8 نوفمبر · حدّث الخطوة فور الختم</small></span><a class="btn btn-ghost sm" href="tracking.html"><span data-en="Update tracking">تحديث التتبع</span></a></div>
+            <div class="ag-todo-item"><i data-lucide="stethoscope"></i><span><b><span data-en="Medical exam result missing — contract 10482">نتيجة الفحص الطبي غير مسجّلة — العقد 10482</span> · <span class="ag-latin">MARIA SANTOS DELA CRUZ</span></b><small data-en="Stage: Authorization (Tafwed) · 20 days since the contract was created">المرحلة: تفويض · مضى 20 يومًا على إنشاء العقد</small></span><a class="btn btn-ghost sm" href="tracking.html"><span data-en="Update tracking">تحديث التتبع</span></a></div>
+          </div>
+        </div>
+
+        <div class="ag-todo-group">
+          <div class="ag-todo-h"><i data-lucide="file-x"></i><span data-en="CVs rejected — fix and resubmit">سير مرفوضة — صحّحها وأعد إرسالها</span><span class="ag-badge ag-badge--danger">2</span></div>
+          <div class="ag-todo">
+            <div class="ag-todo-item is-danger"><i data-lucide="file-x"></i><span><b class="ag-latin">JENNY LYN OCAMPO · P8402263J</b><small class="ag-why" data-en="Reason: the age written (25) does not match the birth date 12-03-1998.">السبب: العمر المكتوب (25) لا يطابق تاريخ الميلاد 1998-03-12.</small></span><a class="btn btn-ghost sm" href="cv-add.html#fix"><i data-lucide="pencil"></i><span data-en="Fix">تصحيح</span></a></div>
+            <div class="ag-todo-item is-danger"><i data-lucide="file-x"></i><span><b class="ag-latin">CHERRY ANN VILLANUEVA · P2275091E</b><small class="ag-why" data-en="Reason: passport photo unclear and the second data page is missing.">السبب: صورة الجواز غير واضحة، وصفحة البيانات الثانية غير مرفقة.</small></span><a class="btn btn-ghost sm" href="cv-add.html#fix"><i data-lucide="pencil"></i><span data-en="Fix">تصحيح</span></a></div>
+            <div class="ag-todo-item is-info"><i data-lucide="hourglass"></i><span><b class="ag-latin">MARICEL RAMOS PASCUAL · P7741205F</b><small data-en="Pending review by the recruitment office since 15 Nov — nothing needed from you.">بانتظار مراجعة مكتب الاستقدام منذ 15 نوفمبر — لا يلزمك شيء.</small></span></div>
+          </div>
+        </div>
+
+        <div class="ag-todo-group">
+          <div class="ag-todo-h"><i data-lucide="arrow-left-right"></i><span data-en="Status-change requests answered">ردود على طلبات تغيير الحالة</span><span class="ag-badge">2</span></div>
+          <div class="ag-todo">
+            <div class="ag-todo-item is-danger"><i data-lucide="circle-x"></i><span><b><span data-en="Suspension rejected">رُفض طلب التعليق</span> · <span class="ag-latin">KRISTINE JOY LIM</span></b><small data-en="Note: the worker is proposed to a client in an open order; resubmit if it is not completed within a week.">ملاحظة الإدارة: العاملة مرشّحة لعميل في طلب قائم؛ أعد الطلب إن لم يكتمل خلال أسبوع.</small></span><a class="btn btn-ghost sm" href="status-requests.html"><span data-en="View">عرض</span></a></div>
+            <div class="ag-todo-item is-ok"><i data-lucide="circle-check"></i><span><b><span data-en="Suspension approved">اعتُمد طلب التعليق</span> · <span class="ag-latin">LORNA FLORES CASTILLO</span></b><small data-en="The CV is now hidden from clients.">السيرة الآن مخفية عن العملاء.</small></span></div>
+          </div>
+        </div>
+
+        <div class="ag-todo-group">
+          <div class="ag-todo-h"><i data-lucide="message-square-warning"></i><span data-en="Complaints">الشكاوى</span><span class="ag-badge ag-badge--warning">1</span></div>
+          <div class="ag-todo">
+            <div class="ag-todo-item"><i data-lucide="message-square-reply"></i><span><b><span data-en="New management reply — complaint 318">رد جديد من الإدارة — الشكوى 318</span></b><small data-en="Return costs after Back Out — contract 10376 · they ask for the return-flight receipt">تسوية تكاليف الإرجاع بعد Back Out — العقد 10376 · يطلبون إيصال تذكرة العودة</small></span><a class="btn btn-primary sm" href="complaint.html"><span data-en="Reply">الرد</span></a></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="ag-card ag-card--flush">
+        <div class="ag-card-head"><div class="ag-card-head-start"><span class="ag-card-icon"><i data-lucide="file-text"></i></span><div><h2 class="ag-card-title" data-en="Latest Contracts">أحدث العقود</h2><p class="ag-card-desc" data-en="Where each contract is and who holds the next step.">أين وصل كل عقد، ومن عليه الخطوة التالية.</p></div></div><a class="btn btn-ghost sm" href="contracts.html" data-en="View All">عرض الكل</a></div>
+        <div class="ag-table-wrap"><table class="ag-table">
+          <thead><tr><th>#</th><th data-en="Worker">العاملة</th><th data-en="Stage">المرحلة</th><th data-en="Next step">الخطوة التالية</th></tr></thead>
+          <tbody>
+            <tr><td class="num"><a href="contracts.html">10490</a></td><td class="ag-latin">GRACE NAVARRO SALAZAR</td><td><span class="ag-badge ag-badge--info">عقود مساند</span></td><td><small data-en="Recruitment office — Musaned">مكتب الاستقدام — مساند</small></td></tr>
+            <tr class="is-flag"><td class="num"><a href="contracts.html">10482</a></td><td class="ag-latin">MARIA SANTOS DELA CRUZ</td><td><span class="ag-badge ag-badge--info">تفويض</span></td><td><b data-en="You — medical exam">أنت — الفحص الطبي</b></td></tr>
+            <tr class="is-flag"><td class="num"><a href="contracts.html">10467</a></td><td class="ag-latin">JOCELYN REYES BAUTISTA</td><td><span class="ag-badge ag-badge--accent">التفييز</span></td><td><b data-en="You — embassy stamping">أنت — ختم السفارة</b></td></tr>
+            <tr class="is-flag"><td class="num"><a href="contract.html">10455</a></td><td class="ag-latin">ANALYN GARCIA MENDOZA</td><td><span class="ag-badge ag-badge--warning">تذكرة</span></td><td><b data-en="You — book the ticket">أنت — حجز التذكرة</b></td></tr>
+            <tr><td class="num"><a href="contracts.html">10431</a></td><td class="ag-latin">RICHELLE DIAZ MORALES</td><td><span class="ag-badge ag-badge--brand">مرحلة الوصول</span></td><td><small data-en="Recruitment office — receiving the worker">مكتب الاستقدام — استقبال العاملة</small></td></tr>
+          </tbody>
+        </table></div>
+      </section>
+    </div>
+
+    <aside class="ag-layout-side">
+      <section class="ag-card">
+        <div class="ag-card-head"><div class="ag-card-head-start"><span class="ag-card-icon"><i data-lucide="bell"></i></span><div><h2 class="ag-card-title" data-en="Latest notifications">أحدث الإشعارات</h2></div></div><a class="ag-card-meta" href="notifications.html" data-en="4 unread">4 غير مقروءة</a></div>
+        <ul class="ag-timeline">
+          <li><span class="ag-timeline-icon" style="background:var(--red-soft);color:var(--red)"><i data-lucide="file-x"></i></span><div class="ag-timeline-body"><b><span data-en="CV rejected:">رُفضت سيرة</span> <span class="ag-latin">JENNY LYN OCAMPO</span></b><small data-en="Today 09:40">اليوم 09:40</small></div></li>
+          <li><span class="ag-timeline-icon" style="background:var(--amber-soft);color:var(--amber)"><i data-lucide="message-square-reply"></i></span><div class="ag-timeline-body"><b data-en="New reply on complaint 318">رد جديد على الشكوى 318</b><small data-en="Today 08:15">اليوم 08:15</small></div></li>
+          <li><span class="ag-timeline-icon"><i data-lucide="ticket"></i></span><div class="ag-timeline-body"><b data-en="Reminder: contract 10455 waits for ticket booking">تذكير: العقد 10455 بانتظار حجز التذكرة</b><small data-en="Yesterday 16:05">أمس 16:05</small></div></li>
+          <li><span class="ag-timeline-icon" style="background:var(--red-soft);color:var(--red)"><i data-lucide="file-x"></i></span><div class="ag-timeline-body"><b><span data-en="CV rejected:">رُفضت سيرة</span> <span class="ag-latin">CHERRY ANN VILLANUEVA</span></b><small data-en="Yesterday 11:20">أمس 11:20</small></div></li>
+        </ul>
+      </section>
+
+      <section class="ag-card">
+        <div class="ag-card-head"><div class="ag-card-head-start"><span class="ag-card-icon"><i data-lucide="send"></i></span><div><h2 class="ag-card-title" data-en="Supplier invoices (dispatches)">فواتير المورد (الإرساليات)</h2><p class="ag-card-desc" data-en="Created by the recruitment office for each contract.">ينشئها مكتب الاستقدام لكل عقد.</p></div></div></div>
+        <div class="ag-summary">
+          <div class="ag-summary-row"><span data-en="Complete">مكتملة</span><b class="num">4</b></div>
+          <div class="ag-summary-row"><span data-en="Needs update">تحتاج تحديث</span><b class="num" style="color:var(--amber)">1</b></div>
+          <div class="ag-summary-row"><span data-en="Not created yet">لم تُنشأ بعد</span><b class="num">2</b></div>
+          <div class="ag-summary-row"><span data-en="Contract cost (USD) on complete invoices">تكلفة العقود بالدولار في المكتملة</span><b class="ag-money num">5,700.00 <small>USD</small></b></div>
+        </div>
+        <div class="ag-card-foot"><a class="btn btn-ghost sm" href="dispatches.html" data-en="Open dispatches">فتح الإرساليات</a></div>
+      </section>
+    </aside>
+  </div>
+
+</main>
+<script src="https://unpkg.com/lucide@0.451.0/dist/umd/lucide.min.js"></script>
+<script src="assets/ag.js"></script>
+</body>
+</html>

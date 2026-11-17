@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="design-version" content="v1.34">
+<title>تتبع إجراءات الفلبين — بوابة الوكيل · Click ERP</title>
+<link rel="stylesheet" href="../assets/clickerp.bundle.css">
+<link rel="stylesheet" href="assets/ag.css">
+</head>
+<body dir="rtl" data-page="tracking">
+<!-- Screen: tracking · agent.philippines-tracking.index / update-step / bulk-update (Agent\AgentRecruitmentProcedureController) · agent/philippines-tracking/index.blade.php
+     من الكود: عاملات المكتب من الجنسية الفلبينية (nationality_id 174) مع العقد غير المكتمل والكفيل، بحث (الاسم، الجواز، الكفيل)، فلتر المرحلة
+     (لائق طبيًا · فحص معلق · OEC Released · تذكرة محجوزة)، عدادات (إجمالي الخادمات · لائق طبيًا · فحص معلق · OEC جاهز · تذاكر محجوزة).
+     الخطوات وحالاتها (maid_recruitment_procedures): medical pending/fit/unfit · tesda pending/certified/failed · owwa pending/paid/active
+       · oec_payment pending/paid · oec_release pending/released · embassy_stamping pending/stamped · poea_stamping pending/approved
+       · ticket_payment pending/paid · ticket_purchase pending/purchased — لكل خطوة تاريخ، + applied_at + remarks.
+     نسبة الإنجاز كما في الكود: طبي 20 · TESDA 10 · OWWA 10 · دفع OEC 10 · إصدار OEC 10 · السفارة 15 · POEA 10 · حجز التذكرة 15.
+     «جديد»: عمود «الخطوة التالية» وترتيب الأولوية بحسب مرحلة العقد. -->
+<main class="ag-content">
+
+  <div class="ag-page-header">
+    <div>
+      <h1 class="ag-page-title" data-en="Philippines Tracking Board">لوحة تتبع إجراءات الفلبين</h1>
+      <p class="ag-page-desc" data-en="Medical, TESDA, OWWA, OEC, stamps and ticket for each Filipino worker — update each step once it is done.">الفحص الطبي وTESDA وOWWA وOEC والأختام والتذكرة لكل عاملة فلبينية — حدّث كل خطوة فور إنجازها.</p>
+    </div>
+  </div>
+
+  <div class="ag-grid-4" style="grid-template-columns:repeat(5,minmax(0,1fr))">
+    <div class="ag-kpi"><span class="ag-kpi-label"><i data-lucide="users"></i><span data-en="Total Maids">إجمالي الخادمات</span></span><b class="ag-kpi-value num">14</b></div>
+    <a class="ag-kpi" href="#"><span class="ag-kpi-label"><i data-lucide="heart-pulse"></i><span data-en="Medical FIT">لائق طبيًا</span></span><b class="ag-kpi-value num is-success">6</b></a>
+    <a class="ag-kpi" href="#"><span class="ag-kpi-label"><i data-lucide="stethoscope"></i><span data-en="Medical pending">فحص معلق</span></span><b class="ag-kpi-value num is-warning">8</b><span class="ag-kpi-sub" data-en="2 of them under contract">منها 2 عليهما عقد</span></a>
+    <a class="ag-kpi" href="#"><span class="ag-kpi-label"><i data-lucide="badge-check"></i><span data-en="OEC Released">OEC جاهز</span></span><b class="ag-kpi-value num">5</b></a>
+    <a class="ag-kpi" href="#"><span class="ag-kpi-label"><i data-lucide="plane-takeoff"></i><span data-en="Tickets Booked">تذاكر محجوزة</span></span><b class="ag-kpi-value num">2</b></a>
+  </div>
+
+  <section class="ag-card ag-card--flush">
+    <div class="ag-card-head">
+      <div class="ag-filters" style="width:100%">
+        <div class="ag-field is-grow"><div class="inp"><i data-lucide="search"></i><input placeholder="بحث بالاسم أو الجواز أو الكفيل..." data-en="Search name, passport, sponsor..."></div></div>
+        <select class="ag-select" style="width:auto;min-width:170px"><option data-en="All Stages">كل المراحل</option><option data-en="Medical FIT">لائق طبيًا</option><option data-en="Pending">فحص معلق</option><option>OEC Released</option><option data-en="Ticket Booked">تذكرة محجوزة</option></select>
+      </div>
+    </div>
+    <div class="ag-table-wrap"><table class="ag-table">
+      <thead><tr><th data-en="Worker">العاملة</th><th data-en="Sponsor · contract">الكفيل · العقد</th><th data-en="Steps">الخطوات</th><th data-en="Progress">الإنجاز</th><th data-en="Next step">الخطوة التالية</th><th class="is-end"></th></tr></thead>
+      <tbody>
+        <tr class="is-bad">
+          <td><div class="ag-worker"><span class="ag-worker-av">AG</span><div><b>ANALYN GARCIA MENDOZA</b><small class="ag-latin">P3398410C</small></div></div></td>
+          <td>محمد بن علي الشهري<small>10455 · <span>تذكرة</span></small></td>
+          <td><div class="ag-track"><span class="ok"><i></i><span data-en="Medical">طبي</span></span><span class="ok"><i></i>TESDA</span><span class="ok"><i></i>OEC</span><span class="ok"><i></i><span data-en="Stamps">أختام</span></span><span class="now"><i></i><span data-en="Ticket">تذكرة</span></span></div></td>
+          <td><div class="ag-pct"><div class="ag-meter"><i style="width:85%"></i></div><b class="num">85%</b></div></td>
+          <td><b data-en="Book the ticket">حجز التذكرة</b><small data-en="paid 12 Nov">سُدّدت 12 نوفمبر</small></td>
+          <td class="is-end"><button class="btn btn-primary sm" data-ag-open="drw"><i data-lucide="pencil"></i><span data-en="Edit">تعديل</span></button></td>
+        </tr>
+        <tr class="is-flag">
+          <td><div class="ag-worker"><span class="ag-worker-av">JR</span><div><b>JOCELYN REYES BAUTISTA</b><small class="ag-latin">P5530218B</small></div></div></td>
+          <td>نورة بنت سعد العتيبي<small>10467 · <span>التفييز</span></small></td>
+          <td><div class="ag-track"><span class="ok"><i></i><span data-en="Medical">طبي</span></span><span class="ok"><i></i>TESDA</span><span class="ok"><i></i>OEC</span><span class="now"><i></i><span data-en="Stamps">أختام</span></span><span><i></i><span data-en="Ticket">تذكرة</span></span></div></td>
+          <td><div class="ag-pct"><div class="ag-meter is-warning"><i style="width:60%"></i></div><b class="num">60%</b></div></td>
+          <td><b data-en="Embassy stamping">ختم السفارة</b><small data-en="OEC released 08 Nov">صدر OEC في 8 نوفمبر</small></td>
+          <td class="is-end"><button class="btn btn-ghost sm" data-ag-open="drw"><i data-lucide="pencil"></i><span data-en="Edit">تعديل</span></button></td>
+        </tr>
+        <tr class="is-flag">
+          <td><div class="ag-worker"><span class="ag-worker-av">MS</span><div><b>MARIA SANTOS DELA CRUZ</b><small class="ag-latin">P4821937A</small></div></div></td>
+          <td>عبدالله بن فهد القحطاني<small>10482 · <span>تفويض</span></small></td>
+          <td><div class="ag-track"><span class="now"><i></i><span data-en="Medical">طبي</span></span><span><i></i>TESDA</span><span><i></i>OEC</span><span><i></i><span data-en="Stamps">أختام</span></span><span><i></i><span data-en="Ticket">تذكرة</span></span></div></td>
+          <td><div class="ag-pct"><div class="ag-meter"><i style="width:0"></i></div><b class="num">0%</b></div></td>
+          <td><b data-en="Medical exam">الفحص الطبي</b><small data-en="applied 29 Oct · no result">قُدّم 29 أكتوبر · لا نتيجة</small></td>
+          <td class="is-end"><button class="btn btn-ghost sm" data-ag-open="drw"><i data-lucide="pencil"></i><span data-en="Edit">تعديل</span></button></td>
+        </tr>
+        <tr>
+          <td><div class="ag-worker"><span class="ag-worker-av">GN</span><div><b>GRACE NAVARRO SALAZAR</b><small class="ag-latin">P9054127H</small></div></div></td>
+          <td>خالد بن سعود الحربي<small>10490 · <span>عقود مساند</span></small></td>
+          <td><div class="ag-track"><span><i></i><span data-en="Medical">طبي</span></span><span><i></i>TESDA</span><span><i></i>OEC</span><span><i></i><span data-en="Stamps">أختام</span></span><span><i></i><span data-en="Ticket">تذكرة</span></span></div></td>
+          <td><div class="ag-pct"><div class="ag-meter"><i style="width:0"></i></div><b class="num">0%</b></div></td>
+          <td><span data-en="Start after authorization">تبدأ بعد التفويض</span><small data-en="nothing needed now">لا يلزم شيء الآن</small></td>
+          <td class="is-end"><button class="btn btn-ghost sm" data-ag-open="drw"><i data-lucide="pencil"></i><span data-en="Edit">تعديل</span></button></td>
+        </tr>
+        <tr>
+          <td><div class="ag-worker"><span class="ag-worker-av">RD</span><div><b>RICHELLE DIAZ MORALES</b><small class="ag-latin">P4470918K</small></div></div></td>
+          <td>سارة بنت محمد الدوسري<small>10431 · <span>مرحلة الوصول</span></small></td>
+          <td><div class="ag-track"><span class="ok"><i></i><span data-en="Medical">طبي</span></span><span class="ok"><i></i>TESDA</span><span class="ok"><i></i>OEC</span><span class="ok"><i></i><span data-en="Stamps">أختام</span></span><span class="ok"><i></i><span data-en="Ticket">تذكرة</span></span></div></td>
+          <td><div class="ag-pct"><div class="ag-meter"><i style="width:100%"></i></div><b class="num">100%</b></div></td>
+          <td><span class="ag-locked"><i data-lucide="check"></i><span data-en="Booked · flight 21 Nov">محجوزة · الرحلة 21 نوفمبر</span></span></td>
+          <td class="is-end"><button class="btn btn-ghost sm" data-ag-open="drw"><i data-lucide="pencil"></i><span data-en="Edit">تعديل</span></button></td>
+        </tr>
+        <tr>
+          <td><div class="ag-worker"><span class="ag-worker-av">RT</span><div><b>ROSALIE TORRES AQUINO</b><small class="ag-latin">P6012744D</small></div></div></td>
+          <td>—<small data-en="no contract yet">لا عقد بعد</small></td>
+          <td><div class="ag-track"><span class="ok"><i></i><span data-en="Medical">طبي</span></span><span><i></i>TESDA</span><span><i></i>OEC</span><span><i></i><span data-en="Stamps">أختام</span></span><span><i></i><span data-en="Ticket">تذكرة</span></span></div></td>
+          <td><div class="ag-pct"><div class="ag-meter"><i style="width:20%"></i></div><b class="num">20%</b></div></td>
+          <td><span data-en="Waits for a contract">تنتظر عقدًا</span><small data-en="FIT since 02 Nov">لائقة منذ 2 نوفمبر</small></td>
+          <td class="is-end"><button class="btn btn-ghost sm" data-ag-open="drw"><i data-lucide="pencil"></i><span data-en="Edit">تعديل</span></button></td>
+        </tr>
+        <tr>
+          <td colspan="6" style="background:var(--surface-2);color:var(--muted);font-size:12.5px"><i data-lucide="chevrons-down" style="width:15px;height:15px;vertical-align:middle"></i> <span data-en="8 more workers: 2 completed (HAZEL ANN CRUZ, LIEZEL MARQUEZ) and 6 with no steps yet and no contract.">8 عاملات أخرى: 2 أنهين الإجراءات (HAZEL ANN CRUZ وLIEZEL MARQUEZ) و6 بلا خطوات ولا عقد بعد.</span> <a href="#" data-en="Show">إظهار</a></td>
+        </tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <!-- درج تعديل الخطوات (update-step لكل خطوة · bulk-update لحفظ الكل) -->
+  <aside class="ag-drawer" id="drw" aria-label="تعديل الإجراءات">
+    <div class="ag-drawer-head"><span class="ag-worker-av">AG</span><div><b class="ag-latin">ANALYN GARCIA MENDOZA</b><small style="display:block;color:var(--muted);font-size:12px">P3398410C · <span data-en="contract">العقد</span> 10455 · <span data-en="85% complete">الإنجاز 85%</span></small></div><button class="icon-btn" data-ag-close title="إغلاق"><i data-lucide="x"></i></button></div>
+    <div class="ag-drawer-body">
+      <div class="ag-field"><label data-en="Applied at">تاريخ التقديم</label><input class="ag-input" type="date" value="2026-10-01" style="max-width:200px"></div>
+      <div class="ag-steps-edit">
+        <div class="ag-step-row is-done"><span>1</span><div><b data-en="Medical">الفحص الطبي</b><small>+20%</small></div><select class="ag-select"><option data-en="Pending">معلق</option><option selected data-en="FIT">لائق (FIT)</option><option data-en="UNFIT">غير لائق (UNFIT)</option></select><input class="ag-input" type="date" value="2026-10-03"></div>
+        <div class="ag-step-row is-done"><span>2</span><div><b>TESDA</b><small>+10%</small></div><select class="ag-select"><option data-en="Pending">معلق</option><option selected data-en="Certified">معتمد</option><option data-en="Failed">راسب</option></select><input class="ag-input" type="date" value="2026-10-09"></div>
+        <div class="ag-step-row is-done"><span>3</span><div><b>OWWA</b><small>+10%</small></div><select class="ag-select"><option data-en="Pending">معلق</option><option selected data-en="Paid">مدفوع</option><option data-en="Active">نشط</option></select><input class="ag-input" type="date" value="2026-10-11"></div>
+        <div class="ag-step-row is-done"><span>4</span><div><b data-en="OEC payment">OEC — دفع الرسوم</b><small>+10%</small></div><select class="ag-select"><option data-en="Pending">غير مدفوع</option><option selected data-en="Paid">مدفوع</option></select><input class="ag-input" type="date" value="2026-10-16"></div>
+        <div class="ag-step-row is-done"><span>5</span><div><b data-en="OEC release">OEC — الإصدار</b><small>+10%</small></div><select class="ag-select"><option data-en="Pending">تحت الإجراء</option><option selected data-en="Released">صدر</option></select><input class="ag-input" type="date" value="2026-10-20"></div>
+        <div class="ag-step-row is-done"><span>6</span><div><b data-en="Embassy stamping">ختم السفارة</b><small>+15%</small></div><select class="ag-select"><option data-en="Pending">معلق</option><option selected data-en="Stamped">مختوم</option></select><input class="ag-input" type="date" value="2026-10-29"></div>
+        <div class="ag-step-row is-done"><span>7</span><div><b>POEA / DMW</b><small>+10%</small></div><select class="ag-select"><option data-en="Pending">معلق</option><option selected data-en="Approved">موثق</option></select><input class="ag-input" type="date" value="2026-11-04"></div>
+        <div class="ag-step-row is-done"><span>8</span><div><b data-en="Ticket payment">سداد التذكرة</b><small data-en="no % in the code">لا تدخل في النسبة</small></div><select class="ag-select"><option data-en="Pending">غير مسدد</option><option selected data-en="Paid">مسدد</option></select><input class="ag-input" type="date" value="2026-11-12"></div>
+        <div class="ag-step-row is-now"><span>9</span><div><b data-en="Ticket booking">حجز التذكرة</b><small>+15%</small></div><select class="ag-select"><option selected data-en="Pending">لم تحجز</option><option data-en="Booked">محجوزة</option></select><input class="ag-input" type="date"></div>
+      </div>
+      <div class="ag-field"><label data-en="Remarks">ملاحظات</label><textarea class="ag-textarea" placeholder="رقم الحجز، شركة الطيران، موعد الرحلة…" data-en="Booking reference, airline, flight date…"></textarea></div>
+    </div>
+    <div class="ag-drawer-foot"><button class="btn btn-ghost" data-ag-close data-en="Cancel">إلغاء</button><button class="btn btn-primary" data-ag-toast="حُفظت الخطوات"><i data-lucide="save"></i><span data-en="Save all steps">حفظ كل الخطوات</span></button></div>
+  </aside>
+
+</main>
+<script src="https://unpkg.com/lucide@0.451.0/dist/umd/lucide.min.js"></script>
+<script src="assets/ag.js"></script>
+</body>
+</html>

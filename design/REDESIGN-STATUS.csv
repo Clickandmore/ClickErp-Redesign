@@ -1,0 +1,60 @@
+﻿الحالة,الموديول,الشاشة / الوظيفة,في كود ClickERP,في إعادة التصميم,ملاحظة
+تم,الدخول والرئيسية,تسجيل الدخول + لوحة التحكم + مركز التقارير + تقرير,auth · admin.dashboard · reports,login · dashboard · reports · report,
+تم,الاستقدام,لوحة الاستقدام + الطلبات + السير الذاتية (قائمة/إضافة/تعديل/عرض),RecruitmentContract · orders · maids,recDash · orders · orderShow · cvs · cvAdd · cvEdit · cvShow,
+تم,الاستقدام,عقود الاستقدام (قائمة/إضافة/تعديل/تفاصيل) + فواتير العقود,RecruitmentContract · invoices,contracts · contractAdd · contractEdit · contractShow · invoices,المراحل والمرتجع وتحت الضمان ولم تُرسل ضمن فلاتر العقود
+تم,الاستقدام,تفاويض الإنجاز + الرحلات + الوكلاء الخارجيون,ING delegations · DeportationTravel · external agents,delegations · delAdd · delShow · trips · tripShow · agents · agentShow,
+تم,تأشيرات الشركة,اللوحة · الطلبات · الرصيد · التقارير · الحجز المسبق · الإعدادات,admin/visa_requests + v2/visas,visaDash · visaRequests · visaAdd · visaShow · visaBalance · visaReports · visaPrebook · visaSettings,
+تم,التأجير,عقود التأجير + الفواتير + الباقات + البنود,RentContract · RentContractTerms · packages,rental · rentalAdd · rentalShow · rentalInvoices · rentalSettings · rentalTerms,
+تم,نقل الخدمات,نقل الكفالة (قائمة/طلب/تفاصيل/نظرة عامة),SponsorshipTransfer · TransferServiceContract,transfer · transferAdd · transferShow · transferOverview,
+تم,الإيواء,الإيواء (داخل/خارج/متاح للنقل/الترحيل/مرحّلة),ShelterContract · shelter-places,housing · housingAdd · housingShow,
+تم,التأجير بالساعة,اللوحة · الزيارات · الجدول · التتبع · البلاغات · التحصيل · العملاء · الخدمات · المناطق,admin/hourly + v2/hourly,hb-* · hbNew · hbVisit · hbCollect,
+تم,العملاء CRM,العملاء · المتابعة · الزوار · الاستبيانات · المحادثات · الحملات · الأرشيف,clients · website_visitors · v2/crm · whatsapp,clients · clientAdd · clientShow · followups · visitors · polls · chats · campaigns · campaignNew · clArchive,
+تم,خدمة العملاء,الشكاوى + أنواعها + بلاغات الهروب,complaints · complaint_types · escape-reports,claims · claimAdd · claimShow · claimTypes · absconding · abscShow,
+تم,المالية,لوحة المالية + الطلبات المالية + الفواتير والسندات + القيود + الدليل المحاسبي,packages/finance · financial_requests,finDash · finDashGen · finRequests* · finSales · finSaleAdd · finBonds · finEntries · finAccounts,آخر شغل: شجرة الحسابات v1.33.4
+تم,المالية,المشتريات والمرتجع + البنوك والصناديق والتحويلات والشيكات,packages/finance,finPurchases · finReturns · finBanks · finBoxes · finTransfers · finChecksIn · finChecksOut,
+تم,المالية,العملاء والموردون والوكلاء + مراكز التكلفة + الأصول + العمولات + التقارير + الضريبة/ZATCA + الإعدادات,packages/finance · commissions,finClients · finSuppliers · finAgents · finCenters · finCentersTree · finAssets · finAssetShow · finCommission* · finReports · finReport · finTax · finZatca · finSettings,
+تم,الموارد البشرية,اللوحة · الموظفون · العاملات · الحضور · الطلبات (إجازات/أذونات/سلف/مكافآت) · العهد · الجزاءات · الرواتب · التقارير اليومية,packages/hr,hrDash · hrEmployees · hrEmployeeAdd · hrEmployeeShow · hrWorkers · hrAttendance · hrRequests · hrCustody · hrSanctions · hrPayroll · hrPayrollRun · hrDaily,
+تم,مركز المهام,كل شاشات مركز المهام (يومي/الوارد/اللوحة/الاختبار/الساعات/الإعدادات...),ClickERP2 task_center,tc* (34 شاشة),
+تم,الإعدادات,كل الإعدادات · العامة · الموقع · الاستقدام · التأجير · المستخدمون · الفروع · القوائم · الرسائل · التكاملات · الاستيراد · المساعد الذكي · الدعم,settings · cv-options · branches · roles · messaging · reports/import · mcp,setHome · setGeneral · setSite · setRecruit · setRental · setUsers · setRoles · setBranches · setLists · setMessages · setIntegrations · setImport · setAi · setSupport,
+تم,الكوبونات,الكوبونات + إضافة + بالجملة + التقرير + الإعدادات,coupons,coupons · couponForm · couponBulk · couponReport · couponSettings · couponShow,
+تم,Super Admin,منطقة منفصلة كاملة (اشتراك/موديلات/نسخ/تحديثات/MCP/ميسر...),ClickERP2 dev-super-admin,saLogin · sa* · superadmin/*,
+تم,القوالب,قوالب الشاشات (قائمة/فورم/عرض/تقرير),—,tplList · tplForm · tplShow · tplReport,مرجع للمطورين
+تم v1.34,الاستقدام,طلبات تمديد عقود الاستقدام,ING/ContractExtension,—,
+تم v1.34,الاستقدام,تجديد العقود,ING/RenewContracts,—,
+تم v1.34,الاستقدام,طلبات استرجاع العقود,ING/return_request,—,
+تم v1.34,الاستقدام,أرشيف العقود,ING/contract-archive,—,
+تم v1.34,الاستقدام,الملف المالي للعقود,ING/recruitment_contract_finance,—,ممكن يبقى تبويب في contractShow
+تم v1.34,الاستقدام,استرداد ما بعد الوصول,ING/post_arrival_refunds,—,
+تم v1.34,الاستقدام,تحويلات مساند,ING/musaned_transfers,—,موجودة كمفتاح موديل في Super Admin بس
+تم v1.34,الاستقدام,مشاركة السير الذاتية (روابط مشاركة),ING/maid-cv-shares,—,
+تم v1.34,الاستقدام,الإرساليات (Dispatches),admin.sidebar.dispatches,contracts (فلتر «لم تُرسل» بس),محتاجة شاشة/تبويب خاص
+تم v1.34,الوكلاء,دفعات الوكلاء الخارجيين,ING/recruitment_supplier_payments,visaDash (مستحقات الوكلاء بس),
+تم v1.34,الوكلاء,بوابة الوكلاء: مستخدمو الوكلاء · ملفات المكاتب · ملفات السير المرفوعة,sidebar_external_agents_menu,agents (إشارات بس),الريادة فيها agentPortal كمرجع
+تم v1.34,المالية,فواتير المبيعات بالصافي,sidebar (finance),—,
+تم v1.34,الطلبات,طلبات خاصة,admin.sidebar.private_requests,—,
+تم v1.34,الطلبات,طلبات الخدمة المعروفة,ING/KnownServiceRequest(s),—,
+تم v1.34,الطلبات,طلبات التواصل,ING/contact,—,
+تم v1.34,الطلبات,طلبات الموقع الخارجي,admin.sidebar.website_requests,—,
+تم v1.34,الطلبات,طلبات التوظيف المهني,ING/ProfessionalApplication,—,
+تم v1.34,التأجير,طلبات الإيجار,ING/rental-orders,—,
+تم v1.34,التأجير,جميع عقود الاستقدام للتأجير,sidebar (rental),—,
+تم v1.34,نقل الخدمات,بنود عقد نقل الخدمات,ING/TransferContractTerms,—,نفس فكرة rentalTerms
+تم v1.34,الكوبونات,كوبونات الساعات,sidebar (coupons),—,ممكن تبويب في coupons
+تم v1.34,إدارة المحتوى,محتوى الموقع: المدونة · العروض · الأخبار السريعة · الهيرو والسلايدر · أقسام الرئيسية · لماذا نحن · ماذا نقدم · من نحن · قسم مساند · أين تجدنا · آراء العملاء · الشركاء · الأسئلة الشائعة,ING/blogs · offers · fast_news · home_hero · home_sections · why_us · what_do · about_us · testimonials · partenrs · questions,cmsHome · cms*,
+تم v1.34,الإعدادات,سياسات الدول وإعدادات الشرطة,ING/country_polices · police_settings,—,
+محسوم ولم يُطبّق,—,المسمّى «نقل الخدمات» بدل «نقل الكفالة»,—,transfer* · finAccounts · reports · dashboard,القرار في DECISIONS.md؛ الاسم القديم لسه في 33 مكان
+محسوم ولم يُطبّق,المالية,شيل المخزون والأصناف من المالية,—,finItems · finStock · finInventory + بنود الفواتير وتقارير الأصناف,القرار في DECISIONS.md
+محسوم ولم يُطبّق,الاستقدام,تنبيه العقود بدون تذاكر بعد 60 يوم,DashboardController subDays(60),القائمة الجانبية · فلتر العقود · علامة الصف,لسه 45 في 4 أماكن
+محسوم ولم يُطبّق,الرئيسية,كارت الحضور وزر الانصراف في الرئيسية,—,dashboard,الشارة في الشريط العلوي موجودة؛ الكارت اتشال في v1.20
+محسوم ولم يُطبّق,الإطار العام,زر المساعد الذكي في الشريط العلوي,—,—,أيقونة sparkles مستخدمة لـ«ما الجديد»
+تم v1.34,بوابة الوكيل,بوابة الوكلاء: لوحة · العقود · السير (إضافة/رفع جماعي/طلبات تغيير الحالة) · الشكاوى · تتبع الفلبين · الإرساليات · الإشعارات,routes/agent.php,agents (زر «معاينة بوابة الوكيل» بيفتح صفحة فاضية),
+باقي (قرار),الإطار العام,البحث السريع Ctrl+K (شاشات + سجلات),admin quick-search/pages · records,خانة البحث موجودة بس مش شغالة,
+جزئي,الإطار العام,قائمة الحساب: الملف الشخصي · تغيير كلمة المرور · التحقق بخطوتين · تبديل الفرع,admin profile · change-password · two-factor · branch,الصورة بتعمل خروج مباشر,
+جزئي,الإطار العام,مركز الإشعارات + صفحة «لا تملك صلاحية» + 404 + حالات التحميل والخطأ,web notifications · admin no-permissions,—,
+تم v1.34,الاستقدام,تقرير العاملات الواصلات,reports/arrivals · arrival-workers,—,
+تم v1.34,الاستقدام,اختيار العاملات للعميل (رابط + إعدادات),select-workers · select-workers-settings,—,
+تم v1.34,السير الذاتية,السير المرفوعة بانتظار المراجعة · طلبات تغيير الحالة · دفعات الإظهار · السير المحذوفة,maids/pending-submissions · status-change-requests · visibility-batches · cvs-deleted,—,
+تم v1.34,المالية,الإشعارات الدائنة/المدينة + مسودات وتصحيح الفواتير,invoices/{id}/credit-notes · invoice-drafts · invoice-corrections,—,
+تم v1.34,المالية,مدفوعات ميسر (للمكتب),moyasar-payments,saMoyasar (Super Admin بس),
+تم v1.34,التأجير بالساعة,السائقون · التجديدات · الزيارات الفائتة · الإنهاء المبكر · تجاوز الوقت · نداءات SOS · دمج العملاء المكررين,hourly-admin drivers · renewals · missed-visit-requests · early-finishes · time-overruns · sos-alerts · customers/merge,—,
+تم v1.34,العملاء CRM,الإرسال الجماعي واتساب/SMS + قوالب واتساب,whatsapp-dispatch · sms-dispatch · whatsapp-inbox/templates,campaigns (جزئي),

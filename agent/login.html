@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="design-version" content="v1.34">
+<title>تسجيل دخول الوكلاء — بوابة الوكيل · Click ERP</title>
+<link rel="stylesheet" href="../assets/clickerp.bundle.css">
+<link rel="stylesheet" href="assets/ag.css">
+</head>
+<body dir="rtl">
+<!-- Screen: login · /{locale}/agent/login (Agent\AuthController@showLoginForm / login) · agent/auth/login.blade.php
+     الماركب نفس login.html في الثيم (.lx / .lx-form / .lx-art). الشعار شعار مكتب الاستقدام صاحب النسخة،
+     والشارة «بوابة الوكلاء الخارجيين». النصوص من resources/lang/{ar,en}/agent_login.php.
+     الحقول مثل الكود: login (اسم المستخدم أو البريد أو الجوال) + password + remember.
+     رسائل الخطأ في الكود: invalid · suspended («هذا الحساب موقوف حالياً») · not_agent. -->
+<section id="login" class="lx">
+  <div class="lx-form">
+    <div class="lx-head"><div class="lang" data-ag-lang><button data-l="ar" class="on">AR</button><button data-l="en">EN</button></div></div>
+    <div class="lx-body">
+      <div class="lx-brand">
+        <div class="org-logo" role="img" aria-label="شعار مكتب الريادة للاستقدام"><svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="16" fill="#16233f"/><path d="M40 14c-9 2-15 9-15 18v18" stroke="#7ab648" stroke-width="5" stroke-linecap="round" fill="none"/><path d="M25 32c0-7 6-12 13-12" stroke="#fff" stroke-width="5" stroke-linecap="round" fill="none"/><circle cx="44" cy="46" r="5" fill="#7ab648"/></svg></div>
+        <div class="org-name"><b data-en="Al-Riyada">مكتب الريادة</b><small data-en="Recruitment Office">للاستقدام</small></div>
+      </div>
+
+      <form action="index.html">
+        <div class="lx-title">
+          <span class="lx-badge"><i data-lucide="globe"></i><span data-en="External agents portal">بوابة الوكلاء الخارجيين</span></span>
+          <h1 data-en="Sign in">تسجيل الدخول</h1>
+          <p data-en="Sign in to your office workspace to follow CVs and contracts">ادخل لمساحة عمل مكتبك لمتابعة السير والعقود</p>
+        </div>
+
+        <div class="field">
+          <label for="agLogin" data-en="Username, email or mobile">اسم المستخدم أو البريد أو الجوال</label>
+          <div class="inp"><i data-lucide="user-round"></i><input id="agLogin" name="login" value="rowena@platinumbrothers.ph" dir="ltr" autocomplete="username" placeholder="name@office.com"></div>
+        </div>
+        <div class="field">
+          <label for="agPassword" data-en="Password">كلمة المرور</label>
+          <div class="inp"><i data-lucide="lock"></i><input id="agPassword" type="password" name="password" value="••••••••••" dir="ltr" autocomplete="current-password"><span class="eye" data-ag-pass role="button" title="إظهار كلمة المرور" data-en-title="Show password"><i data-lucide="eye"></i></span></div>
+        </div>
+        <label class="check"><input type="checkbox" name="remember" value="1" checked><span data-en="Remember me on this device">تذكرني على هذا الجهاز</span></label>
+        <button class="btn btn-primary btn-block" type="submit"><span data-en="Sign in">تسجيل الدخول</span><i data-lucide="arrow-left"></i></button>
+        <p class="lx-note" data-en="Repeated failed attempts lock sign-in for a while · your language choice is kept for your next visit">المحاولات الخاطئة المتكررة توقف الدخول مؤقتًا · تبقى اللغة التي تختارها لزيارتك القادمة</p>
+      </form>
+
+      <a class="lx-agent" href="../login.html" style="text-decoration:none"><span class="ai"><i data-lucide="building-2"></i></span><span class="at"><b data-en="Staff or management?">موظف أو إدارة؟</b><small data-en="Sign in from the dashboard login page">ادخل من صفحة دخول لوحة التحكم</small></span><i data-lucide="chevron-left"></i></a>
+    </div>
+    <div class="lx-foot">
+      <a class="pwb" href="https://clickandmore.sa" title="ClickERP — Click &amp; More"><small>Powered by</small><img src="../assets/logo-light-tight.png" alt="Click &amp; More"><span class="sep"></span><b>Click<em>ERP</em></b></a>
+      <nav><a href="#" data-en="Support">الدعم الفني</a><a href="#" data-en="Privacy">الخصوصية</a></nav>
+    </div>
+  </div>
+  <div class="lx-art">
+    <img src="../assets/login-photo.webp" alt="">
+    <div class="lx-cap"><h2 data-en="One workspace for your office and the recruitment office">مساحة واحدة بين مكتبك ومكتب الاستقدام</h2><p data-en="Upload CVs, follow contracts to the ticket, and answer requests and complaints on time.">ارفع السير، وتابع العقود حتى التذكرة، وأجب الطلبات والشكاوى في وقتها.</p></div>
+  </div>
+</section>
+<script src="https://unpkg.com/lucide@0.451.0/dist/umd/lucide.min.js"></script>
+<script src="assets/ag.js"></script>
+</body>
+</html>

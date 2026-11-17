@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="design-version" content="v1.34">
+<title>السير الذاتية — بوابة الوكيل · Click ERP</title>
+<link rel="stylesheet" href="../assets/clickerp.bundle.css">
+<link rel="stylesheet" href="assets/ag.css">
+</head>
+<body dir="rtl" data-page="cvs">
+<!-- Screen: cvs · agent.maids.index (Agent\DashboardController@maids) · agent/maids/index.blade.php
+     من الكود: تبويبات worker_filter (كل العمالة · المتاحات · المتعاقد عليهن) بأعدادها، submission_filter
+     (الكل · بانتظار المراجعة · متوافق عليها · مرفوضة)، بحث بالاسم/الجواز/الهوية، من/إلى تاريخ الإضافة، الترتيب
+     (المتاحة أولًا · المتعاقد عليها أولًا · الأحدث · الأقدم · الاسم أبجديًا)، 15 في الصفحة.
+     الإجراءات وشروطها من requestMaidStatusChange / bulkRequestMaidSuspension / updateMaid:
+       تعليق: للمتاحة فقط وبعد اعتماد السيرة · Back Out: للمتعاقد عليها فقط · حذف: ممنوع للمحجوزة أو المرتبطة بعقد نشط
+       لا طلب جديد ولا تعديل أثناء وجود طلب قيد المراجعة · لا طلب للمعلّقة أو Back Out.
+     «جديد»: إظهار سبب الرفض (rejection_reason) للوكيل، وسبب تعطيل كل زر. -->
+<main class="ag-content">
+
+  <div class="ag-page-header">
+    <div>
+      <h1 class="ag-page-title" data-en="CVs">السير الذاتية</h1>
+      <p class="ag-page-desc" data-en="Track CV status and add or edit from one place">تابع حالة السير الذاتية وأضِف وعدّل من مكان واحد</p>
+    </div>
+    <div class="ag-page-header-end">
+      <a class="btn btn-ghost" href="cv-import.html"><i data-lucide="upload"></i><span data-en="Import">استيراد</span></a>
+      <a class="btn btn-ghost" href="cv-add.html#rapid"><i data-lucide="zap"></i><span data-en="Short CV">سيرة مختصرة</span></a>
+      <a class="btn btn-primary" href="cv-add.html"><i data-lucide="user-plus"></i><span data-en="Add New CV">إضافة سيرة جديدة</span></a>
+    </div>
+  </div>
+
+  <div class="ag-health ag-health--danger">
+    <span class="ag-health-icon"><i data-lucide="file-x"></i></span>
+    <div class="ag-health-body"><b data-en="2 CVs were rejected — they stay hidden from clients until you fix them">سيرتان مرفوضتان — تبقيان مخفيتين عن العملاء حتى تصحيحهما</b><small data-en="After you edit and save, the CV goes back to review automatically.">بعد التعديل والحفظ تعود السيرة إلى المراجعة تلقائيًا.</small></div>
+    <a class="btn btn-ghost sm" href="#rejected" data-ag-tab="rejected" data-en="Show rejected">عرض المرفوضة</a>
+  </div>
+
+  <section class="ag-card ag-card--flush">
+    <div class="ag-card-head" style="flex-wrap:wrap;gap:12px">
+      <div class="ag-tabs" style="border:0">
+        <a class="ag-tab is-active" href="#"><span data-en="All Workers">كل العمالة</span> <span class="ag-badge">14</span></a>
+        <a class="ag-tab" href="#available"><span data-en="Available Workers">العاملات المتاحات</span> <span class="ag-badge">6</span></a>
+        <a class="ag-tab" href="#contracted"><span data-en="Contracted Workers">العاملات المتعاقد عليهن</span> <span class="ag-badge">6</span></a>
+      </div>
+    </div>
+    <div style="padding:0 20px 14px;display:grid;gap:12px">
+      <div class="ag-filters">
+        <div class="ag-field is-grow"><label data-en="Search">بحث</label><div class="inp"><i data-lucide="search"></i><input placeholder="ابحث بالاسم أو رقم الجواز أو رقم الهوية..." data-en="Search by name, passport or ID..."></div></div>
+        <div class="ag-field" style="min-width:150px"><label data-en="Created from">من تاريخ الإضافة</label><input class="ag-input" type="date"></div>
+        <div class="ag-field" style="min-width:150px"><label data-en="Created to">إلى تاريخ الإضافة</label><input class="ag-input" type="date"></div>
+        <div class="ag-field" style="min-width:170px"><label data-en="Sort">الترتيب</label><select class="ag-select"><option data-en="Available first">المتاحة أولًا</option><option data-en="Contracted first">المتعاقد عليها أولًا</option><option data-en="Newest">الأحدث</option><option data-en="Oldest">الأقدم</option><option data-en="Name">الاسم أبجديًا</option></select></div>
+      </div>
+      <div class="ag-chips" data-ag-tabs>
+        <span class="ag-label" style="align-self:center;margin-inline-end:4px" data-en="Submission Status">حالة التوافق:</span>
+        <button class="ag-chip is-on" data-ag-tab="all"><span data-en="All">الكل</span> <b>14</b></button>
+        <button class="ag-chip" data-ag-tab="pending"><span data-en="Pending Review">بانتظار المراجعة</span> <b>1</b></button>
+        <button class="ag-chip" data-ag-tab="approved"><span data-en="Approved">متوافق عليها</span> <b>11</b></button>
+        <button class="ag-chip" data-ag-tab="rejected"><span data-en="Rejected">مرفوضة</span> <b>2</b></button>
+      </div>
+    </div>
+
+    <div class="ag-bulkbar" style="margin:0 20px 12px" hidden><i data-lucide="pause-circle"></i><span><b data-ag-count>0</b> <span data-en="selected — only available, approved workers with no pending request can be selected">محددة — يمكن تحديد المتاحة المعتمدة التي ليس عليها طلب قيد المراجعة فقط</span></span><button class="btn btn-primary sm" data-ag-confirm="إرسال طلب تعليق للعاملات المحددة؟ لن تتغير حالة العاملة إلا بعد اعتماد الإدارة." data-ag-confirm-en="Send suspension requests for selected workers? The worker status only changes after administration approval." data-en="Request Selected Suspension">طلب تعليق المحدد</button></div>
+
+    <div class="ag-table-wrap"><table class="ag-table">
+      <thead><tr><th class="ag-check-col"><input type="checkbox" data-ag-checkall title="تحديد كل الظاهر القابل للتعليق" data-en-title="Select all eligible visible workers"></th><th data-en="Worker">العاملة</th><th data-en="Age">العمر</th><th data-en="Worker Status">حالة العمالة</th><th data-en="Submission Status">حالة التوافق</th><th data-en="Active Contracts">العقد النشط</th><th class="is-end" data-en="Actions">الإجراءات</th></tr></thead>
+      <tbody>
+        <tr class="is-bad">
+          <td><input type="checkbox" disabled title="يجب اعتماد السيرة أولًا"></td>
+          <td><div class="ag-worker"><span class="ag-worker-av">JO</span><div><b>JENNY LYN OCAMPO</b><small class="ag-latin">P8402263J · <span data-en="added 16 Nov">أُضيفت 16 نوفمبر</span></small></div></div></td>
+          <td class="num">28</td>
+          <td><span class="ag-badge ag-badge--success" data-en="Available">متاحة</span></td>
+          <td><span class="ag-badge ag-badge--danger"><i data-lucide="circle-x"></i><span data-en="Rejected">مرفوضة</span></span><div class="ag-reason"><i data-lucide="info"></i><span data-en="Age written (25) does not match birth date 12 Mar 1998.">العمر المكتوب (25) لا يطابق تاريخ الميلاد 12 مارس 1998.</span></div></td>
+          <td>—</td>
+          <td class="is-end"><a class="btn btn-primary sm" href="cv-add.html#fix"><i data-lucide="pencil"></i><span data-en="Fix">تصحيح</span></a> <button class="icon-btn" title="حذف" data-en-title="Delete" data-ag-dialog="dlgReq" data-type="delete" data-worker="JENNY LYN OCAMPO"><i data-lucide="trash-2"></i></button></td>
+        </tr>
+        <tr class="is-bad">
+          <td><input type="checkbox" disabled title="يجب اعتماد السيرة أولًا"></td>
+          <td><div class="ag-worker"><span class="ag-worker-av">CV</span><div><b>CHERRY ANN VILLANUEVA</b><small class="ag-latin">P2275091E · <span data-en="added 14 Nov">أُضيفت 14 نوفمبر</span></small></div></div></td>
+          <td class="num">26</td>
+          <td><span class="ag-badge ag-badge--success" data-en="Available">متاحة</span></td>
+          <td><span class="ag-badge ag-badge--danger"><i data-lucide="circle-x"></i><span data-en="Rejected">مرفوضة</span></span><div class="ag-reason"><i data-lucide="info"></i><span data-en="Passport photo unclear; second data page missing.">صورة الجواز غير واضحة، وصفحة البيانات الثانية غير مرفقة.</span></div></td>
+          <td>—</td>
+          <td class="is-end"><a class="btn btn-primary sm" href="cv-add.html#fix"><i data-lucide="pencil"></i><span data-en="Fix">تصحيح</span></a> <button class="icon-btn" title="حذف" data-en-title="Delete" data-ag-dialog="dlgReq" data-type="delete" data-worker="CHERRY ANN VILLANUEVA"><i data-lucide="trash-2"></i></button></td>
+        </tr>
+        <tr>
+          <td><input type="checkbox" disabled title="يجب اعتماد السيرة أولًا"></td>
+          <td><div class="ag-worker"><span class="ag-worker-av">MR</span><div><b>MARICEL RAMOS PASCUAL</b><small class="ag-latin">P7741205F · <span data-en="added 15 Nov">أُضيفت 15 نوفمبر</span></small></div></div></td>
+          <td class="num">38</td>
+          <td><span class="ag-badge ag-badge--success" data-en="Available">متاحة</span></td>
+          <td><span class="ag-badge ag-badge--warning"><i data-lucide="hourglass"></i><span data-en="Pending Review">بانتظار المراجعة</span></span><small data-en="Hidden from clients until approved">مخفية عن العملاء حتى الاعتماد</small></td>
+          <td>—</td>
+          <td class="is-end"><a class="icon-btn" href="cv-add.html#full" title="تعديل" data-en-title="Edit"><i data-lucide="pencil"></i></a> <span class="ag-locked" title="يجب اعتماد السيرة أولًا قبل طلب تغيير حالة العاملة." data-en-title="The CV must be approved before requesting a worker status change."><i data-lucide="lock"></i><span data-en="Suspend after approval">التعليق بعد الاعتماد</span></span></td>
+        </tr>
+        <tr>
+          <td><input type="checkbox" disabled title="يوجد طلب قيد المراجعة"></td>
+          <td><div class="ag-worker"><span class="ag-worker-av">AD</span><div><b>AIZA MAE DOMINGO</b><small class="ag-latin">P3061572L · <span data-en="added 02 Nov">أُضيفت 2 نوفمبر</span></small></div></div></td>
+          <td class="num">24</td>
+          <td><span class="ag-badge ag-badge--success" data-en="Available">متاحة</span></td>
+          <td><span class="ag-badge ag-badge--success"><i data-lucide="circle-check"></i><span data-en="Approved">متوافق عليها</span></span></td>
+          <td>—</td>
+          <td class="is-end"><a class="ag-badge ag-badge--info" href="status-requests.html"><i data-lucide="hourglass"></i><span data-en="Deletion pending">الحذف قيد المراجعة</span></a> <span class="ag-locked" title="لا يمكن تعديل السيرة أثناء وجود طلب إجراء قيد المراجعة." data-en-title="The CV cannot be edited while an action request is pending."><i data-lucide="lock"></i><span data-en="Edit locked">التعديل مقفل</span></span></td>
+        </tr>
+        <tr>
+          <td><input type="checkbox" data-ag-check></td>
+          <td><div class="ag-worker"><span class="ag-worker-av">KL</span><div><b>KRISTINE JOY LIM</b><small class="ag-latin">P5197330M · <span data-en="added 21 Oct">أُضيفت 21 أكتوبر</span></small></div></div></td>
+          <td class="num">35</td>
+          <td><span class="ag-badge ag-badge--success" data-en="Available">متاحة</span></td>
+          <td><span class="ag-badge ag-badge--success"><i data-lucide="circle-check"></i><span data-en="Approved">متوافق عليها</span></span><div class="ag-reason is-info"><i data-lucide="corner-down-left"></i><span data-en="Last suspension request rejected on 12 Nov">رُفض آخر طلب تعليق في 12 نوفمبر</span></div></td>
+          <td>—</td>
+          <td class="is-end"><a class="icon-btn" href="cv-add.html#full" title="تعديل" data-en-title="Edit"><i data-lucide="pencil"></i></a> <button class="btn btn-ghost sm" data-ag-dialog="dlgReq" data-type="suspend" data-worker="KRISTINE JOY LIM"><i data-lucide="pause"></i><span data-en="Suspend">تعليق</span></button> <button class="icon-btn" title="حذف" data-en-title="Delete" data-ag-dialog="dlgReq" data-type="delete" data-worker="KRISTINE JOY LIM"><i data-lucide="trash-2"></i></button></td>
+        </tr>
+        <tr>
+          <td><input type="checkbox" data-ag-check></td>
+          <td><div class="ag-worker"><span class="ag-worker-av">RT</span><div><b>ROSALIE TORRES AQUINO</b><small class="ag-latin">P6012744D · <span data-en="added 08 Oct">أُضيفت 8 أكتوبر</span></small></div></div></td>
+          <td class="num">31</td>
+          <td><span class="ag-badge ag-badge--success" data-en="Available">متاحة</span></td>
+          <td><span class="ag-badge ag-badge--success"><i data-lucide="circle-check"></i><span data-en="Approved">متوافق عليها</span></span></td>
+          <td>—</td>
+          <td class="is-end"><a class="icon-btn" href="cv-add.html#full" title="تعديل" data-en-title="Edit"><i data-lucide="pencil"></i></a> <button class="btn btn-ghost sm" data-ag-dialog="dlgReq" data-type="suspend" data-worker="ROSALIE TORRES AQUINO"><i data-lucide="pause"></i><span data-en="Suspend">تعليق</span></button> <button class="icon-btn" title="حذف" data-en-title="Delete" data-ag-dialog="dlgReq" data-type="delete" data-worker="ROSALIE TORRES AQUINO"><i data-lucide="trash-2"></i></button></td>
+        </tr>
+        <tr>
+          <td><input type="checkbox" disabled title="متعاقد عليها"></td>
+          <td><div class="ag-worker"><span class="ag-worker-av">MS</span><div><b>MARIA SANTOS DELA CRUZ</b><small class="ag-latin">P4821937A</small></div></div></td>
+          <td class="num">29</td>
+          <td><span class="ag-badge ag-badge--brand" data-en="Contracted">متعاقد عليها</span></td>
+          <td><span class="ag-badge ag-badge--success"><i data-lucide="circle-check"></i><span data-en="Approved">متوافق عليها</span></span></td>
+          <td><a class="num" href="contract.html">10482</a><small>تفويض</small></td>
+          <td class="is-end"><a class="icon-btn" href="cv-add.html#full" title="تعديل" data-en-title="Edit"><i data-lucide="pencil"></i></a> <button class="btn btn-ghost sm" style="color:var(--red)" data-ag-dialog="dlgReq" data-type="backout" data-worker="MARIA SANTOS DELA CRUZ"><i data-lucide="undo-2"></i>Back Out</button></td>
+        </tr>
+        <tr>
+          <td><input type="checkbox" disabled title="متعاقد عليها"></td>
+          <td><div class="ag-worker"><span class="ag-worker-av">JR</span><div><b>JOCELYN REYES BAUTISTA</b><small class="ag-latin">P5530218B</small></div></div></td>
+          <td class="num">34</td>
+          <td><span class="ag-badge ag-badge--brand" data-en="Contracted">متعاقد عليها</span></td>
+          <td><span class="ag-badge ag-badge--success"><i data-lucide="circle-check"></i><span data-en="Approved">متوافق عليها</span></span></td>
+          <td><a class="num" href="contract.html">10467</a><small>التفييز</small></td>
+          <td class="is-end"><a class="icon-btn" href="cv-add.html#full" title="تعديل" data-en-title="Edit"><i data-lucide="pencil"></i></a> <button class="btn btn-ghost sm" style="color:var(--red)" data-ag-dialog="dlgReq" data-type="backout" data-worker="JOCELYN REYES BAUTISTA"><i data-lucide="undo-2"></i>Back Out</button></td>
+        </tr>
+        <tr>
+          <td><input type="checkbox" disabled title="متعاقد عليها"></td>
+          <td><div class="ag-worker"><span class="ag-worker-av">AG</span><div><b>ANALYN GARCIA MENDOZA</b><small class="ag-latin">P3398410C</small></div></div></td>
+          <td class="num">27</td>
+          <td><span class="ag-badge ag-badge--brand" data-en="Contracted">متعاقد عليها</span></td>
+          <td><span class="ag-badge ag-badge--success"><i data-lucide="circle-check"></i><span data-en="Approved">متوافق عليها</span></span></td>
+          <td><a class="num" href="contract.html">10455</a><small>تذكرة</small></td>
+          <td class="is-end"><a class="icon-btn" href="cv-add.html#full" title="تعديل" data-en-title="Edit"><i data-lucide="pencil"></i></a> <button class="btn btn-ghost sm" style="color:var(--red)" data-ag-dialog="dlgReq" data-type="backout" data-worker="ANALYN GARCIA MENDOZA"><i data-lucide="undo-2"></i>Back Out</button></td>
+        </tr>
+        <tr>
+          <td><input type="checkbox" disabled title="متعاقد عليها"></td>
+          <td><div class="ag-worker"><span class="ag-worker-av">GN</span><div><b>GRACE NAVARRO SALAZAR</b><small class="ag-latin">P9054127H</small></div></div></td>
+          <td class="num">30</td>
+          <td><span class="ag-badge ag-badge--brand" data-en="Contracted">متعاقد عليها</span></td>
+          <td><span class="ag-badge ag-badge--success"><i data-lucide="circle-check"></i><span data-en="Approved">متوافق عليها</span></span></td>
+          <td><a class="num" href="contract.html">10490</a><small>عقود مساند</small></td>
+          <td class="is-end"><a class="icon-btn" href="cv-add.html#full" title="تعديل" data-en-title="Edit"><i data-lucide="pencil"></i></a> <button class="btn btn-ghost sm" style="color:var(--red)" data-ag-dialog="dlgReq" data-type="backout" data-worker="GRACE NAVARRO SALAZAR"><i data-lucide="undo-2"></i>Back Out</button></td>
+        </tr>
+        <tr>
+          <td><input type="checkbox" disabled title="متعاقد عليها"></td>
+          <td><div class="ag-worker"><span class="ag-worker-av">RD</span><div><b>RICHELLE DIAZ MORALES</b><small class="ag-latin">P4470918K</small></div></div></td>
+          <td class="num">33</td>
+          <td><span class="ag-badge ag-badge--brand" data-en="Contracted">متعاقد عليها</span></td>
+          <td><span class="ag-badge ag-badge--success"><i data-lucide="circle-check"></i><span data-en="Approved">متوافق عليها</span></span></td>
+          <td><a class="num" href="contract.html">10431</a><small>مرحلة الوصول</small></td>
+          <td class="is-end"><a class="icon-btn" href="cv-add.html#full" title="تعديل" data-en-title="Edit"><i data-lucide="pencil"></i></a> <button class="btn btn-ghost sm" style="color:var(--red)" data-ag-dialog="dlgReq" data-type="backout" data-worker="RICHELLE DIAZ MORALES"><i data-lucide="undo-2"></i>Back Out</button></td>
+        </tr>
+        <tr>
+          <td><input type="checkbox" disabled title="متعاقد عليها"></td>
+          <td><div class="ag-worker"><span class="ag-worker-av">HC</span><div><b>HAZEL ANN CRUZ</b><small class="ag-latin">P2840016N</small></div></div></td>
+          <td class="num">36</td>
+          <td><span class="ag-badge ag-badge--brand" data-en="Contracted">متعاقد عليها</span></td>
+          <td><span class="ag-badge ag-badge--success"><i data-lucide="circle-check"></i><span data-en="Approved">متوافق عليها</span></span></td>
+          <td><small data-en="10398 · completed">10398 · عقد مكتمل</small></td>
+          <td class="is-end"><a class="icon-btn" href="cv-add.html#full" title="تعديل" data-en-title="Edit"><i data-lucide="pencil"></i></a> <button class="btn btn-ghost sm" style="color:var(--red)" data-ag-dialog="dlgReq" data-type="backout" data-worker="HAZEL ANN CRUZ"><i data-lucide="undo-2"></i>Back Out</button></td>
+        </tr>
+        <tr>
+          <td><input type="checkbox" disabled title="معلّقة"></td>
+          <td><div class="ag-worker"><span class="ag-worker-av">LF</span><div><b>LORNA FLORES CASTILLO</b><small class="ag-latin">P1189364G</small></div></div></td>
+          <td class="num">42</td>
+          <td><span class="ag-badge ag-badge--warning" data-en="Suspended">معلقة</span><small data-en="since 14 Nov">منذ 14 نوفمبر</small></td>
+          <td><span class="ag-badge ag-badge--success"><i data-lucide="circle-check"></i><span data-en="Approved">متوافق عليها</span></span></td>
+          <td>—</td>
+          <td class="is-end"><span class="ag-locked" title="حالة العاملة الحالية لا تسمح بإنشاء هذا الطلب." data-en-title="The worker current status does not allow this request."><i data-lucide="lock"></i><span data-en="No requests while suspended">لا طلبات أثناء التعليق</span></span></td>
+        </tr>
+        <tr>
+          <td><input type="checkbox" disabled title="Back Out"></td>
+          <td><div class="ag-worker"><span class="ag-worker-av">LM</span><div><b>LIEZEL MARQUEZ</b><small class="ag-latin">P7302945P</small></div></div></td>
+          <td class="num">32</td>
+          <td><span class="ag-badge ag-badge--danger">Back Out</span><small data-en="since 02 Jul">منذ 2 يوليو</small></td>
+          <td><span class="ag-badge ag-badge--success"><i data-lucide="circle-check"></i><span data-en="Approved">متوافق عليها</span></span></td>
+          <td><small data-en="10376 · returned">10376 · مرتجع</small></td>
+          <td class="is-end"><span class="ag-locked"><i data-lucide="lock"></i><span data-en="No requests after Back Out">لا طلبات بعد Back Out</span></span></td>
+        </tr>
+      </tbody>
+    </table></div>
+    <div class="ag-card-foot"><span class="ag-help" data-en="Showing 1–14 of 14">عرض 1–14 من 14</span></div>
+  </section>
+
+  <!-- طلب إجراء على العاملة (POST agent.maids.status-change-requests.store: type suspend|backout|delete · reason مطلوب لـ backout/delete) -->
+  <dialog class="ag-dialog" id="dlgReq" style="width:min(520px,calc(100vw - 32px))">
+    <form method="dialog">
+      <div class="ag-dialog-body">
+        <h2 class="ag-dialog-title" data-en="Request Worker Action">طلب إجراء على العاملة</h2>
+        <p class="ag-dialog-text"><span data-en="Worker:">العاملة:</span> <b class="ag-latin" data-ag-fill="worker">—</b></p>
+        <div class="ag-choices" style="grid-template-columns:repeat(3,minmax(0,1fr))">
+          <label class="ag-choice"><input type="radio" name="type" value="suspend"><span><b data-en="Suspend">تعليق</b><small data-en="Available workers only">للمتاحة فقط</small></span></label>
+          <label class="ag-choice"><input type="radio" name="type" value="backout"><span><b>Back Out</b><small data-en="Contracted only">للمتعاقد عليها فقط</small></span></label>
+          <label class="ag-choice"><input type="radio" name="type" value="delete"><span><b data-en="Delete">حذف</b><small data-en="Not if reserved or under contract">ليس للمحجوزة أو المرتبطة بعقد</small></span></label>
+        </div>
+        <div class="ag-field"><label><span data-en="Reason">سبب الطلب</span> <span class="req">*</span></label><textarea class="ag-textarea" placeholder="اكتب السبب والتفاصيل التي تحتاج الإدارة لمراجعتها..." data-en="Enter the reason and details for administration..."></textarea><span class="ag-help" data-en="Required for Back Out and deletion. The worker status will only change after administration approval.">مطلوب للـ Back Out والحذف. لن تتغير حالة العاملة إلا بعد اعتماد الإدارة.</span></div>
+      </div>
+      <div class="ag-dialog-actions"><button class="btn btn-ghost" value="cancel" data-en="Cancel">إلغاء</button><button class="btn btn-primary" value="ok" data-ag-toast="تم إرسال الطلب إلى الإدارة للمراجعة." data-en="Send to Administration">إرسال للإدارة</button></div>
+    </form>
+  </dialog>
+
+</main>
+<script src="https://unpkg.com/lucide@0.451.0/dist/umd/lucide.min.js"></script>
+<script src="assets/ag.js"></script>
+</body>
+</html>

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="design-version" content="v1.34">
+<title>العقود — بوابة الوكيل · Click ERP</title>
+<link rel="stylesheet" href="../assets/clickerp.bundle.css">
+<link rel="stylesheet" href="assets/ag.css">
+</head>
+<body dir="rtl" data-page="contracts">
+<!-- Screen: contracts · agent.contracts.index (Agent\DashboardController@contracts) · agent/contracts/index.blade.php
+     من الكود: بحث (رقم العقد، اسم/جوال/هوية العميل، اسم/جواز العاملة، رقم التأشيرة) + فلتر الحالة (الحالات الموجودة فعلًا)،
+     الأعمدة: # · العميل · العاملة · الجواز · الحالة (getContractStatus) · تاريخ الإنشاء · عرض. 15 في الصفحة.
+     «جديد»: مسار المراحل المصغّر، «الخطوة التالية ومن عليها»، وتبويب «تحتاج إجراءً منك». -->
+<main class="ag-content">
+
+  <div class="ag-page-header">
+    <div>
+      <h1 class="ag-page-title" data-en="Contracts">العقود</h1>
+      <p class="ag-page-desc" data-en="Every contract for a worker from your office, its stage, and who holds the next step.">كل عقد على عاملة من مكتبك، ومرحلته، ومن عليه الخطوة التالية.</p>
+    </div>
+  </div>
+
+  <div class="ag-health ag-health--warning">
+    <span class="ag-health-icon"><i data-lucide="plane"></i></span>
+    <div class="ag-health-body"><b data-en="3 contracts are waiting for a step from your office">3 عقود بانتظار خطوة من مكتبك</b><small data-en="Ticket booking (10455) · embassy stamping (10467) · medical exam (10482) — each day here delays the worker's arrival.">حجز التذكرة (10455) · ختم السفارة (10467) · الفحص الطبي (10482) — كل يوم هنا يؤخّر وصول العاملة.</small></div>
+  </div>
+
+  <section class="ag-card ag-card--flush">
+    <div class="ag-card-head" style="flex-wrap:wrap">
+      <div class="ag-chips" data-ag-tabs>
+        <button class="ag-chip is-on" data-ag-tab="all"><span data-en="All">الكل</span> <b>7</b></button>
+        <button class="ag-chip" data-ag-tab="mine"><span data-en="Needs your action">تحتاج إجراءً منك</span> <b>3</b> <span class="tag a hm-new">جديد</span></button>
+        <button class="ag-chip" data-ag-tab="running"><span data-en="In progress">جارية</span> <b>5</b></button>
+        <button class="ag-chip" data-ag-tab="closed"><span data-en="Completed & returned">مكتملة ومرتجعة</span> <b>2</b></button>
+      </div>
+      <div class="ag-filters" style="margin-inline-start:auto">
+        <div class="ag-field is-grow" style="min-width:300px"><div class="inp"><i data-lucide="search"></i><input placeholder="رقم العقد، العميل، العاملة، الجواز، رقم التأشيرة" data-en="Contract #, client, worker, passport, visa #"></div></div>
+        <select class="ag-select" style="width:auto;min-width:170px"><option data-en="All statuses">كل الحالات</option><option>عقود مساند</option><option>تفويض</option><option>التفييز</option><option>تذكرة</option><option>مرحلة الوصول</option><option>عقد مكتمل</option><option>مرتجع</option></select>
+      </div>
+    </div>
+    <div class="ag-table-wrap"><table class="ag-table">
+      <thead><tr><th>#</th><th data-en="Worker">العاملة</th><th data-en="Client">العميل</th><th data-en="Status">الحالة</th><th data-en="Next step · owner">الخطوة التالية · على من</th><th data-en="Created At">تاريخ الإنشاء</th><th class="is-end"></th></tr></thead>
+      <tbody>
+        <tr class="is-bad"><td class="num"><b>10455</b><small dir="ltr">1305702388</small></td><td><div class="ag-worker"><span class="ag-worker-av">AG</span><div><b>ANALYN GARCIA MENDOZA</b><small class="ag-latin">P3398410C</small></div></div></td><td>محمد بن علي الشهري</td><td><div class="ag-stage"><span class="ag-badge ag-badge--warning">تذكرة</span><span class="ag-mini-path"><i class="ok"></i><i class="ok"></i><i class="ok"></i><i class="ok"></i><i class="now"></i><i></i><i></i></span></div></td><td><b data-en="Book the ticket">حجز التذكرة</b><small data-en="Your office · paid 12 Nov, not booked">مكتبك · سُدّدت في 12 نوفمبر ولم تُحجز</small></td><td class="num">2026-09-30</td><td class="is-end"><a class="btn btn-primary sm" href="contract.html" data-en="Open">فتح</a></td></tr>
+        <tr class="is-flag"><td class="num"><b>10467</b><small dir="ltr">1305776120</small></td><td><div class="ag-worker"><span class="ag-worker-av">JR</span><div><b>JOCELYN REYES BAUTISTA</b><small class="ag-latin">P5530218B</small></div></div></td><td>نورة بنت سعد العتيبي</td><td><div class="ag-stage"><span class="ag-badge ag-badge--accent">التفييز</span><span class="ag-mini-path"><i class="ok"></i><i class="ok"></i><i class="ok"></i><i class="now"></i><i></i><i></i><i></i></span></div></td><td><b data-en="Embassy stamping">ختم السفارة</b><small data-en="Your office · OEC released 08 Nov">مكتبك · صدر OEC في 8 نوفمبر</small></td><td class="num">2026-10-12</td><td class="is-end"><a class="btn btn-ghost sm" href="contract.html" data-en="View">عرض</a></td></tr>
+        <tr class="is-flag"><td class="num"><b>10482</b><small dir="ltr">1305821947</small></td><td><div class="ag-worker"><span class="ag-worker-av">MS</span><div><b>MARIA SANTOS DELA CRUZ</b><small class="ag-latin">P4821937A</small></div></div></td><td>عبدالله بن فهد القحطاني</td><td><div class="ag-stage"><span class="ag-badge ag-badge--info">تفويض</span><span class="ag-mini-path"><i class="ok"></i><i class="ok"></i><i class="now"></i><i></i><i></i><i></i><i></i></span></div></td><td><b data-en="Medical exam">الفحص الطبي</b><small data-en="Your office · no result after 20 days">مكتبك · لا نتيجة بعد 20 يومًا</small></td><td class="num">2026-10-28</td><td class="is-end"><a class="btn btn-ghost sm" href="contract.html" data-en="View">عرض</a></td></tr>
+        <tr><td class="num"><b>10490</b><small dir="ltr">1305899012</small></td><td><div class="ag-worker"><span class="ag-worker-av">GN</span><div><b>GRACE NAVARRO SALAZAR</b><small class="ag-latin">P9054127H</small></div></div></td><td>خالد بن سعود الحربي</td><td><div class="ag-stage"><span class="ag-badge ag-badge--info">عقود مساند</span><span class="ag-mini-path"><i class="ok"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i></span></div></td><td><span data-en="Musaned contract">عقد مساند</span><small data-en="Recruitment office — nothing needed from you">مكتب الاستقدام — لا يلزمك شيء</small></td><td class="num">2026-11-09</td><td class="is-end"><a class="btn btn-ghost sm" href="contract.html" data-en="View">عرض</a></td></tr>
+        <tr><td class="num"><b>10431</b><small dir="ltr">1305640075</small></td><td><div class="ag-worker"><span class="ag-worker-av">RD</span><div><b>RICHELLE DIAZ MORALES</b><small class="ag-latin">P4470918K</small></div></div></td><td>سارة بنت محمد الدوسري</td><td><div class="ag-stage"><span class="ag-badge ag-badge--brand">مرحلة الوصول</span><span class="ag-mini-path"><i class="ok"></i><i class="ok"></i><i class="ok"></i><i class="ok"></i><i class="ok"></i><i class="now"></i><i></i></span></div></td><td><span data-en="Receiving the worker">استقبال العاملة</span><small data-en="Recruitment office · arrives Dammam">مكتب الاستقدام · الوصول إلى الدمام</small></td><td class="num">2026-09-02</td><td class="is-end"><a class="btn btn-ghost sm" href="contract.html" data-en="View">عرض</a></td></tr>
+        <tr><td class="num"><b>10398</b><small dir="ltr">1305512260</small></td><td><div class="ag-worker"><span class="ag-worker-av">HC</span><div><b>HAZEL ANN CRUZ</b><small class="ag-latin">P2840016N</small></div></div></td><td>فهد بن عبدالرحمن المطيري</td><td><div class="ag-stage"><span class="ag-badge ag-badge--success">عقد مكتمل</span><span class="ag-mini-path"><i class="ok"></i><i class="ok"></i><i class="ok"></i><i class="ok"></i><i class="ok"></i><i class="ok"></i><i class="ok"></i></span></div></td><td><span class="ag-locked"><i data-lucide="check"></i><span data-en="Nothing pending">لا شيء معلّق</span></span></td><td class="num">2026-07-18</td><td class="is-end"><a class="btn btn-ghost sm" href="contract.html" data-en="View">عرض</a></td></tr>
+        <tr><td class="num"><b>10376</b><small dir="ltr">1305468931</small></td><td><div class="ag-worker"><span class="ag-worker-av">LM</span><div><b>LIEZEL MARQUEZ</b><small class="ag-latin">P7302945P</small></div></div></td><td>ريم بنت خالد الزهراني</td><td><div class="ag-stage"><span class="ag-badge ag-badge--danger">مرتجع</span><small data-en="Back Out approved 02 Jul">اعتُمد Back Out في 2 يوليو</small></div></td><td><a href="complaint.html" data-en="Complaint 318 open">الشكوى 318 مفتوحة</a><small data-en="Dues settlement">تسوية المستحقات</small></td><td class="num">2026-06-25</td><td class="is-end"><a class="btn btn-ghost sm" href="contract.html" data-en="View">عرض</a></td></tr>
+      </tbody>
+    </table></div>
+    <div class="ag-card-foot"><span class="ag-help" data-en="Showing 1–7 of 7">عرض 1–7 من 7</span></div>
+  </section>
+
+</main>
+<script src="https://unpkg.com/lucide@0.451.0/dist/umd/lucide.min.js"></script>
+<script src="assets/ag.js"></script>
+</body>
+</html>

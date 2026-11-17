@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="design-version" content="v1.34">
+<title>الإرساليات — بوابة الوكيل · Click ERP</title>
+<link rel="stylesheet" href="../assets/clickerp.bundle.css">
+<link rel="stylesheet" href="assets/ag.css">
+</head>
+<body dir="rtl" data-page="dispatches">
+<!-- Screen: dispatches · agent.dispatches.index (Agent\DashboardController@dispatches) · agent/dispatches/index.blade.php
+     من الكود: عقود الاستقدام لعاملات المكتب (أو manual_maid_office_id) في الحالات الجارية (بانتظار اختيار العاملة · جديد · مساند · تفويض · تفييز · تذكرة)
+     أو التي لها إرسالية. أزرار: كل العقود · العقود المرسلة (الافتراضي) · العقود غير المرسلة، بحث، فلتر حالة العقد.
+     الأعمدة: # · العاملة (جواز) · العميل · تاريخ فاتورة المورد · حالة العقد · حالة فاتورة المورد · محطة الوصول · عرض.
+     حالة فاتورة المورد من Contract::getExternalOfficeDispatchState(): missing/incomplete «غير مكتملة» · outdated «تحتاج تحديث» · completed «مكتملة» + الرسالة.
+     تكلفة العقد بالدولار من contract_external_office_dispatches.office_contract_cost_usd (تظهر في تفاصيل العقد). -->
+<main class="ag-content">
+
+  <div class="ag-page-header">
+    <div>
+      <h1 class="ag-page-title" data-en="External Office Dispatches">إرسالات المكتب الخارجي</h1>
+      <p class="ag-page-desc" data-en="The supplier invoice the recruitment office creates for each contract: date, arrival station and contract cost in USD.">فاتورة المورد التي ينشئها مكتب الاستقدام لكل عقد: التاريخ ومحطة الوصول وتكلفة العقد بالدولار.</p>
+    </div>
+  </div>
+
+  <div class="ag-grid-3">
+    <a class="ag-kpi" href="#"><span class="ag-kpi-label"><i data-lucide="files"></i><span data-en="All Contracts">كل العقود</span></span><b class="ag-kpi-value num">7</b></a>
+    <a class="ag-kpi" href="#"><span class="ag-kpi-label"><i data-lucide="send"></i><span data-en="Sent Contracts">العقود المرسلة</span></span><b class="ag-kpi-value num is-success">5</b><span class="ag-kpi-sub" data-en="4 complete · 1 needs update">4 مكتملة · 1 تحتاج تحديث</span></a>
+    <a class="ag-kpi" href="#"><span class="ag-kpi-label"><i data-lucide="send-horizontal"></i><span data-en="Not Sent Contracts">العقود غير المرسلة</span></span><b class="ag-kpi-value num is-warning">2</b><span class="ag-kpi-sub" data-en="created by the recruitment office later">ينشئها مكتب الاستقدام لاحقًا</span></a>
+  </div>
+
+  <section class="ag-card ag-card--flush">
+    <div class="ag-card-head" style="flex-wrap:wrap">
+      <div class="ag-chips" data-ag-tabs>
+        <button class="ag-chip is-on" data-ag-tab="all"><span data-en="All Contracts">كل العقود</span> <b>7</b></button>
+        <button class="ag-chip" data-ag-tab="sent"><span data-en="Sent">المرسلة</span> <b>5</b></button>
+        <button class="ag-chip" data-ag-tab="not-sent"><span data-en="Not Sent">غير المرسلة</span> <b>2</b></button>
+      </div>
+      <div class="ag-filters" style="margin-inline-start:auto">
+        <div class="ag-field" style="min-width:280px"><div class="inp"><i data-lucide="search"></i><input placeholder="بحث برقم العقد، العميل، العاملة..." data-en="Search by contract, client, worker..."></div></div>
+        <select class="ag-select" style="width:auto;min-width:170px"><option data-en="All Contract Statuses">كل حالات العقود</option><option data-en="Pending Maid Selection">بانتظار اختيار العاملة</option><option data-en="New">جديد</option><option data-en="Msaned">مساند</option><option data-en="Tafwed">تفويض</option><option data-en="Taffez">تفييز</option><option data-en="Tazker">تذكرة</option></select>
+      </div>
+    </div>
+    <div class="ag-table-wrap"><table class="ag-table">
+      <thead><tr><th>#</th><th data-en="Worker">العاملة</th><th data-en="Client">العميل</th><th data-en="Dispatch Date">تاريخ فاتورة المورد</th><th data-en="Contract Status">حالة العقد</th><th data-en="Dispatch Status">حالة فاتورة المورد</th><th data-en="Arrival Station">محطة الوصول</th><th data-en="Cost USD">التكلفة بالدولار</th><th class="is-end"></th></tr></thead>
+      <tbody>
+        <tr class="is-flag"><td class="num"><b>10431</b></td><td><b class="ag-latin" style="font-size:13px">RICHELLE DIAZ MORALES</b><small class="ag-latin"><span data-en="Pass:">جواز:</span> P4470918K</small></td><td>سارة بنت محمد الدوسري</td><td class="num">2026-09-08</td><td><span class="ag-badge ag-badge--brand">مرحلة الوصول</span></td><td style="min-width:220px"><span class="ag-badge ag-badge--warning" data-en="Needs update">تحتاج تحديث</span><small style="max-width:230px" data-en="Contract, worker or office data changed after the current supplier invoice was created.">تم تعديل بيانات العقد أو العاملة أو المكتب بعد إنشاء فاتورة المورد الحالية.</small></td><td data-en="Dammam">الدمام</td><td class="ag-money">1,450.00</td><td class="is-end"><a class="btn btn-ghost sm" href="contract.html" data-en="View">عرض</a></td></tr>
+        <tr><td class="num"><b>10467</b></td><td><b class="ag-latin" style="font-size:13px">JOCELYN REYES BAUTISTA</b><small class="ag-latin"><span data-en="Pass:">جواز:</span> P5530218B</small></td><td>نورة بنت سعد العتيبي</td><td class="num">2026-10-20</td><td><span class="ag-badge ag-badge--accent">التفييز</span></td><td><span class="ag-badge ag-badge--success" data-en="Complete">مكتملة</span></td><td data-en="Riyadh">الرياض</td><td class="ag-money">1,450.00</td><td class="is-end"><a class="btn btn-ghost sm" href="contract.html" data-en="View">عرض</a></td></tr>
+        <tr><td class="num"><b>10455</b></td><td><b class="ag-latin" style="font-size:13px">ANALYN GARCIA MENDOZA</b><small class="ag-latin"><span data-en="Pass:">جواز:</span> P3398410C</small></td><td>محمد بن علي الشهري</td><td class="num">2026-10-06</td><td><span class="ag-badge ag-badge--warning">تذكرة</span></td><td><span class="ag-badge ag-badge--success" data-en="Complete">مكتملة</span></td><td data-en="Riyadh">الرياض</td><td class="ag-money">1,450.00</td><td class="is-end"><a class="btn btn-ghost sm" href="contract.html" data-en="View">عرض</a></td></tr>
+        <tr><td class="num"><b>10398</b></td><td><b class="ag-latin" style="font-size:13px">HAZEL ANN CRUZ</b><small class="ag-latin"><span data-en="Pass:">جواز:</span> P2840016N</small></td><td>فهد بن عبدالرحمن المطيري</td><td class="num">2026-07-22</td><td><span class="ag-badge ag-badge--success">عقد مكتمل</span></td><td><span class="ag-badge ag-badge--success" data-en="Complete">مكتملة</span></td><td data-en="Jeddah">جدة</td><td class="ag-money">1,400.00</td><td class="is-end"><a class="btn btn-ghost sm" href="contract.html" data-en="View">عرض</a></td></tr>
+        <tr><td class="num"><b>10376</b></td><td><b class="ag-latin" style="font-size:13px">LIEZEL MARQUEZ</b><small class="ag-latin"><span data-en="Pass:">جواز:</span> P7302945P</small></td><td>ريم بنت خالد الزهراني</td><td class="num">2026-06-29</td><td><span class="ag-badge ag-badge--danger">مرتجع</span></td><td><span class="ag-badge ag-badge--success" data-en="Complete">مكتملة</span></td><td data-en="Riyadh">الرياض</td><td class="ag-money">1,400.00</td><td class="is-end"><a class="btn btn-ghost sm" href="contract.html" data-en="View">عرض</a></td></tr>
+        <tr><td class="num"><b>10490</b></td><td><b class="ag-latin" style="font-size:13px">GRACE NAVARRO SALAZAR</b><small class="ag-latin"><span data-en="Pass:">جواز:</span> P9054127H</small></td><td>خالد بن سعود الحربي</td><td>—</td><td><span class="ag-badge ag-badge--info">عقود مساند</span></td><td style="min-width:220px"><span class="ag-badge" data-en="Incomplete">غير مكتملة</span><small data-en="The supplier invoice has not been created for this contract yet.">لم يتم إنشاء فاتورة المورد لهذا العقد بعد.</small></td><td>—</td><td>—</td><td class="is-end"><a class="btn btn-ghost sm" href="contract.html" data-en="View">عرض</a></td></tr>
+        <tr><td class="num"><b>10482</b></td><td><b class="ag-latin" style="font-size:13px">MARIA SANTOS DELA CRUZ</b><small class="ag-latin"><span data-en="Pass:">جواز:</span> P4821937A</small></td><td>عبدالله بن فهد القحطاني</td><td>—</td><td><span class="ag-badge ag-badge--info">تفويض</span></td><td style="min-width:220px"><span class="ag-badge" data-en="Incomplete">غير مكتملة</span><small data-en="The supplier invoice has not been created for this contract yet.">لم يتم إنشاء فاتورة المورد لهذا العقد بعد.</small></td><td>—</td><td>—</td><td class="is-end"><a class="btn btn-ghost sm" href="contract.html" data-en="View">عرض</a></td></tr>
+      </tbody>
+      <tfoot><tr><td colspan="7" style="text-align:end;font-weight:700;padding:12px 16px;border-top:1px solid var(--line)" data-en="Total on complete supplier invoices">إجمالي فواتير المورد المكتملة</td><td class="ag-money" style="font-weight:700;padding:12px;border-top:1px solid var(--line)">5,700.00 <small>USD</small></td><td style="border-top:1px solid var(--line)"></td></tr></tfoot>
+    </table></div>
+    <div class="ag-card-foot"><span class="ag-help" data-en="Supplier invoices are created and updated by the recruitment office; if a value looks wrong, raise a complaint linked to the contract.">ينشئ مكتب الاستقدام فواتير المورد ويحدّثها؛ إن بدت قيمة غير صحيحة فارفع شكوى مرتبطة بالعقد.</span><a class="btn btn-ghost sm" href="complaint-new.html"><i data-lucide="message-square-warning"></i><span data-en="Raise a complaint">رفع شكوى</span></a></div>
+  </section>
+
+</main>
+<script src="https://unpkg.com/lucide@0.451.0/dist/umd/lucide.min.js"></script>
+<script src="assets/ag.js"></script>
+</body>
+</html>

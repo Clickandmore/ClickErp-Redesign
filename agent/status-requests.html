@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="design-version" content="v1.34">
+<title>طلبات تغيير الحالة — بوابة الوكيل · Click ERP</title>
+<link rel="stylesheet" href="../assets/clickerp.bundle.css">
+<link rel="stylesheet" href="assets/ag.css">
+</head>
+<body dir="rtl" data-page="status-requests">
+<!-- Screen: status-requests · «جديد» كقائمة — في الكود تُرسل الطلبات من قائمة السير فقط:
+       agent.maids.status-change-requests.store (requestMaidStatusChange) و agent.maids.status-change-requests.bulk (bulkRequestMaidSuspension)
+     البيانات من Models\ingaz\MaidStatusChangeRequest: type (suspend «تعليق السيرة» · backout «Back Out» · delete «سيرة محذوفة»)
+       · reason · status (pending · approved · rejected) · review_note · reviewed_at · requested_by_admin_id.
+     المراجعة في لوحة مكتب الاستقدام: ingaz MaidController@approveStatusChangeRequest / rejectStatusChangeRequest (review_note حتى 1000 حرف). -->
+<main class="ag-content">
+
+  <div class="ag-page-header">
+    <div>
+      <h1 class="ag-page-title"><span data-en="Status-change requests">طلبات تغيير الحالة</span> <span class="tag a hm-new">جديد</span></h1>
+      <p class="ag-page-desc" data-en="Suspension, Back Out and deletion requests you sent, and the recruitment office's answer.">طلبات التعليق والـ Back Out والحذف التي أرسلتها، ورد مكتب الاستقدام عليها.</p>
+    </div>
+    <div class="ag-page-header-end"><a class="btn btn-primary" href="cvs.html"><i data-lucide="plus"></i><span data-en="New request from the CV list">طلب جديد من قائمة السير</span></a></div>
+  </div>
+
+  <div class="ag-stack">
+    <div>
+      <section class="ag-card">
+        <div class="ag-card-head"><div class="ag-card-head-start"><span class="ag-card-icon"><i data-lucide="scale"></i></span><div><h2 class="ag-card-title" data-en="Which request, when">أي طلب ومتى</h2><p class="ag-card-desc" data-en="The same rules the system checks before sending.">نفس الشروط التي يتحقق منها النظام قبل الإرسال.</p></div></div></div>
+        <div class="ag-status-list" style="grid-template-columns:repeat(4,minmax(0,1fr));column-gap:20px">
+          <div class="ag-status-row"><i data-lucide="pause"></i><b data-en="Suspend">تعليق</b><small data-en="available worker · approved CV">عاملة متاحة · سيرة معتمدة</small></div>
+          <div class="ag-status-row"><i data-lucide="undo-2"></i><b>Back Out</b><small data-en="contracted worker · reason required">عاملة متعاقد عليها · السبب مطلوب</small></div>
+          <div class="ag-status-row"><i data-lucide="trash-2"></i><b data-en="Delete">حذف</b><small data-en="not reserved or under contract · reason required">ليست محجوزة ولا بعقد نشط · السبب مطلوب</small></div>
+          <div class="ag-status-row"><i data-lucide="lock"></i><b data-en="Never">لا يُقبل</b><small data-en="while another request is pending · suspended or Back Out">أثناء طلب آخر قيد المراجعة · للمعلّقة أو Back Out</small></div>
+        </div>
+        <div class="ag-alert ag-alert--info" style="margin-top:12px"><i data-lucide="info"></i><span data-en="The worker status only changes after the recruitment office approves.">لا تتغير حالة العاملة إلا بعد اعتماد مكتب الاستقدام.</span></div>
+      </section>
+    </div>
+    <section class="ag-card ag-card--flush">
+      <div class="ag-card-head">
+        <div class="ag-chips" data-ag-tabs>
+          <button class="ag-chip is-on" data-ag-tab="all"><span data-en="All">الكل</span> <b>4</b></button>
+          <button class="ag-chip" data-ag-tab="pending"><span data-en="Pending">قيد المراجعة</span> <b>1</b></button>
+          <button class="ag-chip" data-ag-tab="approved"><span data-en="Approved">معتمدة</span> <b>2</b></button>
+          <button class="ag-chip" data-ag-tab="rejected"><span data-en="Rejected">مرفوضة</span> <b>1</b></button>
+        </div>
+      </div>
+      <div class="ag-table-wrap"><table class="ag-table">
+        <thead><tr><th>#</th><th data-en="Worker">العاملة</th><th data-en="Request">الطلب</th><th data-en="Your reason">سببك</th><th data-en="Answer">الرد</th></tr></thead>
+        <tbody>
+          <tr>
+            <td class="num" style="white-space:nowrap">61<small data-en="16 Nov">16 نوفمبر</small></td>
+            <td><div class="ag-worker"><span class="ag-worker-av">AD</span><div><b>AIZA MAE DOMINGO</b><small class="ag-latin">P3061572L</small></div></div></td>
+            <td><span class="ag-badge ag-badge--danger"><i data-lucide="trash-2"></i><span data-en="CV deletion">حذف السيرة</span></span></td>
+            <td style="max-width:260px;min-width:180px"><small style="color:var(--body)">العاملة تراجعت عن السفر لظروف عائلية.</small></td>
+            <td><span class="ag-badge ag-badge--warning"><i data-lucide="hourglass"></i><span data-en="Under review">قيد المراجعة</span></span><small data-en="CV editing is locked until answered">تعديل السيرة مقفل حتى الرد</small></td>
+          </tr>
+          <tr>
+            <td class="num" style="white-space:nowrap">58<small data-en="13 Nov">13 نوفمبر</small></td>
+            <td><div class="ag-worker"><span class="ag-worker-av">LF</span><div><b>LORNA FLORES CASTILLO</b><small class="ag-latin">P1189364G</small></div></div></td>
+            <td><span class="ag-badge ag-badge--warning"><i data-lucide="pause"></i><span data-en="CV suspension">تعليق السيرة</span></span></td>
+            <td style="max-width:260px;min-width:180px"><small style="color:var(--body)">طلب تعليق السيرة من المورد.</small></td>
+            <td><span class="ag-badge ag-badge--success"><i data-lucide="circle-check"></i><span data-en="Approved">معتمد</span></span><div class="ag-reason is-ok"><i data-lucide="message-square"></i><span data-en="Suspended; the CV is no longer shown to clients. — Sultan Al-Omari · 14 Nov">عُلّقت السيرة ولن تظهر للعملاء. — سلطان العمري · 14 نوفمبر</span></div></td>
+          </tr>
+          <tr class="is-bad">
+            <td class="num" style="white-space:nowrap">55<small data-en="11 Nov">11 نوفمبر</small></td>
+            <td><div class="ag-worker"><span class="ag-worker-av">KL</span><div><b>KRISTINE JOY LIM</b><small class="ag-latin">P5197330M</small></div></div></td>
+            <td><span class="ag-badge ag-badge--warning"><i data-lucide="pause"></i><span data-en="CV suspension">تعليق السيرة</span></span></td>
+            <td style="max-width:260px;min-width:180px"><small style="color:var(--body)">العاملة مريضة وتحتاج أسبوعين للتعافي.</small></td>
+            <td><span class="ag-badge ag-badge--danger"><i data-lucide="circle-x"></i><span data-en="Rejected">مرفوض</span></span><div class="ag-reason"><i data-lucide="message-square"></i><span data-en="The worker is proposed to a client in an open order; resubmit if it is not completed within a week. — Sultan Al-Omari · 12 Nov">العاملة مرشّحة لعميل في طلب قائم؛ أعد الطلب إن لم يكتمل خلال أسبوع. — سلطان العمري · 12 نوفمبر</span></div><button class="btn btn-ghost sm" style="margin-top:6px" data-ag-dialog="dlgReq" data-type="suspend" data-worker="KRISTINE JOY LIM"><i data-lucide="rotate-ccw"></i><span data-en="Request again">إعادة الطلب</span></button></td>
+          </tr>
+          <tr>
+            <td class="num" style="white-space:nowrap">49<small data-en="30 Jun">30 يونيو</small></td>
+            <td><div class="ag-worker"><span class="ag-worker-av">LM</span><div><b>LIEZEL MARQUEZ</b><small class="ag-latin">P7302945P</small></div></div></td>
+            <td><span class="ag-badge ag-badge--danger"><i data-lucide="undo-2"></i>Back Out</span><small data-en="contract 10376">العقد 10376</small></td>
+            <td style="max-width:260px;min-width:180px"><small style="color:var(--body)">العاملة رفضت السفر بعد ختم التأشيرة.</small></td>
+            <td><span class="ag-badge ag-badge--success"><i data-lucide="circle-check"></i><span data-en="Approved">معتمد</span></span><div class="ag-reason is-ok"><i data-lucide="message-square"></i><span data-en="Approved; contract returned. Settle the dues through complaint 318. — Sultan Al-Omari · 02 Jul">اعتُمد وأُرجع العقد. تسوية المستحقات عبر الشكوى 318. — سلطان العمري · 2 يوليو</span></div></td>
+          </tr>
+        </tbody>
+      </table></div>
+    </section>
+
+  </div>
+
+  <dialog class="ag-dialog" id="dlgReq" style="width:min(520px,calc(100vw - 32px))">
+    <form method="dialog">
+      <div class="ag-dialog-body">
+        <h2 class="ag-dialog-title" data-en="Request Worker Action">طلب إجراء على العاملة</h2>
+        <p class="ag-dialog-text"><span data-en="Worker:">العاملة:</span> <b class="ag-latin" data-ag-fill="worker">—</b></p>
+        <div class="ag-choices" style="grid-template-columns:repeat(3,minmax(0,1fr))">
+          <label class="ag-choice"><input type="radio" name="type" value="suspend"><span><b data-en="Suspend">تعليق</b><small data-en="Available workers only">للمتاحة فقط</small></span></label>
+          <label class="ag-choice"><input type="radio" name="type" value="backout"><span><b>Back Out</b><small data-en="Contracted only">للمتعاقد عليها فقط</small></span></label>
+          <label class="ag-choice"><input type="radio" name="type" value="delete"><span><b data-en="Delete">حذف</b><small data-en="Not if reserved or under contract">ليس للمحجوزة أو المرتبطة بعقد</small></span></label>
+        </div>
+        <div class="ag-field"><label data-en="Reason">سبب الطلب</label><textarea class="ag-textarea" placeholder="اكتب السبب والتفاصيل التي تحتاج الإدارة لمراجعتها..." data-en="Enter the reason and details for administration..."></textarea></div>
+      </div>
+      <div class="ag-dialog-actions"><button class="btn btn-ghost" value="cancel" data-en="Cancel">إلغاء</button><button class="btn btn-primary" value="ok" data-ag-toast="تم إرسال الطلب إلى الإدارة للمراجعة." data-en="Send to Administration">إرسال للإدارة</button></div>
+    </form>
+  </dialog>
+
+</main>
+<script src="https://unpkg.com/lucide@0.451.0/dist/umd/lucide.min.js"></script>
+<script src="assets/ag.js"></script>
+</body>
+</html>

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="design-version" content="v1.34">
+<title>الفواتير — بوابة الوكيل · Click ERP</title>
+<link rel="stylesheet" href="../assets/clickerp.bundle.css">
+<link rel="stylesheet" href="assets/ag.css">
+</head>
+<body dir="rtl" data-page="invoices">
+<!-- Screen: invoices · agent.invoices.index (Agent\DashboardController@invoices) · agent/invoices/index.blade.php
+     من الكود: عقود عاملات المكتب التي لها فاتورة (whereHas invoice)، بحث (رقم الفاتورة، العقد، العميل، الجوال)، فلتر is_paid (كل الحالات · مدفوعة · غير مدفوعة).
+     الأعمدة: رقم الفاتورة · رقم العقد · العميل · الإجمالي · المسدد · المستحق · الحالة · تاريخ الدفع · تحميل · عرض العقد.
+     المبالغ بالريال (total_due · is_paid · paid_at). «جديد»: المؤشرات أعلى الصفحة. -->
+<main class="ag-content">
+
+  <div class="ag-page-header">
+    <div>
+      <h1 class="ag-page-title" data-en="Invoices">الفواتير</h1>
+      <p class="ag-page-desc" data-en="Contract invoices for workers from your office, and whether the client has paid.">فواتير عقود عاملات مكتبك، وهل سدّدها العميل.</p>
+    </div>
+  </div>
+
+  <div class="ag-grid-3">
+    <div class="ag-kpi"><span class="ag-kpi-label"><i data-lucide="receipt"></i><span data-en="Invoices">الفواتير</span> <span class="tag a hm-new">جديد</span></span><b class="ag-kpi-value num">5</b><span class="ag-kpi-sub" data-en="78,100.00 SAR in total">إجمالي 78,100.00 ر.س</span></div>
+    <div class="ag-kpi"><span class="ag-kpi-label"><i data-lucide="circle-check"></i><span data-en="Paid">مدفوعة</span></span><b class="ag-kpi-value num is-success">4</b><span class="ag-kpi-sub" data-en="62,300.00 SAR">62,300.00 ر.س</span></div>
+    <div class="ag-kpi"><span class="ag-kpi-label"><i data-lucide="clock"></i><span data-en="Unpaid">غير مدفوعة</span></span><b class="ag-kpi-value num is-danger">1</b><span class="ag-kpi-sub" data-en="15,800.00 SAR due · contract 10467">15,800.00 ر.س مستحقة · العقد 10467</span></div>
+  </div>
+
+  <section class="ag-card ag-card--flush">
+    <div class="ag-card-head">
+      <div class="ag-filters" style="width:100%">
+        <div class="ag-field is-grow"><div class="inp"><i data-lucide="search"></i><input placeholder="بحث برقم الفاتورة، العقد، أو العميل" data-en="Search by invoice, contract, or client"></div></div>
+        <div class="ag-seg"><button class="is-on" data-en="All Payment Statuses">كل الحالات</button><button data-en="Paid">مدفوعة</button><button data-en="Unpaid">غير مدفوعة</button></div>
+      </div>
+    </div>
+    <div class="ag-table-wrap"><table class="ag-table">
+      <thead><tr><th data-en="Invoice #">رقم الفاتورة</th><th data-en="Contract #">رقم العقد</th><th data-en="Client">العميل</th><th data-en="Total">الإجمالي</th><th data-en="Paid">المسدد</th><th data-en="Due">المستحق</th><th data-en="Status">الحالة</th><th data-en="Paid At">تاريخ الدفع</th><th class="is-end"></th></tr></thead>
+      <tbody>
+        <tr class="is-flag"><td class="num"><b>#8796</b></td><td class="num"><a href="contract.html">10467</a></td><td>نورة بنت سعد العتيبي</td><td class="ag-money">15,800.00 <small>ر.س</small></td><td class="ag-money">0.00</td><td class="ag-money is-red">15,800.00</td><td><span class="ag-badge ag-badge--warning" data-en="Unpaid">غير مدفوعة</span></td><td>—</td><td class="is-end"><button class="icon-btn" title="تحميل" data-en-title="Download" data-ag-toast="بدأ تنزيل الفاتورة"><i data-lucide="download"></i></button><a class="icon-btn" href="contract.html" title="عرض العقد" data-en-title="View"><i data-lucide="file-text"></i></a></td></tr>
+        <tr><td class="num"><b>#8841</b></td><td class="num"><a href="contract.html">10455</a></td><td>محمد بن علي الشهري</td><td class="ag-money">15,800.00 <small>ر.س</small></td><td class="ag-money is-green">15,800.00</td><td class="ag-money">0.00</td><td><span class="ag-badge ag-badge--success" data-en="Paid">مدفوعة</span></td><td class="num">2026-10-01</td><td class="is-end"><button class="icon-btn" title="تحميل" data-en-title="Download" data-ag-toast="بدأ تنزيل الفاتورة"><i data-lucide="download"></i></button><a class="icon-btn" href="contract.html" title="عرض العقد" data-en-title="View"><i data-lucide="file-text"></i></a></td></tr>
+        <tr><td class="num"><b>#8722</b></td><td class="num"><a href="contract.html">10431</a></td><td>سارة بنت محمد الدوسري</td><td class="ag-money">16,500.00 <small>ر.س</small></td><td class="ag-money is-green">16,500.00</td><td class="ag-money">0.00</td><td><span class="ag-badge ag-badge--success" data-en="Paid">مدفوعة</span></td><td class="num">2026-09-03</td><td class="is-end"><button class="icon-btn" title="تحميل" data-en-title="Download" data-ag-toast="بدأ تنزيل الفاتورة"><i data-lucide="download"></i></button><a class="icon-btn" href="contract.html" title="عرض العقد" data-en-title="View"><i data-lucide="file-text"></i></a></td></tr>
+        <tr><td class="num"><b>#8610</b></td><td class="num"><a href="contract.html">10398</a></td><td>فهد بن عبدالرحمن المطيري</td><td class="ag-money">15,000.00 <small>ر.س</small></td><td class="ag-money is-green">15,000.00</td><td class="ag-money">0.00</td><td><span class="ag-badge ag-badge--success" data-en="Paid">مدفوعة</span></td><td class="num">2026-07-19</td><td class="is-end"><button class="icon-btn" title="تحميل" data-en-title="Download" data-ag-toast="بدأ تنزيل الفاتورة"><i data-lucide="download"></i></button><a class="icon-btn" href="contract.html" title="عرض العقد" data-en-title="View"><i data-lucide="file-text"></i></a></td></tr>
+        <tr><td class="num"><b>#8577</b></td><td class="num"><a href="contract.html">10376</a></td><td>ريم بنت خالد الزهراني</td><td class="ag-money">15,000.00 <small>ر.س</small></td><td class="ag-money is-green">15,000.00</td><td class="ag-money">0.00</td><td><span class="ag-badge ag-badge--success" data-en="Paid">مدفوعة</span></td><td class="num">2026-06-26</td><td class="is-end"><button class="icon-btn" title="تحميل" data-en-title="Download" data-ag-toast="بدأ تنزيل الفاتورة"><i data-lucide="download"></i></button><a class="icon-btn" href="contract.html" title="عرض العقد" data-en-title="View"><i data-lucide="file-text"></i></a></td></tr>
+      </tbody>
+    </table></div>
+    <div class="ag-card-foot"><span class="ag-help" data-en="Amounts include VAT 15%. Your office's cost per contract (USD) is on the dispatches page.">المبالغ شاملة ضريبة القيمة المضافة 15%. تكلفة مكتبك لكل عقد بالدولار في صفحة الإرساليات.</span><a class="btn btn-ghost sm" href="dispatches.html" data-en="Open dispatches">فتح الإرساليات</a></div>
+  </section>
+
+</main>
+<script src="https://unpkg.com/lucide@0.451.0/dist/umd/lucide.min.js"></script>
+<script src="assets/ag.js"></script>
+</body>
+</html>

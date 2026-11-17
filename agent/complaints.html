@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="design-version" content="v1.34">
+<title>الشكاوى — بوابة الوكيل · Click ERP</title>
+<link rel="stylesheet" href="../assets/clickerp.bundle.css">
+<link rel="stylesheet" href="assets/ag.css">
+</head>
+<body dir="rtl" data-page="complaints">
+<!-- Screen: complaints · agent.complaints.index (Agent\AgentComplaintController@index) · agent/complaints/index.blade.php
+     من الكود: عدادات (الإجمالي · قيد الانتظار pending · قيد المعالجة in_progress · تم الحل resolved/closed)، بحث (الموضوع، الطرف الآخر، العاملة)،
+     فلتر الحالة ونوع الشكوى (complaint_type_id)، الأعمدة: # · الموضوع · النوع · الطرف الآخر · مرتبطة بـ · الأولوية · الحالة · تاريخ الإرسال · عرض.
+     «جديد»: «بانتظار ردك» حين يكون آخر تعليق من الإدارة. -->
+<main class="ag-content">
+
+  <div class="ag-page-header">
+    <div>
+      <h1 class="ag-page-title" data-en="Complaints">الشكاوى</h1>
+      <p class="ag-page-desc" data-en="Complaints your office filed with the recruitment office, and the follow-up on each.">الشكاوى التي رفعها مكتبك إلى مكتب الاستقدام، ومتابعة كل منها.</p>
+    </div>
+    <div class="ag-page-header-end"><a class="btn btn-primary" href="complaint-new.html"><i data-lucide="plus"></i><span data-en="New Complaint">شكوى جديدة</span></a></div>
+  </div>
+
+  <div class="ag-grid-4">
+    <div class="ag-kpi"><span class="ag-kpi-label"><i data-lucide="inbox"></i><span data-en="Total Complaints">إجمالي الشكاوى</span></span><b class="ag-kpi-value num">3</b></div>
+    <div class="ag-kpi"><span class="ag-kpi-label"><i data-lucide="clock"></i><span data-en="Pending">قيد الانتظار</span></span><b class="ag-kpi-value num">1</b><span class="ag-kpi-sub" data-en="not opened yet">لم تُفتح بعد</span></div>
+    <div class="ag-kpi"><span class="ag-kpi-label"><i data-lucide="loader"></i><span data-en="In Progress">قيد المعالجة</span></span><b class="ag-kpi-value num is-warning">1</b><span class="ag-kpi-sub" data-en="waiting for your reply">بانتظار ردك</span></div>
+    <div class="ag-kpi"><span class="ag-kpi-label"><i data-lucide="circle-check"></i><span data-en="Resolved">تم الحل</span></span><b class="ag-kpi-value num is-success">1</b></div>
+  </div>
+
+  <section class="ag-card ag-card--flush">
+    <div class="ag-card-head">
+      <div class="ag-filters" style="width:100%">
+        <div class="ag-field is-grow"><div class="inp"><i data-lucide="search"></i><input placeholder="بحث بالموضوع، الطرف الآخر، أو العاملة" data-en="Search by subject, other party, or worker"></div></div>
+        <select class="ag-select" style="width:auto;min-width:160px"><option data-en="All Statuses">كل الحالات</option><option data-en="Pending">قيد الانتظار</option><option data-en="In Progress">قيد المعالجة</option><option data-en="Resolved">تم الحل</option></select>
+        <select class="ag-select" style="width:auto;min-width:160px"><option data-en="All Types">كل الأنواع</option><option>تسوية مالية</option><option>تأخر المستندات</option><option>سلوك صاحب العمل</option></select>
+      </div>
+    </div>
+    <div class="ag-table-wrap"><table class="ag-table">
+      <thead><tr><th>#</th><th data-en="Subject">الموضوع</th><th data-en="Type">نوع الشكوى</th><th data-en="Other Party">الطرف الآخر</th><th data-en="Related To">مرتبطة بـ</th><th data-en="Priority">الأولوية</th><th data-en="Status">الحالة</th><th data-en="Submitted At">تاريخ الإرسال</th><th class="is-end"></th></tr></thead>
+      <tbody>
+        <tr class="is-flag">
+          <td class="num"><b>318</b></td>
+          <td style="max-width:260px"><b>تسوية تكاليف إرجاع العاملة بعد Back Out</b><small class="ag-reason is-info" style="display:inline-flex;margin-top:4px"><i data-lucide="message-square-reply"></i><span data-en="New reply — waiting for you">رد جديد — بانتظار ردك</span></small></td>
+          <td>تسوية مالية</td>
+          <td>ريم بنت خالد الزهراني</td>
+          <td><a href="contract.html"><span data-en="Contract">عقد</span> 10376</a><small class="ag-latin">LIEZEL MARQUEZ</small></td>
+          <td><span class="ag-badge ag-badge--danger" data-en="High">عالية</span></td>
+          <td><span class="ag-badge ag-badge--warning" data-en="In Progress">قيد المعالجة</span></td>
+          <td class="num">2026-11-10</td>
+          <td class="is-end"><a class="btn btn-primary sm" href="complaint.html" data-en="Reply">الرد</a></td>
+        </tr>
+        <tr>
+          <td class="num"><b>311</b></td>
+          <td style="max-width:260px"><b>تواصل صاحب عمل مع عاملة قبل سفرها مباشرة</b></td>
+          <td>سلوك صاحب العمل</td>
+          <td>عبدالرحمن بن صالح الغامدي<small dir="ltr" style="text-align:end">0503••••71</small></td>
+          <td><small data-en="Manual data">بيانات يدوية</small></td>
+          <td><span class="ag-badge" data-en="Low">منخفضة</span></td>
+          <td><span class="ag-badge" data-en="Pending">قيد الانتظار</span></td>
+          <td class="num">2026-11-14</td>
+          <td class="is-end"><a class="btn btn-ghost sm" href="complaint.html" data-en="View">عرض</a></td>
+        </tr>
+        <tr>
+          <td class="num"><b>305</b></td>
+          <td style="max-width:260px"><b>تأخر إرسال نسخ التأشيرات المختومة</b></td>
+          <td>تأخر المستندات</td>
+          <td>—</td>
+          <td><small data-en="Not linked">غير مرتبطة</small></td>
+          <td><span class="ag-badge ag-badge--warning" data-en="Medium">متوسطة</span></td>
+          <td><span class="ag-badge ag-badge--success" data-en="Resolved">تم الحل</span><small data-en="17 Oct">17 أكتوبر</small></td>
+          <td class="num">2026-10-15</td>
+          <td class="is-end"><a class="btn btn-ghost sm" href="complaint.html" data-en="View">عرض</a></td>
+        </tr>
+      </tbody>
+    </table></div>
+  </section>
+
+</main>
+<script src="https://unpkg.com/lucide@0.451.0/dist/umd/lucide.min.js"></script>
+<script src="assets/ag.js"></script>
+</body>
+</html>

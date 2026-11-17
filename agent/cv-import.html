@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="design-version" content="v1.34">
+<title>رفع سير من ملف — بوابة الوكيل · Click ERP</title>
+<link rel="stylesheet" href="../assets/clickerp.bundle.css">
+<link rel="stylesheet" href="assets/ag.css">
+</head>
+<body dir="rtl" data-page="cv-import">
+<!-- Screen: cv-import · agent.maids.bulk-import.create / store / show / download / template
+     (Agent\AgentBulkImportController + Services\ingaz\AgentBulkImportService) · agent/maids/bulk_import.blade.php + bulk_import_review.blade.php
+     من الكود: اختيار المكتب · نموذج Excel (كل صف = عاملة) أو Word (كل كتلة = عاملة) · رفع xlsx/xls/csv/docx/doc/pdf حتى 10 ميغابايت
+     · أعمدة النموذج (templateColumns): الاسم بالإنجليزية* · رقم الجواز* · الجنسية* · الديانة · العمر · تاريخ الميلاد · سنوات الخبرة · المهنة · التكلفة · ملاحظات
+     · حالة الصف: pending (صحيحة — بانتظار الاعتماد) · invalid (بيانات خاطئة) · imported · failed
+     · حالة الملف: pending_review · completed · completed_with_errors · rejected (+ سبب الرفض)
+     · أخطاء الكود: «الجنسية: "…" القيمة غير موجودة في النظام.» · «رقم الجواز … مكرر داخل نفس الملف.» · رسائل التحقق (رقم الجواز مستخدم).
+     الملف يعتمده مكتب الاستقدام، وعند الاعتماد تُنشأ السير «متاحة». -->
+<main class="ag-content">
+
+  <div class="ag-page-header">
+    <div>
+      <a class="ag-back" href="cvs.html"><i data-lucide="arrow-right"></i><span data-en="CVs">السير الذاتية</span></a>
+      <h1 class="ag-page-title" data-en="Import Workers from File">رفع عمالة من ملف</h1>
+      <p class="ag-page-desc" data-en="Excel · Word · PDF — data is auto-extracted, then the recruitment office approves the file.">Excel · Word · PDF — تُستخرج البيانات تلقائيًا، ثم يعتمد مكتب الاستقدام الملف.</p>
+    </div>
+  </div>
+
+  <div class="ag-steps">
+    <div class="ag-step">
+      <div class="ag-step-n"><span>1</span><b data-en="Download the template">حمّل النموذج الجاهز</b></div>
+      <p class="ag-help" style="margin:0" data-en="Open the template, fill in worker data, then upload.">افتح النموذج، أدخل بيانات العمالة، ثم ارفعه.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-ghost sm" data-ag-toast="بدأ تنزيل نموذج Excel"><i data-lucide="file-spreadsheet"></i><span data-en="Excel Template">نموذج Excel</span></button><button class="btn btn-ghost sm" data-ag-toast="بدأ تنزيل نموذج Word"><i data-lucide="file-text"></i><span data-en="Word Template">نموذج Word</span></button></div>
+      <small class="ag-help" data-en="Excel: each row = one worker · Word: each block = one worker">Excel: كل صف = عاملة واحدة · Word: كل كتلة = عاملة</small>
+    </div>
+    <div class="ag-step">
+      <div class="ag-step-n"><span>2</span><b data-en="Upload the file">ارفع الملف</b></div>
+      <div class="ag-field"><label data-en="Select Office">اختر المكتب</label><select class="ag-select"><option>PLATINUM BROTHERS</option></select></div>
+      <div class="ag-drop"><i data-lucide="upload-cloud"></i><span><b data-en="Drag & drop your file here">اسحب الملف وأفلته هنا</b><small data-en="or click to browse · Max size: 10 MB">أو انقر لاختيار ملف من جهازك · الحد الأقصى 10 ميغابايت</small></span></div>
+      <button class="btn btn-primary" data-ag-toast="رُفع الملف وجرى تحليل البيانات"><i data-lucide="scan-search"></i><span data-en="Upload & Analyze">رفع وتحليل البيانات</span></button>
+    </div>
+    <div class="ag-step">
+      <div class="ag-step-n"><span>3</span><b data-en="Fix errors, then wait for approval">صحّح الأخطاء ثم انتظر الاعتماد</b></div>
+      <p class="ag-help" style="margin:0" data-en="Rows with errors are not imported. Fix them in the file and upload it again, or add them one by one.">الصفوف التي بها أخطاء لا تُستورد. صحّحها في الملف وأعد رفعه، أو أضفها واحدة واحدة.</p>
+      <div class="ag-field"><label data-en="Template columns">أعمدة النموذج</label>
+        <div class="ag-cols"><span class="is-req" data-en="Name (EN) *">الاسم بالإنجليزية *</span><span class="is-req" data-en="Passport *">رقم الجواز *</span><span class="is-req" data-en="Nationality *">الجنسية *</span><span data-en="Religion">الديانة</span><span data-en="Age">العمر</span><span data-en="Birth date">تاريخ الميلاد</span><span data-en="Experience years">سنوات الخبرة</span><span data-en="Job">المهنة</span><span data-en="Cost">التكلفة</span><span data-en="Notes">ملاحظات</span></div></div>
+    </div>
+  </div>
+
+  <section class="ag-card ag-card--flush">
+    <div class="ag-card-head">
+      <div class="ag-card-head-start"><span class="ag-card-icon"><i data-lucide="file-check-2"></i></span><div><h2 class="ag-card-title"><span data-en="Review Uploaded File">مراجعة الملف المرفوع</span> · <span class="ag-latin" style="font-weight:500">PB_batch_17Nov.xlsx</span></h2><p class="ag-card-desc" data-en="Uploaded today 10:12 · office PLATINUM BROTHERS · file is under admin review, you will be notified upon approval.">رُفع اليوم 10:12 · المكتب PLATINUM BROTHERS · الملف قيد مراجعة الإدارة، وسيصلك إشعار عند الاعتماد.</p></div></div>
+      <span class="ag-badge ag-badge--warning"><i data-lucide="hourglass"></i><span data-en="Pending review">بانتظار الاعتماد</span></span>
+    </div>
+    <div style="padding:0 20px 16px">
+      <div class="ag-import-stats">
+        <div class="ag-kpi"><span class="ag-kpi-label" data-en="Total">إجمالي السجلات</span><b class="ag-kpi-value num">9</b></div>
+        <div class="ag-kpi"><span class="ag-kpi-label" data-en="Valid — waiting approval">صحيحة — بانتظار الاعتماد</span><b class="ag-kpi-value num is-success">6</b></div>
+        <div class="ag-kpi"><span class="ag-kpi-label" data-en="Invalid — will not be imported">بها أخطاء — لن تُستورد</span><b class="ag-kpi-value num is-danger">3</b></div>
+        <div class="ag-kpi"><span class="ag-kpi-label" data-en="Imported">تم الاستيراد</span><b class="ag-kpi-value num">0</b></div>
+      </div>
+    </div>
+    <div class="ag-tabs" style="padding:0 20px" data-ag-tabs>
+      <a class="ag-tab is-active" href="#" data-ag-tab="rows"><span data-en="Extracted Records">السجلات المستخرجة</span> <span class="ag-badge">9</span></a>
+      <a class="ag-tab" href="#" data-ag-tab="rows-err"><span data-en="Errors only">الأخطاء فقط</span> <span class="ag-badge ag-badge--danger">3</span></a>
+    </div>
+    <div class="ag-table-wrap"><table class="ag-table">
+      <thead><tr><th data-en="Row">رقم الصف</th><th data-en="Name">الاسم</th><th data-en="Passport">رقم الجواز</th><th data-en="Nationality">الجنسية</th><th data-en="Age">العمر</th><th data-en="Status">الحالة</th><th data-en="Errors">الأخطاء</th></tr></thead>
+      <tbody>
+        <tr><td class="num">2</td><td class="ag-latin">JOANNA MARIE BAUTISTA</td><td class="ag-latin">P6630471R</td><td data-en="Philippines">الفلبين</td><td class="num">30</td><td><span class="ag-badge ag-badge--success" data-en="Valid">صحيحة</span></td><td>—</td></tr>
+        <tr class="is-bad"><td class="num">3</td><td class="ag-latin">MYLENE ESPIRITU</td><td class="ag-latin">P5197330M</td><td data-en="Philippines">الفلبين</td><td class="num">29</td><td><span class="ag-badge ag-badge--danger" data-en="Invalid">بيانات خاطئة</span></td><td><ul class="ag-err-list"><li data-en="Passport number is already registered on another CV (KRISTINE JOY LIM).">رقم الجواز مسجّل مسبقًا على سيرة أخرى (KRISTINE JOY LIM).</li></ul></td></tr>
+        <tr><td class="num">4</td><td class="ag-latin">ROSEMARIE GONZALES</td><td class="ag-latin">P7024418S</td><td data-en="Philippines">الفلبين</td><td class="num">33</td><td><span class="ag-badge ag-badge--success" data-en="Valid">صحيحة</span></td><td>—</td></tr>
+        <tr class="is-bad"><td class="num">5</td><td class="ag-latin">DIVINA SORIANO</td><td class="ag-latin">P3318805T</td><td class="ag-latin">Filipina</td><td class="num">41</td><td><span class="ag-badge ag-badge--danger" data-en="Invalid">بيانات خاطئة</span></td><td><ul class="ag-err-list"><li dir="auto" data-en='Nationality: "Filipina" — value not found in the system.'>الجنسية: "Filipina" القيمة غير موجودة في النظام.</li></ul></td></tr>
+        <tr><td class="num">6</td><td class="ag-latin">APRIL JOY CAÑETE</td><td class="ag-latin">P8851206U</td><td data-en="Philippines">الفلبين</td><td class="num">26</td><td><span class="ag-badge ag-badge--success" data-en="Valid">صحيحة</span></td><td>—</td></tr>
+        <tr><td class="num">7</td><td class="ag-latin">LEAH CORPUZ</td><td class="ag-latin">P2209347V</td><td data-en="Philippines">الفلبين</td><td class="num">37</td><td><span class="ag-badge ag-badge--success" data-en="Valid">صحيحة</span></td><td>—</td></tr>
+        <tr class="is-bad"><td class="num">8</td><td class="ag-latin">NORMA PADILLA</td><td class="ag-latin">P6693012W</td><td data-en="Philippines">الفلبين</td><td class="num">35</td><td><span class="ag-badge ag-badge--danger" data-en="Invalid">بيانات خاطئة</span></td><td><ul class="ag-err-list"><li data-en='Job: "Caregiver" — value not found in the system.'>المهنة: "Caregiver" القيمة غير موجودة في النظام.</li></ul></td></tr>
+        <tr><td class="num">9</td><td class="ag-latin">CRISTINA YAP</td><td class="ag-latin">P4140773X</td><td data-en="Philippines">الفلبين</td><td class="num">31</td><td><span class="ag-badge ag-badge--success" data-en="Valid">صحيحة</span></td><td>—</td></tr>
+        <tr><td class="num">10</td><td class="ag-latin">MELANIE TAN</td><td class="ag-latin">P9902158Y</td><td data-en="Philippines">الفلبين</td><td class="num">28</td><td><span class="ag-badge ag-badge--success" data-en="Valid">صحيحة</span></td><td>—</td></tr>
+      </tbody>
+    </table></div>
+    <div class="ag-card-foot"><span class="ag-help" data-en="Row numbers match the Excel sheet (row 1 is the header).">أرقام الصفوف كما في ملف Excel (الصف 1 هو العناوين).</span><button class="btn btn-ghost" data-ag-toast="بدأ تنزيل الملف الأصلي"><i data-lucide="download"></i><span data-en="Download Original File">تحميل الملف الأصلي</span></button><button class="btn btn-primary" data-ag-toast="ارفع النسخة المصحّحة من الملف"><i data-lucide="upload"></i><span data-en="Upload New File">رفع ملف جديد</span></button></div>
+  </section>
+
+  <section class="ag-card ag-card--flush">
+    <div class="ag-card-head"><div class="ag-card-head-start"><span class="ag-card-icon"><i data-lucide="history"></i></span><div><h2 class="ag-card-title" data-en="Recent Uploads">آخر عمليات الرفع</h2></div></div></div>
+    <div class="ag-table-wrap"><table class="ag-table">
+      <thead><tr><th data-en="File">الملف</th><th data-en="Rows">السجلات</th><th data-en="Status">الحالة</th><th data-en="Date">التاريخ</th><th class="is-end"></th></tr></thead>
+      <tbody>
+        <tr><td class="ag-latin">PB_batch_17Nov.xlsx</td><td class="num">9 · <span data-en="6 valid">6 صحيحة</span></td><td><span class="ag-badge ag-badge--warning" data-en="Pending review">بانتظار الاعتماد</span></td><td class="num">2026-11-17</td><td class="is-end"><a class="btn btn-ghost sm" href="#" data-en="View">عرض</a></td></tr>
+        <tr><td class="ag-latin">PB_october_cvs.docx</td><td class="num">5 · <span data-en="5 imported">5 تم استيرادها</span></td><td><span class="ag-badge ag-badge--success" data-en="Completed">مكتمل</span></td><td class="num">2026-10-19</td><td class="is-end"><a class="btn btn-ghost sm" href="#" data-en="View">عرض</a></td></tr>
+        <tr><td class="ag-latin">PB_september.xlsx</td><td class="num">7 · <span data-en="5 imported, 2 failed">5 تم استيرادها، 2 فشل</span></td><td><span class="ag-badge ag-badge--warning" data-en="Completed with errors">مكتمل مع أخطاء</span></td><td class="num">2026-09-24</td><td class="is-end"><a class="btn btn-ghost sm" href="#" data-en="View">عرض</a></td></tr>
+        <tr><td class="ag-latin">CVs_scan.pdf</td><td class="num">4</td><td><span class="ag-badge ag-badge--danger" data-en="Rejected">مرفوض</span><div class="ag-reason"><i data-lucide="info"></i><span data-en="Rejection Reason: scanned pages are unreadable; please use the Excel template.">سبب الرفض: الصفحات الممسوحة غير مقروءة؛ استخدم نموذج Excel.</span></div></td><td class="num">2026-09-10</td><td class="is-end"><a class="btn btn-ghost sm" href="#" data-en="View">عرض</a></td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+</main>
+<script src="https://unpkg.com/lucide@0.451.0/dist/umd/lucide.min.js"></script>
+<script src="assets/ag.js"></script>
+</body>
+</html>

@@ -169,3 +169,38 @@
 - **نوع البرنامج:** نظام الاستقدام / نظام عام — التغيير بعبارة تأكيد + كلمة مرور + سبب، ومش بيمسح بيانات. «نظام عام» بيقفل شاشات المالية الخاصة بالاستقدام (فواتير العقود، مساند، الوكلاء، الملخص التشغيلي) وبيخبي صلاحياتها.
 - **الموديلات (14):** إيجار الساعات، الموديل التشغيلي العام، إدارة التشغيل، الفروع، الموقع الخارجي، روابط API، CRM، الموارد البشرية، المالية، حسابات شركات التقنية والتسويق، تأشيرات الشركة، مركز المهام، الكوبونات، العمولات.
 - **الدخول:** اسم وكلمة مرور بس (مفيش رمز تحقق) — الرمز موجود بس في استعادة/حذف النسخ الاحتياطية.
+
+---
+
+## الشاشات الناقصة — ✅ v1.34
+
+| شاشتنا | الكود |
+|---|---|
+| `rcExtensions` | `ContractExtensionRequestController` · `ING/ContractExtension/*` |
+| `rcRenewals` | `RenewContractController` · `ING/RenewContracts/*` · `RequestsStatusEnum` |
+| `rcReturns` · `rcReturnShow` | `admin/ContractReturnRequestController` · `views/admin/contract-return-requests/*` · `RecruitmentContractWarrantyReturnService` · `ReturnRequestController` · `ING/return_request/*` |
+| `rcArchive` | `ContractArchiveController` · `ContractArchiveService` · `ING/contract-archive/*` |
+| `rcFinance` · `rcFinanceShow` | `RecruitmentContractFinanceController` · `Support/RecruitmentAgentBalance` · `ING/recruitment_contract_finance/*` |
+| `rcRefunds` | `PostArrivalRefundController` · `PostArrivalRefundService` · `ING/post_arrival_refunds/*` |
+| `musanedTransfers` | `MusanedTransferController` · `MusanedInvoiceReportController` · `ING/musaned_transfers/*` |
+| `cvShares` | `MaidCvShareController` · `MaidCvShareService` · `ING/maid-cv-shares/*` |
+| `cvReview` | `MaidController` (pendingSubmissions · status-change · visibilityBatches · deletedCvs) · `MaidStatusChangeRequest` |
+| `dispatches` | `RecruitmentContractExternalOfficeDispatchController` · `ContractExternalOfficeDispatch` |
+| `supplierPayments` | `RecruitmentSupplierPaymentController` · `ING/recruitment_supplier_payments/*` |
+| `arrivals` | `ReportController::arrivals` · `ReportExportService` · `ING/reports/arrivals` |
+| `selectWorkers` | `SelectWorkerController` · `SelectWorkerSettingsController` · `site/pages/select_worker` |
+| `inbound` · `inboundShow` | `SponsorshipTransferController::webRequests` · `RecruitmentRequestController` · `KnownServiceRequestController` · `ContactController` · `ProfessionalApplicationController` |
+| `rentalOrders` · `rentalOrderShow` | `RentalOrderController` · `ING/rental-orders/*` · `OrderEnum` |
+| `rentalRecruit` | `RecruitmentContractController::companyIndex` · `Contract::scopeForCompanyRecruitment` |
+| `transferTerms` | `TransferContractTermsController` · `ING/TransferContractTerms/*` |
+| `couponsHourly` | `HourlyCouponController` · `admin/coupons/hourly` |
+| `crmDispatch` · `waTemplates` | `NotificationController` (index · indexWhatsApp) · `WhatsAppInboxController::createTemplate` · `ClickChatTemplateStatus` |
+| `setCountry` | `CountryPoliceController` · `PoliceSettingController` · `ING/country_polices/*` · `ING/police_settings/*` (سياسات الدول، مش شرطة) |
+| `hbDrivers` · `hbRenewals` | `HourlyDriverController` · `Hourly/RenewalController` · `RenewalEligibility` |
+| `hbExceptions` | `MissedVisitRecoveryController` · `EarlyFinishController` · `ServiceTimeController` · `OrderCompensationController` |
+| `hbSos` · `hbMerge` | `HourlySosController` · `ServiceIncidentController` · `Hourly/CustomerController` (duplicates · merge) |
+| `finCreditNotes` · `finCreditNoteAdd` | `InvoiceController` (credit-notes) · `RentalContractInvoiceController` · `InvoiceDraftController` · `SuperAdminInvoiceCorrectionController` |
+| `finNetSales` · `finMoyasar` | `MusanedInvoiceReportController` · `MoyasarPaymentsReportController` |
+| `myProfile` · `notifCenter` · `noPerm` | `routes/admin.php` profile · change-password · two-factor · `routes/web.php` notifications · `admin/no-permissions` |
+| `cms*` | `config/home_sections.php` · `HomeSectionSettingsController` · `ING/blogs · offers · fast_news · home_hero · sliders · home_sections · why_us · why_choose_us · what_do · about_us · musaned_section · find_us · steps · feature · testimonials · partenrs · questions` |
+| `agent/*` | `routes/agent.php` · `app/Http/Controllers/Agent/*` · `resources/views/agent/*` · `routes/office.php` |

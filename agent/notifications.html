@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="design-version" content="v1.34">
+<title>الإشعارات — بوابة الوكيل · Click ERP</title>
+<link rel="stylesheet" href="../assets/clickerp.bundle.css">
+<link rel="stylesheet" href="assets/ag.css">
+</head>
+<body dir="rtl" data-page="notifications">
+<!-- Screen: notifications · agent.notifications.index / read / mark-all-read (Agent\DashboardController@notifications/markAsRead/markAllAsRead) · agent/notifications/index.blade.php
+     من الكود: AdminNotification للحساب (admin_id = الوكيل) — title · message · created_at (diffForHumans) · read_at، زر «مقروء» لكل إشعار و«تحديد الكل كمقروء»، 15 في الصفحة.
+     «جديد»: التجميع بالأيام، أيقونة ولون حسب النوع، ورابط مباشر للسجل. الأحداث نفسها (رفض/اعتماد سيرة، رد على طلب أو شكوى، تذكير بخطوة)
+     لا يُنشئ الكود حاليًا إشعارات للوكيل عنها — تحتاج إضافة عند MaidController@rejectSubmission/approveStatusChangeRequest/rejectStatusChangeRequest. -->
+<main class="ag-content">
+
+  <div class="ag-page-header">
+    <div>
+      <h1 class="ag-page-title" data-en="Notifications">الإشعارات</h1>
+      <p class="ag-page-desc" data-en="4 unread · each one opens the record it is about.">4 غير مقروءة · كل إشعار يفتح السجل الذي يخصه.</p>
+    </div>
+    <div class="ag-page-header-end"><button class="btn btn-ghost" data-ag-toast="تم تعيين الكل كمقروء"><i data-lucide="check-check"></i><span data-en="Mark All as Read">تحديد الكل كمقروء</span></button></div>
+  </div>
+
+  <div class="ag-chips" data-ag-tabs>
+    <button class="ag-chip is-on" data-ag-tab="all"><span data-en="All">الكل</span> <b>8</b></button>
+    <button class="ag-chip" data-ag-tab="unread"><span data-en="Unread">غير مقروءة</span> <b>4</b></button>
+    <button class="ag-chip" data-ag-tab="cv"><span data-en="CVs">السير</span> <b>3</b></button>
+    <button class="ag-chip" data-ag-tab="req"><span data-en="Requests">الطلبات</span> <b>2</b></button>
+    <button class="ag-chip" data-ag-tab="contracts"><span data-en="Contracts">العقود</span> <b>2</b></button>
+    <button class="ag-chip" data-ag-tab="complaints"><span data-en="Complaints">الشكاوى</span> <b>1</b></button>
+    <span class="tag a hm-new" style="align-self:center">جديد</span>
+  </div>
+
+  <section class="ag-card ag-card--flush">
+    <div class="ag-notes">
+      <div class="ag-note-day" data-en="Today">اليوم</div>
+      <div class="ag-note is-unread"><span class="ag-note-ic is-red"><i data-lucide="file-x"></i></span><div><div class="ag-note-t"><span data-en="CV rejected:">رُفضت سيرة</span> <span class="ag-latin">JENNY LYN OCAMPO</span></div><p data-en="The age written (25) does not match the birth date 12 Mar 1998. Fix the data and resubmit.">العمر المكتوب (25) لا يطابق تاريخ الميلاد 12 مارس 1998. صحّح البيانات وأعد الإرسال.</p></div><time>09:40</time><a class="btn btn-primary sm" href="cv-add.html#fix" data-en="Fix">تصحيح</a><button class="icon-btn" title="مقروء" data-en-title="Mark Read" data-ag-toast="عُلّم كمقروء"><i data-lucide="check"></i></button></div>
+      <div class="ag-note is-unread"><span class="ag-note-ic is-amber"><i data-lucide="message-square-reply"></i></span><div><div class="ag-note-t" data-en="New reply on complaint 318">رد جديد على الشكوى 318</div><p data-en="Sultan Al-Omari: we need the return-flight receipt in the worker's name with the booking number.">سلطان العمري: نحتاج إيصال تذكرة العودة باسم العاملة ورقم الحجز.</p></div><time>08:15</time><a class="btn btn-ghost sm" href="complaint.html" data-en="Open">فتح</a><button class="icon-btn" title="مقروء" data-en-title="Mark Read" data-ag-toast="عُلّم كمقروء"><i data-lucide="check"></i></button></div>
+
+      <div class="ag-note-day" data-en="Yesterday">أمس</div>
+      <div class="ag-note is-unread"><span class="ag-note-ic"><i data-lucide="ticket"></i></span><div><div class="ag-note-t" data-en="Reminder: contract 10455 waits for ticket booking">تذكير: العقد 10455 بانتظار حجز التذكرة</div><p data-en="The ticket was paid on 12 Nov; set «Ticket booking» once booked.">سُدّدت التذكرة في 12 نوفمبر؛ حدّث «حجز التذكرة» فور الحجز.</p></div><time>16:05</time><a class="btn btn-ghost sm" href="contract.html" data-en="Open">فتح</a><button class="icon-btn" title="مقروء" data-en-title="Mark Read" data-ag-toast="عُلّم كمقروء"><i data-lucide="check"></i></button></div>
+      <div class="ag-note is-unread"><span class="ag-note-ic is-red"><i data-lucide="file-x"></i></span><div><div class="ag-note-t"><span data-en="CV rejected:">رُفضت سيرة</span> <span class="ag-latin">CHERRY ANN VILLANUEVA</span></div><p data-en="Passport photo unclear; second data page missing.">صورة الجواز غير واضحة، وصفحة البيانات الثانية غير مرفقة.</p></div><time>11:20</time><a class="btn btn-ghost sm" href="cv-add.html#fix" data-en="Fix">تصحيح</a><button class="icon-btn" title="مقروء" data-en-title="Mark Read" data-ag-toast="عُلّم كمقروء"><i data-lucide="check"></i></button></div>
+
+      <div class="ag-note-day" data-en="Earlier this week">في وقت سابق من هذا الأسبوع</div>
+      <div class="ag-note"><span class="ag-note-ic is-green"><i data-lucide="circle-check"></i></span><div><div class="ag-note-t"><span data-en="Suspension approved:">اعتُمد طلب تعليق</span> <span class="ag-latin">LORNA FLORES CASTILLO</span></div><p data-en="The CV is no longer shown to clients.">لم تعد السيرة تظهر للعملاء.</p></div><time data-en="14 Nov">14 نوفمبر</time><a class="btn btn-ghost sm" href="status-requests.html" data-en="Open">فتح</a></div>
+      <div class="ag-note"><span class="ag-note-ic is-red"><i data-lucide="circle-x"></i></span><div><div class="ag-note-t"><span data-en="Suspension rejected:">رُفض طلب تعليق</span> <span class="ag-latin">KRISTINE JOY LIM</span></div><p data-en="The worker is proposed to a client in an open order; resubmit if it is not completed within a week.">العاملة مرشّحة لعميل في طلب قائم؛ أعد الطلب إن لم يكتمل خلال أسبوع.</p></div><time data-en="12 Nov">12 نوفمبر</time><a class="btn btn-ghost sm" href="status-requests.html" data-en="Open">فتح</a></div>
+      <div class="ag-note"><span class="ag-note-ic is-green"><i data-lucide="badge-check"></i></span><div><div class="ag-note-t"><span data-en="CV approved:">اعتُمدت سيرة</span> <span class="ag-latin">AIZA MAE DOMINGO</span></div><p data-en="The CV is now visible to clients.">أصبحت السيرة ظاهرة للعملاء.</p></div><time data-en="11 Nov">11 نوفمبر</time><a class="btn btn-ghost sm" href="cvs.html" data-en="Open">فتح</a></div>
+      <div class="ag-note"><span class="ag-note-ic"><i data-lucide="file-text"></i></span><div><div class="ag-note-t" data-en="New contract 10490 on GRACE NAVARRO SALAZAR">عقد جديد 10490 على GRACE NAVARRO SALAZAR</div><p data-en="Client: Khalid Al-Harbi · stage: Musaned contracts. Nothing is needed from you yet.">العميل: خالد بن سعود الحربي · المرحلة: عقود مساند. لا يلزمك شيء الآن.</p></div><time data-en="09 Nov">9 نوفمبر</time><a class="btn btn-ghost sm" href="contracts.html" data-en="Open">فتح</a></div>
+    </div>
+    <div class="ag-card-foot"><span class="ag-help" data-en="Showing 1–8 of 8">عرض 1–8 من 8</span></div>
+  </section>
+
+</main>
+<script src="https://unpkg.com/lucide@0.451.0/dist/umd/lucide.min.js"></script>
+<script src="assets/ag.js"></script>
+</body>
+</html>
