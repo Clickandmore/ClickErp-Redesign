@@ -699,6 +699,31 @@
       "title": "إعدادات الموارد البشرية"
     },
     {
+      "id": "myRequests",
+      "file": "myRequests.html",
+      "title": "طلباتي"
+    },
+    {
+      "id": "myRequestNew",
+      "file": "myRequestNew.html",
+      "title": "طلب جديد"
+    },
+    {
+      "id": "myRequestShow",
+      "file": "myRequestShow.html",
+      "title": "تفاصيل طلب"
+    },
+    {
+      "id": "hrTeam",
+      "file": "hrTeam.html",
+      "title": "فريقي"
+    },
+    {
+      "id": "hrApprovalFlows",
+      "file": "hrApprovalFlows.html",
+      "title": "أنواع الطلبات والاعتماد"
+    },
+    {
       "id": "setHome",
       "file": "setHome.html",
       "title": "الإعدادات (كل الإعدادات)"
