@@ -372,7 +372,7 @@ document.addEventListener("input",e=>{if(e.target.closest(".side-search")){NAVQ=
 
 /* ===== clickerp-cv.js ===== */
 /* CV screens — grounded in admin/ingaz/maids/*, simplified UI */
-const cvTabsL=[["rec","سير الاستقدام","Recruitment CVs","maids.index","MAIDS_VIEW"],["rent","سير التأجير","Rental CVs","maids.rental.index","MAIDS_RENTAL_VIEW"],["backout","باك أوت","Backed out","noneAvailableMaids","MAIDS_BACKOUT_VIEW"],["pending","بانتظار المراجعة","Pending review","maids.pending-submissions","MAIDS_VIEW"],["deleted","محذوفة","Deleted","maids.deleted_cvs","MAIDS_DELETED_VIEW"]];
+const cvTabsL=[["rec","السير","CVs","maids.index","MAIDS_VIEW"],["review","بانتظار المراجعة","Pending review","maids.pending-submissions","MAIDS_VIEW"],["shares","المشاركات","Shares","maids.shares","MAIDS_VIEW"],["backout","باك أوت","Backed out","noneAvailableMaids","MAIDS_BACKOUT_VIEW"],["deleted","المحذوفة","Deleted","maids.deleted_cvs","MAIDS_DELETED_VIEW"]];
 const cvRows=[
  ["A-118742","MARY GRACE SANTOS","ماري غرايس سانتوس","الفلبين","Philippines","عاملة منزلية","Domestic worker","PLATINUM BROTHERS","P1234567",32,"available","متاحة","Available","g","17 أغسطس 2026","1,200","rec",1,1,"","مسيحية","Christian"],
  ["A-118741","AKELLO SARAH","أكيلو سارة","أوغندا","Uganda","عاملة منزلية","Domestic worker","Supreme Link Ltd","UG882134",28,"reserved","محجوزة","Reserved","a","16 أغسطس 2026","1,000","rec",1,0,"","مسلمة","Muslim"],
@@ -395,8 +395,10 @@ const cvStatsByTab={
  backout:[["","إجمالي القائمة","List total",12,"r","undo-2"]],
  pending:[["","إجمالي القائمة","List total",14,"a","clock"]],
  deleted:[["","إجمالي القائمة","List total",7,"r","trash-2"]]};
-const cvSubs={rec:["163 سيرة استقدام — متاحة 118 · محجوزة 22 · متعاقد عليها 15","163 recruitment CVs — 118 available · 22 reserved · 15 contracted"],rent:["13 سيرة تأجير — متاحة 4 · في الإيواء 6 · مؤجّرة 3","13 rental CVs — 4 available · 6 in housing · 3 rented"],backout:["12 سيرة باك أوت — مرتجعة من المكاتب الخارجية","12 backed-out CVs returned from external offices"],pending:["14 سيرة بانتظار مراجعة الإدارة","14 CVs awaiting management review"],deleted:["7 سير محذوفة — قابلة للاستعادة","7 deleted CVs — restorable"]};
-const cvCounts={rec:163,rent:13,backout:12,pending:14,deleted:7};
+const cvSubs={rec:["163 سيرة استقدام — متاحة 118 · محجوزة 22 · متعاقد عليها 15","163 recruitment CVs — 118 available · 22 reserved · 15 contracted"],rent:["13 سيرة تأجير — متاحة 4 · في الإيواء 6 · مؤجّرة 3","13 rental CVs — 4 available · 6 in housing · 3 rented"],backout:["12 سيرة باك أوت — مرتجعة من المكاتب الخارجية","12 backed-out CVs returned from external offices"],pending:["14 سيرة بانتظار مراجعة الإدارة","14 CVs awaiting management review"],deleted:["3 سير محذوفة — قابلة للاستعادة","3 deleted CVs — restorable"],review:["8 بانتظار المراجعة — 4 سير مرفوعة من المكاتب و4 طلبات تغيير حالة، ولا تظهر في النظام قبل القبول","8 awaiting review — 4 CVs uploaded by offices and 4 status-change requests"],shares:["السير المرسلة للعملاء عبر واتساب مع متابعة التسليم والقراءة لكل رسالة","CVs sent to clients on WhatsApp, with delivery and read tracking"]};
+const cvCounts={rec:163,review:8,shares:5,backout:12,deleted:3,rent:13,pending:14};
+/* v1.37: review · shares · deleted come from the v1.34 screens, embedded as tabs */
+const CVEMB={review:()=>window.CVX?CVX.review():"",shares:()=>window.CVX?CVX.shares():"",deleted:()=>window.CVX?CVX.del():""};
 const cvExtraDefs=[["border","رقم الحدود","Border no."],["pexp","انتهاء الجواز","Passport expiry"],["idn","الهوية وانتهاؤها","ID & expiry"],["marital","الحالة الاجتماعية","Marital & children"],["exp","سنوات الخبرة","Experience"],["langs","اللغات","Languages"],["skills","أول ٣ مهارات","Top 3 skills"],["branch","الفرع","Branch"],["dur","مدة العقد","Duration"],["arr","تاريخ الوصول","Arrival date"],["upd","آخر تحديث للحالة","Status updated"],["link","العقد / العميل","Contract / client"]];
 const cvAllSkills=[["الطبخ","Cooking","cooking-pot"],["التنظيف","Cleaning","spray-can"],["العناية بالأطفال","Childcare","baby"],["كبار السن","Elderly care","heart-handshake"],["الكوي","Ironing","shirt"],["الخياطة","Sewing","scissors"],["القيادة","Driving","car"],["ذوي الاحتياجات","Special needs","accessibility"],["الترتيب","Organizing","layout-grid"],["الخبز","Baking","cake"]];
 const cvAllLangs=[["العربية","Arabic"],["الإنجليزية","English"],["الفلبينية","Filipino"],["الأردية","Urdu"],["الأمهرية","Amharic"],["السواحيلية","Swahili"]];
@@ -416,7 +418,7 @@ const cvExtra=(r,k)=>{const i=cvRows.indexOf(r),y=2029+(i%3);switch(k){
  case "arr":return r[10]==="available"?`<span class="empty">${t("لم تصل","Not arrived")}</span>`:`<span class="num">2026-0${1+(i%8)}-1${i%9}</span>`;
  case "upd":return `<span class="num">2026-08-${10+(i%9)}</span><small>${t("بواسطة","by")} ${i%2?t("سارة القحطاني","Sara Q."):t("مشرف النظام","Supervisor")}</small>`;
  case "link":return r[10]==="contracted"||r[16]==="rent"?`<b class="num">CN-2026-0${100+i}</b><small>${t("منيرة الشهري","Munira A.")}</small>`:`<span class="empty">—</span>`;}return "—"};
-let SKILLS=["الطبخ","التنظيف"],LANGS={"العربية":70,"الإنجليزية":50},LANGMODE="pct",EXPST="has",CVCOLS=[],CVCOLPICK=false,CVEDIT=null,CVSTAB="over",CVVIEW="rows",CVMENU=null,CVTAB="rec",CVQ="",CVSTATUS="",CVNAT="",CVMORE=false,CVJOB="",CVPIN="",CVVIS="",CVTYPE="rec",CVMODE="short",CVKINGDOM="outside",CVNAMES=false;
+let SKILLS=["الطبخ","التنظيف"],LANGS={"العربية":70,"الإنجليزية":50},LANGMODE="pct",EXPST="has",CVCOLS=[],CVCOLPICK=false,CVEDIT=null,CVSTAB="over",CVVIEW="rows",CVMENU=null,CVTAB=(()=>{try{const h=location.hash.slice(1);if(["review","shares","backout","deleted"].includes(h))return h}catch(_){}return "rec"})(),CVQ="",CVSTATUS="",CVNAT="",CVMORE=false,CVJOB="",CVPIN="",CVVIS="",CVTYPE="rec",CVMODE="short",CVKINGDOM="outside",CVNAMES=false;
 const cvNats=[["الفلبين","Philippines"],["أوغندا","Uganda"],["الهند","India"],["إثيوبيا","Ethiopia"],["كينيا","Kenya"],["سريلانكا","Sri Lanka"],["بنغلاديش","Bangladesh"]];
 const cvSt=[["available","متاحة","Available"],["reserved","محجوزة","Reserved"],["contracted","متعاقد عليها","Contracted"],["in_accommodation","في الإيواء","In housing"],["backout","باك أوت","Backed out"],["pinned","مثبّتة","Pinned"],["suspended","موقوفة","Suspended"],["deported","مُرحّلة","Deported"]];
 const cvJobs=["عاملة منزلية","سائق خاص","طباخة","ممرضة منزلية","عاملة نظافة"];
@@ -434,10 +436,10 @@ const cvScreens={
  cvs:()=>{
  const rows=cvFiltered();
  return `
- <div class="page-head"><div><h1>${t("إدارة السير الذاتية","CV management")}</h1><p>${t(cvSubs[CVTAB][0],cvSubs[CVTAB][1])}</p></div>
+ <div class="page-head"><div><h1>${t("السير الذاتية","CVs")}</h1><p>${t(cvSubs[CVTAB][0],cvSubs[CVTAB][1])}</p></div>
  <div class="actions"><button class="btn btn-ghost" data-perm="MAIDS_EXPORT">${I("download")}${t("تصدير","Export")}</button><button class="btn btn-ghost">${I("upload")}${t("استيراد جماعي","Bulk import")}</button><button class="btn btn-primary" data-go="cvAdd" data-perm="MAIDS_CREATE">${I("plus")}${t("إضافة سيرة","Add CV")}</button></div></div>
- <div class="seg tabs" data-seg>${cvTabsL.map(x=>`<button class="${x[0]===CVTAB?"on":""}" data-cvtab="${x[0]}" data-perm="${x[4]}">${t(x[1],x[2])}<b class="num">${cvCounts[x[0]]}</b></button>`).join("")}</div>
- <div class="statgrid slim">${(cvStatsByTab[CVTAB]||[]).filter(x=>x[3]>0).map(x=>`<button class="scard slim ${x[0]===CVSTATUS?"on":""}" data-cvstat="${x[0]}"><span class="sbar ${x[4]}"></span><span class="sci ${x[4]}">${I(x[5])}</span><span class="stx"><span class="sct">${t(x[1],x[2])}</span><b class="num">${x[3]}</b></span>${x[0]===CVSTATUS?`<span class="scon">${I("check")}</span>`:""}</button>`).join("")}</div>
+ <div class="seg tabs" data-seg>${cvTabsL.map(x=>`<button class="${x[0]===CVTAB?"on":""}" data-cvtab="${x[0]}" data-perm="${x[4]}">${t(x[1],x[2])}<b class="num${x[0]==="review"&&cvCounts.review?" hot":""}">${cvCounts[x[0]]}</b></button>`).join("")}</div>
+ ${CVEMB[CVTAB]?`<div class="cv-emb">${CVEMB[CVTAB]()}</div>`:`<div class="statgrid slim">${(cvStatsByTab[CVTAB]||[]).filter(x=>x[3]>0).map(x=>`<button class="scard slim ${x[0]===CVSTATUS?"on":""}" data-cvstat="${x[0]}"><span class="sbar ${x[4]}"></span><span class="sci ${x[4]}">${I(x[5])}</span><span class="stx"><span class="sct">${t(x[1],x[2])}</span><b class="num">${x[3]}</b></span>${x[0]===CVSTATUS?`<span class="scon">${I("check")}</span>`:""}</button>`).join("")}</div>
  <div class="fbar">
   <div class="fb grow"><label>${t("بحث","Search")}</label><div class="inp">${I("search")}<input data-cvq value="${CVQ}" placeholder="${t("اسم، جواز، رقم عاملة","Name, passport, worker no.")}"></div></div>
   <div class="fb"><label>${t("الحالة","Status")}</label><select data-cvstatus><option value="">${t("كل الحالات","All statuses")}</option>${cvSt.map(s=>`<option value="${s[0]}"${s[0]===CVSTATUS?" selected":""}>${t(s[1],s[2])}</option>`).join("")}</select></div>
@@ -473,7 +475,7 @@ const cvScreens={
    <td class="act">${rowActs(r)}</td></tr>`).join(""):`<tr><td colspan="${8+CVCOLS.length}"><div class="tempty">${I("inbox")}<b>${t("لا نتائج مطابقة","No matching results")}</b><small>${t("جرّب إزالة الفلاتر","Try clearing the filters")}</small></div></td></tr>`}
   </tbody></table></div>
   <div class="tfoot"><span>${t(`عرض ${rows.length} من ${cvCounts[CVTAB]} — الصفحة 1`,`Showing ${rows.length} of ${cvCounts[CVTAB]} — page 1`)}</span><div class="pager"><button>${t("السابق","Prev")}</button><button class="on">1</button><button>2</button><button>${t("التالي","Next")}</button></div></div>
- </div>`}`},
+ </div>`}`}`},
  cvAdd:()=>{
  const rent=CVTYPE==="rent",full=CVMODE==="full";
  const steps=full?[["نوع السيرة والتسكين","Type & housing"],["البيانات الأساسية","Core data"],["الجواز والهوية","Passport & ID"],["الخبرة واللغات والملفات","Experience, languages & files"]]:[["بيانات السيرة المختصرة","Short CV data"]];
@@ -729,7 +731,7 @@ document.addEventListener("click",e=>{
  const ci=e.target.closest(".cm-i");if(ci){const k=ci.querySelector("[data-col]").dataset.col;CVCOLS=CVCOLS.includes(k)?CVCOLS.filter(x=>x!==k):CVCOLS.concat(k);CVCOLPICK=true;render();return}
  if(CVCOLPICK&&!e.target.closest(".colpick")){CVCOLPICK=false;render()}
  const vw=e.target.closest("[data-cvview]");if(vw){CVVIEW=vw.dataset.cvview;render();return}
- const tb=e.target.closest("[data-cvtab]");if(tb){CVTAB=tb.dataset.cvtab;CVSTATUS="";render();return}
+ const tb=e.target.closest("[data-cvtab]");if(tb){CVTAB=tb.dataset.cvtab;CVSTATUS="";try{history.replaceState(null,"",location.pathname+location.search+(CVTAB==="rec"?"":"#"+CVTAB))}catch(_){}render();return}
  const sc=e.target.closest("[data-cvstat]");if(sc){CVSTATUS=sc.dataset.cvstat;render();return}
  const mo=e.target.closest("[data-cvmore]");if(mo){CVMORE=!CVMORE;render();return}
  const rs=e.target.closest("[data-cvreset]");if(rs){CVQ="";CVSTATUS="";CVNAT="";CVJOB="";CVPIN="";CVVIS="";render();return}
@@ -3434,13 +3436,13 @@ const DEPTS=[
  {id:"all",i:"layout-dashboard",ar:"الرئيسية",en:"Home",s:"الرئيسية",d:"لوحة التحكم والتقارير والشاشات المثبتة",items:[
   A("dashboard","layout-dashboard","لوحة التحكم","Dashboard"),A("reports","folder-open","مركز التقارير","Reports centre")]},
  {id:"ops",i:"briefcase",ar:"العمليات",en:"Operations",s:"العمليات",d:"الاستقدام والتأشيرات والتأجير ونقل الخدمات",items:[
-  H("الاستقدام"),A("recDash","layout-dashboard","لوحة المعلومات","Dashboard"),A("orders","shopping-cart","الطلبات","Orders","121"),A("cvs","files","السير الذاتية","CVs"),A("cvReview","file-check-2","مراجعة السير الذاتية","CV review"),A("cvShares","share-2","مشاركة السير الذاتية","CV shares"),
+  H("الاستقدام"),A("recDash","layout-dashboard","لوحة المعلومات","Dashboard"),A("orders","shopping-cart","الطلبات","Orders","121"),A("cvs","files","السير الذاتية","CVs"),
   A("contracts","file-text","عقود الاستقدام","Recruitment contracts","115"),A("invoices","receipt","فواتير العقود","Contract invoices"),
   A("delegations","file-signature","تفاويض الإنجاز","Mandates"),A("trips","plane","الرحلات","Trips"),A("agents","handshake","الوكلاء الخارجيون","External agents"),A("arrivals","plane-landing","تقرير العاملات الواصلات","Arrivals report"),
   H("طلبات العقود"),A("rcExtensions","calendar-plus","طلبات التمديد","Extension requests"),A("rcRenewals","refresh-cw","طلبات التجديد","Renewal requests"),A("rcReturns","undo-2","طلبات الاسترجاع","Return requests"),A("rcArchive","archive","أرشيف العقود","Contracts archive"),
   H("تأشيرات الشركة"),A("visaDash","gauge","لوحة متابعة التأشيرات","Visa dashboard"),A("visaRequests","file-plus-2","طلبات التأشيرات","Visa requests"),A("visaBalance","wallet-cards","رصيد التأشيرات","Visa balance"),
   A("visaReports","bar-chart-3","تقارير التأشيرات","Visa reports"),A("visaPrebook","calendar-clock","الحجز المسبق للتأجير","Pre-bookings"),A("visaSettings","sliders-horizontal","إعدادات التأشيرات","Visa settings"),
-  H("الإيجار والنقل"),A("rentalOrders","inbox","طلبات الإيجار","Rental orders"),A("rental","repeat","عقود التأجير","Rental contracts"),A("rentalRecruit","file-stack","عقود الاستقدام للتأجير","Company recruitment contracts"),A("rentalInvoices","receipt-text","فواتير التأجير","Rental invoices"),A("rentalSettings","package","باقات التأجير","Rental packages"),A("rentalTerms","scroll-text","بنود عقد التأجير","Rental terms"),A("transfer","arrow-left-right","نقل الخدمات","Service transfer","17"),A("transferOverview","activity","حالات نقل الخدمات","Transfer overview"),A("transferTerms","scroll-text","بنود عقد نقل الخدمات","Transfer terms"),A("housing","home","الإيواء","Housing"),
+  H("الإيجار والنقل"),A("rentalCvs","id-card","سير التأجير","Rental CVs"),A("rentalOrders","inbox","طلبات الإيجار","Rental orders"),A("rental","repeat","عقود التأجير","Rental contracts"),A("rentalRecruit","file-stack","عقود الاستقدام للتأجير","Company recruitment contracts"),A("rentalInvoices","receipt-text","فواتير التأجير","Rental invoices"),A("rentalSettings","package","باقات التأجير","Rental packages"),A("rentalTerms","scroll-text","بنود عقد التأجير","Rental terms"),A("transfer","arrow-left-right","نقل الخدمات","Service transfer","17"),A("transferOverview","activity","حالات نقل الخدمات","Transfer overview"),A("transferTerms","scroll-text","بنود عقد نقل الخدمات","Transfer terms"),A("housing","home","الإيواء","Housing"),
   H("التأجير بالساعة"),A("hb-board","layout-list","لوحة الطلبات","Requests board"),A("hb-visits","map-pin","الزيارات","Visits"),A("hb-schedule","calendar-range","الجدول والفرق","Schedule & teams"),A("hb-tracking","route","التتبع والمسارات","Tracking"),
   A("hb-alerts","flag","البلاغات","Alerts"),A("hbSos","siren","نداءات الطوارئ","SOS alerts"),A("hbExceptions","calendar-x","استثناءات الزيارات","Visit exceptions"),A("hbRenewals","refresh-cw","التجديدات","Renewals"),A("hbDrivers","car","السائقون","Drivers"),A("hbCollect","banknote","التحصيل والتعويضات","Collections"),A("hb-clients","users","العملاء","Clients"),A("hbMerge","merge","العملاء المكررون","Duplicate clients"),A("hb-services","package","الخدمات والباقات","Services"),A("hb-zones","map","المناطق","Zones")]},
  {id:"crm",i:"users",ar:"العملاء",en:"Customers",s:"العملاء",d:"العملاء والمتابعة والتواصل وخدمة العملاء",items:[
@@ -3463,12 +3465,12 @@ const DEPTS=[
   A("setHome","layout-grid","كل الإعدادات","All settings"),A("setGeneral","sliders-horizontal","العامة","General"),A("coupons","ticket-percent","كوبونات الخصم","Coupons"),A("setSite","globe","موقع المكتب","Office website"),A("cmsHome","layout-template","محتوى الموقع","Website content"),A("selectWorkers","list-checks","صفحة اختيار العمالة","Select-workers page"),A("setCountry","flag","سياسات الدول","Country policies"),A("setRecruit","files","الاستقدام والسير","Recruitment & CVs"),A("setRental","repeat","التأجير","Rental"),
   A("setUsers","shield-check","المستخدمون والصلاحيات","Users & roles"),A("setBranches","git-branch","الفروع","Branches"),A("setLists","list","القوائم المرجعية","Reference lists"),A("setMessages","bell","الرسائل والإشعارات","Messages & notifications"),
   A("setIntegrations","plug","التكاملات","Integrations"),A("setImport","upload","استيراد البيانات","Data import"),A("setAi","sparkles","المساعد الذكي","AI assistant"),A("setSupport","life-buoy","الدعم","Support"),A("setDev","code","المطوّر (Super Admin)","Developer")]}];
-const SUBS={finDash:["finDashGen"],cmsHome:["cmsBlogs","cmsBlogForm","cmsOffers","cmsHero","cmsSections","cmsTestimonials","cmsPartners","cmsFaq"],rcReturns:["rcReturnShow"],rcFinance:["rcFinanceShow"],inbound:["inboundShow"],rentalOrders:["rentalOrderShow"],finCreditNotes:["finCreditNoteAdd"],setDev:["saSubscription","saModules","saEmployees","saDesigns","saUpdates","saUpdateForm","saBackups","saScheduler","saRecovery","saInvoices","saInvoiceFix","saMcp","saMoyasar","saTestAccounts"],tcMy:["tcPolicy","tcClose"],tcBoard:["tcTask","tcForm","tcList","tcLanes","tcBoardD","tcCard","tcNew","tcCardQA","tcShare"],tcQA:["tcQALib"],tcAdmin:["tcRemind"],hrAttendance:["tcCheckin","tcGeo"],tcTeam:["tcMember","tcShots","tcSessions"],tcHours:["tcAttend"],tcSettings:["tcMigrate"],contracts:["contractShow","contractAdd","contractEdit"],cvs:["cvAdd","cvShow","cvEdit"],clients:["clientShow","clientAdd"],orders:["orderShow"],
+const SUBS={finDash:["finDashGen"],cmsHome:["cmsBlogs","cmsBlogForm","cmsOffers","cmsHero","cmsSections","cmsTestimonials","cmsPartners","cmsFaq"],rcReturns:["rcReturnShow"],rcFinance:["rcFinanceShow"],inbound:["inboundShow"],rentalOrders:["rentalOrderShow"],finCreditNotes:["finCreditNoteAdd"],setDev:["saSubscription","saModules","saEmployees","saDesigns","saUpdates","saUpdateForm","saBackups","saScheduler","saRecovery","saInvoices","saInvoiceFix","saMcp","saMoyasar","saTestAccounts"],tcMy:["tcPolicy","tcClose"],tcBoard:["tcTask","tcForm","tcList","tcLanes","tcBoardD","tcCard","tcNew","tcCardQA","tcShare"],tcQA:["tcQALib"],tcAdmin:["tcRemind"],hrAttendance:["tcCheckin","tcGeo"],tcTeam:["tcMember","tcShots","tcSessions"],tcHours:["tcAttend"],tcSettings:["tcMigrate"],contracts:["contractShow","contractAdd","contractEdit"],cvs:["cvAdd","cvShow","cvEdit","cvReview","cvShares"],clients:["clientShow","clientAdd"],orders:["orderShow"],
  rental:["rentalShow","rentalAdd"],housing:["housingShow","housingAdd"],transfer:["transferShow","transferAdd"],
  reports:["report"],finSales:["finSaleAdd","finBonds","finReturns"],finBanks:["finBoxes","finTransfers","finChecksIn","finChecksOut"],finClients:["finSuppliers","finAgents"],
  finCenters:["finCentersTree"],finReports:["finReport"],finItems:["finStock","finInventory"],finEntries:["finAdd","finShow"],finAccounts:["finSettings"],clArchive:[],delegations:["delAdd","delShow"],trips:["tripShow"],agents:["agentShow"],"hb-board":["hbNew"],"hb-visits":["hbVisit"],coupons:["couponsHourly","couponForm","couponShow","couponBulk","couponReport","couponSettings"],claims:["claimAdd","claimShow","claimTypes"],absconding:["abscShow"],campaigns:["campaignNew"],finRequests:["finRequestAdd","finRequestShow"],finAssets:["finAssetShow"],finCommissions:["finCommissionShow","finCommissionRules"],finTax:["finZatca"],hrEmployees:["hrEmployeeShow","hrEmployeeAdd"],hrPayroll:["hrPayrollRun"],setUsers:["setRoles"],visaRequests:["visaAdd","visaShow"]};
 /* v1.8.1: sidebar badges = only things that need action (no totals). r=urgent/late, a=waiting for you, n=unread */
-const ALERTS={tcAdmin:[2,"r","مهمتين إدارة متأخرين"],tcVault:[1,"r","حساب باسورده عدّى 90 يوم"],tcQA:[4,"a","4 مهام مستنية اختبارك"],tcInbox:[7,"a","7 حاجات واردة لسه متفرزتش"],tcHandoff:[3,"a","3 مهام مستنياك تستلمها"],tcApprovals:[3,"a","3 تسجيلات وقت بانتظار اعتمادك"],orders:[6,"a","6 طلبات جديدة لسه محدش ردّ عليها"],contracts:[18,"r","18 عقد تجاوز 45 يوم بدون تذاكر"],invoices:[7,"r","7 فواتير متأخرة السداد"],transfer:[4,"a","4 طلبات نقل بانتظار موافقتك"],housing:[2,"a","2 عاملة محتاجين فحص طبي"],followups:[5,"a","5 متابعات مطلوبة النهارده"],chats:[3,"n","3 محادثات غير مقروءة"],claims:[2,"r","شكوتين عاجلتين"],absconding:[2,"r","2 بلاغ هروب مفتوح"],"hb-alerts":[1,"r","بلاغ مفتوح من الطاقم"],visaDash:[2,"a","2 طلب تأشيرة بانتظار الموافقة"],finRequests:[5,"a","5 طلبات مالية بانتظار اعتمادك"],finTax:[4,"r","4 فواتير مرفوضة من ZATCA"],hrRequests:[7,"a","7 طلبات موظفين مستنية قرارك"],hrAttendance:[1,"r","موظف برّه النطاق مستني اعتمادك"],setMessages:[0,"r","مزود الرسائل النصية متوقف"]};
+const ALERTS={tcAdmin:[2,"r","مهمتين إدارة متأخرين"],tcVault:[1,"r","حساب باسورده عدّى 90 يوم"],tcQA:[4,"a","4 مهام مستنية اختبارك"],tcInbox:[7,"a","7 حاجات واردة لسه متفرزتش"],tcHandoff:[3,"a","3 مهام مستنياك تستلمها"],tcApprovals:[3,"a","3 تسجيلات وقت بانتظار اعتمادك"],orders:[6,"a","6 طلبات جديدة لسه محدش ردّ عليها"],cvs:[8,"a","8 بانتظار المراجعة: 4 سير مرفوعة و4 طلبات تغيير حالة"],contracts:[18,"r","18 عقد تجاوز 45 يوم بدون تذاكر"],invoices:[7,"r","7 فواتير متأخرة السداد"],transfer:[4,"a","4 طلبات نقل بانتظار موافقتك"],housing:[2,"a","2 عاملة محتاجين فحص طبي"],followups:[5,"a","5 متابعات مطلوبة النهارده"],chats:[3,"n","3 محادثات غير مقروءة"],claims:[2,"r","شكوتين عاجلتين"],absconding:[2,"r","2 بلاغ هروب مفتوح"],"hb-alerts":[1,"r","بلاغ مفتوح من الطاقم"],visaDash:[2,"a","2 طلب تأشيرة بانتظار الموافقة"],finRequests:[5,"a","5 طلبات مالية بانتظار اعتمادك"],finTax:[4,"r","4 فواتير مرفوضة من ZATCA"],hrRequests:[7,"a","7 طلبات موظفين مستنية قرارك"],hrAttendance:[1,"r","موظف برّه النطاق مستني اعتمادك"],setMessages:[0,"r","مزود الرسائل النصية متوقف"]};
 DEPTS.forEach(d=>d.items.forEach(p=>{if(p.sec)return;delete p.b;if(ALERTS[p.id])p.al=ALERTS[p.id]}));
 const ALB=p=>p&&p.al?`<span class="nal ${p.al[1]}${p.al[0]?"":" dot"}" title="${p.al[2]}">${p.al[0]?`<b class="num">${p.al[0]}</b>`:""}</span>`:"";
 const DAL=d=>{const al=d.items.filter(p=>p.al);if(!al.length)return "";const r=al.filter(p=>p.al[1]==="r").length,w=al.length-r;return `<span class="dal">${r?`<span class="nal r" title="${r} حاجة عاجلة"><b class="num">${r}</b></span>`:""}${w?`<span class="nal a" title="${w} حاجة مستنياك"><b class="num">${w}</b></span>`:""}</span>`};
@@ -7829,8 +7831,7 @@ const SH=[[305,"منيرة الشهري","+966 55 214 8890","سارة القحط
  [302,"شركة نجد للمقاولات","+966 11 405 2210","خالد المطيري","16 نوفمبر · 12:10","failed",2,0,0],
  [301,"هند الرشيد","+966 55 120 9987","سارة القحطاني","15 نوفمبر · 18:47","accepted",6,2,6]];
 const TK=s=>s==="read"?`<span class="rq-ticks read">${X("check-check")}تمت القراءة</span>`:s==="delivered"?`<span class="rq-ticks dlv">${X("check-check")}تم التسليم</span>`:s==="sent"?`<span class="rq-ticks dlv">${X("check")}أرسلت</span>`:`<span class="rq-ticks fail">${X("circle-alert")}فشل</span>`;
-S.cvShares=()=>`
- ${HEAD("سجل مشاركة السير","السير المرسلة للعملاء عبر واتساب: رسالة نصية مجمّعة ثم ملف PDF لكل سيرة، مع متابعة التسليم والقراءة لكل رسالة.",B("ghost","users","السير الذاتية",'data-go="cvs"')+B("primary","share-2","مشاركة سير جديدة",'data-go="cvs"'))}
+const CV_SHARES_BODY=()=>`
  <div class="statgrid">${STAT("n","send","مشاركات اليوم","2",1)+STAT("g","check-check","رسائل مقروءة","9 / 20")+STAT("a","circle-alert","مشاركات تحتاج إعادة محاولة","2")+STAT("n","file-text","سير أرسلت هذا الأسبوع","20")}</div>
  <div class="fbar">${SRCH("العميل، رقم الواتساب، رقم المشاركة…")}${FB("العميل",SEL(["كل العملاء","منيرة الشهري","ماجد الحربي"]))}${FB("العاملة",SEL(["كل العاملات","ماريتس دي لا كروز","ليزا بوتيستا"]))}${FB("الحالة",SEL(["الكل","قبل المزود الإرسال","إرسال جزئي","فشل الإرسال"]))}</div>
  <div class="grid-2" style="grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);align-items:start">
@@ -7861,9 +7862,8 @@ const SCR=[["جوان نامولي","B0091237","KAMPALA STAR","suspend","متا�
  ["ريجين لوبيز","P7710428","PLATINUM BROTHERS","delete","محجوزة","تكرار السيرة","مكتب PLATINUM BROTHERS","15 نوفمبر","العاملة محجوزة على طلب OR-4433 — لا يمكن الحذف"],
  ["أنوشا ديلروكشي","N6620187","SUPREME LINK","suspend","محجوزة","مراجعة طبية","مكتب SUPREME LINK","15 نوفمبر","التعليق يتطلب أن تكون العاملة متاحة"]];
 const SCT={suspend:["a","تعليق السيرة","تصبح الحالة: موقوفة"],backout:["r","Back Out","تصبح الحالة: مستبعدة، ويُسجَّل عدم الإتاحة"],delete:["n","سيرة محذوفة","تُخفى السيرة وتُحذف حذفاً مؤقتاً"]};
-S.cvReview=()=>`
- ${HEAD("مراجعة السير الذاتية","ما ترفعه المكاتب الخارجية وما تطلبه على السير يمر هنا قبل أن يظهر في النظام.",B("ghost","users","السير الذاتية",'data-go="cvs"'))}
- ${RTABS("cr",[["sub","inbox","السير المرفوعة بانتظار المراجعة",SUB.length],["scr","repeat","طلبات تغيير الحالة",SCR.length],["vis","eye","دفعات الإظهار",null],["del","trash-2","السير المحذوفة",3]],"sub")}
+const CV_REVIEW_BODY=()=>`
+ ${RTABS("cr",[["sub","inbox","السير المرفوعة بانتظار المراجعة",SUB.length],["scr","repeat","طلبات تغيير الحالة",SCR.length],["vis","eye","دفعات الإظهار",null]],"sub")}
  ${PANE("cr","sub",1,`
   <div class="fbar">${FB("بحث بالاسم / الجواز",`<div class="inp">${X("search")}<input placeholder="الاسم أو رقم الجواز"></div>`,1)}${FB("المكتب",SEL(["جميع المكاتب","PLATINUM BROTHERS","PT MITRA KARYA","SUPREME LINK","KAMPALA STAR"]))}${FB("النوع",SEL(["الكل","سيرة جديدة","تعديل سيرة"]))}</div>
   <div class="rq-bulk"><b>المحدد: <span class="num" data-rq-n="sub">0</span></b><span style="opacity:.8">القبول يُظهر السيرة في النظام ويُسجَّل المراجع · الحد 100 سيرة</span><span style="flex:1"></span>${B("green","check-check","قبول المحدد")}</div>
@@ -7885,10 +7885,15 @@ S.cvReview=()=>`
    ${SEC("history","سجل عملياتك",`<div>${[["h","17 نوفمبر 08:30","إخفاء — 37 سيرة","أوغندا، كينيا | KAMPALA STAR، NAIROBI LINK | متاحة",""],["s","14 نوفمبر 15:12","إظهار — 120 سيرة","الفلبين | جميع المكاتب | متاحة",""],["h","10 نوفمبر 11:47","إخفاء — 18 سيرة","إندونيسيا | PT MITRA KARYA | متاحة، محجوزة","تم التراجع: 16 سيرة — 11 نوفمبر 09:05"]].map(b=>`<div class="rq-batch"><span class="ic ${b[0]}">${X(b[0]==="h"?"eye-off":"eye")}</span><div><b>${b[2]}</b><small>${b[1]} · ${b[3]}</small>${b[4]?`<small style="color:var(--green-d)">${b[4]}</small>`:""}</div>${b[0]==="h"&&!b[4]?B("ghost sm","undo-2","التراجع عن الإخفاء"):""}</div>`).join("")}</div>
     <div class="cx-info">${X("info")}<span>التراجع يتجاوز السير التي تغيّرت حالتها بعد الإخفاء أو لم تعد مؤهلة.</span></div>`,`<span style="margin-inline-start:auto" class="rq-btns">${B("ghost sm","chevron-right","السابق")}${B("ghost sm","chevron-left","التالي")}</span>`)}
   </div>`)}
- ${PANE("cr","del",0,`
+`;
+const CV_DEL_BODY=()=>`
   <div class="fbar">${FB("الجواز",INP("رقم الجواز"),1)}${FB("الجنسية",SEL(["كل الجنسيات","الفلبين","إندونيسيا","سريلانكا"]))}${FB("المهنة",SEL(["الكل","عاملة منزلية","رعاية أطفال","طباخة"]))}${FB("سنوات الخبرة",SEL(["الكل","بدون خبرة","1-3","أكثر من 3"]))}${FB("من",INP("","2026-10-01",1,"date"))}${FB("إلى",INP("","2026-11-17",1,"date"))}</div>
   <div class="card flush">${TBL(`<th>ID</th><th>الاسم</th><th>الجواز</th><th>الجنسية</th><th>المهنة</th><th class="r">السعر</th><th class="r">الراتب</th><th>تاريخ الحذف</th><th>حذف بواسطة</th><th class="act"></th>`,
-  [["2291","نيرمالا ديفي","N5520913","سريلانكا","عاملة منزلية","14,900","1,300","15 نوفمبر","طلب مكتب SUPREME LINK"],["2240","روزا ماي غارسيا","P6610284","الفلبين","رعاية أطفال","17,250","1,500","09 نوفمبر","خالد المطيري"],["2198","سيتي فاطمة","C3390127","إندونيسيا","طباخة","15,800","1,200","28 أكتوبر","مشرف النظام"]].map(r=>`<tr><td class="num">${r[0]}</td><td>${MAID(r[1])}</td><td class="num">${r[2]}</td><td>${r[3]}</td><td>${r[4]}</td><td class="r">${M(r[5])}</td><td class="r">${M(r[6])}</td><td class="num">${r[7]}</td><td>${r[8]}</td><td class="act"><div class="rq-btns">${B("ghost","archive-restore","استعادة")}</div></td></tr>`).join(""))}${PAGER("عرض 3 من 3 سير")}</div>`)}`;
+  [["2291","نيرمالا ديفي","N5520913","سريلانكا","عاملة منزلية","14,900","1,300","15 نوفمبر","طلب مكتب SUPREME LINK"],["2240","روزا ماي غارسيا","P6610284","الفلبين","رعاية أطفال","17,250","1,500","09 نوفمبر","خالد المطيري"],["2198","سيتي فاطمة","C3390127","إندونيسيا","طباخة","15,800","1,200","28 أكتوبر","مشرف النظام"]].map(r=>`<tr><td class="num">${r[0]}</td><td>${MAID(r[1])}</td><td class="num">${r[2]}</td><td>${r[3]}</td><td>${r[4]}</td><td class="r">${M(r[5])}</td><td class="r">${M(r[6])}</td><td class="num">${r[7]}</td><td>${r[8]}</td><td class="act"><div class="rq-btns">${B("ghost","archive-restore","استعادة")}</div></td></tr>`).join(""))}${PAGER("عرض 3 من 3 سير")}</div>`;
+/* v1.37: review, shares and deleted CVs live as tabs on cvs; the old pages open the matching tab */
+window.CVX={review:CV_REVIEW_BODY,shares:CV_SHARES_BODY,del:CV_DEL_BODY};
+const CVGO=tab=>()=>{if(window.CERP_PAGE){location.replace("cvs.html#"+tab);return ""}CVTAB=tab;return screens.cvs()};
+S.cvReview=CVGO("review");S.cvShares=CVGO("shares");
 
 /* =====================================================================
    12) dispatches — RecruitmentContractExternalOfficeDispatchController
@@ -9362,6 +9367,84 @@ document.addEventListener("click",e=>{
  document.querySelectorAll("[data-ldp]").forEach(p=>p.hidden=p.dataset.ldp!==k);
  if(t.dataset.ldgo){const n=document.querySelector(".ld-tabs");if(n)window.scrollTo({top:n.getBoundingClientRect().top+scrollY-80,behavior:"smooth"})}
 });
+
+/* ===== v1.37 — سير التأجير (rentalCvs): MaidController@rentalIndex (maids/rental) — العاملة فين دلوقتي: عند عميل · في السكن · لم تصل · بالساعة ===== */
+(()=>{
+const {X,TAG,HEAD,B,PAGER}=window.CXH;
+window.CERP_PAGES=(window.CERP_PAGES||[]).concat(["rentalCvs"]);
+const NEW=`<span class="tag a hm-new">جديد</span>`;
+const TBL=(head,rows)=>`<div class="tw"><table class="rq-t"><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table></div>`;
+const MAID=(n,s)=>`<div class="rq-cv"><span class="ph">${X("user-round")}</span><div><b>${n}</b>${s?`<small>${s}</small>`:""}</div></div>`;
+const M=v=>`<span class="num">${v}</span> <small class="cur">ر.س</small>`;
+const DAYS=(d,warn,bad)=>`<span class="tag ${d<=bad?"r":d<=warn?"a":"g"}"><span class="num">${d}</span> يوماً</span>`;
+const ACTS=a=>`<div class="rowacts">${a.map(x=>`<button class="icon-btn pri" title="${x[1]}" ${x[2]||""}>${X(x[0])}</button>`).join("")}</div>`;
+
+/* على رأس العمل — rentalContracts نشط: name, nat, passport, client, contract, start, end, daysLeft, fee, iqamaExpiry(id_expiry_date), iqamaDays, progress% */
+const WK=[["فاطمة أحمدي","إثيوبيا","EP8812034","هند الرشيد","RC-2026-0036","01 يوليو 2026","22 نوفمبر 2026",3,"1,400","05 ديسمبر 2026",16,98],
+ ["ديوي ليستاري","سريلانكا","LK220145","منيرة الشهري","RC-2026-0041","01 سبتمبر 2026","30 نوفمبر 2026",11,"1,600","12 فبراير 2027",85,88],
+ ["جين وانغاري","كينيا","KE661204","ماجد الحربي","RC-2026-0033","10 يونيو 2026","09 ديسمبر 2026",20,"1,250","30 مارس 2027",131,89],
+ ["ماريا كلارا رييس","الفلبين","P5521093","شركة نجد للمقاولات","RC-2026-0038","15 أغسطس 2026","14 فبراير 2027",87,"1,750","22 ديسمبر 2026",33,52],
+ ["ريتا غوميز","الفلبين","P3390561","العنود المطيري","RC-2026-0030","20 مايو 2026","19 مايو 2027",181,"1,800","04 ديسمبر 2026",15,50]];
+/* في السكن — maid_accommodation_type = 2: name, nat, passport, since, days, readiness, fee, lastClient */
+const HS=[["هيلين تسفاي","إثيوبيا","ET119002","11 أكتوبر 2026",39,"ok","1,300","بدر القحطاني"],
+ ["مرسي أتينو","كينيا","KE990321","02 نوفمبر 2026",17,"ok","1,250",""],
+ ["نور الهدى بيغم","بنغلاديش","BD330981","12 نوفمبر 2026",7,"iqama","1,100",""],
+ ["سانداني بيريرا","سريلانكا","LK771045","16 نوفمبر 2026",3,"medical","1,350","عبدالله الدوسري"]];
+const RDY={ok:["g","جاهزة للتأجير"],iqama:["a","الإقامة تنتهي خلال 12 يوماً"],medical:["a","بانتظار الفحص الطبي"]};
+/* لم تصل المملكة — arrival_date فاضي: name, nat, passport, office, stageIndex(0..3), expected, prebooking */
+const AR=[["جوي سانتوس","الفلبين","P8830127","PLATINUM BROTHERS",2,"27 نوفمبر 2026","هيا العنزي"],
+ ["أبيبا ناكاتو","أوغندا","B2290418","KAMPALA STAR",1,"12 ديسمبر 2026 تقريباً",""]];
+const STG=["تفويض","تفييز","تذكرة","وصول"];
+/* بالساعة — rental_mode = hourly: name, nat, team, visitsWeek, rating, suspended(hourly_is_suspended) */
+const HR=[["ليزا بوتيستا","الفلبين","فريق شمال الرياض",9,"4.8",0],["أمينة حسن","بنغلاديش","فريق شرق الرياض",6,"4.5",1]];
+/* موقوفة / مرحّلة */
+const AV=[["بيتي وانجيرو","كينيا","r","موقوفة","18 يوليو 2026","بلاغ تغيّب — قيد المراجعة"],["سيتي رحمة","بنغلاديش","n","مُرحّلة","15 يوليو 2026","انتهاء الإقامة وترحيل العاملة"]];
+
+const iqSoon=WK.filter(r=>r[10]<=30).length+1, endWeek=WK.filter(r=>r[7]<=7).length, endTwo=WK.filter(r=>r[7]<=14).length, idle=HS.filter(r=>r[4]>=30).length;
+const TABS=[["working","briefcase","على رأس العمل",WK.length],["housing","home","في السكن",HS.length],["arriving","plane-landing","لم تصل المملكة",AR.length],["hourly","clock","بالساعة",HR.length],["archive","archive","موقوفة / مرحّلة",AV.length]];
+let TAB="working";try{const h=location.hash.slice(1);if(TABS.some(x=>x[0]===h))TAB=h}catch(_){}
+const PANE=(n,html)=>`<div class="rq-pane" data-rq-pane="rcv:${n}" ${n===TAB?"":"hidden"}>${html}</div>`;
+const FBAR=(ph,extra)=>`<div class="fbar"><div class="fb grow"><label>بحث</label><div class="inp">${X("search")}<input placeholder="${ph}"></div></div><div class="fb"><label>الجنسية</label><select><option>كل الجنسيات</option><option>الفلبين</option><option>كينيا</option><option>إثيوبيا</option><option>سريلانكا</option><option>بنغلاديش</option></select></div>${extra||""}</div>`;
+
+const screens_={rentalCvs:()=>`
+ ${HEAD("سير التأجير","أين كل عاملة تأجير الآن: لدى عميل، أو في السكن، أو لم تصل المملكة بعد — وما المطلوب على كل واحدة.",B("ghost","download","تصدير")+B("ghost","share-2","مشاركة سير")+B("primary","plus","إضافة سيرة تأجير",'data-go="cvAdd"'))}
+ <div class="rcv-attn">
+  <button class="rcv-a r" data-rq-tab="rcv:working">${X("calendar-x")}<div><b><span class="num">${endWeek}</span> عقد ينتهي خلال أسبوع</b><small><span class="num">${endTwo}</span> عقود خلال أسبوعين — جدّد أو أعِد العاملة للسكن</small></div></button>
+  <button class="rcv-a a" data-rq-tab="rcv:working">${X("id-card")}<div><b><span class="num">${iqSoon}</span> إقامات تنتهي خلال 30 يوماً</b><small>جدّد قبل الانتهاء لتجنّب المخالفة</small></div></button>
+  <button class="rcv-a n" data-rq-tab="rcv:housing">${X("home")}<div><b><span class="num">${HS.length}</span> عاملات في السكن</b><small><span class="num">${idle}</span> منها أكثر من 30 يوماً دون تأجير</small></div></button>
+  <button class="rcv-a n" data-rq-tab="rcv:arriving">${X("plane-landing")}<div><b><span class="num">${AR.length}</span> بانتظار الوصول</b><small>أقرب وصول 27 نوفمبر — عليها حجز مسبق</small></div></button>
+ </div>
+ <div class="vtabs rq-tabs rcv-tabs">${TABS.map(x=>`<button class="${x[0]===TAB?"on":""}" data-rq-tab="rcv:${x[0]}">${X(x[1])}<span>${x[2]}</span><em class="num">${x[3]}</em></button>`).join("")}</div>
+
+ ${PANE("working",`${FBAR("اسم العاملة، الجواز، العميل، رقم العقد",`<div class="fb"><label>ينتهي العقد خلال</label><select><option>أي وقت</option><option>7 أيام</option><option>30 يوماً</option></select></div>`)}
+  <div class="card flush">${TBL(`<th>العاملة</th><th>العميل / العقد</th><th>مدة العقد</th><th>المتبقي</th><th class="r">الأجرة الشهرية</th><th>الإقامة</th><th class="act"></th>`,
+  WK.map(r=>`<tr><td>${MAID(r[0],`${r[1]} · <span class="num">${r[2]}</span>`)}</td><td><b>${r[3]}</b><small><a href="#" data-go="rentalShow" class="num">${r[4]}</a></small></td><td><small><bdi>${r[5]}</bdi> ← <bdi>${r[6]}</bdi></small><span class="rcv-bar"><i style="width:${r[11]}%"></i></span></td><td>${DAYS(r[7],14,7)}</td><td class="r">${M(r[8])}</td><td><small>${r[9]}</small>${r[10]<=30?TAG("a",`تنتهي خلال ${r[10]} يوماً`):`<small>سارية</small>`}</td><td class="act">${ACTS([["eye","عرض السيرة",'data-go="cvShow"'],["file-text","عقد التأجير",'data-go="rentalShow"'],["refresh-cw","تجديد العقد"],["home","إعادة للسكن"]])}</td></tr>`).join(""))}${PAGER(`عرض ${WK.length} من ${WK.length} عاملات`)}</div>`)}
+
+ ${PANE("housing",`${FBAR("اسم العاملة أو الجواز",`<div class="fb"><label>الجاهزية</label><select><option>الكل</option><option>جاهزة للتأجير</option><option>تحتاج إجراء</option></select></div>`)}
+  <div class="card flush">${TBL(`<th>العاملة</th><th>في السكن منذ ${NEW}</th><th>الجاهزية</th><th class="r">أجرة التأجير</th><th>آخر عميل</th><th class="act"></th>`,
+  HS.map(r=>`<tr><td>${MAID(r[0],`${r[1]} · <span class="num">${r[2]}</span>`)}</td><td><small>${r[3]}</small><span class="tag ${r[4]>=30?"r":r[4]>=14?"a":"n"}"><span class="num">${r[4]}</span> يوماً</span></td><td>${TAG(RDY[r[5]][0],RDY[r[5]][1])}</td><td class="r">${M(r[6])}</td><td>${r[7]||`<span class="rq-dim">لم تؤجَّر بعد</span>`}</td><td class="act"><div class="rq-btns">${B("primary sm","file-signature","تأجير",'data-go="rentalAdd"')}${ACTS([["eye","عرض السيرة",'data-go="cvShow"'],["share-2","مشاركة السيرة"]])}</div></td></tr>`).join(""))}${PAGER(`عرض ${HS.length} من ${HS.length} عاملات`)}</div>
+  <div class="cx-info" style="margin:12px 0 0">${X("info")}<span>العاملة في السكن تكلّف المكتب السكن والإعاشة يومياً؛ لذلك تظهر المدة بالأصفر بعد 14 يوماً وبالأحمر بعد 30 يوماً.</span></div>`)}
+
+ ${PANE("arriving",`
+  <div class="card flush">${TBL(`<th>العاملة</th><th>المكتب الخارجي</th><th>المرحلة</th><th>الوصول المتوقع</th><th>حجز مسبق</th><th class="act"></th>`,
+  AR.map(r=>`<tr><td>${MAID(r[0],`${r[1]} · <span class="num">${r[2]}</span>`)}</td><td>${r[3]}</td><td><div class="rcv-steps">${STG.map((s,i)=>`<span class="${i<r[4]?"done":i===r[4]?"cur":""}">${s}</span>`).join("")}</div></td><td><small>${r[5]}</small></td><td>${r[6]?`<b>${r[6]}</b><small>يُنشأ العقد عند الوصول</small>`:`<span class="rq-dim">لا يوجد</span>`}</td><td class="act">${ACTS([["eye","عرض السيرة",'data-go="cvShow"'],["calendar-clock","حجز مسبق",'data-go="visaPrebook"']])}</td></tr>`).join(""))}</div>`)}
+
+ ${PANE("hourly",`
+  <div class="card flush">${TBL(`<th>العاملة</th><th>الفريق</th><th>زيارات هذا الأسبوع</th><th>التقييم</th><th>الحالة</th><th class="act"></th>`,
+  HR.map(r=>`<tr><td>${MAID(r[0],r[1])}</td><td>${r[2]}</td><td class="num">${r[3]}</td><td><span class="num">${r[4]}</span> / 5</td><td>${r[5]?TAG("a","موقوفة مؤقتاً عن الزيارات"):TAG("g","تعمل")}</td><td class="act">${ACTS([["calendar-range","الجدول",'data-go="hb-schedule"'],["repeat","تحويل إلى تأجير شهري"]])}</td></tr>`).join(""))}</div>
+  <div class="cx-info" style="margin:12px 0 0">${X("info")}<span>يظهر هذا التبويب عند تفعيل التأجير بالساعة فقط. لا يمكن التحويل إلى الشهري وعلى العاملة زيارات مفتوحة.</span></div>`)}
+
+ ${PANE("archive",`
+  <div class="card flush">${TBL(`<th>العاملة</th><th>الحالة</th><th>التاريخ</th><th>السبب</th><th class="act"></th>`,
+  AV.map(r=>`<tr><td>${MAID(r[0],r[1])}</td><td>${TAG(r[2],r[3])}</td><td>${r[4]}</td><td class="wrap"><small>${r[5]}</small></td><td class="act">${ACTS([["eye","عرض السيرة",'data-go="cvShow"']])}</td></tr>`).join(""))}</div>`)}
+`};
+Object.assign(T,{rentalCvs:{ar:"سير التأجير",en:"Rental CVs"}});
+Object.keys(screens_).forEach(k=>{screens[k]=screens_[k]});
+})();
+/* rental CVs: keep the open tab in the address so the link can be shared */
+document.addEventListener("click",e=>{const t=e.target.closest('[data-rq-tab^="rcv:"]');if(!t)return;const n=t.dataset.rqTab.split(":")[1];
+ document.querySelectorAll('.rcv-tabs [data-rq-tab]').forEach(b=>b.classList.toggle("on",b.dataset.rqTab==="rcv:"+n));
+ try{history.replaceState(null,"",location.pathname+location.search+(n==="working"?"":"#"+n))}catch(_){}});
 
 (function(){var P=window.CERP_PAGE;if(!P)return;var PAGES=window.CERP_PAGES||[];
 if(P==="login"){renderLogin();return}

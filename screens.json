@@ -1,6 +1,6 @@
 {
-  "version": "v1.34",
-  "date": "2026-11-17",
+  "version": "v1.37",
+  "date": "2026-11-19",
   "entry": "login.html",
   "screens": [
     {
@@ -976,12 +976,17 @@
     {
       "id": "cvReview",
       "file": "cvReview.html",
-      "title": "مراجعة السير الذاتية"
+      "title": "مراجعة السير الذاتية (تبويب في السير الذاتية)"
     },
     {
       "id": "cvShares",
       "file": "cvShares.html",
-      "title": "مشاركة السير الذاتية"
+      "title": "مشاركة السير الذاتية (تبويب في السير الذاتية)"
+    },
+    {
+      "id": "rentalCvs",
+      "file": "rentalCvs.html",
+      "title": "سير التأجير"
     },
     {
       "id": "rcExtensions",
