@@ -3412,7 +3412,7 @@ const DEPTS=[
  {id:"all",i:"layout-dashboard",ar:"الرئيسية",en:"Home",s:"الرئيسية",d:"لوحة التحكم والتقارير والشاشات المثبتة",items:[
   A("dashboard","layout-dashboard","لوحة التحكم","Dashboard"),A("reports","folder-open","مركز التقارير","Reports centre")]},
  {id:"ops",i:"briefcase",ar:"العمليات",en:"Operations",s:"العمليات",d:"الاستقدام والتأشيرات والتأجير ونقل الخدمات",items:[
-  H("الاستقدام"),A("recDash","gauge","لوحة الاستقدام","Recruitment dashboard"),A("orders","shopping-cart","الطلبات","Orders","121"),A("cvs","files","السير الذاتية","CVs"),A("cvReview","file-check-2","مراجعة السير الذاتية","CV review"),A("cvShares","share-2","مشاركة السير الذاتية","CV shares"),
+  H("الاستقدام"),A("recDash","layout-dashboard","لوحة المعلومات","Dashboard"),A("orders","shopping-cart","الطلبات","Orders","121"),A("cvs","files","السير الذاتية","CVs"),A("cvReview","file-check-2","مراجعة السير الذاتية","CV review"),A("cvShares","share-2","مشاركة السير الذاتية","CV shares"),
   A("contracts","file-text","عقود الاستقدام","Recruitment contracts","115"),A("invoices","receipt","فواتير العقود","Contract invoices"),
   A("delegations","file-signature","تفاويض الإنجاز","Mandates"),A("trips","plane","الرحلات","Trips"),A("agents","handshake","الوكلاء الخارجيون","External agents"),A("arrivals","plane-landing","تقرير العاملات الواصلات","Arrivals report"),
   H("طلبات العقود"),A("rcExtensions","calendar-plus","طلبات التمديد","Extension requests"),A("rcRenewals","refresh-cw","طلبات التجديد","Renewal requests"),A("rcReturns","undo-2","طلبات الاسترجاع","Return requests"),A("rcArchive","archive","أرشيف العقود","Contracts archive"),
@@ -4659,7 +4659,7 @@ W.reps=["تقارير تخص دورك","أفتح أنهي تقرير؟","REPORTS
 /* pulse: one plain sentence per module + 3 figures. Numbers must match the module's own dashboard (finDash, hrDash …) */
 const PULSE={
  fin:{st:"g",go:"finDash",gl:"لوحة المالية",v:`كسبانين <b class="g">86,400 ر.س</b> هذا الشهر بعد المصروفات، والسيولة تكفي <b>2.4 شهر</b> تشغيل.`,f:[["السيولة","612,300",""],["لينا عند العملاء","184,600","r"],["علينا للمكاتب","96,750",""]]},
- ops:{st:"r",go:"recDash",gl:"لوحة الاستقدام",v:`<b>38</b> عقد استقدام شغالين، و<b class="r">18</b> منهم عدّوا المدة المسموحة لمرحلتهم. أغلبهم في مرحلة التذاكر.`,f:[["وصول النهارده","2",""],["تذاكر جاهزة","13",""],["تحت الضمان","2",""]]},
+ ops:{st:"r",go:"recDash",gl:"لوحة المعلومات",v:`<b>38</b> عقد استقدام شغالين، و<b class="r">18</b> منهم عدّوا المدة المسموحة لمرحلتهم. أغلبهم في مرحلة التذاكر.`,f:[["وصول النهارده","2",""],["تذاكر جاهزة","13",""],["تحت الضمان","2",""]]},
  rent:{st:"a",go:"rental",gl:"عقود التأجير",v:`<b>13</b> عقد تأجير نشط، و<b class="a">3</b> منها متأخرة في الدفع. و<b>17</b> معاملة نقل خدمات، <b class="a">4</b> منها في فترة التجربة.`,f:[["تنتهي هذا الشهر","2",""],["فواتير مستحقة","3","r"],["في فترة التجربة","4","a"]]},
  ext:{st:"a",go:"agents",gl:"المكاتب",v:`<b>26</b> طلب عند المكاتب الخارجية، و<b class="a">4</b> منهم من غير رد. أقدمهم من 6 أيام.`,f:[["سير جديدة","14",""],["مدة الوصول","42 يوم",""],["مكاتب نشطة","22",""]]},
  crm:{st:"r",go:"clients",gl:"العملاء",v:`<b class="r">2</b> شكوى عاجلة مستنية رد، و<b>9</b> متابعات النهارده منهم <b class="a">3</b> متأخرة.`,f:[["عملاء جدد","6",""],["طلبات جديدة","7",""],["محادثات بدون رد","12","a"]]},
@@ -4798,7 +4798,7 @@ S.dashboard=()=>{
  const body=self?`${secHead("user-round","إنت فين النهارده؟","حضورك وإجازاتك وراتبك","","")}${pulse}<div class="hm-in">${details}</div>`
   :many?`
   ${secHead("eye","لمحة","التشغيل الأول، وبعده الفلوس · دوس على أي إدارة عشان تروح للوحتها","","")}${dvGlance(P)}
-  ${ops?`${secHead("file-text","التشغيل","كل عقد في أي مرحلة، وفين التأخير","recDash","لوحة الاستقدام")}
+  ${ops?`${secHead("file-text","التشغيل","كل عقد في أي مرحلة، وفين التأخير","recDash","لوحة المعلومات")}
   <div class="hm-grid">${card("مسار عقود الاستقدام","38 عقد تحت التشغيل · 18 عدّوا المدة المسموحة لمرحلتهم",dvPipe(),more("contracts","كل العقود"),"wide")}</div>`:""}
   ${fin?`${secHead("wallet","الفلوس","دخلنا كام، وصرفنا كام، والفلوس فين","finDash","لوحة المالية")}
   <div class="hm-grid">${card("الإيرادات والمصروفات","آخر 6 شهور · بالألف ر.س",dvFin(),`<div class="hm-legend dv-lg0"><span><i class="in"></i>إيرادات</span><span><i class="out"></i>مصروفات</span></div>`,"wide")}
@@ -5533,7 +5533,7 @@ document.addEventListener("input",e=>{
  const f=document.querySelector("[data-rcfav]");if(f)f.hidden=!!q;
  const n=document.querySelector("[data-rcnone]");if(n)n.hidden=!!any;
 });
-Object.assign(T,{dashboard:{ar:"الرئيسية",en:"Home"},reports:{ar:"مركز التقارير",en:"Reports centre"},recDash:{ar:"لوحة الاستقدام",en:"Recruitment dashboard"}});
+Object.assign(T,{dashboard:{ar:"الرئيسية",en:"Home"},reports:{ar:"مركز التقارير",en:"Reports centre"},recDash:{ar:"لوحة المعلومات",en:"Dashboard"}});
 window.CERP_PAGES=(window.CERP_PAGES||[]).concat(["recDash"]);
 Object.keys(S).forEach(k=>{screens[k]=S[k]});
 /* ===== v1.31 — لوحة المالية: نسختين حسب نوع البرنامج =====
@@ -5981,14 +5981,14 @@ S.saModules=()=>`
  ${IDEA("«نوع البرنامج» بقى قرار كبير لوحده فوق، وقبل التغيير بيعرض بالظبط إيه اللي هيختفي وإيه اللي هيظهر (شاشات المالية الخاصة بالاستقدام، صلاحيات مركز المهام…) — مع إن البيانات مش بتتمسح. والموديلات مقسومة: أساسي ومقفول، متاح، ومش متاح للنوع ده، بدل ما تبقى كلها مفاتيح شبه بعض.")}
  ${saNav("saModules")}
  ${HEAD("الموديلات","إغلاق أي موديل يخفيه من القائمة ويمنع الوصول لمساراته داخل لوحة الإدارة.",`<span class="sa-pill">مفعّل <b class="num">11</b> من <b class="num">14</b></span>`+B("primary","save","حفظ تغييرات الموديلات"))}
- <div class="card sec"><div class="sec-h">${X("package")}<b>نوع البرنامج</b><small class="tc-sub">تغيير النوع لا يحذف أي بيانات أو إعدادات.</small></div><div class="sa-prof">${[["recruitment","نظام الاستقدام","النسخة الحالية بكامل عمليات الاستقدام والعقود والعمالة.","لوحة الاستقدام",1],["general","نظام عام","نسخة ERP عامة بدون عمليات الاستقدام المتخصصة.","لوحة المالية"]].map(p=>`<label class="${p[4]?"on":""}"><input type="radio" name="pf" ${p[4]?"checked":""}><span><b>${p[1]}</b>${p[4]?TAG("g","الحالي"):""}<small>${p[2]}</small><em>${X("layout-dashboard")}${p[3]}</em></span></label>`).join("")}</div>
+ <div class="card sec"><div class="sec-h">${X("package")}<b>نوع البرنامج</b><small class="tc-sub">تغيير النوع لا يحذف أي بيانات أو إعدادات.</small></div><div class="sa-prof">${[["recruitment","نظام الاستقدام","النسخة الحالية بكامل عمليات الاستقدام والعقود والعمالة.","لوحة المعلومات",1],["general","نظام عام","نسخة ERP عامة بدون عمليات الاستقدام المتخصصة.","لوحة المالية"]].map(p=>`<label class="${p[4]?"on":""}"><input type="radio" name="pf" ${p[4]?"checked":""}><span><b>${p[1]}</b>${p[4]?TAG("g","الحالي"):""}<small>${p[2]}</small><em>${X("layout-dashboard")}${p[3]}</em></span></label>`).join("")}</div>
   <div class="sa-diff"><b>${X("arrow-left-right")}لو حوّلت لـ «نظام عام»</b><div><div class="r"><small>هيختفي ويتقفل</small><span>إدارة التشغيل · تأشيرات الشركة · فواتير العقود · تحويلات مساند · الوكلاء الخارجيون · الملخص التشغيلي في المالية · صلاحيات الاستقدام في شاشة الأدوار</span></div><div class="g"><small>هيظهر</small><span>الموديل التشغيلي العام · حسابات شركات التقنية والتسويق · مركز المهام · لوحة المالية كافتراضية</span></div></div><small class="tc-sub">الصلاحيات المسندة بتفضل محفوظة، بس بتستخبى. كل تغيير بيتسجل في سجل تغييرات نوع البرنامج.</small></div>
   ${CONF("تغيير إلى general",FLD("سبب تغيير نوع البرنامج",INP("اشرح سبب التحويل والجهة الطالبة له"),1,"10 حروف على الأقل",1))}</div>
  <div class="grid-2 wide-l"><div class="card sec"><div class="sec-h">${X("blocks")}<b>مكوّنات النظام</b><small class="tc-sub">لنظام الاستقدام</small></div>
   <div class="sa-users">${X("users")}<span><b>إدارة المستخدمين</b><small>حد النسخة · اترك الحقل فارغًا لعدد غير محدود</small></span>${INP("غير محدود","60",1,"number")}</div>
   <div class="sa-mods">${MODS.map(m=>{const na=m[2]==="general",core=m[3]==="core";return `<div class="${na?"na":""}">${X(m[1])}<span><b>${m[0]}</b>${m[4]&&!na?`<small>${m[4]}</small>`:""}</span>${core?TAG("n","أساسي لهذا النوع")+`<span class="sw on lock"></span>`:na?TAG("n","غير متاح لهذا النوع")+`<span class="sw dis"></span>`:TAG(m[3]?"g":"n",m[3]?"مفعّل":"مغلق")+SW(m[3])}</div>`}).join("")}</div></div>
   <div class="fx-side">
-   ${SEC("layout-dashboard","لوحة التحكم الافتراضية",`<small class="tc-sub" style="display:block;padding:0 20px 8px">الصفحة اللي بيفتحها المستخدم بعد الدخول.</small><div class="cx-radio" style="padding:0 20px 16px">${["لوحة الاستقدام","لوحة المالية"].map((r,i)=>`<label><input type="radio" name="dd" ${i?"":"checked"}> ${r}</label>`).join("")}</div>`)}
+   ${SEC("layout-dashboard","لوحة التحكم الافتراضية",`<small class="tc-sub" style="display:block;padding:0 20px 8px">الصفحة اللي بيفتحها المستخدم بعد الدخول.</small><div class="cx-radio" style="padding:0 20px 16px">${["لوحة المعلومات","لوحة المالية"].map((r,i)=>`<label><input type="radio" name="dd" ${i?"":"checked"}> ${r}</label>`).join("")}</div>`)}
    ${SEC("pie-chart","ملخص النسخة",`<div style="padding:0 20px 18px"><span class="tc-bar"><i style="width:79%"></i></span>${KV([["الموديلات المفعّلة","11"],["المغلقة","3"],["نوع البرنامج","نظام الاستقدام"],["لوحة التحكم الجديدة",`<a href="#" data-go="saDesigns">مفعّلة — الافتراضية</a>`]])}</div>`)}
   </div></div>`;
 
@@ -9059,6 +9059,286 @@ document.addEventListener("click",e=>{
   root.querySelectorAll("[data-cms-p]").forEach(p=>{if(p.closest("[data-cms-tabs]")===root)p.hidden=p.dataset.cmsP!==k});return}
  const sw=e.target.closest(".cms-root .sw");if(sw){sw.classList.toggle("on");return}
  const ai=e.target.closest(".cms-ai");if(ai&&!e.target.closest(".rowacts,.sw,.cms-grip")){ai.classList.toggle("open");return}
+});
+
+/* ===== v1.35 — لوحة المعلومات (recDash): إحصائيات كل العمليات بكل موديلاتها =====
+   المصدر: admin/dashboard-new (DashboardController: contractsStats · ordersStats · cvStats · clientsStats · shelterStats · recruitmentTravelStats · deportationTravelStats · rentalStats · rentalMaidStats · transferStats · delegationStats · complaintStats · officeStats · contractProfessionStats · employeesStats)
+   + v2 HomePulse (pipeline/tiles) + VisaRequest (under_process/approved/paid/completed/rejected/cancelled · VisaUnitCancellation)
+   + Hourly (HourlyVisit statuses · HourlyPackage · HourlyRentalOrder renewals · HourlyCashCollection · HourlyWorkerSosAlert · ServiceDistrict)
+   + RentalContract · SponsorshipTransfer · IngazDelegation (under_process/executed/cancelled).
+   ألوان الموديلات ثابتة في كل الرسوم (اتراجعت بأداة فحص الألوان: تمييز عمى الألوان ΔE ≥ 9). الأحمر والبرتقالي الغامق للحالات بس. */
+(()=>{
+const {X,TAG,HEAD,B}=window.CXH;
+window.CERP_PAGES=(window.CERP_PAGES||[]).concat(["recDash"]);
+const NEW='<span class="tag a hm-new">جديد</span>';
+const F=n=>Math.round(n).toLocaleString("en-US");
+const TIP=s=>`data-tip="${String(s).replace(/"/g,"&quot;")}"`;
+const MO=["ديسمبر","يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر"];
+const MO6=MO.slice(6);
+/* model identity — same colour everywhere */
+const M={
+ rec:["الاستقدام","#2a78d6","file-text"],
+ hr:["التأجير بالساعة","#eb6834","clock"],
+ rent:["التأجير الشهري","#1baf7a","key-round"],
+ trans:["نقل الخدمات","#6250d6","arrow-left-right"],
+ ing:["تفاويض إنجاز","#e87ba4","file-signature"],
+ visa:["تأشيرات الشركة","#008300","stamp"]
+};
+/* new operations per month (Dec 2025 → Nov 2026) */
+const VOL={rec:[8,5,6,5,7,6,7,6,7,6,6,9],hr:[31,28,30,26,34,38,35,33,41,44,47,52],rent:[3,2,3,2,4,3,2,3,4,3,5,4],trans:[1,1,1,2,1,1,2,1,2,1,2,2],ing:[0,1,0,1,1,1,2,1,2,1,2,2],visa:[1,2,1,2,2,1,3,2,2,3,2,2]};
+
+/* ---------- chart primitives (inline SVG, RTL time axis: newest on the left) ---------- */
+const nice=v=>{const p=Math.pow(10,Math.floor(Math.log10(v||1))),n=v/p;return (n<=1?1:n<=2?2:n<=2.5?2.5:n<=5?5:10)*p};
+const axis=(W,H,pl,pr,pt,pb,max,fmt)=>{const st=nice(max/4),top=Math.ceil(max/st)*st,y=v=>pt+(H-pt-pb)*(1-v/top);let g="";for(let v=0;v<=top+1e-9;v+=st)g+=`<line x1="${pl}" x2="${W-pr}" y1="${y(v)}" y2="${y(v)}" class="ld-gl${v?"":" base"}"/><text x="${W-pr+8}" y="${y(v)+4}" class="ld-ax">${fmt?fmt(v):F(v)}</text>`;return {y,top,g}};
+
+/* stacked columns — series:[[key|name,color,values]] */
+const stackC=(labels,series,o={})=>{
+ const W=o.w||680,H=o.h||250,pl=6,pr=40,pt=12,pb=30,n=labels.length,gw=(W-pl-pr)/n,bw=Math.min(o.bw||26,gw*.62);
+ const tot=labels.map((_,i)=>series.reduce((a,s)=>a+s[2][i],0)),A=axis(W,H,pl,pr,pt,pb,Math.max(...tot)*1.08,o.fmt);
+ const cols=labels.map((l,i)=>{const cx=W-pr-gw*(i+.5);let acc=0;const last=i===n-1;
+  const segs=series.map((s,j)=>{const v=s[2][i];if(!v)return "";const y0=A.y(acc),y1=A.y(acc+v);acc+=v;const h=Math.max(1,y0-y1-(j?2:0));const top=j===series.length-1||series.slice(j+1).every(t=>!t[2][i]);
+   return top?`<path d="M${cx-bw/2},${y0-(j?2:0)}V${y0-(j?2:0)-h+3}q0,-3 3,-3h${bw-6}q3,0 3,3V${y0-(j?2:0)}z" fill="${s[1]}"/>`:`<rect x="${cx-bw/2}" y="${y0-(j?2:0)-h}" width="${bw}" height="${h}" fill="${s[1]}"/>`}).join("");
+  const tip=`<b>${l}</b>${series.map(s=>s[2][i]?`<span class="ld-tr"><i style="background:${s[1]}"></i>${s[0]}<em>${o.fmt?o.fmt(s[2][i]):F(s[2][i])}</em></span>`:"").join("")}<span class="ld-tr t">الإجمالي<em>${o.fmt?o.fmt(tot[i]):F(tot[i])}</em></span>`;
+  return `<g class="ld-g" ${TIP(tip)}><rect x="${cx-gw/2}" y="${pt}" width="${gw}" height="${H-pt-pb+4}" class="ld-hit"/>${segs}${last||o.all?`<text x="${cx}" y="${A.y(tot[i])-6}" class="ld-dl">${o.fmt?o.fmt(tot[i]):F(tot[i])}</text>`:""}<text x="${cx}" y="${H-10}" class="ld-ax mid${last?" on":""}">${l}</text></g>`}).join("");
+ return `<svg class="ld-svg" viewBox="0 0 ${W} ${H}" dir="ltr" role="img" aria-label="${o.aria||""}">${A.g}${cols}</svg>`;
+};
+/* grouped columns (2 series side by side) */
+const groupC=(labels,series,o={})=>{
+ const W=o.w||560,H=o.h||220,pl=6,pr=40,pt=12,pb=30,n=labels.length,gw=(W-pl-pr)/n,bw=Math.min(18,gw/3.2);
+ const A=axis(W,H,pl,pr,pt,pb,Math.max(...series.flatMap(s=>s[2]))*1.1,o.fmt);
+ const g=labels.map((l,i)=>{const cx=W-pr-gw*(i+.5),last=i===n-1;
+  const bars=series.map((s,j)=>{const x=cx+(j?1:-bw-1),v=s[2][i];return `<path d="M${x},${A.y(0)}V${A.y(v)+3}q0,-3 3,-3h${bw-6}q3,0 3,3V${A.y(0)}z" fill="${s[1]}"/>`}).join("");
+  return `<g class="ld-g" ${TIP(`<b>${l}</b>${series.map(s=>`<span class="ld-tr"><i style="background:${s[1]}"></i>${s[0]}<em>${F(s[2][i])}</em></span>`).join("")}${o.diff?`<span class="ld-tr t">${o.diff[0]}<em>${F(series[0][2][i]-series[1][2][i])}</em></span>`:""}`)}><rect x="${cx-gw/2}" y="${pt}" width="${gw}" height="${H-pt-pb+4}" class="ld-hit"/>${bars}<text x="${cx}" y="${H-10}" class="ld-ax mid${last?" on":""}">${l}</text></g>`}).join("");
+ return `<svg class="ld-svg" viewBox="0 0 ${W} ${H}" dir="ltr">${A.g}${g}</svg>`;
+};
+/* lines (+ soft area under the first) with a crosshair column per label */
+const lineC=(labels,series,o={})=>{
+ const W=o.w||680,H=o.h||240,pl=10,pr=40,pt=16,pb=30,n=labels.length,step=(W-pl-pr-20)/(n-1);
+ const A=axis(W,H,pl,pr,pt,pb,Math.max(...series.flatMap(s=>s[2].filter(v=>v!=null)))*1.12,o.fmt);
+ const x=i=>W-pr-10-step*i;
+ const paths=series.map((s,j)=>{const pts=s[2].map((v,i)=>v==null?null:[x(i),A.y(v)]).filter(Boolean);const d=pts.map((p,i)=>(i?"L":"M")+p[0].toFixed(1)+","+p[1].toFixed(1)).join("");
+  const area=j===0&&o.area!==false?`<path d="${d}L${pts[pts.length-1][0]},${A.y(0)}L${pts[0][0]},${A.y(0)}z" fill="${s[1]}" opacity=".09"/>`:"";
+  const lp=pts[pts.length-1];
+  return `${area}<path d="${d}" fill="none" stroke="${s[1]}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" ${s[3]?'stroke-dasharray="4 4"':""}/><circle cx="${lp[0]}" cy="${lp[1]}" r="4" fill="${s[1]}" stroke="#fff" stroke-width="2"/>${o.endLabel!==false&&j===0?`<text x="${lp[0]-8}" y="${lp[1]-9}" class="ld-dl end">${o.fmt?o.fmt(s[2].filter(v=>v!=null).slice(-1)[0]):F(s[2].filter(v=>v!=null).slice(-1)[0])}</text>`:""}`}).join("");
+ const hits=labels.map((l,i)=>`<g class="ld-g ld-x" ${TIP(`<b>${l}</b>${series.map(s=>s[2][i]==null?"":`<span class="ld-tr"><i style="background:${s[1]}"></i>${s[0]}<em>${o.fmt?o.fmt(s[2][i]):F(s[2][i])}</em></span>`).join("")}`)}><rect x="${x(i)-step/2}" y="${pt}" width="${step}" height="${H-pt-pb}" class="ld-hit"/><line x1="${x(i)}" x2="${x(i)}" y1="${pt}" y2="${A.y(0)}" class="ld-cross"/>${series.map(s=>s[2][i]==null?"":`<circle cx="${x(i)}" cy="${A.y(s[2][i])}" r="4" fill="${s[1]}" stroke="#fff" stroke-width="2" class="ld-pt"/>`).join("")}<text x="${x(i)}" y="${H-10}" class="ld-ax mid${i===n-1?" on":""}">${l}</text></g>`).join("");
+ return `<svg class="ld-svg" viewBox="0 0 ${W} ${H}" dir="ltr">${A.g}${paths}${hits}</svg>`;
+};
+const spark=(v,c)=>{const w=110,h=30,mx=Math.max(...v),mn=Math.min(...v),pt=v.map((x,i)=>[w-2-i*((w-4)/(v.length-1)),h-3-(x-mn)/((mx-mn)||1)*(h-8)]);const d=pt.map((p,i)=>(i?"L":"M")+p[0].toFixed(1)+","+p[1].toFixed(1)).join("");const l=pt[pt.length-1];
+ return `<svg class="ld-spark" viewBox="0 0 ${w} ${h}" dir="ltr" preserveAspectRatio="none"><path d="${d}L${l[0]},${h}L${pt[0][0]},${h}z" fill="${c}" opacity=".1"/><path d="${d}" fill="none" stroke="${c}" stroke-width="2" vector-effect="non-scaling-stroke" stroke-linejoin="round"/><circle cx="${l[0]}" cy="${l[1]}" r="2.6" fill="${c}"/></svg>`};
+/* donut + key */
+const donut=(items,center,sub,o={})=>{const tot=items.reduce((a,x)=>a+x[1],0),r=46,C=2*Math.PI*r;let off=0;
+ return `<div class="ld-donut"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="${r}" fill="none" stroke="var(--line-2)" stroke-width="15"/>${items.map(x=>{const f=x[1]/tot*C,s=x[1]?`<circle cx="60" cy="60" r="${r}" fill="none" stroke="${x[2]}" stroke-width="15" stroke-dasharray="${Math.max(0,f-1.6)} ${C}" stroke-dashoffset="${-off}" transform="rotate(-90 60 60)" ${TIP(`<b>${x[0]}</b>${o.fmt?o.fmt(x[1]):F(x[1])} · ${(x[1]/tot*100).toFixed(1)}%`)}/>`:"";off+=f;return s}).join("")}
+ <text x="60" y="58" class="ld-dc">${center}</text><text x="60" y="74" class="ld-ds">${sub}</text></svg>
+ <div class="ld-dk">${items.map(x=>`<div ${TIP(`${x[0]} · ${(x[1]/tot*100).toFixed(1)}%`)}><i style="background:${x[2]}"></i><span>${x[0]}</span><b class="num">${o.fmt?o.fmt(x[1]):F(x[1])}</b><em class="num">${Math.round(x[1]/tot*100)}%</em></div>`).join("")}</div></div>`};
+/* horizontal bars — [label, value, (tone|color), note] */
+const hbars=(rows,o={})=>{const mx=o.max||Math.max(...rows.map(r=>r[1])),tot=rows.reduce((a,r)=>a+r[1],0);
+ return `<div class="ld-hb">${rows.map(r=>`<div ${TIP(`<b>${r[0]}</b>${o.fmt?o.fmt(r[1]):F(r[1])}${o.pct!==false?` · ${Math.round(r[1]/tot*100)}%`:""}${r[3]?`<br>${r[3]}`:""}`)}><span class="t">${r[0]}</span><span class="tr"><i style="width:${r[1]/mx*100}%;background:${r[2]||o.c||"var(--navy)"}"></i></span><b class="num">${o.fmt?o.fmt(r[1]):F(r[1])}</b>${o.pct!==false?`<em class="num">${Math.round(r[1]/tot*100)}%</em>`:""}</div>`).join("")}</div>`};
+/* stacked horizontal rows — [label, [[name,value,color]...]] */
+const shbars=(rows,o={})=>{const mx=Math.max(...rows.map(r=>r[1].reduce((a,s)=>a+s[1],0)));
+ return `<div class="ld-hb stk">${rows.map(r=>{const t=r[1].reduce((a,s)=>a+s[1],0);return `<div ${TIP(`<b>${r[0]}</b>${r[1].map(s=>`<span class="ld-tr"><i style="background:${s[2]}"></i>${s[0]}<em>${F(s[1])}</em></span>`).join("")}<span class="ld-tr t">الإجمالي<em>${F(t)}</em></span>`)}><span class="t">${r[0]}</span><span class="tr">${r[1].map(s=>s[1]?`<i style="width:${s[1]/mx*100}%;background:${s[2]}"></i>`:"").join("")}</span><b class="num">${F(t)}</b>${o.note?`<em class="num">${o.note(r)}</em>`:""}</div>`}).join("")}</div>`};
+/* semicircle gauge */
+const gauge=(v,max,big,lbl,tone)=>{const r=52,C=Math.PI*r,f=Math.min(1,v/max);const col={r:"var(--red)",a:"var(--amber)",g:"var(--green-d)"}[tone]||"var(--navy)";
+ return `<div class="ld-gauge"><svg viewBox="0 0 132 76"><path d="M14,68A52,52 0 0 1 118,68" fill="none" stroke="var(--line-2)" stroke-width="12" stroke-linecap="round"/><path d="M14,68A52,52 0 0 1 118,68" fill="none" stroke="${col}" stroke-width="12" stroke-linecap="round" stroke-dasharray="${C*f} ${C}"/><text x="66" y="58" class="ld-gv">${big}</text></svg><small>${lbl}</small></div>`};
+/* actual vs allowed (bullet) — [label, actual, target] days */
+const bullet=(rows,unit)=>{const mx=Math.max(...rows.flatMap(r=>[r[1],r[2]]))*1.12;
+ return `<div class="ld-bul">${rows.map(r=>{const late=r[1]>r[2];return `<div ${TIP(`<b>${r[0]}</b>المتوسط ${r[1]} ${unit} · المسموح ${r[2]} ${unit}${late?`<br>أعلى بـ ${r[1]-r[2]} ${unit}`:""}`)}><span class="t">${r[0]}</span><span class="tr"><i class="${late?"late":""}" style="width:${r[1]/mx*100}%"></i><u style="inset-inline-start:${r[2]/mx*100}%"></u></span><b class="num ${late?"r":""}">${r[1]} <small>${unit}</small></b></div>`}).join("")}</div>
+ <div class="ld-lg"><span><i style="background:var(--navy)"></i>في حدود المسموح</span><span><i style="background:var(--red)"></i>أعلى من المسموح</span><span><u></u>الحد المسموح (من الإعدادات)</span></div>`};
+/* heatmap — rows × cols, one sequential hue */
+const heat=(rows,cols,m,unit)=>{const mx=Math.max(...m.flat());
+ return `<div class="ld-heat" style="--n:${cols.length}"><span></span>${cols.map(c=>`<small class="ch">${c}</small>`).join("")}${rows.map((r,i)=>`<small class="rh">${r}</small>${cols.map((c,j)=>{const v=m[i][j],a=.06+.94*v/mx;return `<i style="background:rgba(42,120,214,${a.toFixed(2)})" class="${a>.55?"dk":""}" ${TIP(`<b>${r} · ${c}</b>${v} ${unit}`)}>${v}</i>`}).join("")}`).join("")}</div>
+ <div class="ld-hscale"><small>أقل</small>${[.06,.3,.55,.8,1].map(a=>`<i style="background:rgba(42,120,214,${a})"></i>`).join("")}<small>أكثر</small></div>`};
+/* scatter (quadrants on targets) — pts:[name, x, y, size] */
+const scatter=(pts,o)=>{const W=o.w||1000,H=o.h||300,pl=44,pr=16,pt=14,pb=38,xmx=o.xmax,ymx=o.ymax;const x=v=>W-pr-(v/xmx)*(W-pl-pr),y=v=>pt+(H-pt-pb)*(1-v/ymx);
+ let g="";for(let v=0;v<=ymx;v+=o.ys)g+=`<line x1="${pl}" x2="${W-pr}" y1="${y(v)}" y2="${y(v)}" class="ld-gl${v?"":" base"}"/><text x="${pl-8}" y="${y(v)+4}" class="ld-ax" text-anchor="end">${v}%</text>`;
+ for(let v=0;v<=xmx;v+=o.xs)g+=`<text x="${x(v)}" y="${H-pb+16}" class="ld-ax mid">${v}</text>`;
+ const zone=`<rect x="${x(o.xt)}" y="${y(o.yt)}" width="${W-pr-x(o.xt)}" height="${y(0)-y(o.yt)}" class="ld-zone"/><line x1="${x(o.xt)}" x2="${x(o.xt)}" y1="${pt}" y2="${y(0)}" class="ld-tl"/><line x1="${pl}" x2="${W-pr}" y1="${y(o.yt)}" y2="${y(o.yt)}" class="ld-tl"/><text x="${(x(o.xt)+W-pr)/2}" y="${y(0)-12}" class="ld-zt" text-anchor="middle">المنطقة المستهدفة: أسرع وأقل إرجاع</text>`;
+ const mxs=Math.max(...pts.map(p=>p[3]));
+ const dots=pts.map(p=>{const r=6+16*Math.sqrt(p[3]/mxs),bad=p[1]>o.xt||p[2]>o.yt;return `<g ${TIP(`<b>${p[0]}</b>متوسط الوصول ${p[1]} يوم<br>نسبة الإرجاع ${p[2]}%<br>${p[3]} عقد`)}><circle cx="${x(p[1])}" cy="${y(p[2])}" r="${r}" fill="${bad?"var(--red)":"#2a78d6"}" fill-opacity=".22" stroke="${bad?"var(--red)":"#2a78d6"}" stroke-width="2"/><text x="${x(p[1])}" y="${y(p[2])-r-5}" class="ld-sl">${p[4]||p[0]}</text></g>`}).join("");
+ return `<svg class="ld-svg" viewBox="0 0 ${W} ${H}" dir="ltr">${g}${zone}${dots}<text x="${(W+pl)/2}" y="${H-4}" class="ld-ax mid">${o.xl} ←</text></svg>`};
+/* step flow with counts */
+const flow=(steps,side)=>`<div class="ld-flow">${steps.map((s,i)=>`<div class="st ${s[2]||""}" ${TIP(`<b>${s[0]}</b>${s[1]} ${s[3]||""}`)}><b class="num">${s[1]}</b><span>${s[0]}</span>${s[4]?`<em>${s[4]}</em>`:""}</div>${i<steps.length-1?`<i class="ar">${X("chevron-left")}</i>`:""}`).join("")}${side?`<div class="ld-fside">${side.map(s=>`<div><b class="num ${s[2]||""}">${s[1]}</b><small>${s[0]}</small></div>`).join("")}</div>`:""}</div>`;
+const legend=items=>`<div class="ld-lg">${items.map(i=>`<span><i style="background:${i[1]}"></i>${i[0]}${i[2]!=null?` <b class="num">${i[2]}</b>`:""}</span>`).join("")}</div>`;
+const card=(title,sub,inner,o={})=>`<section class="card flush ld-c ${o.cls||""}"><div class="ld-ch"><div><h3>${title}${o.isNew?NEW:""}</h3>${sub?`<p>${sub}</p>`:""}</div>${o.go?`<a href="#" class="btn btn-ghost sm" data-go="${o.go[0]}">${o.go[1]}${X("arrow-left")}</a>`:""}</div><div class="ld-cb">${inner}</div>${o.foot?`<div class="ld-foot ${o.ft||""}">${X(o.fi||"info")}<span>${o.foot}</span></div>`:""}</section>`;
+/* KPI tile with sparkline: [icon,label,value,sub,tone,spark,color,go,delta] */
+const kpis=list=>`<div class="ld-kpis">${list.map(k=>`<a href="#" class="card ld-k ${k[4]||""}" ${k[7]?`data-go="${k[7]}"`:""}><div class="kh"><span class="ni n">${X(k[0])}</span><span>${k[1]}</span>${k[8]?`<em class="${k[8][0]}">${k[8][1]}</em>`:""}</div><b class="num">${k[2]}</b><small>${k[3]}</small>${k[5]?spark(k[5],k[6]||"#2a78d6"):""}</a>`).join("")}</div>`;
+const verdict=(txt,icon)=>`<div class="ld-verdict">${X(icon||"sparkles")}<p>${txt}</p></div>`;
+
+/* ================= 1. نظرة عامة ================= */
+const health=[
+ ["rec","r","محتاج تدخل","recDash",`<b>38</b> عقد تحت التشغيل، <b class="r">18</b> منهم عدّوا مدة مرحلتهم`,[["جديدة الشهر","9"],["وصول الأسبوع","4"],["تحت الضمان","2"]],"rec"],
+ ["visa","a","محتاج متابعة","visaDash",`<b>18</b> وحدة تأشيرة متاحة، و<b class="a">6</b> منها تنتهي خلال 60 يوم`,[["طلبات مفتوحة","9"],["مكتمل فيه رصيد","11"],["مستحقات وكلاء","54,400"]],"visa"],
+ ["hr","r","محتاج تدخل","hb-board",`<b>14</b> زيارة النهارده، و<b class="r">2</b> السواق متأخر عليهم +20 دقيقة`,[["زيارات الشهر","342"],["التقييم","4.6"],["باقات نشطة","86"]],"hourly"],
+ ["rent","a","محتاج متابعة","rental",`<b>13</b> عقد إيجار نشط، و<b class="a">3</b> متأخرة في الدفع`,[["تنتهي الشهر","2"],["إشغال العاملات","68%"],["طلبات إيجار","9"]],"rent"],
+ ["trans","a","محتاج متابعة","transferOverview",`<b>17</b> معاملة نقل خدمات، <b class="a">4</b> في فترة التجربة`,[["بانتظار الاعتماد","5"],["تم النقل","4"],["فشل التجربة","1"]],"rent"],
+ ["ing","g","ماشي تمام","delegations",`<b>5</b> تفاويض تحت الإجراء، ومفيش تفويض عدّى مدته`,[["تم التنفيذ","8"],["ملغى","1"],["إيراد السنة","186,300"]],"rent"]
+];
+const pOverview=()=>`
+ ${verdict(`الشهر ده اشتغلنا على <b class="num">${F(Object.values(VOL).reduce((a,v)=>a+v[11],0))}</b> عملية جديدة في 6 موديلات — أعلى شهر في السنة، والزيادة كلها تقريباً من <b>التأجير بالساعة</b> (<b class="num">52</b> باقة جديدة، +11% عن أكتوبر). أكبر مشكلة مفتوحة: <b class="r num">18</b> عقد استقدام متأخر، <b class="num">11</b> منهم في مرحلة التذاكر.`)}
+ ${kpis([["layers","عمليات جديدة الشهر","71","في 6 موديلات","",[44,38,41,38,49,50,50,46,57,58,64,71],"#2a78d6","",["g","+11%"]],
+  ["banknote","إيرادات الشهر","412,800","ر.س · 4 مصادر","",[330,318,361,372,388,412.8],"#1baf7a","finDash",["g","+6%"]],
+  ["file-text","عقود استقدام تحت التشغيل","38","موزعة على 7 مراحل","r",[31,33,35,34,36,38],"#2a78d6","contracts",["r","18 متأخرة"]],
+  ["clock","زيارات بالساعة","342","هذا الشهر · 93% اكتملت","",[251,268,280,301,322,342],"#eb6834","hb-visits",["g","+6%"]],
+  ["stamp","رصيد تأشيرات متاح","18","وحدة من 47","a",[31,28,26,24,21,18],"#008300","visaBalance",["a","6 تنتهي قريب"]],
+  ["home","داخل الإيواء","64","من 66 مكان","a",[52,55,57,61,62,64],"#6250d6","housing",["a","97% ممتلئ"]]])}
+ <div class="ld-grid">
+  ${card("الإيراد حسب الموديل — آخر 6 شهور","بالألف ر.س · مرّر على أي شهر للتفاصيل",stackC(MO6,[["الاستقدام",M.rec[1],[232,221,251,258,270,286.4]],["التأجير الشهري",M.rent[1],[41,42,46,47,48,49.85]],["التأجير بالساعة",M.hr[1],[33,35,38,40,44,48.3]],["نقل الخدمات",M.trans[1],[24,20,26,27,26,28.25]]],{h:250,bw:34,all:1,fmt:v=>(Math.round(v*10)/10)+"K"})+legend([["الاستقدام",M.rec[1]],["التأجير الشهري",M.rent[1]],["التأجير بالساعة",M.hr[1]],["نقل الخدمات",M.trans[1]]]),{go:["finDash","لوحة المالية"]})}
+  ${card("الإيراد حسب الموديل — نوفمبر","412,800 ر.س",donut([["الاستقدام",286400,M.rec[1]],["التأجير الشهري",49850,M.rent[1]],["التأجير بالساعة",48300,M.hr[1]],["نقل الخدمات",28250,M.trans[1]]],"412.8K","ر.س الشهر ده"),{foot:"الاستقدام لسه <b class=\"num\">69%</b> من الإيراد، بس التأجير بالساعة أسرع موديل نمواً: <b class=\"num\">+46%</b> من يونيو."})}
+  ${card("العمليات الجديدة كل شهر","آخر 12 شهر · كل موديل بمقياسه عشان الصغير يبان جنب الكبير",`<div class="ld-mini">${Object.keys(M).map(k=>{const v=VOL[k],mx=Math.max(...v),w=200,h=46,bw=w/v.length;return `<div><div class="mh"><i style="background:${M[k][1]}"></i>${M[k][0]}<b class="num">${v[11]}</b></div><svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" dir="ltr">${v.map((x,i)=>`<rect x="${w-bw*(i+1)+1.5}" y="${h-Math.max(1.5,x/mx*(h-4))}" width="${bw-3}" height="${Math.max(1.5,x/mx*(h-4))}" rx="1.5" fill="${M[k][1]}" opacity="${i===11?1:.45}" ${TIP(`<b>${M[k][0]} · ${MO[i]}</b>${x}`)}/>`).join("")}</svg><small>السنة: <b class="num">${F(v.reduce((a,b)=>a+b,0))}</b> · ${{rec:"عقد",hr:"باقة",rent:"عقد",trans:"معاملة",ing:"تفويض",visa:"طلب"}[k]}</small></div>`}).join("")}</div>`,{cls:"wide"})}
+ </div>
+ <div class="ld-sh"><h2>حال كل موديل</h2><small>الأولوية للي محتاج تدخل · دوس على أي كارت عشان تفتح تفاصيله</small></div>
+ <div class="ld-health">${health.sort((a,b)=>"rag".indexOf(a[1])-"rag".indexOf(b[1])).map(h=>`<a href="#" class="card ld-hc" data-ldgo="${h[6]}"><div class="hh"><span class="ld-mi" style="--c:${M[h[0]][1]}">${X(M[h[0]][2])}</span><b>${M[h[0]][0]}</b><span class="hm-st ${h[1]}"><i></i>${h[2]}</span></div><p>${h[4]}</p>${spark(VOL[h[0]],M[h[0]][1])}<div class="hf">${h[5].map(f=>`<div><b class="num">${f[1]}</b><small>${f[0]}</small></div>`).join("")}</div></a>`).join("")}</div>`;
+
+/* ================= 2. الاستقدام ================= */
+const STG2=[["عقد جديد",8,1,4,7],["توثيق مساند",7,0,5,10],["التفويض",3,2,9,7],["التفييز",3,1,12,14],["التذكرة",13,11,52,45],["مرحلة الوصول",2,1,3,2],["تحت الضمان",2,2,0,0]];
+const pRec=()=>`
+ ${verdict(`<b class="num">38</b> عقد شغالين و<b class="r num">18</b> منهم متأخرين — <b class="num">11</b> في <b>التذكرة</b> لوحدها، ومتوسطها <b class="num r">52</b> يوم والمسموح <b class="num">45</b>. متوسط الوصول من التعاقد <b class="num">42</b> يوم (الهدف 33)، و<b>PLATINUM BROTHERS</b> عنده 8 من الـ 11.`,"file-text")}
+ ${kpis([["files","كل عقود الاستقدام","115","2026 · 70 وقّعت هذه السنة","",[52,61,70,78,85,92,98,104,108,111,115],"#2a78d6","contracts"],
+  ["activity","تحت التشغيل","38","قبل الوصول 34 · الوصول 2 · الضمان 2","",[31,33,35,34,36,38],"#2a78d6","contracts"],
+  ["timer-off","متأخرة عن مدتها","18","11 عند المكاتب · 7 عندنا","r",[9,11,12,14,16,18],"#d4453c","contracts",["r","+2 الأسبوع"]],
+  ["plane-landing","متوسط الوصول","42 يوم","من التعاقد · الهدف 33","a",[38,39,41,40,43,42],"#2a78d6","arrivals",["a","+9 يوم"]],
+  ["check-circle-2","مكتملة","61","وصلت وخلص الضمان","",[40,44,49,53,57,61],"#1baf7a","contracts"],
+  ["x-circle","ملغاة ومرتجعة","16","11 ملغاة · 5 مرتجعة","",[10,11,12,13,15,16],"#9aa7bb","rcReturns"]])}
+ <div class="ld-grid">
+  ${card("مسار العقود: العدد والمدة","كل مرحلة: كام عقد فيها، ومتوسط الأيام فيها مقابل المسموح",`<div class="ld-pipe">${STG2.map(s=>`<div class="pr" ${TIP(`<b>${s[0]}</b>${s[1]} عقد · ${s[1]-s[2]} في الموعد · ${s[2]} متأخر${s[4]?`<br>متوسط ${s[3]} يوم · المسموح ${s[4]}`:""}`)}><span class="t">${s[0]}</span><span class="tr">${s[1]-s[2]?`<i class="ok" style="width:${(s[1]-s[2])/13*100}%"></i>`:""}${s[2]?`<i class="late" style="width:${s[2]/13*100}%"></i>`:""}</span><b class="num">${s[1]}</b>${s[4]?`<span class="dd ${s[3]>s[4]?"r":""}"><b class="num">${s[3]}</b>/${s[4]} يوم</span>`:`<span class="dd">90 يوم ضمان</span>`}</div>`).join("")}</div>
+   <div class="ld-lg"><span><i style="background:var(--navy)"></i>في الموعد</span><span><i style="background:var(--red)"></i>عدّى المدة المسموحة</span><span class="sum">المتوسط / المسموح بالأيام</span></div>`,{cls:"wide",go:["contracts","كل العقود"]})}
+  ${card("العقود الجديدة: 2026 مقابل 2025","عدد العقود الموقعة كل شهر",lineC(["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"],[["2026","#2a78d6",[5,6,5,7,6,7,6,7,6,6,9,null]],["2025","#9aa7bb",[6,5,7,6,8,7,6,9,8,7,8,8],1]],{area:true,w:1000,h:260})+legend([["2026","#2a78d6"],["2025 (متقطع)","#9aa7bb"]]),{cls:"wide",foot:"2026 لحد نوفمبر: <b class=\"num\">70</b> عقد مقابل <b class=\"num\">77</b> في نفس الفترة من 2025 (−9%). نوفمبر أعلى شهر في السنة."})}
+  ${card("طلبات الاستقدام (الحجوزات)","121 طلب",donut([["مكتملة",103,"#1baf7a"],["تحت الإجراء",7,"#2a78d6"],["جديدة",6,"#6250d6"],["ملغاة",5,"#9aa7bb"]],"121","طلب"),{go:["orders","الطلبات"],foot:"من الطلب للعقد: متوسط <b class=\"num\">3.4</b> يوم · نسبة التحويل <b class=\"num\">85%</b>"})}
+  ${card("العقود حسب المهنة","115 عقد",hbars([["عاملة منزلية",72],["سائق خاص",21],["طباخة",9],["ممرض منزلي",7],["عامل نظافة",4],["غير محدد",2]],{c:"#2a78d6"}))}
+  ${card("العقود حسب الجنسية","115 عقد",hbars([["الفلبين",58],["أوغندا",21],["إثيوبيا",14],["بنغلاديش",9],["كينيا",7],["الهند",6]],{c:"#2a78d6"}))}
+  ${card("مدة كل مرحلة مقابل المسموح","متوسط الأيام للعقود اللي عدّت المرحلة آخر 90 يوم",bullet(STG2.filter(s=>s[4]).map(s=>[s[0],s[3],s[4]]),"يوم"),{foot:"المدد المسموحة بتتظبط من إعدادات الاستقدام. التذكرة والتفويض هم الاتنين اللي فوق الحد.",ft:"r",fi:"alert-circle"})}
+  ${card("أداء الموظفين","عقود كل موظف حسب حالتها",shbars([["سارة القحطاني",[["مكتملة",11,"#1baf7a"],["جارية",6,"#2a78d6"],["مرتجعة",1,"#9aa7bb"]]],["أحمد يوسف",[["مكتملة",7,"#1baf7a"],["جارية",7,"#2a78d6"],["مرتجعة",0,"#9aa7bb"]]],["Mohameed",[["مكتملة",7,"#1baf7a"],["جارية",1,"#2a78d6"],["مرتجعة",4,"#9aa7bb"]]],["علي ناصر",[["مكتملة",2,"#1baf7a"],["جارية",4,"#2a78d6"],["مرتجعة",1,"#9aa7bb"]]],["هند الشمري",[["مكتملة",3,"#1baf7a"],["جارية",3,"#2a78d6"],["مرتجعة",0,"#9aa7bb"]]]],{note:r=>Math.round(r[1][2][1]/r[1].reduce((a,s)=>a+s[1],0)*100)+"% إرجاع"})+legend([["مكتملة","#1baf7a"],["جارية","#2a78d6"],["مرتجعة","#9aa7bb"]]),{cls:"wide"})}
+ </div>`;
+
+/* ================= 3. التأشيرات ================= */
+const VB=[["عاملة منزلية · الفلبين",14,20,"2027-02-10"],["عاملة منزلية · إندونيسيا",9,10,"2026-12-04"],["طباخة · سريلانكا",3,8,"2026-12-28"],["سائق خاص · بنغلاديش",2,5,"2027-05-21"],["ممرضة منزلية · كينيا",1,4,"2027-03-15"]];
+const pVisa=()=>`
+ ${verdict(`عندنا <b class="num">18</b> وحدة تأشيرة متاحة من <b class="num">47</b>. <b class="num a">6</b> وحدات هتنتهي خلال 60 يوم (إندونيسيا وسريلانكا) — لو ماتستخدمتش هتتحرق. و<b class="num">9</b> طلبات لسه مفتوحة، أطولها مستني رقم التأشيرة.`,"stamp")}
+ ${kpis([["file-plus-2","طلبات التأشيرة","23","هذه السنة · 11 مكتمل","",[1,3,4,6,8,9,12,14,16,19,21,23],"#008300","visaRequests"],
+  ["wallet-cards","وحدات متاحة","18","من 47 وحدة مكتملة","",[31,28,26,24,21,18],"#008300","visaBalance"],
+  ["hourglass","تنتهي خلال 60 يوم","6","إندونيسيا 1 · سريلانكا 5","a",null,"","visaBalance",["a","خطر حرق"]],
+  ["timer","متوسط دورة الطلب","19 يوم","من التقديم لرقم التأشيرة","",[24,23,21,22,20,19],"#008300","visaReports",["g","−2 يوم"]],
+  ["x-octagon","مرفوضة وملغاة","3","2 مرفوض · 1 ملغي","",null,"","visaRequests"],
+  ["globe","مستحقات وكلاء","54,400","ر.س · 1 فوق 90 يوم","r",null,"","finAgents"]])}
+ <div class="ld-grid">
+  ${card("دورة طلب التأشيرة","كل الطلبات المفتوحة والمقفولة · VisaRequest",flow([["تحت الإجراء",3,"n","طلب"],["موافق عليه",2,"a","بانتظار السداد","1 متأخر"],["مسدد",4,"a","بانتظار الرقم"],["مكتمل",11,"g","فيه رصيد"]],[["مرفوض",2,"r"],["ملغي",1,""]]),{cls:"wide",go:["visaRequests","الطلبات"]})}
+  ${card("رصيد كل تأشيرة","المستهلك مقابل المتبقي · مرتبة بالأقل رصيد",shbars(VB.map(v=>[v[0],[["مستهلك",v[1],"#9aa7bb"],["متبقي",v[2]-v[1],"#008300"]]]),{note:r=>`${r[1][1][1]} متبقي`})+legend([["مستهلك","#9aa7bb"],["متبقي","#008300"]]),{go:["visaBalance","الرصيد كامل"]})}
+  ${card("الاستهلاك","وحدات استُخدمت في عقود",gauge(29,47,"62%","29 من 47 وحدة"),{foot:"كل عقد استقدام للشركة بياخد وحدة واحدة من طلب مكتمل."})}
+  ${card("الوحدات المتبقية حسب شهر الانتهاء","الأحمر = أقل من 30 يوم",`<div class="ld-cols">${[["ديسمبر",6,"r","إندونيسيا 1 (4 ديسمبر) · سريلانكا 5 (28 ديسمبر)"],["يناير",0,""],["فبراير",6,"","الفلبين 6"],["مارس",3,"","كينيا 3"],["أبريل",0,""],["مايو",3,"","بنغلاديش 3"]].map(c=>`<div ${TIP(`<b>${c[0]}</b>${c[1]} وحدة${c[3]?`<br>${c[3]}`:""}`)}><b class="num">${c[1]||""}</b><span class="bar"><i class="${c[2]}" style="height:${c[1]/6*100}%"></i></span><small>${c[0]}</small></div>`).join("")}</div>`,{go:["visaPrebook","الحجز المسبق"]})}
+  ${card("طلبات التأشيرة كل شهر","آخر 12 شهر",stackC(MO,[["طلبات",M.visa[1],VOL.visa]],{w:560,h:210,bw:18}))}
+  ${card("مدة كل خطوة في الطلب","متوسط الأيام · آخر 6 شهور",bullet([["تحت الإجراء",4,5],["الموافقة",3,3],["السداد",2,3],["إصدار الرقم",10,7]],"يوم"))}
+ </div>`;
+
+/* ================= 4. التأجير بالساعة ================= */
+const HD=["السبت","الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس","الجمعة"],HS=["8 ص","10 ص","12 ظ","2 م","4 م","6 م","8 م"];
+const HM=[[9,14,8,6,11,13,7],[7,12,7,5,9,10,4],[6,11,6,5,8,9,4],[7,12,7,4,9,10,5],[8,13,8,6,10,12,6],[10,15,9,7,13,16,11],[3,6,4,3,7,10,9]];
+const pHourly=()=>`
+ ${verdict(`<b class="num">342</b> زيارة الشهر ده، اكتمل منها <b class="num">93%</b>. الضغط الأكبر <b>الخميس 6–8 م</b> و<b>الصبح 10–12</b>؛ و<b class="num a">11</b> زيارة ضاعت (فائتة أو العميل ما كانش موجود). نسبة تجديد الباقات <b class="num">64%</b>.`,"clock")}
+ ${kpis([["calendar-check","زيارات الشهر","342","14 النهارده · 5 جارية","",[251,268,280,301,322,342],"#eb6834","hb-visits",["g","+6%"]],
+  ["check-circle-2","نسبة الإتمام","93%","318 من 342","g",[90,91,92,91,92,93],"#eb6834","hb-visits"],
+  ["star","متوسط التقييم","4.6","من 61 تقييم هذا الأسبوع","",[4.4,4.5,4.5,4.6,4.5,4.6],"#eb6834","hb-visits"],
+  ["banknote","إيراد الشهر","48,300","ر.س · 1,200 مع الطاقم","",[33,35,38,40,44,48.3],"#eb6834","hbCollect"],
+  ["package","باقات نشطة","86","52 جديدة هذا الشهر","",[61,66,70,74,80,86],"#eb6834","hb-clients"],
+  ["siren","نداءات طوارئ","1","مفتوح · الشهر 3","r",null,"","hbSos"]])}
+ <div class="ld-grid">
+  ${card("أوقات الضغط","عدد الزيارات حسب اليوم والفترة · آخر 4 أسابيع",heat(HD,HS,HM,"زيارة"),{cls:"wide",foot:"الخميس 6–8 م هو أعلى فترة (16 زيارة). وزّع السواقين على الفترة دي قبلها بيوم من «الجدول»."})}
+  ${card("نتيجة الزيارات","342 زيارة · نوفمبر",donut([["مكتملة",318,"#1baf7a"],["العميل لم يحضر",6,"#eb6834"],["ألغاها العميل",9,"#6250d6"],["فائتة",5,"#d4453c"],["ملغاة",4,"#9aa7bb"]],"93%","اكتملت"),{go:["hbExceptions","الاستثناءات"]})}
+  ${card("الزيارات آخر 6 شهور","المكتملة مقابل الإجمالي",lineC(MO6,[["كل الزيارات","#eb6834",[251,268,280,301,322,342]],["مكتملة","#1baf7a",[226,244,258,274,296,318]]],{w:560,h:220}))}
+  ${card("الباقات النشطة","86 باقة حسب النوع",hbars([["باقة 4 ساعات",31],["باقة 8 ساعات",24],["شهرية 12 زيارة",19],["أسبوعية",12]],{c:"#eb6834"}),{foot:"تجديد الباقات: <b class=\"num\">64%</b> من الباقات اللي خلصت الشهر ده اتجددت."})}
+  ${card("طريقة التحصيل","48,300 ر.س · نوفمبر",donut([["ميسر (إلكتروني)",29800,"#2a78d6"],["نقدي اتورّد",15900,"#1baf7a"],["نقدي مع الطاقم",1200,"#eb6834"],["آجل",1400,"#9aa7bb"]],"48.3K","ر.س",{fmt:F}),{go:["hbCollect","التحصيل"]})}
+  ${card("أكتر الأحياء طلباً","زيارات الشهر",hbars([["الملقا",58],["النرجس",51],["الياسمين",44],["حطين",37],["العارض",29],["القيروان",26]],{c:"#eb6834"}),{go:["hb-zones","المناطق"]})}
+  ${card("انضباط السواقين","الوصول في المعاد · هذا الشهر",shbars([["أحمد",[["في المعاد",71,"#1baf7a"],["متأخر",7,"#d4453c"]]],["سامي",[["في المعاد",58,"#1baf7a"],["متأخر",11,"#d4453c"]]],["فيصل",[["في المعاد",66,"#1baf7a"],["متأخر",3,"#d4453c"]]],["ماجد",[["في المعاد",49,"#1baf7a"],["متأخر",2,"#d4453c"]]]],{note:r=>Math.round(r[1][0][1]/(r[1][0][1]+r[1][1][1])*100)+"% في المعاد"})+legend([["في المعاد","#1baf7a"],["متأخر +20 دقيقة","#d4453c"]]),{go:["hbDrivers","السائقون"]})}
+ </div>`;
+
+/* ================= 5. التأجير ونقل الخدمات والتفاويض ================= */
+const pRent=()=>`
+ ${verdict(`<b class="num">13</b> عقد إيجار شهري نشط من <b class="num">19</b> عاملة إيجار (<b class="num">68%</b> إشغال)، و<b class="num a">3</b> عقود متأخرة في الدفع بإجمالي <b class="num">14,850</b> ر.س. في نقل الخدمات <b class="num">4</b> في فترة التجربة، وأقربهم بيخلص بعد يومين.`,"repeat")}
+ ${kpis([["key-round","عقود إيجار نشطة","13","2 تنتهي هذا الشهر","",[9,10,11,11,12,13],"#1baf7a","rental"],
+  ["receipt","متأخرة في الدفع","3","14,850 ر.س","a",null,"","rentalInvoices",["a","أقدمها 19 يوم"]],
+  ["user-round","إشغال عاملات الإيجار","68%","13 من 19 · 6 متاحة","",[53,58,58,63,63,68],"#1baf7a","rental"],
+  ["arrow-left-right","نقل الخدمات","17","هذه السنة · 4 في التجربة","",[1,2,3,5,6,7,9,10,12,13,15,17],"#6250d6","transferOverview"],
+  ["file-signature","تفاويض إنجاز","14","5 تحت الإجراء","",[0,1,1,2,3,4,6,7,9,10,12,14],"#e87ba4","delegations"],
+  ["inbox","طلبات إيجار جديدة","9","هذا الشهر · 4 بدون رد","a",[5,6,4,7,8,9],"#1baf7a","rentalOrders"]])}
+ <div class="ld-grid">
+  ${card("من طلب الإيجار للعقد","هذا الشهر · طلبات الإيجار من الموقع والمكتب",`<div class="ld-fun">${[["طلبات إيجار",38,"كل الطلبات"],["اتواصلنا معاهم",31,"82%"],["عرض سعر",24,"63%"],["عقد موقّع",13,"34%"]].map((f,i,a)=>`<div ${TIP(`<b>${f[0]}</b>${f[1]} · ${f[2]}`)}><span class="lb">${f[0]}</span><span class="bar"><i style="width:${f[1]/a[0][1]*100}%"></i></span><b class="num">${f[1]}</b><em>${i?f[2]:""}</em></div>`).join("")}</div>`,{go:["rentalOrders","طلبات الإيجار"]})}
+  ${card("عقود الإيجار حسب الحالة","43 عقد هذه السنة",donut([["نشطة",13,"#1baf7a"],["موقّعة بانتظار التسليم",4,"#2a78d6"],["مرسلة للتوقيع",3,"#6250d6"],["مكتملة",21,"#9aa7bb"],["ملغاة",2,"#e87ba4"]],"43","عقد"),{go:["rental","عقود الإيجار"]})}
+  ${card("إيراد الإيجار الشهري","آخر 6 شهور · ر.س",groupC(MO6,[["مفوتر","#1baf7a",[46200,47100,50300,51800,52400,54700]],["محصّل","#2a78d6",[41000,42000,46000,47000,48000,49850]]],{diff:["لسه ما اتحصّلش"],w:1000,h:240})+legend([["مفوتر","#1baf7a"],["محصّل","#2a78d6"]]),{cls:"wide"})}
+  ${card("نقل الخدمات","17 معاملة · SponsorshipTransfer",flow([["بانتظار الاعتماد",5,"a"],["معتمدة",4,"n"],["فترة التجربة",4,"a","","أقربها بعد يومين"],["تم النقل",4,"g"]],[["فشل التجربة",1,"r"]]),{cls:"wide",go:["transferOverview","نقل الخدمات"]})}
+  ${card("تفاويض إنجاز","14 تفويض هذه السنة",donut([["تم التنفيذ",8,"#1baf7a"],["تحت الإجراء",5,"#e87ba4"],["ملغى",1,"#9aa7bb"]],"14","تفويض"),{go:["delegations","التفاويض"],foot:"إيراد التفاويض من أول السنة: <b class=\"num\">186,300</b> ر.س"})}
+  ${card("مدة إيجار العقود","عدد العقود النشطة حسب المدة المتبقية",hbars([["أقل من شهر",2,"#d4453c"],["1–3 شهور",4],["3–6 شهور",5],["أكثر من 6 شهور",2]],{c:"#1baf7a"}),{foot:"عقدين بينتهوا الشهر ده — النظام بيبعت تذكير التجديد قبلها بـ 14 يوم."})}
+ </div>`;
+
+/* ================= 6. الإيواء والرحلات ================= */
+const pHousing=()=>`
+ ${verdict(`الإيواء شبه ممتلئ: <b class="num">64</b> من <b class="num">66</b> مكان. منهم <b class="num">13</b> جاهزين للنقل من أمس و<b class="num">9</b> في مرحلة الترحيل — نقلهم يفضّي <b class="num">22</b> مكان. الأسبوع ده <b class="num">4</b> رحلات وصول و<b class="num">2</b> ترحيل، رحلة منهم من غير تأكيد حجز.`,"home")}
+ ${kpis([["home","داخل الإيواء","64","من 66 مكان","a",[52,55,57,61,62,64],"#6250d6","housing",["a","97%"]],
+  ["log-out","جاهز للنقل","13","من أمس","",null,"","housing"],
+  ["plane-takeoff","مرحلة الترحيل","9","5 تم ترحيلهم الشهر","",null,"","housing"],
+  ["plane-landing","رحلات الاستقدام","78","26 جارية · 2 قادمة","",[60,64,67,71,75,78],"#2a78d6","trips"],
+  ["plane","رحلات الترحيل","21","6 جارية · 15 مكتملة","",[12,14,15,17,19,21],"#6250d6","trips"],
+  ["calendar-clock","متوسط الإقامة","17 يوم","في الإيواء","",[21,20,19,18,18,17],"#6250d6","housing",["g","−1 يوم"]]])}
+ <div class="ld-grid">
+  ${card("الإشغال","64 من 66 مكان",gauge(64,66,"97%","2 أماكن فاضية","r"),{foot:"لو اتنقل الـ 13 الجاهزين يبقى الإشغال 77%.",ft:"r",fi:"alert-circle"})}
+  ${card("مين في الإيواء ولي","64 عاملة حسب سبب الدخول",hbars([["مرتجعة من عميل",24],["وصول جديد بانتظار التسليم",18],["فشل تجربة نقل",9],["بانتظار الترحيل",9],["هروب ورجوع",4]],{c:"#6250d6"}),{go:["housing","الإيواء"]})}
+  ${card("الدخول والخروج كل شهر","آخر 6 شهور",groupC(MO6,[["دخول","#6250d6",[18,22,19,25,21,24]],["خروج","#1baf7a",[16,20,21,19,23,20]]],{diff:["صافي التغيير"],w:1000,h:240})+legend([["دخول","#6250d6"],["خروج","#1baf7a"]]),{cls:"wide"})}
+  ${card("الرحلات الجاية","وصول وترحيل · الأسابيع الـ 6 الجاية",stackC(["هذا الأسبوع","الأسبوع 2","الأسبوع 3","الأسبوع 4","الأسبوع 5","الأسبوع 6"],[["وصول","#2a78d6",[4,3,5,2,6,3]],["ترحيل","#6250d6",[2,1,0,2,1,1]]],{w:560,h:210,bw:24,all:1})+legend([["وصول","#2a78d6"],["ترحيل","#6250d6"]]),{go:["trips","الرحلات"]})}
+  ${card("رحلات الأسبوع","مرتبة بالأقرب",`<div class="ld-list">${[["plane-landing","SV-872 · النهارده 4:30 م","عاملتين · PLATINUM BROTHERS","g","مؤكدة"],["plane-landing","EK-819 · الأربعاء 11:10 ص","سائق خاص · Supreme Link","a","بدون تأكيد حجز"],["plane-takeoff","ترحيل · الخميس 2:00 م","عاملة واحدة · مرحلة الترحيل","n","ترحيل"],["plane-landing","PR-654 · السبت 6:45 ص","عاملة منزلية · PLATINUM BROTHERS","g","مؤكدة"]].map(x=>`<div><span class="ni ${x[3]==="g"?"g":x[3]==="a"?"a":"n"}">${X(x[0])}</span><b>${x[1]}<small>${x[2]}</small></b>${TAG(x[3],x[4])}</div>`).join("")}</div>`,{go:["arrivals","تقرير الوصول"]})}
+ </div>`;
+
+/* ================= 7. المكاتب الخارجية والسير الذاتية ================= */
+const OFF=[["PLATINUM BROTHERS",42,3,158,"PLATINUM"],["Supreme Link Ltd",51,5,38,"Supreme Link"],["Al Noor Manpower",31,9,22,"Al Noor"],["Gulf Bridge Agency",27,0,12,"Gulf Bridge"],["Manila Star",36,4,18,"Manila Star"],["Kenya Link",46,7,11,"Kenya Link"],["Lanka Care",33,2,9,"Lanka Care"]];
+const pExt=()=>`
+ ${verdict(`<b class="num">22</b> مكتب خارجي، و<b class="num">3</b> منهم عندهم <b class="num">82%</b> من السير. <b>Gulf Bridge</b> و<b>Lanka Care</b> الأسرع والأقل إرجاع؛ <b>Supreme Link</b> الأبطأ (<b class="num">51</b> يوم). عندنا <b class="num">163</b> سيرة متاحة، <b class="num">74%</b> منها من الفلبين.`,"globe")}
+ ${kpis([["building-2","مكاتب متعاقدة","22","7 نشطة هذا الشهر","",null,"","agents"],
+  ["inbox","طلبات عند المكاتب","26","متوسط الرد 2.4 يوم","a",[18,21,19,23,24,26],"#2a78d6","agents",["a","4 بدون رد"]],
+  ["files","السير الذاتية","235","163 متاحة · 58 محجوزة","",[188,196,205,214,226,235],"#2a78d6","cvs"],
+  ["file-check-2","سير بانتظار المراجعة","14","من PLATINUM","a",null,"","cvReview"],
+  ["percent","تحويل السيرة لحجز","24%","من السير اللي اتعرضت الشهر","",[19,21,20,22,23,24],"#2a78d6","cvShares"],
+  ["undo-2","نسبة الإرجاع","4%","5 مرتجعة من 115","",[5,5,4,4,4,4],"#9aa7bb","rcReturns"]])}
+ <div class="ld-grid">
+  ${card("المكاتب: السرعة مقابل الإرجاع","كل دايرة مكتب · حجمها = عدد العقود · المربع المظلل = في حدود الهدف (33 يوم · 5%)",scatter(OFF,{xmax:60,ymax:10,xs:10,ys:2,xt:33,yt:5,xl:"متوسط أيام الوصول"}),{cls:"wide",go:["agents","كل المكاتب"]})}
+  ${card("السير الذاتية حسب الحالة","235 سيرة",donut([["متاحة",163,"#1baf7a"],["محجوزة",58,"#2a78d6"],["مستبعدة",6,"#6250d6"],["موقوفة",5,"#e87ba4"],["مرحّلة",3,"#9aa7bb"]],"235","سيرة"),{go:["cvs","السير الذاتية"]})}
+  ${card("المتاح حسب الجنسية","163 سيرة متاحة",hbars([["الفلبين",120],["أوغندا",24],["إثيوبيا",8],["بنغلاديش",6],["الهند",5]],{c:"#1baf7a"}))}
+  ${card("السير الواصلة والمحجوزة","آخر 6 شهور",groupC(MO6,[["وصلت","#2a78d6",[22,19,24,27,31,34]],["اتحجزت","#1baf7a",[9,8,10,12,14,15]]],{w:1000,h:240})+legend([["وصلت","#2a78d6"],["اتحجزت","#1baf7a"]]),{cls:"wide"})}
+  ${card("مخزون كل مكتب","أعلى 4 من 22",`<div class="tw"><table><thead><tr><th>المكتب</th><th>الإجمالي</th><th style="width:38%">التوزيع</th><th>متوسط الوصول</th></tr></thead><tbody>${[["PLATINUM BROTHERS","الفلبين",158,125,26,5,2,42],["Supreme Link Ltd","أوغندا",38,28,7,1,2,51],["Al Noor Manpower","إثيوبيا",22,14,6,2,0,31],["Gulf Bridge Agency","بنغلاديش",12,9,2,1,0,27]].map(o=>`<tr><td><b>${o[0]}</b><small class="hm-sm">${o[1]}</small></td><td class="num">${o[2]}</td><td><span class="ld-mbar" ${TIP(`<b>${o[0]}</b>متاحة ${o[3]} · أخرى ${o[4]} · مرتجع ${o[5]} · مستبعدة ${o[6]}`)}><i style="flex:${o[3]};background:#1baf7a"></i><i style="flex:${o[4]};background:#2a78d6"></i>${o[5]?`<i style="flex:${o[5]};background:#9aa7bb"></i>`:""}${o[6]?`<i style="flex:${o[6]};background:#6250d6"></i>`:""}</span></td><td class="num ${o[7]>45?"ld-r":""}">${o[7]} يوم</td></tr>`).join("")}</tbody></table></div>${legend([["متاحة","#1baf7a"],["أخرى","#2a78d6"],["مرتجع","#9aa7bb"],["مستبعدة","#6250d6"]])}`,{cls:"wide",go:["agents","التقرير الكامل"]})}
+ </div>`;
+
+/* ================= 8. العملاء والخدمة ================= */
+const pCrm=()=>`
+ ${verdict(`<b class="num">241</b> عميل، <b class="num">24</b> منهم جدد الشهر ده — أعلى شهر في السنة، ونصهم جايين من <b>الموقع والواتساب</b>. <b class="num r">2</b> شكوى عاجلة مفتوحة، ومتوسط حل الشكوى <b class="num">2.3</b> يوم.`,"users")}
+ ${kpis([["users","العملاء","241","39 عندهم طلبات جارية","",[171,185,201,214,227,241],"#2a78d6","clients"],
+  ["user-plus","عملاء جدد","24","هذا الشهر","",[14,18,16,21,19,24],"#2a78d6","clients",["g","+26%"]],
+  ["headphones","شكاوى مفتوحة","4","2 عاجلة","r",null,"","claims",["r","2 عاجلة"]],
+  ["timer","متوسط حل الشكوى","2.3 يوم","آخر 90 يوم","",[3.4,3.1,2.9,2.6,2.5,2.3],"#2a78d6","claims",["g","−0.2"]],
+  ["message-circle","محادثات بدون رد","12","أقدمها من ساعتين","a",null,"","chats"],
+  ["ticket-percent","كوبونات استُخدمت","37","وفّرت 9,250 ر.س","",[18,22,25,29,31,37],"#2a78d6","coupons"]])}
+ <div class="ld-grid">
+  ${card("من عميل محتمل لعقد","هذا الشهر · كل الموديلات",`<div class="ld-fun">${[["عملاء محتملون",86,""],["طلبوا عرض",52,"60%"],["طلب أو حجز",31,"36%"],["عقد / باقة",24,"28%"]].map((f,i,a)=>`<div ${TIP(`<b>${f[0]}</b>${f[1]}${f[2]?` · ${f[2]} من البداية`:""}`)}><span class="lb">${f[0]}</span><span class="bar"><i style="width:${f[1]/a[0][1]*100}%"></i></span><b class="num">${f[1]}</b><em>${f[2]}</em></div>`).join("")}</div>`,{go:["inbound","الطلبات الواردة"]})}
+  ${card("العملاء الجدد جايين منين","24 عميل · نوفمبر",donut([["الموقع",7,"#2a78d6"],["واتساب",6,"#1baf7a"],["التطبيق",5,"#eb6834"],["زيارة المكتب",4,"#6250d6"],["إحالة",2,"#9aa7bb"]],"24","عميل"))}
+  ${card("العملاء الجدد كل شهر","حسب الموديل اللي بدأوا بيه",stackC(MO6,[["استقدام",M.rec[1],[6,7,6,8,7,9]],["بالساعة",M.hr[1],[5,7,6,8,8,10]],["إيجار ونقل خدمات",M.rent[1],[3,4,4,5,4,5]]],{w:1000,h:240,bw:30,all:1})+legend([["استقدام",M.rec[1]],["بالساعة",M.hr[1]],["إيجار ونقل خدمات",M.rent[1]]]),{cls:"wide"})}
+  ${card("الشكاوى حسب النوع","آخر 90 يوم · 31 شكوى",shbars([["تأخر الوصول",[["اتحلت",7,"#1baf7a"],["مفتوحة",1,"#d4453c"]]],["العاملة ترفض العمل",[["اتحلت",5,"#1baf7a"],["مفتوحة",1,"#d4453c"]]],["تأخر زيارة بالساعة",[["اتحلت",6,"#1baf7a"],["مفتوحة",0,"#d4453c"]]],["استرداد رسوم",[["اتحلت",4,"#1baf7a"],["مفتوحة",1,"#d4453c"]]],["أخرى",[["اتحلت",5,"#1baf7a"],["مفتوحة",1,"#d4453c"]]]])+legend([["اتحلت","#1baf7a"],["مفتوحة","#d4453c"]]),{go:["claims","الشكاوى"]})}
+  ${card("وقت الرد على المحادثات","متوسط أول رد بالدقايق · آخر 6 شهور",lineC(MO6,[["أول رد","#2a78d6",[38,34,29,31,24,21]]],{w:560,h:210}),{foot:"الهدف أقل من 15 دقيقة في أوقات العمل."})}
+ </div>`;
+
+/* ================= page ================= */
+const TABS_=[["all","layout-dashboard","نظرة عامة",null,pOverview],["rec","file-text","الاستقدام",38,pRec],["visa","stamp","التأشيرات",18,pVisa],["hourly","clock","التأجير بالساعة",342,pHourly],["rent","repeat","التأجير ونقل الخدمات",13,pRent],["housing","home","الإيواء والرحلات",64,pHousing],["ext","globe","المكاتب والسير",235,pExt],["crm","users","العملاء والخدمة",241,pCrm]];
+let LDT="all";try{const h=location.hash.slice(1);if(TABS_.some(t=>t[0]===h))LDT=h}catch(_){}
+window.__LDT=k=>{LDT=k};
+const S={};
+S.recDash=()=>`<div class="ld-root">
+ ${HEAD("لوحة المعلومات","إحصائيات كل العمليات في مكان واحد: الاستقدام، التأشيرات، الساعات، التأجير، نقل الخدمات، التفاويض، الإيواء والعملاء · محدّث 10:24",
+  `<button class="pill">${X("building-2")}<span>كل الفروع</span>${X("chevron-down")}</button><div class="cx-seg2 o2-seg ld-per"><button>الأسبوع</button><button class="on">الشهر</button><button>الربع</button><button>السنة</button></div>`+B("ghost","file-spreadsheet","تصدير")+B("ghost","bar-chart-3","مركز التقارير",'data-go="reports"'))}
+ <nav class="ld-tabs" role="tablist">${TABS_.map(t=>`<button role="tab" class="${t[0]===LDT?"on":""}" data-ldt="${t[0]}" ${t[0]!=="all"?`style="--c:${{rec:M.rec[1],visa:M.visa[1],hourly:M.hr[1],rent:M.rent[1],housing:M.trans[1],ext:M.rec[1],crm:M.rec[1]}[t[0]]}"`:""}>${X(t[1])}<span>${t[2]}</span>${t[3]!=null?`<em class="num">${t[3]}</em>`:""}</button>`).join("")}</nav>
+ ${TABS_.map(t=>`<div class="ld-pane" data-ldp="${t[0]}"${t[0]===LDT?"":" hidden"}>${t[4]()}</div>`).join("")}
+</div>`;
+Object.assign(T,{recDash:{ar:"لوحة المعلومات",en:"Dashboard"}});
+Object.keys(S).forEach(k=>{screens[k]=S[k]});
+})();
+document.addEventListener("click",e=>{
+ const t=e.target.closest("[data-ldt],[data-ldgo]");if(!t)return;e.preventDefault();
+ const k=t.dataset.ldt||t.dataset.ldgo;window.__LDT(k);
+ document.querySelectorAll("[data-ldt]").forEach(b=>b.classList.toggle("on",b.dataset.ldt===k));
+ document.querySelectorAll("[data-ldp]").forEach(p=>p.hidden=p.dataset.ldp!==k);
+ if(t.dataset.ldgo){const n=document.querySelector(".ld-tabs");if(n)window.scrollTo({top:n.getBoundingClientRect().top+scrollY-80,behavior:"smooth"})}
 });
 
 (function(){var P=window.CERP_PAGE;if(!P)return;var PAGES=window.CERP_PAGES||[];
