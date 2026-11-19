@@ -609,6 +609,96 @@
       "title": "التقارير اليومية"
     },
     {
+      "id": "hrDocuments",
+      "file": "hrDocuments.html",
+      "title": "الوثائق والإقامات"
+    },
+    {
+      "id": "hrRenewal",
+      "file": "hrRenewal.html",
+      "title": "تجديد الإقامة"
+    },
+    {
+      "id": "hrMuqeem",
+      "file": "hrMuqeem.html",
+      "title": "متابعة مقيم"
+    },
+    {
+      "id": "hrTravel",
+      "file": "hrTravel.html",
+      "title": "الخروج والعودة"
+    },
+    {
+      "id": "hrContracts",
+      "file": "hrContracts.html",
+      "title": "العقود وتوثيق قوى"
+    },
+    {
+      "id": "hrRemote",
+      "file": "hrRemote.html",
+      "title": "العمل عن بعد"
+    },
+    {
+      "id": "hrLeaves",
+      "file": "hrLeaves.html",
+      "title": "الإجازات والتقويم"
+    },
+    {
+      "id": "hrPunchImport",
+      "file": "hrPunchImport.html",
+      "title": "رفع ملفات البصمة"
+    },
+    {
+      "id": "hrWorkerShow",
+      "file": "hrWorkerShow.html",
+      "title": "رحلة العاملة"
+    },
+    {
+      "id": "hrWps",
+      "file": "hrWps.html",
+      "title": "حماية الأجور"
+    },
+    {
+      "id": "hrGosi",
+      "file": "hrGosi.html",
+      "title": "التأمينات الاجتماعية"
+    },
+    {
+      "id": "hrEntries",
+      "file": "hrEntries.html",
+      "title": "قيود الموارد البشرية"
+    },
+    {
+      "id": "hrEos",
+      "file": "hrEos.html",
+      "title": "نهاية الخدمة والمخالصة"
+    },
+    {
+      "id": "hrPerformance",
+      "file": "hrPerformance.html",
+      "title": "تقييم الأداء"
+    },
+    {
+      "id": "hrReview",
+      "file": "hrReview.html",
+      "title": "تقييم موظف"
+    },
+    {
+      "id": "hrSurvey",
+      "file": "hrSurvey.html",
+      "title": "تقييم الإدارة"
+    },
+    {
+      "id": "hrCompliance",
+      "file": "hrCompliance.html",
+      "title": "الامتثال لنظام العمل"
+    },
+    {
+      "id": "hrSettings",
+      "file": "hrSettings.html",
+      "title": "إعدادات الموارد البشرية"
+    },
+    {
       "id": "setHome",
       "file": "setHome.html",
       "title": "الإعدادات (كل الإعدادات)"
