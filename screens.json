@@ -1,5 +1,5 @@
 {
-  "version": "v1.38",
+  "version": "v1.41",
   "date": "2026-11-19",
   "entry": "login.html",
   "screens": [
@@ -987,6 +987,16 @@
       "id": "rentalCvs",
       "file": "rentalCvs.html",
       "title": "سير التأجير"
+    },
+    {
+      "id": "rentalCvShow",
+      "file": "rentalCvShow.html",
+      "title": "تفاصيل سيرة التأجير"
+    },
+    {
+      "id": "rentalCvAdd",
+      "file": "rentalCvAdd.html",
+      "title": "إضافة سيرة تأجير"
     },
     {
       "id": "rcExtensions",
