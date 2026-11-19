@@ -3288,135 +3288,184 @@ document.addEventListener("change",e=>{
 });
 
 /* ===== clickerp-orders.js ===== */
-/* Orders & bookings — grounded in admin/ingaz/RecruitmentRequest/* (+ RentContract, SponsorshipTransfer) */
-/* v1.36 — كل نوع طلب في قسم مستقل (الاستقدام والتوسط · التأجير · نقل الخدمات)، ومصدر الطلب مفصول (الموقع الخارجي ← العميل نفسه / لوحة التحكم ← موظف)،
-   والحالات مجمّعة كما في OrderController@index: مفتوحة (new · under_process) / مكتملة (completed · done · contracted · contracted_without_contract أو له عقد) / غير مكتملة (refused · return · canceled_by_system).
-   المصدر = created_by_admin_id (فارغ ← الموقع الخارجي). المهلة deadline_at تُحسب للجديد وتحت الإجراء فقط. الطلب المكتمل تُقفل حالته وإجراءاته. */
-const orTypes=[["rec","الاستقدام والتوسط","Recruitment & mediation","file-text","طلبات العاملات بالاستقدام أو التوسط","Workers by recruitment or mediation"],["rent","التأجير","Rental","repeat","طلبات تأجير العمالة","Labour rental requests"],["trn","نقل الخدمات","Service transfer","arrow-left-right","طلبات نقل خدمات عاملة لكفيل جديد","Moving a worker to a new sponsor"]];
+/* v1.38 — الطلبات على نمط شاشة السير الذاتية: تبويبات للأنواع (الاستقدام والتوسط · التأجير · نقل الخدمات)، كروت حالة صغيرة في صف واحد،
+   والمصدر مفتاح صغير داخل شريط الفلاتر. لكل نوع أعمدته وتفاصيله: الاستقدام (المهنة والجنسية ونوع الطلب والعاملة والمكتب)،
+   التأجير (الباقة والعاملة وجاهزية العنوان والدفع)، نقل الخدمات (العاملة المنقولة والكفيل الحالي والرسوم وأيام التجربة).
+   الكود: OrderController@index (source_counts · created_by_admin_id · completed/not completed) و RentalOrderController و job_type_id = 3 لنقل الخدمات. */
+const orTypes=[["rec","الاستقدام والتوسط","Recruitment & mediation"],["rent","التأجير","Rental"],["trn","نقل الخدمات","Service transfer"]];
 const orSt=[["new","جديد","New","a","open"],["under_process","تحت الإجراء","In progress","n","open"],["contracted","تم التعاقد","Contracted","g","done"],["contracted_without_contract","تم التعاقد بدون عقد","Contracted (no contract)","g","done"],["completed","مكتمل","Completed","g","done"],["refused","مرفوض","Refused","r","notdone"],["return","مسترجع","Returned","r","notdone"],["canceled_by_system","ملغي من النظام","Cancelled by system","r","notdone"]];
-const orGroups=[["open","مفتوحة","Open"],["done","مكتملة","Completed"],["notdone","غير مكتملة","Not completed"]];
+const orGroups=[["open","المفتوحة","Open"],["done","المكتملة","Completed"],["notdone","غير المكتملة","Not completed"]];
 const orReqT={known:["معروفة","Known worker"],specific:["معيّنة","Specific worker"],custom:["حسب المواصفات","By specification"]};
-/* 0 no 1 type 2 job 3 client 4 phone 5 nat 6 date 7 time 8 mins-since 9 status 10 read 11 readBy 12 contract 13 salary 14 age 15 marital 16 religion 17 lang 18 exp 19 visa 20 worker 21 notes 22 branch 23 agent 24 createdBy ("" = الموقع الخارجي) 25 request type 26 closed after (mins) */
+/* src: "" = الموقع الخارجي (created_by_admin_id فارغ)، وإلا اسم الموظف · left: ساعات متبقية على deadline_at (سالب = متأخر) · closed: أُغلق بعد (دقائق) */
 const orRows=[
- ["OR-4412","rec","عاملة منزلية","منيرة الشهري","+966 55 214 8890","الفلبين","2026-08-17","09:14",38,"new",0,"—","","1,300",29,"عازبة","مسيحية","الإنجليزية",4,"—","have_experince","تفضل عاملة تتحدث الإنجليزية.","الفرع الرئيسي","سارة القحطاني","","custom",0],
- ["OR-4409","rec","طباخة","نورة الحربي","+966 50 771 2280","الهند","2026-08-16","11:25",1320,"under_process",1,"مدير الفرع","","1,600",31,"متزوجة","هندوسية","الإنجليزية",7,"—","have_experince","خبرة في المطبخ الهندي.","فرع الدمام","محمد الشهراني","محمد الشهراني","specific",0],
- ["OR-4405","rec","عاملة منزلية","سارة المطيري","+966 54 990 1123","إثيوبيا","2026-08-14","08:30",4760,"under_process",0,"—","","1,000",24,"عازبة","مسيحية","الأمهرية",1,"—","new_come","","الفرع الرئيسي","سارة القحطاني","","custom",0],
- ["OR-4408","rec","عاملة منزلية","هيا العنزي","+966 59 118 2043","كينيا","2026-08-15","14:03",2810,"contracted",1,"سارة القحطاني","CN-2026-0112","1,100",26,"عازبة","مسيحية","الإنجليزية",2,"—","new_come","","الفرع الرئيسي","سارة القحطاني","","known",1360],
- ["OR-4403","rec","سائق خاص","فهد السبيعي","+966 55 301 7724","الفلبين","2026-08-13","10:05",6130,"completed",1,"سارة القحطاني","CN-2026-0105","1,500",34,"متزوج","مسيحي","الإنجليزية",6,"—","have_experince","","الفرع الرئيسي","سارة القحطاني","سارة القحطاني","specific",640],
- ["OR-4401","rec","عاملة منزلية","ريم الزهراني","+966 50 448 1902","أوغندا","2026-08-12","17:40",7300,"refused",1,"مدير الفرع","","950",27,"عازبة","مسيحية","الإنجليزية",0,"—","new_come","العميل اختار مكتباً آخر.","فرع جدة","محمد الشهراني","","custom",1500],
- ["OR-4399","rec","عاملة منزلية","ماجد العتيبي","+966 56 902 3317","بنغلاديش","2026-08-11","22:18",8590,"canceled_by_system",0,"—","","1,000",30,"متزوجة","مسلمة","البنغالية",3,"—","have_experince","انتهت مهلة الحجز دون سداد.","الفرع الرئيسي","—","","known",2880],
- ["OR-4411","rent","عاملة منزلية (تأجير 6 أشهر)","شركة نجد للمقاولات","+966 11 448 2200","إندونيسيا","2026-08-17","08:02",110,"under_process",1,"مشرف النظام","","1,450",33,"متزوجة","مسلمة","العربية",6,"—","have_experince","سكن مؤمّن من الشركة.","الفرع الرئيسي","خالد العمري","","custom",0],
- ["OR-4402","rent","عاملة منزلية (تأجير شهري)","لمى القرني","+966 53 117 4480","الفلبين","2026-08-17","04:10",340,"new",0,"—","","1,500",32,"عازبة","مسيحية","الإنجليزية",5,"—","have_experince","","فرع جدة","خالد العمري","خالد العمري","known",0],
- ["OR-4407","rent","سائق خاص (تأجير سنة)","شركة الوفاء الطبية","+966 13 887 9011","بنغلاديش","2026-08-15","09:47",2990,"contracted",1,"خالد العمري","RC-2026-0041","1,800",40,"متزوج","مسلم","العربية",12,"V-77420","have_experince","سائق لنقل الكوادر الطبية.","فرع الدمام","خالد العمري","خالد العمري","specific",420],
- ["OR-4398","rent","عاملة منزلية (تأجير 3 أشهر)","عبير الشمري","+966 59 660 2215","كينيا","2026-08-10","13:22",9850,"return",1,"خالد العمري","","1,400",29,"عازبة","مسيحية","الإنجليزية",3,"—","have_experince","تراجع العميل قبل التسليم.","الفرع الرئيسي","خالد العمري","","custom",3100],
- ["OR-4410","trn","نقل خدمات عاملة منزلية","عبدالله الدوسري","+966 53 660 4471","سريلانكا","2026-08-16","19:40",840,"under_process",1,"سارة القحطاني","","1,200",35,"مطلقة","بوذية","السنهالية",8,"V-88214","have_experince","العاملة على كفالة صاحب عمل آخر.","فرع جدة","سارة القحطاني","","known",0],
- ["OR-4404","trn","نقل خدمات عاملة منزلية","منصور الغامدي","+966 55 870 1196","الفلبين","2026-08-13","15:30",5800,"completed",1,"سارة القحطاني","TR-2026-0031","1,300",31,"عازبة","مسيحية","الإنجليزية",4,"V-81102","have_experince","","فرع جدة","سارة القحطاني","","known",900],
- ["OR-4406","trn","نقل خدمات سائق","تركي القحطاني","+966 56 220 7741","باكستان","2026-08-14","16:12",4300,"refused",1,"مدير الفرع","","1,500",38,"متزوج","مسلم","الأردية",10,"V-66188","have_experince","نقص في مستندات صاحب العمل السابق.","فرع جدة","محمد الشهراني","محمد الشهراني","known",1720]];
-/* أعداد كل قسم حسب المصدر: [جديد، تحت الإجراء، متأخرة عن المهلة، مكتملة، غير مكتملة] — المجموع 121 */
-const orCounts={rec:{ext:[3,2,2,37,4],emp:[1,3,1,24,0]},rent:{ext:[0,1,0,17,1],emp:[1,0,0,9,0]},trn:{ext:[1,0,1,11,0],emp:[0,1,0,5,0]}};
+ {id:"OR-4412",type:"rec",src:"",client:"منيرة الشهري",phone:"0552148890",date:"2026-08-17",time:"09:14",st:"new",left:23,branch:"الفرع الرئيسي",agent:"—",job:"عاملة منزلية",nat:"الفلبين",rq:"custom",salary:"1,300",age:"25 – 35",rel:"مسيحية",lang:"الإنجليزية",exp:"لديها خبرة",note:"تفضّل عاملة تتحدث الإنجليزية."},
+ {id:"OR-4409",type:"rec",src:"محمد الشهراني",client:"نورة الحربي",phone:"0507712280",date:"2026-08-16",time:"11:25",st:"under_process",left:50,branch:"فرع الدمام",agent:"محمد الشهراني",job:"طباخة",nat:"الهند",rq:"specific",maid:"بريا ناير",mpass:"IN553210",office:"Gulf Bridge Agency",salary:"1,600",age:"30 – 40",rel:"هندوسية",lang:"الإنجليزية",exp:"لديها خبرة",note:"خبرة في المطبخ الهندي."},
+ {id:"OR-4405",type:"rec",src:"",client:"سارة المطيري",phone:"0549901123",date:"2026-08-14",time:"08:30",st:"under_process",left:-7,branch:"الفرع الرئيسي",agent:"سارة القحطاني",job:"عاملة منزلية",nat:"إثيوبيا",rq:"custom",salary:"1,000",age:"21 – 30",rel:"مسيحية",lang:"الأمهرية",exp:"قادمة جديدة",note:""},
+ {id:"OR-4408",type:"rec",src:"",client:"هيا العنزي",phone:"0591182043",date:"2026-08-15",time:"14:03",st:"contracted",closed:1360,branch:"الفرع الرئيسي",agent:"سارة القحطاني",job:"عاملة منزلية",nat:"كينيا",rq:"known",maid:"غريس أوديامبو",mpass:"KE118845",office:"Al Noor Manpower",contract:"CN-2026-0112",salary:"1,100",age:"25 – 35",rel:"مسيحية",lang:"الإنجليزية",exp:"قادمة جديدة",note:""},
+ {id:"OR-4403",type:"rec",src:"سارة القحطاني",client:"فهد السبيعي",phone:"0553017724",date:"2026-08-13",time:"10:05",st:"completed",closed:640,branch:"الفرع الرئيسي",agent:"سارة القحطاني",job:"سائق خاص",nat:"الفلبين",rq:"specific",maid:"مارك رييس",mpass:"P5520117",office:"PLATINUM BROTHERS",contract:"CN-2026-0105",salary:"1,500",age:"30 – 45",rel:"مسيحي",lang:"الإنجليزية",exp:"لديه خبرة",note:""},
+ {id:"OR-4401",type:"rec",src:"",client:"ريم الزهراني",phone:"0504481902",date:"2026-08-12",time:"17:40",st:"refused",closed:1500,branch:"فرع جدة",agent:"محمد الشهراني",job:"عاملة منزلية",nat:"أوغندا",rq:"custom",salary:"950",age:"21 – 30",rel:"مسيحية",lang:"الإنجليزية",exp:"قادمة جديدة",reason:"العميل اختار مكتباً آخر",note:""},
+ {id:"OR-4399",type:"rec",src:"",client:"ماجد العتيبي",phone:"0569023317",date:"2026-08-11",time:"22:18",st:"canceled_by_system",closed:2880,branch:"الفرع الرئيسي",agent:"—",job:"عاملة منزلية",nat:"بنغلاديش",rq:"known",salary:"1,000",age:"25 – 35",rel:"مسلمة",lang:"البنغالية",exp:"لديها خبرة",reason:"انتهت مهلة الحجز دون سداد",note:""},
+ {id:"OR-4413",type:"rent",src:"",client:"نوف القحطاني",phone:"0507781203",date:"2026-08-17",time:"07:20",st:"new",left:-3,branch:"الفرع الرئيسي",agent:"—",job:"عاملة منزلية",pkg:"ثلاثة أشهر",price:"10,500",addr:0,paid:0,start:"2026-08-20",note:""},
+ {id:"OR-4402",type:"rent",src:"خالد العمري",client:"لمى القرني",phone:"0531174480",date:"2026-08-17",time:"04:10",st:"new",left:5,branch:"فرع جدة",agent:"خالد العمري",job:"عاملة منزلية",pkg:"شهر واحد",price:"3,900",maid:"ماريا لوبيز",mnat:"الفلبين",mpass:"P7731190",addr:1,paid:0,start:"2026-08-19",note:"العميلة طلبت التسليم مساءً."},
+ {id:"OR-4411",type:"rent",src:"",client:"شركة نجد للمقاولات",phone:"0114482200",date:"2026-08-17",time:"08:02",st:"under_process",left:14,branch:"الفرع الرئيسي",agent:"خالد العمري",job:"عاملة منزلية",pkg:"ستة أشهر",price:"24,600",maid:"سيتي آمنة",mnat:"إندونيسيا",mpass:"C5521780",addr:1,paid:1,pay:"ميسر",start:"2026-08-18",note:"سكن مؤمّن من الشركة."},
+ {id:"OR-4407",type:"rent",src:"خالد العمري",client:"شركة الوفاء الطبية",phone:"0138879011",date:"2026-08-15",time:"09:47",st:"contracted",closed:420,branch:"فرع الدمام",agent:"خالد العمري",job:"سائق خاص",pkg:"سنة",price:"46,800",maid:"رحيم الدين",mnat:"بنغلاديش",mpass:"BD771420",addr:1,paid:1,pay:"تحويل بنكي",start:"2026-08-16",contract:"RC-2026-0041",note:""},
+ {id:"OR-4398",type:"rent",src:"",client:"عبير الشمري",phone:"0596602215",date:"2026-08-10",time:"13:22",st:"return",closed:3100,branch:"الفرع الرئيسي",agent:"خالد العمري",job:"عاملة منزلية",pkg:"ثلاثة أشهر",price:"10,500",maid:"جوي باوتيستا",mnat:"الفلبين",mpass:"P2290175",addr:1,paid:0,start:"2026-08-12",reason:"العاملة غير متاحة في الموعد",note:""},
+ {id:"OR-4414",type:"trn",src:"",client:"سلطان المالكي",phone:"0558830192",date:"2026-08-17",time:"06:45",st:"new",left:-2,branch:"الفرع الرئيسي",agent:"—",job:"عاملة منزلية",maid:"ماري جوي سانتوس",mnat:"الفلبين",iqama:"2510337781",sponsor:"خالد الزهراني",fee:"7,000",trial:60,note:""},
+ {id:"OR-4410",type:"trn",src:"",client:"عبدالله الدوسري",phone:"0536604471",date:"2026-08-16",time:"19:40",st:"under_process",left:20,branch:"فرع جدة",agent:"سارة القحطاني",job:"عاملة منزلية",maid:"كالبانا بيريرا",mnat:"سريلانكا",iqama:"2448119023",sponsor:"محمد العمري",fee:"6,500",trial:30,note:"العاملة على كفالة صاحب عمل آخر وجاهزة للنقل."},
+ {id:"OR-4400",type:"trn",src:"سارة القحطاني",client:"أمل الدوسري",phone:"0541190087",date:"2026-08-15",time:"12:10",st:"under_process",left:31,branch:"الفرع الرئيسي",agent:"سارة القحطاني",job:"عاملة منزلية",maid:"تيغيست أليمو",mnat:"إثيوبيا",iqama:"2390045512",sponsor:"نايف الحربي",fee:"5,500",trial:30,note:""},
+ {id:"OR-4404",type:"trn",src:"",client:"منصور الغامدي",phone:"0558701196",date:"2026-08-13",time:"15:30",st:"completed",closed:900,branch:"فرع جدة",agent:"سارة القحطاني",job:"عاملة منزلية",maid:"روزا غارسيا",mnat:"الفلبين",iqama:"2477810234",sponsor:"فيصل القرني",fee:"6,000",trial:30,contract:"TR-2026-0031",note:""},
+ {id:"OR-4406",type:"trn",src:"محمد الشهراني",client:"تركي القحطاني",phone:"0562207741",date:"2026-08-14",time:"16:12",st:"refused",closed:1720,branch:"فرع جدة",agent:"محمد الشهراني",job:"سائق خاص",maid:"عمران خان",mnat:"باكستان",iqama:"2366188120",sponsor:"شركة البناء الحديث",fee:"8,000",trial:90,reason:"نقص في مستندات صاحب العمل السابق",note:""}];
+/* أعداد كل قسم حسب المصدر: [جديد، تحت الإجراء، تجاوزت المهلة (من المفتوحة)، مكتملة، غير مكتملة] — المجموع 121 */
+const orCounts={rec:{ext:[2,2,1,38,4],emp:[1,3,0,24,0]},rent:{ext:[1,1,1,17,1],emp:[1,0,0,8,0]},trn:{ext:[1,1,1,10,0],emp:[0,1,0,4,1]}};
 const orSum=(type,src)=>{const k=src?[src]:["ext","emp"];return [0,1,2,3,4].map(i=>k.reduce((s,x)=>s+orCounts[type][x][i],0))};
 const orTot=(type,src)=>{const c=orSum(type,src);return c[0]+c[1]+c[3]+c[4]};
-let ORTYPE="rec",ORSRC="",ORQ="",ORSTATUS="",ORID="OR-4412",ORTAB="details";
+let ORTYPE=(()=>{try{const h=location.hash.slice(1);if(["rec","rent","trn"].includes(h))return h}catch(_){}return "rec"})(),ORSRC="",ORQ="",ORSTATUS="",ORMORE=false,ORMENU=null,ORID="OR-4412",ORTAB="details";
 const orTypeTag=k=>{const m={rec:["استقدام وتوسط","Recruitment","n"],rent:["تأجير","Rental",""],trn:["نقل خدمات","Transfer","a"]}[k];return `<span class="tag ${m[2]}">${t(m[0],m[1])}</span>`};
 const orStOf=k=>orSt.find(x=>x[0]===k)||orSt[0];
-const orGroup=r=>r[12]?"done":orStOf(r[9])[4];
+const orGroup=r=>r.contract?"done":orStOf(r.st)[4];
 const orStTag=k=>{const s=orStOf(k);return `<span class="st tag ${s[3]}"><i></i>${t(s[1],s[2])}</span>`};
-const orSrcTag=r=>r[24]?`<span class="osrc emp" title="${t("أُنشئ من لوحة التحكم","Created in the control panel")}">${I("user-round")}<span><b>${t("موظف الشركة","Company staff")}</b><small>${r[24]}</small></span></span>`:`<span class="osrc ext" title="${t("وصل من الموقع الخارجي","Came in from the website")}">${I("globe")}<span><b>${t("الموقع الخارجي","Website")}</b><small>${t("أنشأه العميل","Placed by the client")}</small></span></span>`;
+const orSrcTag=r=>r.src?`<span class="osrc emp" title="${t("أُنشئ من لوحة التحكم","Created in the control panel")}">${I("user-round")}<span><b>${t("لوحة التحكم","Control panel")}</b><small>${r.src}</small></span></span>`:`<span class="osrc ext" title="${t("وصل من الموقع الخارجي","Came in from the website")}">${I("globe")}<span><b>${t("الموقع الخارجي","Website")}</b><small>${t("طلبه العميل","By the client")}</small></span></span>`;
 const orDur=m=>{const d=Math.floor(m/1440),h=Math.floor(m%1440/60),mm=m%60;return d?t(`${d} ي ${h} س`,`${d}d ${h}h`):h?t(`${h} س ${mm} د`,`${h}h ${mm}m`):t(`${mm} د`,`${mm}m`)};
-const orSla=m=>m<120?"g":m<1440?"a":"r";
-const orSlaLbl=m=>m<120?["داخل المهلة","Within SLA"]:m<1440?["يقترب من التجاوز","Nearing breach"]:["تجاوز المهلة","SLA breached"];
-const orMatch=r=>!ORSTATUS||(ORSTATUS==="overdue"?(orGroup(r)==="open"&&r[8]>=1440):["open","done","notdone"].includes(ORSTATUS)?orGroup(r)===ORSTATUS:r[9]===ORSTATUS);
-const orFiltered=()=>orRows.filter(r=>r[1]===ORTYPE&&(!ORSRC||(ORSRC==="emp"?!!r[24]:!r[24]))&&orMatch(r)&&(!ORQ||(r[0]+r[2]+r[3]+r[4]).toLowerCase().includes(ORQ.toLowerCase())));
-const orActs=r=>{const g=orGroup(r);return `<div class="rowacts"><button class="icon-btn pri" data-orshow="${r[0]}" title="${t("عرض الطلب","Open request")}">${I("eye")}</button>${r[12]?`<button class="icon-btn pri" data-go="${r[1]==="rent"?"rental":r[1]==="trn"?"transfer":"contracts"}" title="${t("العقد المرتبط","Linked contract")}">${I("file-signature")}</button>`:g==="open"?`<button class="icon-btn pri" data-orconv="${r[0]}" title="${t("تحويل إلى عقد","Convert to contract")}">${I("file-plus")}</button><button class="icon-btn" title="${t("تغيير الحالة","Change status")}">${I("pencil")}</button>`:""}${g==="open"?"":`<span class="olock" title="${t("الطلب مغلق — الحالة والإجراءات مقفولة","Closed — status and actions are locked")}">${I("lock")}</span>`}</div>`};
-const orTimer=r=>{const g=orGroup(r);if(g!=="open")return `<span class="oclz ${g}">${I("lock")}${t(g==="done"?"اكتمل بعد":"أُغلق بعد",g==="done"?"Completed after":"Closed after")} <b class="num">${orDur(r[26])}</b></span>`;return `<div class="timer ${orSla(r[8])}" data-since="${r[8]}"><span class="tdot"></span><b class="num">${orDur(r[8])}</b><small>${t(orSlaLbl(r[8])[0],orSlaLbl(r[8])[1])}</small></div>`};
-const orCard=s=>`<button class="scard slim ${s[0]===ORSTATUS?"on":""}" data-orstat="${s[0]}"><span class="sci ${s[4]}">${I(s[3])}</span><span class="sct">${t(s[1],s[2])}</span><b class="num">${s[5]}</b></button>`;
+const orLeft=r=>r.left<0?`<span class="tag r rr-tm">${I("clock")}${t(`متأخر ${-r.left} س`,`${-r.left}h late`)}</span>`:r.left<=6?`<span class="tag a rr-tm">${I("triangle-alert")}${t(`عاجل · ${r.left} س`,`Urgent · ${r.left}h`)}</span>`:`<span class="tag g rr-tm">${I("clock")}${t(`متبقٍ ${r.left} س`,`${r.left}h left`)}</span>`;
+const orClosed=r=>{const g=orGroup(r);return `<span class="oclz ${g}">${I("lock")}${t(g==="done"?"اكتمل بعد":"أُغلق بعد",g==="done"?"Completed after":"Closed after")} <b class="num">${orDur(r.closed||0)}</b></span>`};
+const orCtGo=r=>r.type==="rent"?"rentalShow":r.type==="trn"?"transferShow":"contractShow";
+const orOk=(b,y,n)=>b?`<span class="rr-ok g">${I("circle-check")}${y}</span>`:`<span class="rr-ok a">${I("circle-dashed")}${n}</span>`;
+const orBtn=(cls,ic,txt,attr)=>`<button class="btn btn-${cls} sm" ${attr||""}>${I(ic)}${txt}</button>`;
+/* الخطوة التالية: من إجراءات OrderController (تغيير الحالة · تغيير العاملة · إضافة عقد) و RentalOrderController (تعيين العاملة · القبول · عقد الإيجار) */
+const orNext=r=>{
+ const g=orGroup(r);
+ if(r.contract)return `<button class="lnk" data-go="${orCtGo(r)}">${I("file-signature")}<span class="num">${r.contract}</span></button>`;
+ if(g==="notdone")return `<span class="rr-mut">${r.reason||t("أُغلق بدون عقد","Closed without a contract")}</span>`;
+ if(r.type==="rec"){
+  if(r.st==="new")return orBtn("primary","inbox",t("استلام الطلب","Take the request"),`data-ortake="${r.id}"`)+`<small class="rr-hint">${t("يصبح «تحت الإجراء»","becomes in progress")}</small>`;
+  return r.maid?orBtn("primary","file-signature",t("إنشاء عقد استقدام","Create contract"),`data-orconv="${r.id}"`):orBtn("primary","user-search",t("اختيار عاملة","Pick a worker"),`data-orshow="${r.id}" data-ortab-go="match"`);}
+ if(r.type==="rent"){
+  if(r.st==="new")return r.maid?orBtn("green","check",t("قبول","Accept"),`data-ortake="${r.id}"`)+orBtn("ghost","ban",t("رفض","Refuse")):orBtn("primary","user-plus",t("تعيين عاملة","Assign worker"),`data-orshow="${r.id}"`)+`<small class="rr-hint">${t("ثم القبول","then accept")}</small>`;
+  return r.addr&&r.paid?orBtn("primary","file-signature",t("إنشاء عقد إيجار","Create rental contract"),`data-orconv="${r.id}"`):`<span class="rr-mut">${t("بانتظار الدفع والعنوان","Awaiting payment & address")}</span>`;}
+ if(r.st==="new")return orBtn("primary","inbox",t("استلام الطلب","Take the request"),`data-ortake="${r.id}"`)+`<small class="rr-hint">${t("ثم مراجعة الكفيل الحالي","then check the current sponsor")}</small>`;
+ return orBtn("primary","file-signature",t("إنشاء عقد نقل خدمات","Create transfer contract"),`data-orconv="${r.id}"`)};
+const orMenuItems=r=>[["refresh-cw","تغيير الحالة","Change status"],...(r.type!=="trn"?[["user-round-cog","تغيير العاملة","Change worker"]]:[]),["user-check","تغيير الموظف المسؤول","Change responsible"],["sticky-note","إضافة ملاحظة","Add note"],["share-2","مشاركة واتساب","Share on WhatsApp"],["ban","رفض الطلب","Refuse"],["trash-2","حذف الطلب","Delete","danger"]];
+const orActs=r=>{const g=orGroup(r);return `<div class="rowacts"><button class="icon-btn pri" data-orshow="${r.id}" title="${t("عرض الطلب","Open request")}">${I("eye")}</button>${g==="open"?`<button class="icon-btn pri" title="${t("تعديل","Edit")}">${I("pencil")}</button><div class="kebab"><button class="icon-btn" data-ormenu="${r.id}" title="${t("إجراءات أخرى","More actions")}">${I("more-vertical")}</button><div class="amenu${ORMENU===r.id?"":" hidden"}">${orMenuItems(r).map(x=>`<button class="${x[3]||""}">${I(x[0])}<span>${t(x[1],x[2])}</span></button>`).join("")}</div></div>`:`<span class="olock" title="${t("الطلب مغلق — الحالة والإجراءات مقفولة","Closed — status and actions are locked")}">${I("lock")}</span>`}</div>`};
+const orCell={
+ req:r=>`<div class="gcell"><b class="num id">${r.id}</b><small class="num">${r.date} · ${r.time}</small><small>${r.branch}</small></div>`,
+ client:r=>`<div class="gcell"><b>${r.client}</b><small class="num">${r.phone}</small>${r.agent!=="—"?`<small>${t("المسؤول","Owner")}: ${r.agent}</small>`:`<small class="off">${t("لم يُستلم بعد","Not taken yet")}</small>`}</div>`,
+ src:r=>orSrcTag(r),
+ state:r=>`<div class="odt">${orStTag(r.st)}${orGroup(r)==="open"?orLeft(r):orClosed(r)}</div>`,
+ next:r=>`<div class="rr-nx">${orNext(r)}</div>`,
+ recWant:r=>`<div class="gcell"><b>${r.job}</b><small>${r.nat} · ${t("الراتب","Salary")} <span class="num">${r.salary}</span></small><small>${t("نوع الطلب","Request type")}: ${t(orReqT[r.rq][0],orReqT[r.rq][1])}</small></div>`,
+ recMaid:r=>r.maid?`<div class="gcell"><b>${r.maid}</b><small>${t("جواز","P")} <span class="num">${r.mpass}</span></small><small>${r.office}</small></div>`:`<span class="tag a">${t("لم تُختر","Not picked")}</span>`,
+ rentPkg:r=>`<div class="gcell"><b>${t("باقة","Package")} ${r.pkg}</b><small>${r.job}</small><small class="num">${r.price} ${t("ر.س","SAR")} · ${t("البدء","Start")} ${r.start}</small></div>`,
+ rentMaid:r=>r.maid?`<div class="gcell"><b>${r.maid}</b><small>${r.mnat} · <span class="num">${r.mpass}</span></small></div>`:`<span class="tag a">${t("لم تُعيَّن","Not assigned")}</span>`,
+ rentReady:r=>`<div class="rr-oks">${orOk(r.addr,t("العنوان محدد","Address set"),t("لم يُحدد العنوان","No address"))}${orOk(r.paid,r.pay?t(`تم الدفع · ${r.pay}`,"Paid"):t("تم الدفع","Paid"),t("لم يتم الدفع","Not paid"))}</div>`,
+ trnMaid:r=>`<div class="gcell"><b>${r.maid}</b><small>${r.mnat} · ${r.job}</small><small>${t("إقامة","Iqama")} <span class="num">${r.iqama}</span></small></div>`,
+ trnSponsor:r=>`<div class="gcell"><b>${r.sponsor}</b><small>${t("الكفيل الحالي","Current sponsor")}</small></div>`,
+ trnTerms:r=>`<div class="gcell"><b class="num">${r.fee} ${t("ر.س","SAR")}</b><small>${t("تجربة","Trial")} <span class="num">${r.trial}</span> ${t("يوماً","days")}</small></div>`};
+const orCols={
+ rec:[["الطلب","Request","req"],["العميل","Client","client"],["المطلوب","Requirement","recWant"],["العاملة المختارة","Picked worker","recMaid"],["المصدر","Source","src"],["الحالة والمهلة","Status & deadline","state"],["الخطوة التالية","Next step","next"]],
+ rent:[["الطلب","Request","req"],["العميل","Client","client"],["الباقة","Package","rentPkg"],["العاملة","Worker","rentMaid"],["الجاهزية","Readiness","rentReady"],["المصدر","Source","src"],["الحالة والمهلة","Status & deadline","state"],["الخطوة التالية","Next step","next"]],
+ trn:[["الطلب","Request","req"],["العميل (الكفيل الجديد)","Client (new sponsor)","client"],["العاملة المنقولة","Transferred worker","trnMaid"],["الكفيل الحالي","Current sponsor","trnSponsor"],["الرسوم والتجربة","Fee & trial","trnTerms"],["المصدر","Source","src"],["الحالة والمهلة","Status & deadline","state"],["الخطوة التالية","Next step","next"]]};
+const orMatch=r=>!ORSTATUS||(ORSTATUS==="overdue"?(orGroup(r)==="open"&&r.left<0):["open","done","notdone"].includes(ORSTATUS)?orGroup(r)===ORSTATUS:r.st===ORSTATUS);
+const orFiltered=()=>orRows.filter(r=>r.type===ORTYPE&&(!ORSRC||(ORSRC==="emp"?!!r.src:!r.src))&&orMatch(r)&&(!ORQ||[r.id,r.client,r.phone,r.job,r.maid||"",r.mpass||"",r.iqama||""].join(" ").toLowerCase().includes(ORQ.toLowerCase())));
 const orderScreens={
  orders:()=>{
-  const rows=orFiltered(),ty=orTypes.find(x=>x[0]===ORTYPE),c=orSum(ORTYPE,ORSRC),tot=orTot(ORTYPE,ORSRC);
-  const stats=[["","الكل","All","layers","n",tot,""],["new","جديدة","New","bell-dot","a",c[0],"open"],["under_process","تحت الإجراء","In progress","loader","n",c[1],"open"],["overdue","تجاوزت المهلة","Past deadline","alarm-clock","r",c[2],"open"],["done","مكتملة","Completed","check-circle-2","g",c[3],"closed"],["notdone","غير مكتملة","Not completed","x-circle","r",c[4],"closed"]];
-  const src=[["","كل المصادر","All sources","layers",orTot(ORTYPE)],["ext","الموقع الخارجي","Website","globe",orTot(ORTYPE,"ext"),"طلبها العميل بنفسه من الموقع","Placed by the client on the website"],["emp","لوحة التحكم","Control panel","user-round",orTot(ORTYPE,"emp"),"سجّلها موظف الشركة","Logged by company staff"]];
+  const rows=orFiltered(),ty=orTypes.find(x=>x[0]===ORTYPE),c=orSum(ORTYPE,ORSRC),tot=orTot(ORTYPE,ORSRC),all=orTot(ORTYPE),ext=orTot(ORTYPE,"ext"),emp=orTot(ORTYPE,"emp"),cols=orCols[ORTYPE];
+  const stats=[["","الكل","All",tot,"n","layers"],["new","جديدة","New",c[0],"a","bell-dot"],["under_process","تحت الإجراء","In progress",c[1],"n","loader"],["overdue","تجاوزت المهلة","Past deadline",c[2],"r","alarm-clock"],["done","مكتملة","Completed",c[3],"g","circle-check"],["notdone","غير مكتملة","Not completed",c[4],"r","circle-x"]];
+  const sub={rec:["طلب استقدام وتوسط","recruitment & mediation requests"],rent:["طلب تأجير","rental requests"],trn:["طلب نقل خدمات","service-transfer requests"]}[ORTYPE];
   return `
- <div class="page-head"><div><h1>${t("الطلبات","Requests")}</h1><p>${t("كل نوع طلب في قسم مستقل. داخل القسم تقدر تفصل طلبات العملاء من الموقع عن اللي سجّلها الموظفين، وتشوف المفتوح والمكتمل وغير المكتمل.","Each request type has its own section. Inside it, split client website requests from staff-entered ones and see open, completed and not-completed requests.")}</p></div>
- <div class="actions"><button class="btn btn-ghost">${I("download")}${t("تصدير","Export")}</button><button class="btn btn-primary">${I("plus")}${t(`طلب ${ty[1]==="التأجير"?"تأجير":ty[1]==="نقل الخدمات"?"نقل خدمات":"استقدام"} جديد`,"New request")}</button></div></div>
- <div class="ortypes">${orTypes.map(x=>`<button class="${x[0]===ORTYPE?"on":""}" data-ortype="${x[0]}"><span class="oti">${I(x[3])}</span><span><b>${t(x[1],x[2])}</b><small>${t(x[4],x[5])}</small></span><em class="num">${orTot(x[0])}</em></button>`).join("")}</div>
- <div class="orsrc" role="group" aria-label="${t("مصدر الطلب","Request source")}"><span class="orsrc-t"><b>${t("مصدر الطلب","Request source")}</b><small>${t("مين اللي أنشأ الطلب؟","Who created the request?")}</small></span>${src.map(x=>`<button class="${x[0]} ${x[0]===ORSRC?"on":""}" data-orsrc="${x[0]}">${I(x[3])}<span><b>${t(x[1],x[2])}</b>${x[5]?`<small>${t(x[5],x[6])}</small>`:""}</span><em class="num">${x[4]}</em></button>`).join("")}</div>
- <div class="orstats"><div class="orstats-g"><small>${t("الطلبات","Requests")}</small><div>${stats.slice(0,1).map(s=>orCard(s)).join("")}</div></div><div class="orstats-g"><small>${t("مفتوحة — لسه شغالين عليها","Open — still being worked")}</small><div>${stats.slice(1,4).map(s=>orCard(s)).join("")}</div></div><div class="orstats-g"><small>${t("مغلقة","Closed")}</small><div>${stats.slice(4).map(s=>orCard(s)).join("")}</div></div></div>
+ <div class="page-head"><div><h1>${t("الطلبات","Requests")}</h1><p>${t(`${all} ${sub[0]} — من الموقع ${ext} (${Math.round(ext/all*100)}%) · من لوحة التحكم ${emp} · مفتوحة ${orSum(ORTYPE)[0]+orSum(ORTYPE)[1]}`,`${all} ${sub[1]} — ${ext} from the website · ${emp} from the control panel`)}</p></div>
+ <div class="actions"><button class="btn btn-ghost">${I("download")}${t("تصدير","Export")}</button><button class="btn btn-primary">${I("plus")}${t({rec:"طلب استقدام",rent:"طلب تأجير",trn:"طلب نقل خدمات"}[ORTYPE],"New request")}</button></div></div>
+ <div class="seg tabs" data-seg>${orTypes.map(x=>`<button class="${x[0]===ORTYPE?"on":""}" data-ortype="${x[0]}">${t(x[1],x[2])}<b class="num${orSum(x[0])[2]?" hot":""}" title="${orSum(x[0])[2]?t(`${orSum(x[0])[2]} تجاوزت المهلة`,"past deadline"):""}">${orTot(x[0])}</b></button>`).join("")}</div>
+ <div class="statgrid slim or6">${stats.map(x=>`<button class="scard slim ${x[0]===ORSTATUS?"on":""}" data-orstat="${x[0]}"><span class="sbar ${x[4]}"></span><span class="sci ${x[4]}">${I(x[5])}</span><span class="stx"><span class="sct">${t(x[1],x[2])}</span><b class="num">${x[3]}</b></span>${x[0]&&x[0]===ORSTATUS?`<span class="scon">${I("check")}</span>`:""}</button>`).join("")}</div>
  <div class="fbar">
-  <div class="fb grow"><label>${t("بحث","Search")}</label><div class="inp">${I("search")}<input data-orq value="${ORQ}" placeholder="${t("رقم الطلب، المهنة، العميل، الجوال","Request no., job, client, phone")}"></div></div>
-  <div class="fb"><label>${t("الحالة","Status")}</label><select data-orstatus><option value="">${t("كل الحالات","All statuses")}</option>${orGroups.map(g=>`<optgroup label="${t(g[1],g[2])}"><option value="${g[0]}"${ORSTATUS===g[0]?" selected":""}>${t(`كل ${g[1]==="مفتوحة"?"المفتوحة":g[1]==="مكتملة"?"المكتملة":"غير المكتملة"}`,`All ${g[2].toLowerCase()}`)}</option>${orSt.filter(s=>s[4]===g[0]).map(s=>`<option value="${s[0]}"${s[0]===ORSTATUS?" selected":""}>${t(s[1],s[2])}</option>`).join("")}</optgroup>`).join("")}</select></div>
-  <div class="fb"><label>${t("الفرع","Branch")}</label><select><option>${t("كل الفروع","All branches")}</option><option>${t("الفرع الرئيسي","Main branch")}</option><option>${t("فرع جدة","Jeddah")}</option><option>${t("فرع الدمام","Dammam")}</option></select></div>
-  <div class="fb"><label>${t("من تاريخ","From date")}</label><input type="date"></div>
-  <div class="fb"><label>${t("إلى تاريخ","To date")}</label><input type="date"></div>
-  <span class="empty">${t(`${rows.length} نتيجة`,`${rows.length} results`)}</span></div>
- <div class="card flush"><div class="card-h"><div><h3>${t(`طلبات ${ty[1]}`,`${ty[2]} requests`)}${ORSRC?` · ${t(ORSRC==="ext"?"من الموقع الخارجي":"من لوحة التحكم",ORSRC==="ext"?"from the website":"from the control panel")}`:""}</h3><p>${t("المؤقّت يشتغل على الطلبات المفتوحة بس (جديد وتحت الإجراء). الطلب المكتمل أو غير المكتمل بيتقفل وبيظهر بعد قد إيه اتقفل.","The timer runs on open requests only (new and in progress). Completed or not-completed requests are locked and show how long they took to close.")}</p></div></div>
- <div class="tw"><table class="grp ortbl"><thead><tr><th class="chk"><input type="checkbox"></th><th>${t("الطلب","Request")}</th><th>${t("المصدر","Source")}</th><th>${t("المهنة والجنسية","Job & nationality")}</th><th>${t("العميل","Client")}</th><th>${t("تاريخ الطلب والمؤقّت","Date & timer")}</th><th>${t("الحالة والعقد","Status & contract")}</th><th class="act">${t("إجراءات","Actions")}</th></tr></thead><tbody>
- ${rows.length?rows.map(r=>`<tr class="${orGroup(r)==="open"?"":"oclosed"}">
-  <td class="chk"><input type="checkbox"></td>
-  <td><div class="gcell"><b class="num">${r[0]}</b><small>${r[22]}</small></div></td>
-  <td>${orSrcTag(r)}</td>
-  <td><div class="gcell"><b>${r[2]}</b><small>${r[5]}${r[1]==="rec"?` · ${t(orReqT[r[25]][0],orReqT[r[25]][1])}`:""}</small></div></td>
-  <td><div class="gcell"><b>${r[3]}</b><small class="num">${r[4]}</small></div></td>
-  <td><div class="odt"><small class="num">${r[6]} · ${r[7]}</small>${orTimer(r)}</div></td>
-  <td><div class="odt">${orStTag(r[9])}${r[12]?`<button class="lnk" data-go="${r[1]==="rent"?"rental":r[1]==="trn"?"transfer":"contracts"}">${I("file-signature")}<span class="num">${r[12]}</span></button>`:`<small class="ogrp ${orGroup(r)}">${t({open:"مفتوح · بدون عقد",done:"مكتمل",notdone:"غير مكتمل"}[orGroup(r)],{open:"Open · no contract",done:"Completed",notdone:"Not completed"}[orGroup(r)])}</small>`}</div></td>
-  <td class="act">${orActs(r)}</td></tr>`).join(""):`<tr><td colspan="8"><div class="tempty">${I("inbox")}<b>${t("لا طلبات مطابقة","No matching requests")}</b><small>${t("جرّب تغيير المصدر أو الحالة","Try another source or status")}</small></div></td></tr>`}
- </tbody></table></div>
- <div class="tfoot"><span>${t(`عرض ${rows.length} من ${tot} طلباً`,`Showing ${rows.length} of ${tot} requests`)}</span><div class="pager"><button>${I("chevron-right")}</button><button class="on">1</button><button>2</button><button>3</button><button>${I("chevron-left")}</button></div></div>
+  <div class="fb grow"><label>${t("بحث","Search")}</label><div class="inp">${I("search")}<input data-orq value="${ORQ}" placeholder="${t({rec:"رقم الطلب، العميل، الجوال، المهنة، الجواز",rent:"رقم الطلب، العميل، الجوال، العاملة، الجواز",trn:"رقم الطلب، العميل، العاملة، رقم الإقامة"}[ORTYPE],"Request no., client, phone…")}"></div></div>
+  <div class="fb"><label>${t("الحالة","Status")}</label><select data-orstatus><option value="">${t("كل الحالات","All statuses")}</option>${orGroups.map(g=>`<optgroup label="${t(g[1],g[2])}"><option value="${g[0]}"${ORSTATUS===g[0]?" selected":""}>${t(`كل ${g[1]}`,`All ${g[2].toLowerCase()}`)}</option>${orSt.filter(s=>s[4]===g[0]).map(s=>`<option value="${s[0]}"${s[0]===ORSTATUS?" selected":""}>${t(s[1],s[2])}</option>`).join("")}</optgroup>`).join("")}</select></div>
+  <div class="fb"><label>${t("مصدر الطلب","Request source")}</label><div class="vtoggle osw">${[["","layers","الكل","All",all],["ext","globe","الموقع","Website",ext],["emp","user-round","لوحة التحكم","Panel",emp]].map(v=>`<button class="${v[0]===ORSRC?"on":""}" data-orsrc="${v[0]}" title="${v[0]==="ext"?t("طلبها العميل بنفسه من الموقع الخارجي","Placed by the client on the website"):v[0]==="emp"?t("سجّلها موظف من لوحة التحكم","Entered by staff in the control panel"):""}">${I(v[1])}<span>${t(v[2],v[3])}</span><b class="num">${v[4]}</b></button>`).join("")}</div></div>
+  <button class="btn btn-ghost${ORMORE?" on":""}" data-ormore>${I("sliders-horizontal")}${ORMORE?t("إخفاء الفلاتر","Hide filters"):t("فلاتر أكثر","More filters")}</button>
+  ${(ORQ||ORSTATUS||ORSRC)?`<button class="btn btn-ghost" data-orreset>${I("x")}${t("إزالة الفلاتر","Clear")}</button>`:""}
+  <span class="empty" style="margin-inline-start:auto">${t(`${rows.length} نتيجة`,`${rows.length} results`)}</span>
+ </div>
+ ${ORMORE?`<div class="filters more">
+  <select><option>${t("كل الفروع","All branches")}</option><option>الفرع الرئيسي</option><option>فرع جدة</option><option>فرع الدمام</option></select>
+  <select><option>${t("كل الموظفين المسؤولين","All owners")}</option><option>سارة القحطاني</option><option>محمد الشهراني</option><option>خالد العمري</option></select>
+  <select><option>${t("كل المهن","All occupations")}</option><option>عاملة منزلية</option><option>طباخة</option><option>سائق خاص</option></select>
+  ${ORTYPE==="rec"?`<select><option>${t("كل الجنسيات","All nationalities")}</option><option>الفلبين</option><option>الهند</option><option>كينيا</option><option>إثيوبيا</option></select><select><option>${t("كل أنواع الطلب","All request types")}</option>${Object.values(orReqT).map(x=>`<option>${x[0]}</option>`).join("")}</select><select><option>${t("كل المكاتب الخارجية","All external offices")}</option><option>PLATINUM BROTHERS</option><option>Gulf Bridge Agency</option><option>Al Noor Manpower</option></select>`:ORTYPE==="rent"?`<select><option>${t("كل الباقات","All packages")}</option><option>شهر واحد</option><option>ثلاثة أشهر</option><option>ستة أشهر</option><option>سنة</option></select><select><option>${t("الدفع: الكل","Payment: all")}</option><option>${t("تم الدفع","Paid")}</option><option>${t("لم يتم الدفع","Not paid")}</option></select>`:`<select><option>${t("أيام التجربة: الكل","Trial days: all")}</option><option>30</option><option>60</option><option>90</option></select>`}
+  <select><option>${t("الكوبون: الكل","Coupon: all")}</option><option>${t("عليها كوبون","With coupon")}</option><option>${t("بدون كوبون","No coupon")}</option></select>
+  <label class="dt"><span>${t("من","From")}</span><input type="date"></label>
+  <label class="dt"><span>${t("إلى","To")}</span><input type="date"></label>
+ </div>`:""}
+ <div class="card flush">
+  <div class="tw"><table class="grp ortbl"><thead><tr><th class="chk"><input type="checkbox"></th>${cols.map(c=>`<th>${t(c[0],c[1])}</th>`).join("")}<th class="act">${t("الإجراءات","Actions")}</th></tr></thead><tbody>
+  ${rows.length?rows.map(r=>`<tr class="${orGroup(r)==="open"?"":"oclosed"}"><td class="chk"><input type="checkbox"></td>${cols.map(c=>`<td>${orCell[c[2]](r)}</td>`).join("")}<td class="act">${orActs(r)}</td></tr>`).join(""):`<tr><td colspan="${cols.length+2}"><div class="tempty">${I("inbox")}<b>${t("لا طلبات مطابقة","No matching requests")}</b><small>${t("جرّب تغيير المصدر أو الحالة","Try another source or status")}</small></div></td></tr>`}
+  </tbody></table></div>
+  <div class="tfoot"><span>${t(`عرض ${rows.length} من ${tot} — الصفحة 1`,`Showing ${rows.length} of ${tot} — page 1`)}</span><div class="pager"><button>${t("السابق","Prev")}</button><button class="on">1</button><button>2</button><button>${t("التالي","Next")}</button></div></div>
  </div>`},
-
  orderShow:()=>{
-  const r=orRows.find(x=>x[0]===ORID)||orRows[0];
+  const r=orRows.find(x=>x.id===ORID)||orRows[0],g=orGroup(r);
   const kv=fs=>`<div class="kvgrid">${fs.map(f=>`<div class="kv"><span>${t(f[0],f[1])}</span><b>${f[2]}</b></div>`).join("")}</div>`;
-  const steps=[["inbox","تسجيل الطلب","Request logged",`${r[6]} · ${r[7]}`,1],["eye","القراءة والتخصيص","Read & assigned",r[10]?`${r[11]}`:t("لم يُقرأ بعد","Not read yet"),r[10]],["check-circle-2","الإغلاق","Closed",orGroup(r)==="open"?t("مفتوح — تحت المتابعة","Open — being worked"):orStOf(r[9])[1],orGroup(r)==="open"?0:1],["file-signature","تحويل إلى عقد","Converted to contract",r[12]||t("لم يُحوّل","Not converted"),r[12]?1:0]];
+  const MU=s=>`<span class="empty">${s}</span>`;
+  const closedStep=g==="notdone"?[["circle-x",`أُغلق: ${orStOf(r.st)[1]}`,"Closed",r.reason||"",1,"bad"]]:null;
+  const steps={
+   rec:[["inbox","تسجيل الطلب","Request logged",`${r.date} · ${r.time}`,1],["user-check","استلام الطلب","Taken",r.st==="new"?t("لم يُستلم","Not taken"):r.agent,r.st!=="new"?1:0],["user-search","اختيار العاملة","Worker picked",r.maid||t("لم تُختر","Not picked"),r.maid?1:0],["file-signature","عقد الاستقدام","Recruitment contract",r.contract||t("لم يُنشأ","Not created"),r.contract?1:0]],
+   rent:[["inbox","طلب جديد","New request",`${r.date} · ${r.time}`,1],["user-plus","تعيين العاملة والقبول","Worker & acceptance",r.maid?(r.st==="new"?t(`${r.maid} — بانتظار القبول`,"Awaiting acceptance"):r.maid):t("لم تُعيَّن","Not assigned"),r.maid&&r.st!=="new"?1:0],["wallet","الدفع والعنوان","Payment & address",r.paid&&r.addr?t("مكتمل","Done"):t("ناقص","Missing"),r.paid&&r.addr?1:0],["file-signature","عقد الإيجار","Rental contract",r.contract||t("لم يُنشأ","Not created"),r.contract?1:0]],
+   trn:[["inbox","الطلب","Request",`${r.date} · ${r.time}`,1],["shield-check","مراجعة الكفيل الحالي","Current sponsor check",r.st==="new"?t("لم تبدأ","Not started"):r.sponsor,r.st!=="new"?1:0],["file-signature","عقد نقل الخدمات","Transfer contract",r.contract||t("لم يُنشأ","Not created"),r.contract?1:0],["hourglass","فترة التجربة","Trial period",t(`${r.trial} يوماً`,`${r.trial} days`),r.contract?1:0]]}[r.type];
+  const path=closedStep?[...steps.filter(s=>s[4]),...closedStep]:steps;
+  const third={rec:["match","السير المطابقة","Matching CVs","files"],rent:["ready","الجاهزية والدفع","Readiness & payment","list-checks"],trn:["worker","العاملة والكفيل الحالي","Worker & sponsor","users"]}[r.type];
   const body={
-   details:()=>`
-   ${sect("briefcase","تفاصيل الطلب","Request details",kv([["قسم الطلب","Section",orTypeTag(r[1])],["مصدر الطلب","Source",orSrcTag(r)],...(r[1]==="rec"?[["نوع الطلب","Request type",t(orReqT[r[25]][0],orReqT[r[25]][1])]]:[]),["المهنة المطلوبة","Job title",r[2]],["الجنسية","Nationality",r[5]],["سنوات الخبرة","Experience years",`<span class="num">${r[18]}</span>`],["الراتب المطلوب","Salary",`<span class="num">${r[13]}</span> ${t("ر.س","SAR")}`],["رقم التأشيرة","Visa number",r[19]==="—"?`<span class="empty">—</span>`:`<span class="num">${r[19]}</span>`],["العمر","Age",`<span class="num">${r[14]}</span>`],["الحالة الاجتماعية","Marital status",r[15]],["الديانة","Religion",r[16]],["اللغة","Language",r[17]],["حالة العاملة","Worker status",r[20]==="new_come"?t("قادمة جديدة","New arrival"):t("لديها خبرة","Has experience")],["الفرع","Branch",r[22]]]))}
-   ${sect("sticky-note","ملاحظات العميل","Client notes",`<div class="notebox">${r[21]||`<span class="empty">${t("لا ملاحظات","No notes")}</span>`}</div>`)}`,
-   client:()=>sect("user","بيانات العميل","Client info",kv([["اسم العميل","Client name",r[3]],["الجوال","Phone",`<span class="num">${r[4]}</span>`],["البريد","Email",'<span class="ltr">client@example.com</span>'],["منذ","Since",orDur(r[8])],["الموظف المسؤول","Assigned agent",r[23]],["الفرع","Branch",r[22]]])),
+   details:()=>`${sect("briefcase","تفاصيل الطلب","Request details",kv({
+     rec:[["القسم","Section",orTypeTag(r.type)],["مصدر الطلب","Source",orSrcTag(r)],["نوع الطلب","Request type",t(orReqT[r.rq][0],orReqT[r.rq][1])],["المهنة المطلوبة","Job",r.job],["الجنسية","Nationality",r.nat],["الراتب المطلوب","Salary",`<span class="num">${r.salary}</span> ${t("ر.س","SAR")}`],["الفئة العمرية","Age range",`<span class="num">${r.age}</span>`],["الديانة","Religion",r.rel],["اللغة","Language",r.lang],["الخبرة","Experience",r.exp],["الفرع","Branch",r.branch],["الموظف المسؤول","Owner",r.agent]],
+     rent:[["القسم","Section",orTypeTag(r.type)],["مصدر الطلب","Source",orSrcTag(r)],["الباقة","Package",t(`باقة ${r.pkg}`,r.pkg)],["قيمة الباقة","Package price",`<span class="num">${r.price}</span> ${t("ر.س","SAR")}`],["المهنة","Job",r.job],["تاريخ البدء المطلوب","Requested start",`<span class="num">${r.start}</span>`],["العاملة","Worker",r.maid?`${r.maid} · ${r.mnat}`:MU(t("لم تُعيَّن","Not assigned"))],["عنوان التسليم","Delivery address",orOk(r.addr,t("محدد — الرياض","Set"),t("لم يُحدد","Not set"))],["الدفع","Payment",orOk(r.paid,r.pay?t(`تم · ${r.pay}`,"Paid"):t("تم","Paid"),t("لم يتم","Not paid"))],["الفرع","Branch",r.branch],["الموظف المسؤول","Owner",r.agent]],
+     trn:[["القسم","Section",orTypeTag(r.type)],["مصدر الطلب","Source",orSrcTag(r)],["العاملة المنقولة","Worker",r.maid],["الجنسية","Nationality",r.mnat],["رقم الإقامة","Iqama",`<span class="num">${r.iqama}</span>`],["الكفيل الحالي","Current sponsor",r.sponsor],["المهنة","Job",r.job],["رسوم النقل","Transfer fee",`<span class="num">${r.fee}</span> ${t("ر.س","SAR")}`],["أيام التجربة","Trial days",`<span class="num">${r.trial}</span>`],["الفرع","Branch",r.branch],["الموظف المسؤول","Owner",r.agent]]}[r.type]))}
+   ${sect("sticky-note","ملاحظات","Notes",`<div class="notebox">${r.note||r.reason||MU(t("لا ملاحظات","No notes"))}</div>`)}`,
+   client:()=>sect("user",r.type==="trn"?"العميل (الكفيل الجديد)":"بيانات العميل","Client",kv([["اسم العميل","Client",`<a href="#" data-go="clientShow">${r.client}</a>`],["الجوال","Phone",`<span class="num">${r.phone}</span>`],["تاريخ الطلب","Requested",`<span class="num">${r.date} · ${r.time}</span>`],["المصدر","Source",orSrcTag(r)],["الموظف المسؤول","Owner",r.agent],["الفرع","Branch",r.branch]])),
    match:()=>sect("files","السير المطابقة","Matching CVs",`<div class="tw"><table><thead><tr><th>${t("العاملة","Worker")}</th><th>${t("الجنسية","Nationality")}</th><th>${t("المهنة","Occupation")}</th><th>${t("الراتب","Salary")}</th><th>${t("نسبة المطابقة","Match")}</th><th class="act"></th></tr></thead><tbody>
-    ${[["A-118742","Marites Dela Cruz","الفلبين","عاملة منزلية","1,300",92],["A-118710","Sri Wahyuni","إندونيسيا","عاملة منزلية","1,250",78],["A-118688","Kalpana Perera","سريلانكا","عاملة منزلية","1,200",64]].map(x=>`<tr><td><div class="gcell"><b>${x[1]}</b><small class="num">${x[0]}</small></div></td><td>${x[2]}</td><td>${x[3]}</td><td class="num">${x[4]}</td><td><div class="mrate"><span class="track"><i style="width:${x[5]}%"></i></span><b class="num">${x[5]}%</b></div></td><td class="act"><div class="rowacts"><button class="icon-btn pri" data-go="cvs">${I("eye")}</button><button class="icon-btn pri" title="${t("حجز للطلب","Reserve for request")}">${I("bookmark")}</button></div></td></tr>`).join("")}
+    ${[["A-118742","ماري غرايس سانتوس","الفلبين","عاملة منزلية","1,300",92],["A-118710","سري واهيوني","إندونيسيا","عاملة منزلية","1,250",78],["A-118688","كالبانا بيريرا","سريلانكا","عاملة منزلية","1,200",64]].map(x=>`<tr><td><div class="gcell"><b>${x[1]}</b><small class="num">${x[0]}</small></div></td><td>${x[2]}</td><td>${x[3]}</td><td class="num">${x[4]}</td><td><div class="mrate"><span class="track"><i style="width:${x[5]}%"></i></span><b class="num">${x[5]}%</b></div></td><td class="act"><div class="rowacts"><button class="icon-btn pri" data-go="cvShow">${I("eye")}</button>${g==="open"?`<button class="icon-btn pri" title="${t("اختيار للطلب","Pick for request")}">${I("bookmark")}</button>`:""}</div></td></tr>`).join("")}
    </tbody></table></div>`),
-   contract:()=>r[12]
-    ?sect("file-signature","العقد المرتبط","Linked contract",kv([["رقم العقد","Contract no.",`<span class="num">${r[12]}</span>`],["تاريخ العقد","Contract date",'<span class="num">2026-08-16</span>'],["الحالة","Status",'<span class="st tag n"><i></i>'+t("تحت الضمان","Under warranty")+'</span>'],["قيمة العقد","Value",'<span class="num">18,500</span> '+t("ر.س","SAR")],["العاملة","Worker","Marites Dela Cruz"],["المرحلة","Stage",t("مرحلة الوصول","Arrival stage")]])+`<div class="cvactions"><button class="btn btn-primary" data-go="contracts">${I("external-link")}${t("فتح العقد","Open contract")}</button><button class="btn btn-ghost">${I("printer")}${t("طباعة العقد","Print contract")}</button></div>`)
-    :orGroup(r)!=="open"?sect("lock","لا يوجد عقد","No contract",`<div class="convbox"><div><b>${t(`أُغلق الطلب بحالة «${orStOf(r[9])[1]}» بدون عقد`,"Closed without a contract")}</b><small>${t("الطلب غير المكتمل لا يتحول إلى عقد. لو العميل رجع، يُسجَّل له طلب جديد.","A not-completed request can't become a contract. If the client returns, log a new request.")}</small></div></div>`)
-    :sect("file-plus","تحويل الطلب إلى عقد","Convert to contract",`<div class="convbox"><div><b>${t("لا يوجد عقد مرتبط بهذا الطلب","No contract linked to this request")}</b><small>${t("التحويل ينشئ عقداً جديداً يحمل بيانات الطلب ورقمه، ويبقى الطلب في سجله كمصدر للعقد.","Converting creates a contract carrying the request data and number; the request stays in its register as the contract source.")}</small></div><button class="btn btn-primary" data-orconv="${r[0]}">${I("file-plus")}${t("تحويل إلى عقد","Convert to contract")}</button></div>`),
-   log:()=>sect("history","سجل الطلب","Request log",`<div class="tl">${[[`${r[6]} · ${r[7]}`,r[24]?t("تسجيل الطلب من لوحة التحكم","Request entered in the control panel"):t("تسجيل الطلب من الموقع الخارجي","Request placed on the website"),r[24]||r[3]],[`${r[6]} · ${r[7]}`,t("إشعار لفريق المبيعات","Sales team notified"),t("النظام","System")],r[10]?[`${r[6]} · 10:22`,t("قراءة الطلب وتخصيصه","Request read and assigned"),r[11]]:null,r[12]?["2026-08-16 · 12:40",t("تحويل الطلب إلى عقد","Converted into a contract"),r[23]]:null].filter(Boolean).map(x=>`<div class="tli"><span class="dot"></span><div><b>${x[1]}</b><small>${x[2]}</small><small class="num">${x[0]}</small></div></div>`).join("")}</div>`)
+   ready:()=>sect("list-checks","جاهزية التحويل إلى عقد إيجار","Ready for a rental contract",`<div class="rr-checks">${[["العاملة معيّنة","Worker assigned",r.maid?`${r.maid} — ${r.mpass}`:"",!!r.maid],["الطلب مقبول","Accepted",r.st!=="new"?r.agent:"",r.st!=="new"],["عنوان التسليم محدد","Address set",r.addr?"الرياض":"",!!r.addr],["الدفع","Payment",r.paid?(r.pay||""):"",!!r.paid],["لا يوجد عقد سابق للطلب","No previous contract","",!r.contract||1]].map(c=>`<div class="rr-chk ${c[3]?"on":""}">${I(c[3]?"circle-check":"circle-dashed")}<div><b>${t(c[0],c[1])}</b>${c[2]?`<small>${c[2]}</small>`:""}</div></div>`).join("")}</div>`),
+   worker:()=>sect("users","العاملة والكفيل الحالي","Worker & current sponsor",kv([["العاملة","Worker",r.maid],["الجنسية","Nationality",r.mnat],["رقم الإقامة","Iqama",`<span class="num">${r.iqama}</span>`],["الكفيل الحالي","Current sponsor",r.sponsor],["الكفيل الجديد","New sponsor",r.client],["أيام التجربة","Trial days",`<span class="num">${r.trial}</span>`]])),
+   contract:()=>r.contract
+    ?sect("file-signature","العقد المرتبط","Linked contract",kv([["رقم العقد","Contract no.",`<span class="num">${r.contract}</span>`],["نوع العقد","Type",{rec:t("عقد استقدام","Recruitment"),rent:t("عقد إيجار","Rental"),trn:t("عقد نقل خدمات","Transfer")}[r.type]],["العاملة","Worker",r.maid||"—"],["العميل","Client",r.client]])+`<div class="cvactions"><button class="btn btn-primary" data-go="${orCtGo(r)}">${I("external-link")}${t("فتح العقد","Open contract")}</button></div>`)
+    :g!=="open"?sect("lock","لا يوجد عقد","No contract",`<div class="convbox"><div><b>${t(`أُغلق الطلب بحالة «${orStOf(r.st)[1]}» بدون عقد`,"Closed without a contract")}</b><small>${t("الطلب غير المكتمل لا يتحول إلى عقد. لو العميل رجع، يُسجَّل له طلب جديد.","A not-completed request can't become a contract. Log a new request if the client returns.")}</small></div></div>`)
+    :sect("file-plus","تحويل الطلب إلى عقد","Convert to contract",`<div class="convbox"><div><b>${t("لا يوجد عقد مرتبط بهذا الطلب","No contract linked yet")}</b><small>${t("التحويل ينشئ عقداً يحمل بيانات الطلب ورقمه، ويصبح الطلب «مكتملاً» وتُقفل حالته.","Converting creates a contract from the request; the request becomes completed and locked.")}</small></div><div class="rr-nx">${orNext(r)}</div></div>`),
+   log:()=>sect("history","سجل الطلب","Request log",`<div class="tl">${[[`${r.date} · ${r.time}`,r.src?t("تسجيل الطلب من لوحة التحكم","Entered in the control panel"):t("طلب من الموقع الخارجي","Placed on the website"),r.src||r.client],r.st!=="new"&&r.agent!=="—"?[`${r.date} · 10:22`,t("استلام الطلب — الحالة: تحت الإجراء","Taken — in progress"),r.agent]:null,r.maid&&r.type!=="trn"?[`${r.date} · 11:05`,t(`اختيار العاملة ${r.maid}`,"Worker picked"),r.agent]:null,r.contract?[`${r.date} · 12:40`,t(`إنشاء العقد ${r.contract} — الطلب مكتمل`,"Contract created — completed"),r.agent]:null,g==="notdone"?[`${r.date} · 18:00`,t(`إغلاق الطلب: ${orStOf(r.st)[1]}`,"Closed"),r.st==="canceled_by_system"?t("النظام","System"):r.agent]:null].filter(Boolean).map(x=>`<div class="tli"><span class="dot"></span><div><b>${x[1]}</b><small>${x[2]}</small><small class="num">${x[0]}</small></div></div>`).join("")}</div>`)
   };
   return `
- <div class="page-head compact"><div><a class="back" href="#" data-go="orders" style="margin:0 0 8px">${I("arrow-right")}<span>${t("الرجوع للطلبات","Back to requests")}</span></a><h1>${t("الطلب","Request")} <span class="num">${r[0]}</span></h1><p>${orTypeTag(r[1])} · ${r[2]} · ${r[3]}</p></div>
- <div class="actions">${r[12]?`<button class="btn btn-ghost" data-go="${r[1]==="rent"?"rental":r[1]==="trn"?"transfer":"contracts"}">${I("file-signature")}${t("العقد المرتبط","Linked contract")}</button>`:orGroup(r)==="open"?`<button class="btn btn-primary" data-orconv="${r[0]}">${I("file-plus")}${t("تحويل إلى عقد","Convert to contract")}</button>`:`<span class="oclz notdone">${I("lock")}${t("الطلب مغلق كغير مكتمل — الحالة والإجراءات مقفولة","Closed as not completed — status and actions are locked")}</span>`}<button class="btn btn-ghost">${I("printer")}${t("طباعة","Print")}</button></div></div>
+ <div class="page-head compact"><div><a class="back" href="#" data-go="orders" style="margin:0 0 8px">${I("arrow-right")}<span>${t(`طلبات ${orTypes.find(x=>x[0]===r.type)[1]}`,"Requests")}</span></a><h1>${t("الطلب","Request")} <span class="num">${r.id}</span></h1><p>${orTypeTag(r.type)} · ${r.client} · ${r.type==="rent"?t(`باقة ${r.pkg}`,r.pkg):r.type==="trn"?r.maid:r.job}</p></div>
+ <div class="actions">${g==="open"?`<div class="rr-nx">${orNext(r)}</div>`:r.contract?`<button class="btn btn-ghost" data-go="${orCtGo(r)}">${I("file-signature")}${t("العقد المرتبط","Linked contract")}</button>`:`<span class="oclz notdone">${I("lock")}${t("الطلب مغلق — الحالة والإجراءات مقفولة","Closed — locked")}</span>`}<button class="btn btn-ghost">${I("printer")}${t("طباعة","Print")}</button></div></div>
  <div class="orsum">
-  ${[["hash","رقم الطلب","Request no.",`<span class="num">${r[0]}</span>`],["calendar","تاريخ الطلب","Request date",`<span class="num">${r[6]}</span>`],["clock","وقت الطلب","Request time",`<span class="num">${r[7]}</span>`],["activity","الحالة","Status",orStTag(r[9])],[r[24]?"user-round":"globe","المصدر","Source",r[24]?t("لوحة التحكم","Control panel"):t("الموقع الخارجي","Website")]].map(x=>`<div class="orsum-i"><span class="oi">${I(x[0])}</span><div><small>${t(x[1],x[2])}</small><b>${x[3]}</b></div></div>`).join("")}
-  ${orGroup(r)==="open"?`<div class="orsum-i timerbig ${orSla(r[8])}"><span class="oi">${I("timer")}</span><div><small>${t("زمن الاستجابة","Response time")}</small><b class="num" data-since="${r[8]}">${orDur(r[8])}</b><small class="sla">${t(orSlaLbl(r[8])[0],orSlaLbl(r[8])[1])}</small></div></div>`:`<div class="orsum-i"><span class="oi">${I("lock")}</span><div><small>${t("أُغلق بعد","Closed after")}</small><b class="num">${orDur(r[26])}</b></div></div>`}
+  ${[["hash","رقم الطلب","Request no.",`<span class="num">${r.id}</span>`],[r.src?"user-round":"globe","المصدر","Source",r.src?t(`لوحة التحكم · ${r.src}`,"Control panel"):t("الموقع الخارجي","Website")],["activity","الحالة","Status",orStTag(r.st)],["layers","التصنيف","Group",t({open:"مفتوح",done:"مكتمل",notdone:"غير مكتمل"}[g],{open:"Open",done:"Completed",notdone:"Not completed"}[g])]].map(x=>`<div class="orsum-i"><span class="oi">${I(x[0])}</span><div><small>${t(x[1],x[2])}</small><b>${x[3]}</b></div></div>`).join("")}
+  <div class="orsum-i"><span class="oi">${I(g==="open"?"timer":"lock")}</span><div><small>${t(g==="open"?"المهلة":"أُغلق بعد",g==="open"?"Deadline":"Closed after")}</small><b>${g==="open"?orLeft(r):`<span class="num">${orDur(r.closed||0)}</span>`}</b></div></div>
  </div>
- <div class="card sec"><div class="sec-h">${I("git-branch")}<b>${t("مسار الطلب حتى العقد","From request to contract")}</b></div>
-  <div class="orflow">${steps.map((x,i)=>`<div class="ofs ${x[4]?"done":""}"><span class="fi">${I(x[0])}</span><div><b>${t(x[1],x[2])}</b><small>${x[3]}</small></div>${i<steps.length-1?`<span class="ln"></span>`:""}</div>`).join("")}</div></div>
- <div class="vtabs">${[["details","تفاصيل الطلب","Request details","briefcase"],["client","بيانات العميل","Client info","user"],["match","السير المطابقة","Matching CVs","files"],["contract","العقد المرتبط","Linked contract","file-signature"],["log","سجل الطلب","Request log","history"]].map(x=>`<button class="${x[0]===ORTAB?"on":""}" data-ortab="${x[0]}">${I(x[3])}<span>${t(x[1],x[2])}</span></button>`).join("")}</div>
+ <div class="card sec"><div class="sec-h">${I("git-branch")}<b>${t({rec:"مسار طلب الاستقدام",rent:"مسار طلب التأجير",trn:"مسار طلب نقل الخدمات"}[r.type],"Request path")}</b></div>
+  <div class="orflow">${path.map((x,i)=>`<div class="ofs ${x[4]?"done":""} ${x[5]||""}"><span class="fi">${I(x[0])}</span><div><b>${t(x[1],x[2])}</b><small>${x[3]}</small></div>${i<path.length-1?`<span class="ln"></span>`:""}</div>`).join("")}</div></div>
+ <div class="vtabs">${[["details","تفاصيل الطلب","Request details","briefcase"],["client",r.type==="trn"?"الكفيل الجديد":"بيانات العميل","Client","user"],third,["contract","العقد المرتبط","Linked contract","file-signature"],["log","سجل الطلب","Request log","history"]].map(x=>`<button class="${x[0]===ORTAB?"on":""}" data-ortab="${x[0]}">${I(x[3])}<span>${t(x[1],x[2])}</span></button>`).join("")}</div>
  <div class="tabbody">${(body[ORTAB]||body.details)()}</div>`}
 };
 Object.assign(T,{orders:{ar:"الطلبات",en:"Requests"},orderShow:{ar:"تفاصيل الطلب",en:"Request details"}});
 Object.assign(screens,orderScreens);
-function orTick(){document.querySelectorAll("[data-since]").forEach(n=>{const m=+n.dataset.since+Math.floor((Date.now()-orT0)/60000);const tgt=n.querySelector("b")||n;tgt.textContent=orDur(m)})}
-const orT0=Date.now();
-setInterval(orTick,30000);
+function orPlaceMenu(id){requestAnimationFrame(()=>{const btn=document.querySelector(`[data-ormenu="${id}"]`),m=document.querySelector(".amenu:not(.hidden)");if(!btn||!m)return;if(m.parentElement!==document.body)document.body.appendChild(m);const b=btn.getBoundingClientRect(),pad=10,mh=Math.min(m.offsetHeight,innerHeight-2*pad),mw=m.offsetWidth;let top=b.bottom+6;if(top+mh>innerHeight-pad)top=b.top-mh-6;m.style.top=Math.max(pad,top)+"px";m.style.left=Math.min(Math.max(pad,b.left),innerWidth-mw-pad)+"px"})}
+const orKill=()=>document.querySelectorAll("body>.amenu").forEach(m=>m.remove());
 document.addEventListener("click",e=>{
+ const om=e.target.closest("[data-ormenu]");if(om){ORMENU=ORMENU===om.dataset.ormenu?null:om.dataset.ormenu;orKill();render();if(ORMENU)orPlaceMenu(ORMENU);return}
+ if(ORMENU&&!e.target.closest(".amenu")){ORMENU=null;orKill();render()}
  const tt=e.target.closest("[data-ortype]");if(tt){ORTYPE=tt.dataset.ortype;ORSTATUS="";render();return}
  const so=e.target.closest("[data-orsrc]");if(so){ORSRC=so.dataset.orsrc;render();return}
- const ss=e.target.closest("[data-orstat]");if(ss){const k=ss.dataset.orstat;ORSTATUS=k==="all"?"":(ORSTATUS===k?"":k);render();return}
- const sh=e.target.closest("[data-orshow]");if(sh){ORID=sh.dataset.orshow;ORTAB="details";cur="orderShow";render();window.scrollTo(0,0);return}
- const tb=e.target.closest("[data-ortab]");if(tb){ORTAB=tb.dataset.ortab;render();window.scrollTo(0,0);return}
+ const ss=e.target.closest("[data-orstat]");if(ss){const k=ss.dataset.orstat;ORSTATUS=ORSTATUS===k?"":k;render();return}
+ if(e.target.closest("[data-ormore]")){ORMORE=!ORMORE;render();return}
+ if(e.target.closest("[data-orreset]")){ORQ="";ORSTATUS="";ORSRC="";render();return}
+ const tk=e.target.closest("[data-ortake]");if(tk){const r=orRows.find(x=>x.id===tk.dataset.ortake);if(r){r.st="under_process";if(r.agent==="—")r.agent=t("مشرف النظام","Supervisor")}render();clToast("تم استلام الطلب — الحالة: تحت الإجراء","Request taken — in progress");return}
+ const sh=e.target.closest("[data-orshow]");if(sh){ORID=sh.dataset.orshow;ORTAB=sh.dataset.ortabGo||"details";cur="orderShow";render();window.scrollTo(0,0);return}
+ const tb=e.target.closest("[data-ortab]");if(tb){ORTAB=tb.dataset.ortab;render();return}
  const cv=e.target.closest("[data-orconv]");
- if(cv){const r=orRows.find(x=>x[0]===cv.dataset.orconv);let ov=document.getElementById("orOv");if(!ov){ov=document.createElement("div");ov.id="orOv";ov.className="ov";document.body.appendChild(ov)}
-  ov.innerHTML=`<div class="modal"><div class="modal-h"><div><h3>${t("تحويل الطلب إلى عقد","Convert request to contract")}</h3><p class="ms">${r[0]} · ${r[2]} · ${r[3]}</p></div><button class="icon-btn" data-orclose>${I("x")}</button></div>
-  <div class="modal-b"><div class="fgrid two"><div class="fld"><label>${t("نوع العقد","Contract type")}<code>contract_type</code></label><select><option${r[1]==="rec"?" selected":""}>${t("عقد استقدام","Recruitment contract")}</option><option${r[1]==="rent"?" selected":""}>${t("عقد تأجير","Rental contract")}</option><option${r[1]==="trn"?" selected":""}>${t("نقل خدمات","Service transfer")}</option></select></div>
-  <div class="fld"><label>${t("السيرة المرتبطة","Linked CV")}<code>maid_id</code></label><select><option>Marites Dela Cruz — A-118742</option><option>Sri Wahyuni — A-118710</option></select></div>
-  <div class="fld"><label>${t("قيمة العقد (ر.س)","Contract value (SAR)")}</label><input type="text" value="18,500"></div>
-  <div class="fld"><label>${t("تاريخ العقد","Contract date")}</label><input type="date" value="2026-08-17"></div></div>
-  <p class="pnote">${I("info")}${t("سيبقى الطلب في سجله مربوطاً برقم العقد الجديد، ولن يُحذف.","The request stays in its register linked to the new contract number; it is not deleted.")}</p></div>
-  <div class="modal-f"><button class="btn btn-ghost" data-orclose>${t("إلغاء","Cancel")}</button><button class="btn btn-primary" data-ordone="${r[0]}">${I("file-plus")}${t("إنشاء العقد","Create contract")}</button></div></div>`;
+ if(cv){const r=orRows.find(x=>x.id===cv.dataset.orconv);let ov=document.getElementById("orOv");if(!ov){ov=document.createElement("div");ov.id="orOv";ov.className="ov";document.body.appendChild(ov)}
+  const ct={rec:["عقد استقدام","Recruitment contract"],rent:["عقد إيجار","Rental contract"],trn:["عقد نقل خدمات","Service transfer contract"]}[r.type];
+  ov.innerHTML=`<div class="modal"><div class="modal-h"><div><h3>${t(`إنشاء ${ct[0]} من الطلب`,`Create ${ct[1]}`)}</h3><p class="ms">${r.id} · ${r.client}</p></div><button class="icon-btn" data-orclose>${I("x")}</button></div>
+  <div class="modal-b"><div class="fgrid two">${(r.type==="rec"?[["العاملة","Worker",`${r.maid||"—"} — ${r.mpass||""}`],["المكتب الخارجي","Office",r.office||"—"],["المهنة","Job",r.job],["الراتب","Salary",r.salary]]:r.type==="rent"?[["العاملة","Worker",`${r.maid} — ${r.mpass}`],["الباقة","Package",r.pkg],["القيمة المدفوعة","Paid",`${r.price} ${t("ر.س","SAR")}`],["تاريخ البدء","Start",r.start]]:[["العاملة","Worker",r.maid],["الكفيل الحالي","Current sponsor",r.sponsor],["رسوم النقل","Fee",`${r.fee} ${t("ر.س","SAR")}`],["أيام التجربة","Trial days",r.trial]]).map(f=>`<div class="fld"><label>${t(f[0],f[1])}</label><input type="text" value="${f[2]}" readonly></div>`).join("")}</div>
+  <p class="pnote">${I("info")}${t("تنتقل بيانات الطلب للعقد تلقائياً، ويصبح الطلب «مكتملاً» وتُقفل حالته وإجراءاته.","The request data moves into the contract; the request becomes completed and locked.")}</p></div>
+  <div class="modal-f"><button class="btn btn-ghost" data-orclose>${t("إلغاء","Cancel")}</button><button class="btn btn-primary" data-ordone="${r.id}">${I("file-plus")}${t("إنشاء العقد","Create contract")}</button></div></div>`;
   ov.classList.remove("hidden");lucide.createIcons({attrs:{"stroke-width":1.8}});return}
  const oc=e.target.closest("[data-orclose]"),od=e.target.closest("[data-ordone]");
  if(oc||od){const ov=document.getElementById("orOv");if(ov)ov.classList.add("hidden");
-  if(od){const r=orRows.find(x=>x[0]===od.dataset.ordone);if(r){r[12]="CN-2026-0"+(113+orRows.filter(x=>x[12]).length);r[9]="contracted";r[10]=1;r[26]=r[8]}render();clToast("تم إنشاء العقد وربطه بالطلب","Contract created and linked to the request")}return}
+  if(od){const r=orRows.find(x=>x.id===od.dataset.ordone);if(r){r.contract={rec:"CN",rent:"RC",trn:"TR"}[r.type]+"-2026-0"+(120+orRows.filter(x=>x.contract).length);r.st="contracted";r.closed=(r.closed||600)}render();clToast("تم إنشاء العقد وربطه بالطلب — الطلب مكتمل","Contract created — request completed")}return}
 });
 document.addEventListener("input",e=>{
  if(e.target.matches("[data-orq]")){ORQ=e.target.value;const p=e.target.selectionStart;render();const n=document.querySelector("[data-orq]");if(n){n.focus();n.setSelectionRange(p,p)}}
@@ -9368,84 +9417,96 @@ document.addEventListener("click",e=>{
  if(t.dataset.ldgo){const n=document.querySelector(".ld-tabs");if(n)window.scrollTo({top:n.getBoundingClientRect().top+scrollY-80,behavior:"smooth"})}
 });
 
-/* ===== v1.37 — سير التأجير (rentalCvs): MaidController@rentalIndex (maids/rental) — العاملة فين دلوقتي: عند عميل · في السكن · لم تصل · بالساعة ===== */
-(()=>{
-const {X,TAG,HEAD,B,PAGER}=window.CXH;
+/* ===== v1.38 — سير التأجير (rentalCvs): MaidController@rentalIndex (maids/rental) — نفس هيكل «السير الذاتية»: تبويبات بمكان العاملة، كروت حالة كفلاتر، شريط فلاتر، جدول ===== */
 window.CERP_PAGES=(window.CERP_PAGES||[]).concat(["rentalCvs"]);
-const NEW=`<span class="tag a hm-new">جديد</span>`;
-const TBL=(head,rows)=>`<div class="tw"><table class="rq-t"><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table></div>`;
-const MAID=(n,s)=>`<div class="rq-cv"><span class="ph">${X("user-round")}</span><div><b>${n}</b>${s?`<small>${s}</small>`:""}</div></div>`;
-const M=v=>`<span class="num">${v}</span> <small class="cur">ر.س</small>`;
-const DAYS=(d,warn,bad)=>`<span class="tag ${d<=bad?"r":d<=warn?"a":"g"}"><span class="num">${d}</span> يوماً</span>`;
-const ACTS=a=>`<div class="rowacts">${a.map(x=>`<button class="icon-btn pri" title="${x[1]}" ${x[2]||""}>${X(x[0])}</button>`).join("")}</div>`;
-
-/* على رأس العمل — rentalContracts نشط: name, nat, passport, client, contract, start, end, daysLeft, fee, iqamaExpiry(id_expiry_date), iqamaDays, progress% */
-const WK=[["فاطمة أحمدي","إثيوبيا","EP8812034","هند الرشيد","RC-2026-0036","01 يوليو 2026","22 نوفمبر 2026",3,"1,400","05 ديسمبر 2026",16,98],
- ["ديوي ليستاري","سريلانكا","LK220145","منيرة الشهري","RC-2026-0041","01 سبتمبر 2026","30 نوفمبر 2026",11,"1,600","12 فبراير 2027",85,88],
- ["جين وانغاري","كينيا","KE661204","ماجد الحربي","RC-2026-0033","10 يونيو 2026","09 ديسمبر 2026",20,"1,250","30 مارس 2027",131,89],
- ["ماريا كلارا رييس","الفلبين","P5521093","شركة نجد للمقاولات","RC-2026-0038","15 أغسطس 2026","14 فبراير 2027",87,"1,750","22 ديسمبر 2026",33,52],
- ["ريتا غوميز","الفلبين","P3390561","العنود المطيري","RC-2026-0030","20 مايو 2026","19 مايو 2027",181,"1,800","04 ديسمبر 2026",15,50]];
-/* في السكن — maid_accommodation_type = 2: name, nat, passport, since, days, readiness, fee, lastClient */
-const HS=[["هيلين تسفاي","إثيوبيا","ET119002","11 أكتوبر 2026",39,"ok","1,300","بدر القحطاني"],
- ["مرسي أتينو","كينيا","KE990321","02 نوفمبر 2026",17,"ok","1,250",""],
- ["نور الهدى بيغم","بنغلاديش","BD330981","12 نوفمبر 2026",7,"iqama","1,100",""],
- ["سانداني بيريرا","سريلانكا","LK771045","16 نوفمبر 2026",3,"medical","1,350","عبدالله الدوسري"]];
-const RDY={ok:["g","جاهزة للتأجير"],iqama:["a","الإقامة تنتهي خلال 12 يوماً"],medical:["a","بانتظار الفحص الطبي"]};
-/* لم تصل المملكة — arrival_date فاضي: name, nat, passport, office, stageIndex(0..3), expected, prebooking */
-const AR=[["جوي سانتوس","الفلبين","P8830127","PLATINUM BROTHERS",2,"27 نوفمبر 2026","هيا العنزي"],
- ["أبيبا ناكاتو","أوغندا","B2290418","KAMPALA STAR",1,"12 ديسمبر 2026 تقريباً",""]];
-const STG=["تفويض","تفييز","تذكرة","وصول"];
-/* بالساعة — rental_mode = hourly: name, nat, team, visitsWeek, rating, suspended(hourly_is_suspended) */
-const HR=[["ليزا بوتيستا","الفلبين","فريق شمال الرياض",9,"4.8",0],["أمينة حسن","بنغلاديش","فريق شرق الرياض",6,"4.5",1]];
-/* موقوفة / مرحّلة */
-const AV=[["بيتي وانجيرو","كينيا","r","موقوفة","18 يوليو 2026","بلاغ تغيّب — قيد المراجعة"],["سيتي رحمة","بنغلاديش","n","مُرحّلة","15 يوليو 2026","انتهاء الإقامة وترحيل العاملة"]];
-
-const iqSoon=WK.filter(r=>r[10]<=30).length+1, endWeek=WK.filter(r=>r[7]<=7).length, endTwo=WK.filter(r=>r[7]<=14).length, idle=HS.filter(r=>r[4]>=30).length;
-const TABS=[["working","briefcase","على رأس العمل",WK.length],["housing","home","في السكن",HS.length],["arriving","plane-landing","لم تصل المملكة",AR.length],["hourly","clock","بالساعة",HR.length],["archive","archive","موقوفة / مرحّلة",AV.length]];
-let TAB="working";try{const h=location.hash.slice(1);if(TABS.some(x=>x[0]===h))TAB=h}catch(_){}
-const PANE=(n,html)=>`<div class="rq-pane" data-rq-pane="rcv:${n}" ${n===TAB?"":"hidden"}>${html}</div>`;
-const FBAR=(ph,extra)=>`<div class="fbar"><div class="fb grow"><label>بحث</label><div class="inp">${X("search")}<input placeholder="${ph}"></div></div><div class="fb"><label>الجنسية</label><select><option>كل الجنسيات</option><option>الفلبين</option><option>كينيا</option><option>إثيوبيا</option><option>سريلانكا</option><option>بنغلاديش</option></select></div>${extra||""}</div>`;
-
-const screens_={rentalCvs:()=>`
- ${HEAD("سير التأجير","أين كل عاملة تأجير الآن: لدى عميل، أو في السكن، أو لم تصل المملكة بعد — وما المطلوب على كل واحدة.",B("ghost","download","تصدير")+B("ghost","share-2","مشاركة سير")+B("primary","plus","إضافة سيرة تأجير",'data-go="cvAdd"'))}
- <div class="rcv-attn">
-  <button class="rcv-a r" data-rq-tab="rcv:working">${X("calendar-x")}<div><b><span class="num">${endWeek}</span> عقد ينتهي خلال أسبوع</b><small><span class="num">${endTwo}</span> عقود خلال أسبوعين — جدّد أو أعِد العاملة للسكن</small></div></button>
-  <button class="rcv-a a" data-rq-tab="rcv:working">${X("id-card")}<div><b><span class="num">${iqSoon}</span> إقامات تنتهي خلال 30 يوماً</b><small>جدّد قبل الانتهاء لتجنّب المخالفة</small></div></button>
-  <button class="rcv-a n" data-rq-tab="rcv:housing">${X("home")}<div><b><span class="num">${HS.length}</span> عاملات في السكن</b><small><span class="num">${idle}</span> منها أكثر من 30 يوماً دون تأجير</small></div></button>
-  <button class="rcv-a n" data-rq-tab="rcv:arriving">${X("plane-landing")}<div><b><span class="num">${AR.length}</span> بانتظار الوصول</b><small>أقرب وصول 27 نوفمبر — عليها حجز مسبق</small></div></button>
+let RCVTAB=(()=>{try{const h=location.hash.slice(1);if(["working","housing","arriving","hourly","archive"].includes(h))return h}catch(_){}return "working"})(),RCVST="",RCVQ="";
+/* id, latin, arabic, nat ar, nat en, tab, status key, fields… */
+const rcvRows=[
+ /* working: client, contract, from, to, daysLeft, fee, iqama, iqamaDays, progress */
+ {id:"R-2041",en:"FATIMA AHMEDI",ar:"فاطمة أحمدي",nat:["إثيوبيا","Ethiopia"],pp:"EP8812034",tab:"working",st:["ending","ينتهي العقد خلال أسبوع","Contract ends this week","r"],client:"هند الرشيد",rc:"RC-2026-0036",from:"01 يوليو 2026",to:"22 نوفمبر 2026",left:3,fee:"1,400",iq:"05 ديسمبر 2026",iqd:16,pr:98},
+ {id:"R-2038",en:"DEWI LESTARI",ar:"ديوي ليستاري",nat:["سريلانكا","Sri Lanka"],pp:"LK220145",tab:"working",st:["active","عقد ساري","Active contract","g"],client:"منيرة الشهري",rc:"RC-2026-0041",from:"01 سبتمبر 2026",to:"30 نوفمبر 2026",left:11,fee:"1,600",iq:"12 فبراير 2027",iqd:85,pr:88},
+ {id:"R-2035",en:"JANE WANGARI",ar:"جين وانغاري",nat:["كينيا","Kenya"],pp:"KE661204",tab:"working",st:["active","عقد ساري","Active contract","g"],client:"ماجد الحربي",rc:"RC-2026-0033",from:"10 يونيو 2026",to:"09 ديسمبر 2026",left:20,fee:"1,250",iq:"30 مارس 2027",iqd:131,pr:89},
+ {id:"R-2031",en:"MARIA CLARA REYES",ar:"ماريا كلارا رييس",nat:["الفلبين","Philippines"],pp:"P5521093",tab:"working",st:["active","عقد ساري","Active contract","g"],client:"شركة نجد للمقاولات",rc:"RC-2026-0038",from:"15 أغسطس 2026",to:"14 فبراير 2027",left:87,fee:"1,750",iq:"22 ديسمبر 2026",iqd:33,pr:52},
+ {id:"R-2027",en:"RITA GOMEZ",ar:"ريتا غوميز",nat:["الفلبين","Philippines"],pp:"P3390561",tab:"working",st:["iqama","الإقامة تنتهي قريباً","Residency expiring","a"],client:"العنود المطيري",rc:"RC-2026-0030",from:"20 مايو 2026",to:"19 مايو 2027",left:181,fee:"1,800",iq:"04 ديسمبر 2026",iqd:15,pr:50},
+ /* housing: since, days, ready, fee, last */
+ {id:"R-2044",en:"HELEN TESFAYE",ar:"هيلين تسفاي",nat:["إثيوبيا","Ethiopia"],pp:"ET119002",tab:"housing",st:["idle","أكثر من 30 يوماً دون تأجير","Idle 30+ days","r"],since:"11 أكتوبر 2026",days:39,ready:1,fee:"1,300",last:"بدر القحطاني"},
+ {id:"R-2046",en:"MERCY ATIENO",ar:"مرسي أتينو",nat:["كينيا","Kenya"],pp:"KE990321",tab:"housing",st:["ready","جاهزة للتأجير","Ready to rent","g"],since:"02 نوفمبر 2026",days:17,ready:1,fee:"1,250",last:""},
+ {id:"R-2049",en:"NURUL HUDA BEGUM",ar:"نور الهدى بيغم",nat:["بنغلاديش","Bangladesh"],pp:"BD330981",tab:"housing",st:["action","تحتاج إجراء","Needs action","a"],since:"12 نوفمبر 2026",days:7,ready:0,why:"الإقامة تنتهي خلال 12 يوماً",fee:"1,100",last:""},
+ {id:"R-2050",en:"SANDANI PERERA",ar:"سانداني بيريرا",nat:["سريلانكا","Sri Lanka"],pp:"LK771045",tab:"housing",st:["action","تحتاج إجراء","Needs action","a"],since:"16 نوفمبر 2026",days:3,ready:0,why:"بانتظار الفحص الطبي",fee:"1,350",last:"عبدالله الدوسري"},
+ /* arriving: office, stage, eta, prebook */
+ {id:"R-2052",en:"JOY SANTOS",ar:"جوي سانتوس",nat:["الفلبين","Philippines"],pp:"P8830127",tab:"arriving",st:["booked","عليها حجز مسبق","Pre-booked","n"],office:"PLATINUM BROTHERS",stage:2,eta:"27 نوفمبر 2026",pre:"هيا العنزي",fee:"1,700"},
+ {id:"R-2053",en:"ABIBA NAKATO",ar:"أبيبا ناكاتو",nat:["أوغندا","Uganda"],pp:"B2290418",tab:"arriving",st:["free","بدون حجز","Not booked","g"],office:"KAMPALA STAR",stage:1,eta:"12 ديسمبر 2026 تقريباً",pre:"",fee:"1,150"},
+ /* hourly: team, visits, rating */
+ {id:"R-2012",en:"LIZA BAUTISTA",ar:"ليزا بوتيستا",nat:["الفلبين","Philippines"],pp:"P6610284",tab:"hourly",st:["on","تعمل","Working","g"],team:"فريق شمال الرياض",visits:9,rate:"4.8"},
+ {id:"R-2015",en:"AMINA HASSAN",ar:"أمينة حسن",nat:["بنغلاديش","Bangladesh"],pp:"BD220913",tab:"hourly",st:["paused","موقوفة مؤقتاً عن الزيارات","Paused","a"],team:"فريق شرق الرياض",visits:6,rate:"4.5"},
+ /* archive */
+ {id:"R-1987",en:"BETTY WANJIRU",ar:"بيتي وانجيرو",nat:["كينيا","Kenya"],pp:"KE550118",tab:"archive",st:["suspended","موقوفة","Suspended","r"],date:"18 يوليو 2026",why:"بلاغ تغيّب — قيد المراجعة"},
+ {id:"R-1979",en:"SITI RAHMA",ar:"سيتي رحمة",nat:["بنغلاديش","Bangladesh"],pp:"BD660477",tab:"archive",st:["deported","مُرحّلة","Deported","n"],date:"15 يوليو 2026",why:"انتهاء الإقامة وترحيل العاملة"}];
+const rcvTabs=[["working","على رأس العمل","Working"],["housing","في السكن","In housing"],["arriving","لم تصل المملكة","Not arrived"],["hourly","بالساعة","Hourly"],["archive","موقوفة / مرحّلة","Suspended / deported"]];
+const rcvStats={
+ working:[["","الكل","All","n","briefcase"],["ending","ينتهي خلال أسبوع","Ends this week","r","calendar-x"],["iqama","إقامة تنتهي خلال 30 يوماً","Residency < 30 days","a","id-card"],["active","عقد ساري","Active","g","check-circle-2"]],
+ housing:[["","الكل","All","n","home"],["ready","جاهزة للتأجير","Ready","g","check-circle-2"],["action","تحتاج إجراء","Needs action","a","alert-circle"],["idle","أكثر من 30 يوماً","Idle 30+ days","r","hourglass"]],
+ arriving:[["","الكل","All","n","plane-landing"],["booked","عليها حجز مسبق","Pre-booked","n","calendar-clock"],["free","بدون حجز","Not booked","g","circle-dashed"]],
+ hourly:[["","الكل","All","n","clock"],["on","تعمل","Working","g","check-circle-2"],["paused","موقوفة مؤقتاً","Paused","a","pause-circle"]],
+ archive:[["","الكل","All","n","archive"],["suspended","موقوفة","Suspended","r","ban"],["deported","مُرحّلة","Deported","n","plane-takeoff"]]};
+const rcvSubs={working:["5 عاملات لدى عملاء — عقد ينتهي هذا الأسبوع، وإقامتان تنتهيان خلال 30 يوماً","5 with clients — 1 contract ends this week, 2 residencies expire within 30 days"],
+ housing:["4 عاملات في السكن — 2 جاهزتان للتأجير (إحداهما بلا تأجير منذ 39 يوماً)، و2 تحتاجان إجراء","4 in housing — 2 ready to rent (one idle for 39 days), 2 need action"],
+ arriving:["2 عاملتان لم تصلا المملكة — أقرب وصول 27 نوفمبر","2 not yet arrived — next arrival 27 November"],
+ hourly:["2 عاملتان في التأجير بالساعة","2 on hourly rental"],archive:["2 سيرتان موقوفة أو مُرحّلة","2 suspended or deported"]};
+const rcvHit=(r,st)=>!st||r.st[0]===st||(st==="iqama"&&r.iqd<=30)||(st==="ready"&&r.ready===1);
+const rcvCount=(tab,st)=>rcvRows.filter(r=>r.tab===tab&&rcvHit(r,st)).length;
+const rcvList=()=>rcvRows.filter(r=>r.tab===RCVTAB&&rcvHit(r,RCVST)&&(!RCVQ||(r.ar+r.en+r.pp+r.id+(r.client||"")+(r.rc||"")).toLowerCase().includes(RCVQ.toLowerCase())));
+const rcvDays=(d,w,b)=>`<span class="st tag ${d<=b?"r":d<=w?"a":"g"}"><i></i>${t(`${d} يوماً`,`${d} days`)}</span>`;
+const rcvBtn=(ic,ar,en,go)=>`<button class="icon-btn pri" title="${t(ar,en)}"${go?` data-go="${go}"`:""}>${I(ic)}</button>`;
+const rcvActs=r=>`<div class="rowacts">${rcvBtn("eye","عرض السيرة","View CV","cvShow")}${
+ r.tab==="working"?rcvBtn("file-text","عقد التأجير","Rental contract","rentalShow")+rcvBtn("refresh-cw","تجديد العقد أو إعادتها للسكن","Renew or return to housing"):
+ r.tab==="housing"?rcvBtn("file-signature","تأجير","Rent out","rentalAdd")+rcvBtn("share-2","مشاركة واتساب","Share on WhatsApp"):
+ r.tab==="arriving"?rcvBtn("calendar-clock","حجز مسبق","Pre-book","visaPrebook"):
+ r.tab==="hourly"?rcvBtn("calendar-range","الجدول","Schedule","hb-schedule")+rcvBtn("repeat","تحويل إلى تأجير شهري","Switch to monthly"):""}</div>`;
+const rcvCols={
+ working:[["العميل والعقد","Client & contract",r=>`<b>${r.client}</b><small><a href="#" data-go="rentalShow" class="num">${r.rc}</a></small><small class="num">${t("الأجرة","Fee")}: ${r.fee} ${t("ر.س/شهر","SAR/mo")}</small>`],
+  ["مدة العقد والمتبقي","Period & remaining",r=>`<small>${t("من","From")} ${r.from}</small><small>${t("إلى","To")} ${r.to}</small><span class="rcv-bar"><i style="width:${r.pr}%"></i></span>${rcvDays(r.left,14,7)}`],
+  ["الإقامة","Residency",r=>`<small>${r.iq}</small>${r.iqd<=30?`<small class="bad">${t(`تنتهي خلال ${r.iqd} يوماً`,`Expires in ${r.iqd} days`)}</small>`:`<small class="ok">${t("سارية","Valid")}</small>`}`]],
+ housing:[["في السكن","In housing",r=>`<small>${t("منذ","Since")} ${r.since}</small>${rcvDays(r.days,30,0).replace(/tag (g|a|r)/,"tag "+(r.days>=30?"r":r.days>=14?"a":"n"))}`],
+  ["الجاهزية","Readiness",r=>r.ready?`<small class="ok">${t("جاهزة للتأجير","Ready to rent")}</small>`:`<small class="bad">${r.why}</small>`],
+  ["التأجير","Rental",r=>`<b class="num">${r.fee} ${t("ر.س/شهر","SAR/mo")}</b><small>${t("آخر عميل","Last client")}: ${r.last||t("لم تؤجَّر بعد","Not rented yet")}</small>`]],
+ arriving:[["المكتب الخارجي","External office",r=>`<b>${r.office}</b><small class="num">${t("الأجرة","Fee")}: ${r.fee} ${t("ر.س/شهر","SAR/mo")}</small>`],
+  ["المرحلة","Stage",r=>`<div class="rcv-steps">${[["تفويض","Mandate"],["تفييز","Visa"],["تذكرة","Ticket"],["وصول","Arrival"]].map((s,i)=>`<span class="${i<r.stage?"done":i===r.stage?"cur":""}">${t(s[0],s[1])}</span>`).join("")}</div>`],
+  ["الوصول المتوقع","Expected arrival",r=>`<small>${r.eta}</small>${r.pre?`<small>${t("حجز مسبق","Pre-booked")}: <b>${r.pre}</b></small>`:""}`]],
+ hourly:[["الفريق","Team",r=>`<b>${r.team}</b>`],["هذا الأسبوع","This week",r=>`<b class="num">${r.visits}</b><small>${t("زيارات","visits")} · ${t("التقييم","rating")} <span class="num">${r.rate}</span>/5</small>`]],
+ archive:[["التاريخ والسبب","Date & reason",r=>`<small>${r.date}</small><small>${r.why}</small>`]]};
+screens.rentalCvs=()=>{
+ const rows=rcvList(),cols=rcvCols[RCVTAB],stats=rcvStats[RCVTAB];
+ return `
+ <div class="page-head"><div><h1>${t("سير التأجير","Rental CVs")}</h1><p>${t(rcvSubs[RCVTAB][0],rcvSubs[RCVTAB][1])}</p></div>
+ <div class="actions"><button class="btn btn-ghost" data-perm="MAIDS_EXPORT">${I("download")}${t("تصدير","Export")}</button><button class="btn btn-ghost">${I("share-2")}${t("مشاركة سير","Share CVs")}</button><button class="btn btn-primary" data-go="cvAdd" data-perm="MAIDS_RENTAL_CREATE">${I("plus")}${t("إضافة سيرة تأجير","Add rental CV")}</button></div></div>
+ <div class="seg tabs" data-seg>${rcvTabs.map(x=>{const n=rcvCount(x[0]);return `<button class="${x[0]===RCVTAB?"on":""}" data-rcvtab="${x[0]}">${t(x[1],x[2])}<b class="num">${n}</b></button>`}).join("")}</div>
+ <div class="statgrid slim">${stats.map(x=>{const n=rcvCount(RCVTAB,x[0]);return n||!x[0]?`<button class="scard slim ${x[0]===RCVST?"on":""}" data-rcvst="${x[0]}"><span class="sbar ${x[3]}"></span><span class="sci ${x[3]}">${I(x[4])}</span><span class="stx"><span class="sct">${t(x[1],x[2])}</span><b class="num">${n}</b></span>${x[0]===RCVST?`<span class="scon">${I("check")}</span>`:""}</button>`:""}).join("")}</div>
+ <div class="fbar">
+  <div class="fb grow"><label>${t("بحث","Search")}</label><div class="inp">${I("search")}<input data-rcvq value="${RCVQ}" placeholder="${t("اسم، جواز، رقم عاملة، عميل، رقم عقد","Name, passport, worker no., client, contract")}"></div></div>
+  <div class="fb"><label>${t("الجنسية","Nationality")}</label><select><option>${t("كل الجنسيات","All nationalities")}</option>${cvNats.map(n=>`<option>${t(n[0],n[1])}</option>`).join("")}</select></div>
+  <div class="fb"><label>${t("الفرع","Branch")}</label><select><option>${t("كل الفروع","All branches")}</option><option>${t("الفرع الرئيسي","Main branch")}</option><option>${t("فرع الدمام","Dammam branch")}</option></select></div>
+  ${(RCVQ||RCVST)?`<button class="btn btn-ghost" data-rcvreset>${I("x")}${t("إزالة الفلاتر","Clear")}</button>`:""}
+  <span class="empty" style="margin-inline-start:auto">${t(`${rows.length} نتيجة`,`${rows.length} results`)}</span>
  </div>
- <div class="vtabs rq-tabs rcv-tabs">${TABS.map(x=>`<button class="${x[0]===TAB?"on":""}" data-rq-tab="rcv:${x[0]}">${X(x[1])}<span>${x[2]}</span><em class="num">${x[3]}</em></button>`).join("")}</div>
-
- ${PANE("working",`${FBAR("اسم العاملة، الجواز، العميل، رقم العقد",`<div class="fb"><label>ينتهي العقد خلال</label><select><option>أي وقت</option><option>7 أيام</option><option>30 يوماً</option></select></div>`)}
-  <div class="card flush">${TBL(`<th>العاملة</th><th>العميل / العقد</th><th>مدة العقد</th><th>المتبقي</th><th class="r">الأجرة الشهرية</th><th>الإقامة</th><th class="act"></th>`,
-  WK.map(r=>`<tr><td>${MAID(r[0],`${r[1]} · <span class="num">${r[2]}</span>`)}</td><td><b>${r[3]}</b><small><a href="#" data-go="rentalShow" class="num">${r[4]}</a></small></td><td><small><bdi>${r[5]}</bdi> ← <bdi>${r[6]}</bdi></small><span class="rcv-bar"><i style="width:${r[11]}%"></i></span></td><td>${DAYS(r[7],14,7)}</td><td class="r">${M(r[8])}</td><td><small>${r[9]}</small>${r[10]<=30?TAG("a",`تنتهي خلال ${r[10]} يوماً`):`<small>سارية</small>`}</td><td class="act">${ACTS([["eye","عرض السيرة",'data-go="cvShow"'],["file-text","عقد التأجير",'data-go="rentalShow"'],["refresh-cw","تجديد العقد"],["home","إعادة للسكن"]])}</td></tr>`).join(""))}${PAGER(`عرض ${WK.length} من ${WK.length} عاملات`)}</div>`)}
-
- ${PANE("housing",`${FBAR("اسم العاملة أو الجواز",`<div class="fb"><label>الجاهزية</label><select><option>الكل</option><option>جاهزة للتأجير</option><option>تحتاج إجراء</option></select></div>`)}
-  <div class="card flush">${TBL(`<th>العاملة</th><th>في السكن منذ ${NEW}</th><th>الجاهزية</th><th class="r">أجرة التأجير</th><th>آخر عميل</th><th class="act"></th>`,
-  HS.map(r=>`<tr><td>${MAID(r[0],`${r[1]} · <span class="num">${r[2]}</span>`)}</td><td><small>${r[3]}</small><span class="tag ${r[4]>=30?"r":r[4]>=14?"a":"n"}"><span class="num">${r[4]}</span> يوماً</span></td><td>${TAG(RDY[r[5]][0],RDY[r[5]][1])}</td><td class="r">${M(r[6])}</td><td>${r[7]||`<span class="rq-dim">لم تؤجَّر بعد</span>`}</td><td class="act"><div class="rq-btns">${B("primary sm","file-signature","تأجير",'data-go="rentalAdd"')}${ACTS([["eye","عرض السيرة",'data-go="cvShow"'],["share-2","مشاركة السيرة"]])}</div></td></tr>`).join(""))}${PAGER(`عرض ${HS.length} من ${HS.length} عاملات`)}</div>
-  <div class="cx-info" style="margin:12px 0 0">${X("info")}<span>العاملة في السكن تكلّف المكتب السكن والإعاشة يومياً؛ لذلك تظهر المدة بالأصفر بعد 14 يوماً وبالأحمر بعد 30 يوماً.</span></div>`)}
-
- ${PANE("arriving",`
-  <div class="card flush">${TBL(`<th>العاملة</th><th>المكتب الخارجي</th><th>المرحلة</th><th>الوصول المتوقع</th><th>حجز مسبق</th><th class="act"></th>`,
-  AR.map(r=>`<tr><td>${MAID(r[0],`${r[1]} · <span class="num">${r[2]}</span>`)}</td><td>${r[3]}</td><td><div class="rcv-steps">${STG.map((s,i)=>`<span class="${i<r[4]?"done":i===r[4]?"cur":""}">${s}</span>`).join("")}</div></td><td><small>${r[5]}</small></td><td>${r[6]?`<b>${r[6]}</b><small>يُنشأ العقد عند الوصول</small>`:`<span class="rq-dim">لا يوجد</span>`}</td><td class="act">${ACTS([["eye","عرض السيرة",'data-go="cvShow"'],["calendar-clock","حجز مسبق",'data-go="visaPrebook"']])}</td></tr>`).join(""))}</div>`)}
-
- ${PANE("hourly",`
-  <div class="card flush">${TBL(`<th>العاملة</th><th>الفريق</th><th>زيارات هذا الأسبوع</th><th>التقييم</th><th>الحالة</th><th class="act"></th>`,
-  HR.map(r=>`<tr><td>${MAID(r[0],r[1])}</td><td>${r[2]}</td><td class="num">${r[3]}</td><td><span class="num">${r[4]}</span> / 5</td><td>${r[5]?TAG("a","موقوفة مؤقتاً عن الزيارات"):TAG("g","تعمل")}</td><td class="act">${ACTS([["calendar-range","الجدول",'data-go="hb-schedule"'],["repeat","تحويل إلى تأجير شهري"]])}</td></tr>`).join(""))}</div>
-  <div class="cx-info" style="margin:12px 0 0">${X("info")}<span>يظهر هذا التبويب عند تفعيل التأجير بالساعة فقط. لا يمكن التحويل إلى الشهري وعلى العاملة زيارات مفتوحة.</span></div>`)}
-
- ${PANE("archive",`
-  <div class="card flush">${TBL(`<th>العاملة</th><th>الحالة</th><th>التاريخ</th><th>السبب</th><th class="act"></th>`,
-  AV.map(r=>`<tr><td>${MAID(r[0],r[1])}</td><td>${TAG(r[2],r[3])}</td><td>${r[4]}</td><td class="wrap"><small>${r[5]}</small></td><td class="act">${ACTS([["eye","عرض السيرة",'data-go="cvShow"']])}</td></tr>`).join(""))}</div>`)}
-`};
+ <div class="card flush">
+  <div class="tw"><table class="grp"><thead><tr><th class="chk"><input type="checkbox"></th><th>${t("الصورة والوسائط","Photo & media")}</th><th>${t("بيانات العاملة","Worker data")}</th>${cols.map(c=>`<th>${t(c[0],c[1])}</th>`).join("")}<th class="act">${t("الإجراءات","Actions")}</th></tr></thead><tbody>
+  ${rows.length?rows.map(r=>`<tr>
+   <td class="chk"><input type="checkbox"></td>
+   <td><div class="pcell"><span class="thumb">${I("user-round")}</span><div class="mbadges row"><span class="mb" title="${t("صورة","Photo")}">${I("image")}</span><span class="mb" title="${t("ملف السيرة PDF","CV PDF")}">${I("file-text")}</span></div></div></td>
+   <td><div class="gcell"><b class="lg">${t(r.ar,r.en)}</b><small>${r.en}</small><small><b class="num id">${r.id}</b> · ${t("جواز","P")} <span class="num">${r.pp}</span></small><small>${t(r.nat[0],r.nat[1])}</small><span class="st tag ${r.st[3]}"><i></i>${t(r.st[1],r.st[2])}</span></div></td>
+   ${cols.map(c=>`<td><div class="gcell">${c[2](r)}</div></td>`).join("")}
+   <td class="act">${rcvActs(r)}</td></tr>`).join(""):`<tr><td colspan="${4+cols.length}"><div class="tempty">${I("inbox")}<b>${t("لا نتائج مطابقة","No matching results")}</b><small>${t("جرّب إزالة الفلاتر","Try clearing the filters")}</small></div></td></tr>`}
+  </tbody></table></div>
+  <div class="tfoot"><span>${t(`عرض ${rows.length} من ${rcvCount(RCVTAB)}`,`Showing ${rows.length} of ${rcvCount(RCVTAB)}`)}</span><div class="pager"><button>${t("السابق","Prev")}</button><button class="on">1</button><button>${t("التالي","Next")}</button></div></div>
+ </div>`};
 Object.assign(T,{rentalCvs:{ar:"سير التأجير",en:"Rental CVs"}});
-Object.keys(screens_).forEach(k=>{screens[k]=screens_[k]});
-})();
-/* rental CVs: keep the open tab in the address so the link can be shared */
-document.addEventListener("click",e=>{const t=e.target.closest('[data-rq-tab^="rcv:"]');if(!t)return;const n=t.dataset.rqTab.split(":")[1];
- document.querySelectorAll('.rcv-tabs [data-rq-tab]').forEach(b=>b.classList.toggle("on",b.dataset.rqTab==="rcv:"+n));
- try{history.replaceState(null,"",location.pathname+location.search+(n==="working"?"":"#"+n))}catch(_){}});
-
+document.addEventListener("click",e=>{
+ const tb=e.target.closest("[data-rcvtab]");if(tb){RCVTAB=tb.dataset.rcvtab;RCVST="";try{history.replaceState(null,"",location.pathname+location.search+(RCVTAB==="working"?"":"#"+RCVTAB))}catch(_){}render();return}
+ const sc=e.target.closest("[data-rcvst]");if(sc){RCVST=sc.dataset.rcvst;render();return}
+ if(e.target.closest("[data-rcvreset]")){RCVST="";RCVQ="";render()}
+});
+document.addEventListener("input",e=>{if(e.target.matches&&e.target.matches("[data-rcvq]")){RCVQ=e.target.value;const p=e.target.selectionStart;render();const n=document.querySelector("[data-rcvq]");if(n){n.focus();n.setSelectionRange(p,p)}}});
 (function(){var P=window.CERP_PAGE;if(!P)return;var PAGES=window.CERP_PAGES||[];
 if(P==="login"){renderLogin();return}
 var lg=document.getElementById("login");if(lg)lg.classList.add("hidden");
