@@ -7066,3 +7066,11 @@ table.ortbl .odt{min-width:150px}
 .rcv-bar{display:block;height:7px;border-radius:99px;background:var(--line-2);overflow:hidden}
 .rcv-bar i{display:block;height:100%;border-radius:99px;background:var(--amber)}
 .rcv-cr b{color:var(--ink);text-align:end}
+
+/* ===== v1.43 — لوحة المعلومات: نسبة مساند وتقييم المكاتب ===== */
+.ld-quota{padding:16px 18px 10px}.ld-quota .qh{display:flex;justify-content:space-between;gap:12px;margin-bottom:26px}.ld-quota .qh>div{display:grid;grid-template-columns:auto auto;gap:0 8px;align-items:baseline}.ld-quota .qh small{grid-column:1/-1;font-size:12.5px;color:var(--muted)}.ld-quota .qh b{font-size:28px;font-weight:800;color:var(--ink)}.ld-quota .qh em{font-style:normal;font-size:14px;font-weight:700;color:var(--muted)}.ld-quota .qh .m{text-align:end}
+.ld-quota .qb{position:relative;display:flex;gap:2px;height:22px}.ld-quota .qb>i{display:block;height:100%}.ld-quota .qb .w{background:#e87ba4;border-radius:0 6px 6px 0}.ld-quota .qb .mm{background:#6250d6;border-radius:6px 0 0 6px}.ld-quota .qb u{position:absolute;top:-6px;bottom:-6px;width:2px;background:var(--red);text-decoration:none}.ld-quota .qb u span{position:absolute;bottom:100%;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:11px;font-weight:700;color:var(--red)}
+.ld-quota .qf{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:18px}.ld-quota .qf>div{background:var(--bg);border-radius:var(--r-s);padding:9px 10px}.ld-quota .qf b{display:block;font-size:20px;font-weight:800;color:var(--navy)}.ld-quota .qf small{font-size:11.5px;color:var(--muted);line-height:1.5;display:block}
+.ld-score{display:inline-flex;align-items:center;gap:8px}.ld-score>b{font-size:15px;font-weight:800;color:var(--ink)}
+.ld-cols .bar i.m{background:#9aa7bb}.ld-cols .bar i.t{background:var(--navy)}.ld-c .tw{overflow-x:auto}.ld-flow .st em{color:var(--muted)}
+.ld-c .tw table{min-width:0;width:100%}.ld-c .tw th,.ld-c .tw td{padding-inline:10px;white-space:normal}.ld-c .tw th:first-child,.ld-c .tw td:first-child{padding-inline-start:18px}.ld-c .tw .btn{white-space:nowrap}
