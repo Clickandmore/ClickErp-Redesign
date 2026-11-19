@@ -2819,8 +2819,8 @@ document.addEventListener("input",e=>{if(e.target.matches("[data-ccq]")){CCQ=e.t
 
 /* ===== clickerp-rental-app.js ===== */
 /* Rental contracts — grounded in admin/ingaz/RentContract/{index,create,create_final,edit,show,settings,contract-section,client-section,maid-section,trial-details}.blade.php */
-const rnTabs=[["all","كل العقود","All contracts","layers",14],["active","نشطة","Active","play-circle",3],["completed","مكتملة","Completed","check-circle-2",7],["closed","مغلقة — متاحة","Closed — available","unlock",2],["moved","تم النقل","Transferred","arrow-left-right",1],["cancelled","ملغية قبل اكتمال المدة","Cancelled early","x-circle",1]];
-const rnSt=[["active","نشط","Active","g"],["completed","مكتمل","Completed","n"],["closed","مغلق — متاح","Closed — available","a"],["moved","تم النقل","Transferred","n"],["cancelled","ملغي قبل اكتمال المدة","Cancelled early","r"]];
+const rnTabs=[["all","كل العقود","All contracts","layers",16],["new","جديدة","New","sparkles",2],["active","نشطة","Active","play-circle",3],["completed","مكتملة","Completed","check-circle-2",7],["closed","مغلقة — متاحة","Closed — available","unlock",2],["moved","تم النقل","Transferred","arrow-left-right",1],["cancelled","ملغية قبل اكتمال المدة","Cancelled early","x-circle",1]];
+const rnSt=[["new","جديد","New","a"],["active","نشط","Active","g"],["completed","مكتمل","Completed","n"],["closed","مغلق — متاح","Closed — available","a"],["moved","تم النقل","Transferred","n"],["cancelled","ملغي قبل اكتمال المدة","Cancelled early","r"]];
 const rnPackages=[["شهر واحد","1 month",1,30,4500],["ثلاثة أشهر","3 months",3,90,12900],["ستة أشهر","6 months",6,180,24600],["سنة","12 months",12,360,46800]];
 const rnPayTypes=["كاش","تحويل بنكي","شبكة (مدى)","رابط دفع","تقسيط"];
 const rnAccounts=["الصندوق الرئيسي","بنك الراجحي — 1122","بنك الأهلي — 4408"];
@@ -2866,6 +2866,7 @@ const rnInv=[
  ["INV-RC-0034","RC-2026-0034","فيصل القحطاني","2026-06-12",12900,1935,500,4300,"جزئي","Partial","a"],
  ["INV-RC-0033","RC-2026-0033","شركة الوفاء الطبية","2026-08-13",24600,3690,0,8200,"جزئي","Partial","a"]];
 let RNTAB="all",RNQ="",RNSTATUS="",RNPKG="",RNMORE=false,RNID="RC-2026-0044",RNSTAB="over",RNMENU=null,RNEDIT=null,RNADDTAB="existing",RNPRINT=null;
+[["RC-2026-0046","هند السبيعي","+966 53 220 9914","1078821450","سيتي آمنة","Siti Aminah","C5521780","2026-08-14","2026-11-11","إندونيسيا"],["RC-2026-0045","بدر العنزي","+966 55 882 0013","1066120937","ماريا لوبيز","Maria Lopez","P7731190","2026-08-15","2026-11-12","الفلبين"]].forEach(n=>{const r=[...rnRows[0]];r[0]=n[0];r[1]=n[1];r[3]=n[2];r[4]=n[3];r[6]=n[4];r[7]=n[5];r[8]=n[6];r[9]=n[9];r[14]=n[7];r[15]=n[8];r[16]=0;r[17]=90;r[25]="new";r[26]="unsigned";rnRows.unshift(r)});
 const rnTotal=k=>(rnTabs.find(x=>x[0]===k)||[,,,,0])[4];
 const rnSet=()=>RNTAB==="all"?rnRows:rnRows.filter(r=>r[25]===RNTAB);
 const rnFiltered=()=>rnSet().filter(r=>(!RNSTATUS||r[25]===RNSTATUS)&&(!RNPKG||r[11]===RNPKG)&&(!RNQ||(r[0]+r[1]+r[6]+r[8]+r[3]).toLowerCase().includes(RNQ.toLowerCase())));
@@ -2877,6 +2878,7 @@ const rnRemainCell=r=>{if(r[25]!=="active")return `<span class="empty">—</span
  const d=r[17];const tone=d>30?"n":d>7?"a":"r";
  return `<div class="gcell"><b class="num">${d}</b><span class="tag ${tone}">${t(d>30?"ضمن المدة":d>7?"تقترب النهاية":"تنتهي قريباً",d>30?"Within term":d>7?"Nearing end":"Ending soon")}</span></div>`};
 const rnStats=()=>{const T0=rnTotal(RNTAB);switch(RNTAB){
+ case "new":return [["","العقود الجديدة","New contracts","sparkles","a",T0],["unsigned","بانتظار التوقيع","Awaiting signature","pen-line","a",2],["due","مبالغ مستحقة","Amounts due","wallet","r",12900]];
  case "active":return [["","العقود النشطة","Active contracts","play-circle","g",T0],["ending","تنتهي خلال 30 يوماً","Ending in 30 days","alarm-clock","a",1],["unsigned","بانتظار التوقيع","Awaiting signature","pen-line","a",1],["due","مبالغ مستحقة","Amounts due","wallet","r",22850]];
  case "completed":return [["","العقود المكتملة","Completed","check-circle-2","n",T0],["month","انتهت هذا الشهر","Ended this month","calendar","n",2],["renewed","جُدِّدت","Renewed","repeat","g",3],["value","إجمالي القيم","Total value","banknote","n",76500]];
  case "closed":return [["","مغلقة — متاحة","Closed — available","unlock","a",T0],["ready","جاهزة لعقد جديد","Ready to re-rent","arrow-left-right","g",2],["shelter","عادت للإيواء","Back to shelter","home","n",2]];
@@ -3514,19 +3516,38 @@ const A=(id,i,ar,en,b)=>({id,i,ar,en,b}), S=(i,ar,en)=>({soon:1,i,ar,en});
 const RB="https://clickandmore.github.io/ClickErp-Redesign/design/modules/riyada/screens/";
 const R=(i,ar,en,f)=>({ref:f,i,ar,en});
 const H=(ar)=>({sec:1,ar});
+/* v1.45: sub-lines. KD = filtered view of a page · NG = row that only groups sub-lines · EP = row with its own page · DL = direct filtered link · SC = shortcut to a screen owned by another department */
+const KD=(page,f,ar,en,n,via)=>({page,f:f||"",ar,en,n,via:via||""}),KS=ar=>({sec:1,ar});
+const NG=(id,i,ar,en,k)=>({id,i,ar,en,k,v:1}),EP=(id,i,ar,en,k)=>({id,i,ar,en,k}),DL=(id,i,ar,en,to)=>({id,i,ar,en,to,v:1}),SC=(id,i,ar,en,via)=>({id,i,ar,en,x:1,via});
+const QP=new URLSearchParams(location.search),NF=QP.get("f")||"",VIA=QP.get("via")||"";
+window.NAVF=NF;
+if(NF)try{({contracts(){const[k,v]=NF.split(":");if(k==="s")RCSTAGE=v;else if(k==="g")RCGROUP=v;else if(k==="q")RCQUICK=v;else if(k==="w")RCWAR=v},housing(){if(hsTabs.some(x=>x[0]===NF))HSTAB=NF},transfer(){if(trTabs.some(x=>x[0]===NF))TRTAB=NF},rental(){if(rnTabs.some(x=>x[0]===NF))RNTAB=NF},orders(){if(["rec","rent","trn"].includes(NF))ORTYPE=NF}}[window.CERP_PAGE]||(()=>{}))()}catch(e){}
+const LIVE={contracts:()=>RCSTAGE?"s:"+RCSTAGE:RCQUICK==="current"?"q:current":RCGROUP?"g:"+RCGROUP:RCWAR==="active"?"w:active":"",housing:()=>HSTAB,transfer:()=>TRTAB,rental:()=>RNTAB,orders:()=>ORTYPE};
+const liveF=c=>LIVE[c]?LIVE[c]():NF;
+const rcN=k=>()=>rcCount(k),hsN=k=>()=>hsTotal(k),trN=k=>()=>trTotal(k),rnN=k=>()=>rnTotal(k);
 const DEPTS=[
  {id:"all",i:"layout-dashboard",ar:"الرئيسية",en:"Home",s:"الرئيسية",d:"لوحة التحكم والتقارير والشاشات المثبتة",items:[
   A("dashboard","layout-dashboard","لوحة التحكم","Dashboard"),A("reports","folder-open","مركز التقارير","Reports centre")]},
- {id:"ops",i:"briefcase",ar:"العمليات",en:"Operations",s:"العمليات",d:"الاستقدام والتأجير ونقل الخدمات والتأجير بالساعة واللوجستيات",items:[
-  H("عام"),A("recDash","layout-dashboard","لوحة المعلومات","Dashboard"),A("orders","shopping-cart","الطلبات","Orders","121"),
-  H("الاستقدام"),A("cvs","files","السير الذاتية","CVs"),A("contracts","file-text","عقود الاستقدام","Recruitment contracts","115"),A("absconding","user-x","بلاغات الهروب","Absconding reports","2"),A("rcExtensions","file-clock","طلبات العقود","Contract requests"),A("delegations","file-signature","العقود الرجالية (التفاويض)","Men's contracts (mandates)"),
-  H("التأجير"),A("rentalCvs","id-card","سير التأجير","Rental CVs"),A("rentalOrders","inbox","طلبات الإيجار","Rental orders"),A("rental","repeat","عقود التأجير","Rental contracts"),A("visaDash","stamp","تأشيرات الشركة","Company visas"),A("rentalRecruit","file-stack","عقود الاستقدام للتأجير","Company recruitment contracts"),A("rentalSettings","sliders-horizontal","إعدادات التأجير","Rental settings"),
-  H("نقل الخدمات"),A("transfer","arrow-left-right","نقل الخدمات","Service transfer","17"),A("transferTerms","scroll-text","بنود عقد نقل الخدمات","Transfer terms"),
+ {id:"ops",i:"briefcase",ar:"العمليات",en:"Operations",s:"العمليات",d:"الاستقبال والاستقدام والتأجير ونقل الخدمات واللوجستيات",items:[
+  H("عام"),A("recDash","layout-dashboard","لوحة المعلومات","Dashboard"),A("inbound","inbox","الاستقبال","Reception"),
+  H("الاستقدام"),NG("reqRec","shopping-cart","طلبات الاستقدام","Recruitment requests",[KD("orders","rec","طلبات الاستقدام والتوسط","Recruitment requests"),KD("inbound","private","طلبات خاصة","Private requests"),KD("inbound","known","الخدمة المعروفة","Known-worker requests"),KD("inbound","prof","العمالة المهنية","Professional labour"),KD("rcRenewals","","تجديد العقود","Contract renewals"),KD("rcReturns","","طلبات الاسترجاع","Return requests")]),
+  A("cvs","files","السير الذاتية","CVs"),
+  EP("contracts","file-text","عقود الاستقدام","Recruitment contracts",[KD("contracts","","كل العقود","All contracts",()=>rcTotal()),KD("contracts","q:current","العقود السارية","Valid contracts",()=>rcQuick()[0][3]),KS("قيد التنفيذ"),KD("contracts","s:pending_maid_selection","بانتظار اختيار العاملة","Awaiting worker",rcN("pending_maid_selection")),KD("contracts","s:new","جديد","New",rcN("new")),KD("contracts","s:msaned","مساند","Musaned",rcN("msaned")),KD("contracts","s:tafwed","تفويض","Mandate",rcN("tafwed")),KD("contracts","s:taffez","تفييز","Visa stamping",rcN("taffez")),KD("contracts","s:tazker","تذكرة","Ticket",rcN("tazker")),KS("بعد الوصول"),KD("contracts","s:arrival","وصول","Arrival",rcN("arrival")),KD("contracts","w:active","تحت الضمان","Under warranty"),KS("المغلقة"),KD("contracts","s:completed","مكتملة","Completed",rcN("completed")),KD("contracts","s:back","مرتجعة","Returned",rcN("back")),KD("contracts","s:refunded","مستردة","Refunded",rcN("refunded")),KS("عمليات العقود"),KD("absconding","","بلاغات الهروب","Absconding reports",2),KD("dispatches","","الإرساليات","Dispatches",null,"ops"),KD("rcExtensions","","طلبات التمديد","Extension requests",2)]),
+  A("delegations","file-signature","العقود الرجالية (التفاويض)","Men's contracts (mandates)"),
+  H("التأجير"),NG("reqRent","shopping-bag","طلبات التأجير","Rental requests",[KD("orders","rent","كل طلبات التأجير","All rental requests"),KD("rentalOrders","","طلبات الموقع والتطبيق","Website & app requests")]),
+  A("rentalCvs","id-card","سير التأجير","Rental CVs"),
+  EP("rental","repeat","عقود التأجير","Rental contracts",[KD("rental","all","كل العقود","All contracts",rnN("all")),KD("rental","new","جديدة","New",rnN("new")),KD("rental","active","نشطة","Active",rnN("active")),KD("rental","completed","مكتملة","Completed",rnN("completed")),KD("rental","closed","مغلقة — متاحة","Closed — available",rnN("closed")),KD("rental","moved","تم النقل","Transferred",rnN("moved")),KD("rental","cancelled","ملغية","Cancelled",rnN("cancelled"))]),
+  A("visaDash","stamp","تأشيرات الشركة","Company visas"),A("rentalRecruit","file-stack","عقود الاستقدام للتأجير","Company recruitment contracts"),A("rentalSettings","sliders-horizontal","إعدادات التأجير","Rental settings"),
+  H("نقل الخدمات"),NG("reqTrn","inbox","طلبات نقل الخدمات","Transfer requests",[KD("orders","trn","كل طلبات النقل","All transfer requests"),KD("transfer","web","طلبات الموقع","Website requests",trN("web"))]),
+  EP("transfer","arrow-left-right","معاملات النقل","Transfer transactions",[KD("transfer","all","كل المعاملات","All transactions",trN("all")),KD("transfer","trial","فترة التجربة","Trial period",trN("trial")),KD("transfer","transferred","تم النقل","Transferred",trN("transferred")),KD("transfer","failed","فشل النقل","Failed",trN("failed")),KD("transferOverview","","حالات نقل الخدمات","Transfer overview")]),
+  DL("trnAvail","user-check","المتاحات للنقل","Available for transfer",KD("housing","transfer","","",null,"tr")),A("transferTerms","scroll-text","بنود عقد نقل الخدمات","Transfer terms"),
   H("التأجير بالساعة"),A("hb-board","layout-list","الطلبات والتجديدات","Requests & renewals"),A("hb-visits","map-pin","الزيارات والجدول","Visits & schedule"),A("hb-alerts","flag","البلاغات والطوارئ","Alerts & SOS"),A("hb-clients","users","عملاء الساعات","Hourly clients"),A("hbCollect","banknote","التحصيل والتعويضات","Collections"),A("hb-services","package","إعدادات الخدمة","Service setup"),
-  H("اللوجستيات"),A("trips","plane","الرحلات","Trips"),A("arrivals","plane-landing","تقرير العاملات الواصلات","Arrivals report"),A("housing","home","الإيواء","Housing"),
-  H("الإعداد والأرشيف"),A("agents","handshake","الوكلاء الخارجيون","External agents"),A("rcArchive","archive","أرشيف العقود","Contracts archive")]},
+  H("اللوجستيات"),A("trips","plane","الرحلات","Trips"),
+  EP("housing","home","الإيواء","Housing",[KD("housing","inside","داخل الإيواء","Inside shelter",hsN("inside")),KD("housing","outside","خارج الإيواء","Outside shelter",hsN("outside")),KD("housing","general","الإيواء كامل","Whole shelter",hsN("general")),KS("بعد الإيواء"),KD("housing","transfer","المتاحات للنقل","Available for transfer",hsN("transfer")),KD("housing","depstage","مرحلة الترحيل","Departure stage",hsN("depstage")),KD("housing","deported","تم ترحيلها","Deported",hsN("deported"))]),
+  H("المالية التشغيلية"),SC("finRequests","inbox","الطلبات المالية","Finance requests","ops"),SC("finCommissions","percent","عمولات المسوقين","Marketer commissions","ops"),
+  H("الإعداد والأرشيف"),A("agents","handshake","الوكلاء الخارجيون","External agents"),A("housingPlaces","building-2","مقرات الإيواء","Shelter sites"),A("rcArchive","archive","أرشيف العقود","Contracts archive")]},
  {id:"crm",i:"users",ar:"العملاء",en:"Customers",s:"العملاء",d:"العملاء والمتابعة والتواصل وخدمة العملاء",items:[
-  H("العملاء (CRM)"),A("inbound","inbox","الطلبات الواردة","Incoming requests"),A("clients","users","جميع العملاء","All clients","241"),A("followups","calendar-check","متابعة العملاء","Follow-ups"),A("visitors","globe","زوار الموقع","Site visitors"),A("polls","clipboard-list","الاستبيانات","Polls"),
+  H("العملاء (CRM)"),SC("inbound","inbox","الاستقبال","Reception","crm"),A("clients","users","جميع العملاء","All clients","241"),A("followups","calendar-check","متابعة العملاء","Follow-ups"),A("visitors","globe","زوار الموقع","Site visitors"),A("polls","clipboard-list","الاستبيانات","Polls"),
   A("chats","messages-square","المحادثات","Conversations","3"),A("campaigns","megaphone","الحملات والرسائل المرسلة","Campaigns"),A("crmDispatch","send","الإرسال الجماعي","Bulk sending"),A("waTemplates","message-square-text","قوالب واتساب","WhatsApp templates"),A("clArchive","archive","الأرشيف","Archive"),
   H("خدمة العملاء"),A("claims","alert-triangle","الشكاوى","Complaints","23")]},
  {id:"finance",i:"wallet",ar:"المالية",en:"Finance",s:"المالية",d:"الحسابات والفواتير والتقارير المالية",items:[
@@ -3545,25 +3566,37 @@ const DEPTS=[
   A("setHome","layout-grid","كل الإعدادات","All settings"),A("setGeneral","sliders-horizontal","العامة","General"),A("coupons","ticket-percent","كوبونات الخصم","Coupons"),A("setSite","globe","موقع المكتب","Office website"),A("cmsHome","layout-template","محتوى الموقع","Website content"),A("selectWorkers","list-checks","صفحة اختيار العمالة","Select-workers page"),A("setCountry","flag","سياسات الدول","Country policies"),A("setRecruit","files","الاستقدام والسير","Recruitment & CVs"),A("setRental","repeat","التأجير","Rental"),
   A("setUsers","shield-check","المستخدمون والصلاحيات","Users & roles"),A("setBranches","git-branch","الفروع","Branches"),A("setLists","list","القوائم المرجعية","Reference lists"),A("setMessages","bell","الرسائل والإشعارات","Messages & notifications"),
   A("setIntegrations","plug","التكاملات","Integrations"),A("setImport","upload","استيراد البيانات","Data import"),A("setAi","sparkles","المساعد الذكي","AI assistant"),A("setSupport","life-buoy","الدعم","Support"),A("setDev","code","المطوّر (Super Admin)","Developer")]}];
-const SUBS={finDash:["finDashGen"],cmsHome:["cmsBlogs","cmsBlogForm","cmsOffers","cmsHero","cmsSections","cmsTestimonials","cmsPartners","cmsFaq"],rcExtensions:["rcRenewals","rcReturns","rcReturnShow"],rentalSettings:["rentalTerms"],rcFinance:["rcFinanceShow"],inbound:["inboundShow"],rentalOrders:["rentalOrderShow"],finCreditNotes:["finCreditNoteAdd"],setDev:["saSubscription","saModules","saEmployees","saDesigns","saUpdates","saUpdateForm","saBackups","saScheduler","saRecovery","saInvoices","saInvoiceFix","saMcp","saMoyasar","saTestAccounts"],tcMy:["tcPolicy","tcClose"],tcBoard:["tcTask","tcForm","tcList","tcLanes","tcBoardD","tcCard","tcNew","tcCardQA","tcShare"],tcQA:["tcQALib"],tcAdmin:["tcRemind"],hrAttendance:["tcCheckin","tcGeo"],tcTeam:["tcMember","tcShots","tcSessions"],tcHours:["tcAttend"],tcSettings:["tcMigrate"],contracts:["contractShow","contractAdd","contractEdit"],cvs:["cvAdd","cvShow","cvEdit","cvReview","cvShares"],rentalCvs:["rentalCvShow","rentalCvAdd"],clients:["clientShow","clientAdd"],orders:["orderShow"],
+const SUBS={finDash:["finDashGen"],cmsHome:["cmsBlogs","cmsBlogForm","cmsOffers","cmsHero","cmsSections","cmsTestimonials","cmsPartners","cmsFaq"],reqRec:["rcReturnShow","orderShow"],reqRent:["rentalOrderShow"],rentalSettings:["rentalTerms"],rcFinance:["rcFinanceShow"],inbound:["inboundShow"],finCreditNotes:["finCreditNoteAdd"],setDev:["saSubscription","saModules","saEmployees","saDesigns","saUpdates","saUpdateForm","saBackups","saScheduler","saRecovery","saInvoices","saInvoiceFix","saMcp","saMoyasar","saTestAccounts"],tcMy:["tcPolicy","tcClose"],tcBoard:["tcTask","tcForm","tcList","tcLanes","tcBoardD","tcCard","tcNew","tcCardQA","tcShare"],tcQA:["tcQALib"],tcAdmin:["tcRemind"],hrAttendance:["tcCheckin","tcGeo"],tcTeam:["tcMember","tcShots","tcSessions"],tcHours:["tcAttend"],tcSettings:["tcMigrate"],contracts:["contractShow","contractAdd","contractEdit","abscShow"],cvs:["cvAdd","cvShow","cvEdit","cvReview","cvShares"],rentalCvs:["rentalCvShow","rentalCvAdd"],clients:["clientShow","clientAdd"],
  rental:["rentalShow","rentalAdd"],housing:["housingShow","housingAdd"],transfer:["transferShow","transferAdd","transferOverview"],
- reports:["report"],finSales:["finSaleAdd","finBonds","finReturns"],finBanks:["finBoxes","finTransfers","finChecksIn","finChecksOut"],finClients:["finSuppliers","finAgents"],
- finCenters:["finCentersTree"],finReports:["finReport"],finItems:["finStock","finInventory"],finEntries:["finAdd","finShow"],finAccounts:["finSettings"],clArchive:[],delegations:["delAdd","delShow"],trips:["tripShow"],agents:["agentShow"],"hb-board":["hbNew","hbRenewals"],"hb-visits":["hbVisit","hb-schedule","hb-tracking","hbExceptions"],"hb-alerts":["hbSos"],"hb-clients":["hbMerge"],"hb-services":["hb-zones","hbDrivers"],coupons:["couponsHourly","couponForm","couponShow","couponBulk","couponReport","couponSettings"],claims:["claimAdd","claimShow","claimTypes"],absconding:["abscShow"],campaigns:["campaignNew"],finRequests:["finRequestAdd","finRequestShow"],finAssets:["finAssetShow"],finCommissions:["finCommissionShow","finCommissionRules"],finTax:["finZatca"],hrEmployees:["hrEmployeeShow","hrEmployeeAdd"],hrPayroll:["hrPayrollRun"],setUsers:["setRoles"],visaDash:["visaRequests","visaAdd","visaShow","visaBalance","visaReports","visaPrebook","visaSettings"]};
+ reports:["report","arrivals"],finSales:["finSaleAdd","finBonds","finReturns"],finBanks:["finBoxes","finTransfers","finChecksIn","finChecksOut"],finClients:["finSuppliers","finAgents"],
+ finCenters:["finCentersTree"],finReports:["finReport"],finItems:["finStock","finInventory"],finEntries:["finAdd","finShow"],finAccounts:["finSettings"],clArchive:[],delegations:["delAdd","delShow"],trips:["tripShow"],agents:["agentShow"],"hb-board":["hbNew","hbRenewals"],"hb-visits":["hbVisit","hb-schedule","hb-tracking","hbExceptions"],"hb-alerts":["hbSos"],"hb-clients":["hbMerge"],"hb-services":["hb-zones","hbDrivers"],coupons:["couponsHourly","couponForm","couponShow","couponBulk","couponReport","couponSettings"],claims:["claimAdd","claimShow","claimTypes"],campaigns:["campaignNew"],finRequests:["finRequestAdd","finRequestShow"],finAssets:["finAssetShow"],finCommissions:["finCommissionShow","finCommissionRules"],finTax:["finZatca"],hrEmployees:["hrEmployeeShow","hrEmployeeAdd"],hrPayroll:["hrPayrollRun"],setUsers:["setRoles"],visaDash:["visaRequests","visaAdd","visaShow","visaBalance","visaReports","visaPrebook","visaSettings"]};
 /* v1.8.1: sidebar badges = only things that need action (no totals). r=urgent/late, a=waiting for you, n=unread */
-const ALERTS={tcAdmin:[2,"r","مهمتين إدارة متأخرين"],tcVault:[1,"r","حساب باسورده عدّى 90 يوم"],tcQA:[4,"a","4 مهام مستنية اختبارك"],tcInbox:[7,"a","7 حاجات واردة لسه متفرزتش"],tcHandoff:[3,"a","3 مهام مستنياك تستلمها"],tcApprovals:[3,"a","3 تسجيلات وقت بانتظار اعتمادك"],orders:[6,"a","6 طلبات جديدة لسه محدش ردّ عليها"],cvs:[8,"a","8 بانتظار المراجعة: 4 سير مرفوعة و4 طلبات تغيير حالة"],contracts:[18,"r","18 عقد تجاوز 45 يوم بدون تذاكر"],invoices:[7,"r","7 فواتير متأخرة السداد"],transfer:[4,"a","4 طلبات نقل بانتظار موافقتك"],housing:[2,"a","2 عاملة محتاجين فحص طبي"],followups:[5,"a","5 متابعات مطلوبة النهارده"],chats:[3,"n","3 محادثات غير مقروءة"],claims:[2,"r","شكوتين عاجلتين"],absconding:[2,"r","2 بلاغ هروب مفتوح"],"hb-alerts":[1,"r","بلاغ مفتوح من الطاقم"],visaDash:[2,"a","2 طلب تأشيرة بانتظار الموافقة"],finRequests:[5,"a","5 طلبات مالية بانتظار اعتمادك"],finTax:[4,"r","4 فواتير مرفوضة من ZATCA"],hrRequests:[7,"a","7 طلبات موظفين مستنية قرارك"],hrAttendance:[1,"r","موظف برّه النطاق مستني اعتمادك"],setMessages:[0,"r","مزود الرسائل النصية متوقف"]};
+const ALERTS={tcAdmin:[2,"r","مهمتين إدارة متأخرين"],tcVault:[1,"r","حساب باسورده عدّى 90 يوم"],tcQA:[4,"a","4 مهام مستنية اختبارك"],tcInbox:[7,"a","7 حاجات واردة لسه متفرزتش"],tcHandoff:[3,"a","3 مهام مستنياك تستلمها"],tcApprovals:[3,"a","3 تسجيلات وقت بانتظار اعتمادك"],reqRec:[6,"a","6 طلبات جديدة لسه محدش ردّ عليها"],cvs:[8,"a","8 بانتظار المراجعة: 4 سير مرفوعة و4 طلبات تغيير حالة"],contracts:[18,"r","18 عقد تجاوز 45 يوم بدون تذاكر"],invoices:[7,"r","7 فواتير متأخرة السداد"],transfer:[4,"a","4 طلبات نقل بانتظار موافقتك"],housing:[2,"a","2 عاملة محتاجين فحص طبي"],followups:[5,"a","5 متابعات مطلوبة النهارده"],chats:[3,"n","3 محادثات غير مقروءة"],claims:[2,"r","شكوتين عاجلتين"],absconding:[2,"r","2 بلاغ هروب مفتوح"],"hb-alerts":[1,"r","بلاغ مفتوح من الطاقم"],visaDash:[2,"a","2 طلب تأشيرة بانتظار الموافقة"],finRequests:[5,"a","5 طلبات مالية بانتظار اعتمادك"],finTax:[4,"r","4 فواتير مرفوضة من ZATCA"],hrRequests:[7,"a","7 طلبات موظفين مستنية قرارك"],hrAttendance:[1,"r","موظف برّه النطاق مستني اعتمادك"],setMessages:[0,"r","مزود الرسائل النصية متوقف"]};
 DEPTS.forEach(d=>d.items.forEach(p=>{if(p.sec)return;delete p.b;if(ALERTS[p.id])p.al=ALERTS[p.id]}));
 const ALB=p=>p&&p.al?`<span class="nal ${p.al[1]}${p.al[0]?"":" dot"}" title="${p.al[2]}">${p.al[0]?`<b class="num">${p.al[0]}</b>`:""}</span>`:"";
 const DAL=d=>{const al=d.items.filter(p=>p.al);if(!al.length)return "";const r=al.filter(p=>p.al[1]==="r").length,w=al.length-r;return `<span class="dal">${r?`<span class="nal r" title="${r} حاجة عاجلة"><b class="num">${r}</b></span>`:""}${w?`<span class="nal a" title="${w} حاجة مستنياك"><b class="num">${w}</b></span>`:""}</span>`};
-const PG={};DEPTS.forEach(d=>d.items.forEach(p=>{if(!p.soon&&!p.sec)PG[p.id]=p}));
-const owner=c=>{for(const d of DEPTS)for(const p of d.items){if(p.soon||p.sec)continue;if(p.id===c||(SUBS[p.id]||[]).includes(c))return [d,p]}return [null,null]};
+const PG={};DEPTS.forEach(d=>d.items.forEach(p=>{if(!p.soon&&!p.sec&&!p.v&&!p.x)PG[p.id]=p}));
+let EXK=null,OPENK=null;
+const kidHit=(k,c)=>!k.sec&&k.page===c&&k.via===VIA&&k.f===liveF(c);
+const owner=c=>{EXK=null;
+ for(const d of DEPTS)for(const p of d.items){for(const k of (p.k||[]).concat(p.to?[p.to]:[]))if(kidHit(k,c)){EXK=k;return [d,p]}}
+ if(VIA)for(const d of DEPTS)for(const p of d.items)if(p.x&&p.via===VIA&&p.id===c)return [d,p];
+ for(const d of DEPTS)for(const p of d.items){if(p.soon||p.sec||p.x)continue;if((!p.v&&p.id===c)||(SUBS[p.id]||[]).includes(c)||(p.k||[]).some(k=>!k.sec&&!k.via&&k.page===c))return [d,p]}
+ return [null,null]};
+const kHref=k=>{const q=[k.f?"f="+encodeURIComponent(k.f):"",k.via?"via="+k.via:""].filter(Boolean).join("&");return k.page+".html"+(q?"?"+q:"")};
+const kNum=k=>{try{const n=typeof k.n==="function"?k.n():k.n;return n==null?"":`<em class="nk-n num">${n}</em>`}catch(e){return ""}};
+const kidLink=k=>k.sec?`<div class="nav-kid-sec">${k.ar}</div>`:`<a href="${kHref(k)}" class="${EXK===k?"on":""}"${EXK===k?' aria-current="page"':""}><i class="kd"></i><span>${t(k.ar,k.en)}</span>${kNum(k)}</a>`;
 const PK="clickerp-pins";
 let PINS;try{PINS=JSON.parse(localStorage.getItem(PK))}catch(e){}
-if(!Array.isArray(PINS))PINS=["contracts","orders","cvs","clients","transfer"];
+if(!Array.isArray(PINS))PINS=["contracts","inbound","cvs","clients","transfer"];
 PINS=PINS.filter(id=>PG[id]);
 const savePins=()=>{try{localStorage.setItem(PK,JSON.stringify(PINS))}catch(e){}};
 let LAST=null,SEL="all";
 const pinBtn=(id,pinned)=>`<span class="pin ${pinned?"is":""}" role="button" data-pin="${id}" title="${pinned?t("إلغاء التثبيت","Unpin"):t("تثبيت","Pin")}">${I(pinned?"pin-off":"pin")}</span>`;
-const link=(p,active,pinUI)=>p.sec?`<div class="nav-kid-sec">${p.ar}</div>`:p.ref?`<a class="nav-ref" href="${RB}${p.ref}.html" target="_blank" rel="noopener" title="${t("تصميم مرجعي (الريادة) — هيتعاد بثيمنا","Reference design (Riyada)")}">${I(p.i)}<span>${t(p.ar,p.en)}</span><em>${t("مرجع","Ref")}</em></a>`:p.soon
+const link=(p,active,pinUI)=>p.k?`<div class="nav-exp${OPENK===p.id?" open":""}"><button class="nav-eh" type="button" data-nvx="${p.id}" aria-expanded="${OPENK===p.id}">${I(p.i)}<span>${t(p.ar,p.en)}</span>${ALB(p)}${I("chevron-down","chev")}</button><div class="nav-kids">${p.k.map(kidLink).join("")}</div></div>`
+ :p.to?`<a href="${kHref(p.to)}" class="${EXK===p.to?"on":""}">${I(p.i)}<span>${t(p.ar,p.en)}</span></a>`
+ :p.x?`<a href="${p.id}.html?via=${p.via}" class="${active?"on":""}">${I(p.i)}<span>${t(p.ar,p.en)}</span>${ALB(p)}</a>`
+ :p.sec?`<div class="nav-kid-sec">${p.ar}</div>`:p.ref?`<a class="nav-ref" href="${RB}${p.ref}.html" target="_blank" rel="noopener" title="${t("تصميم مرجعي (الريادة) — هيتعاد بثيمنا","Reference design (Riyada)")}">${I(p.i)}<span>${t(p.ar,p.en)}</span><em>${t("مرجع","Ref")}</em></a>`:p.soon
  ?`<span class="nav-soon" title="${t("قيد التصميم","In design")}">${I(p.i)}<span>${t(p.ar,p.en)}</span><em>${t("قريباً","Soon")}</em></span>`
  :`<a href="#" data-go="${p.id}" class="${active?"on":""}">${I(p.i)}<span>${t(p.ar,p.en)}</span>${ALB(p)}${pinUI?pinBtn(p.id,PINS.includes(p.id)):""}</a>`;
 function rail(c){
@@ -3581,7 +3614,7 @@ function rail(c){
 }
 window.renderNav=function(c){
  const [od,op]=owner(c);
- if(c!==LAST){LAST=c;SEL=od?od.id:"all"}
+ if(c!==LAST){LAST=c;SEL=od?od.id:"all";OPENK=op&&op.k?op.id:null}
  rail(c);lucide.createIcons();
  const d=DEPTS.find(x=>x.id===SEL)||DEPTS[0];
  const head=`<div class="dp-head"><div class="dp-t"><b>${t(d.ar,d.en)}</b><small title="${d.d}">${d.d}</small></div></div>`;
@@ -3600,6 +3633,7 @@ window.renderNav=function(c){
  if(d.id==="all")deps=`<div class="nav-sec-t">${t("الإدارات","Departments")}<small class="num">${DEPTS.length-1}</small></div><div class="dp-list">`+DEPTS.slice(1).map(x=>{const n=x.items.filter(p=>!p.sec).length;return `<button class="dep-row" data-rail="${x.id}">${I(x.i)}<span><b>${t(x.ar,x.en)}</b><small>${x.d}</small></span>${DAL(x)}${I("chevron-left")}</button>`}).join("")+`</div>`;
  return head+`<div class="dp-list">${list}</div>`+pins+deps;
 };
+document.addEventListener("click",e=>{const b=e.target.closest("[data-nvx]");if(!b)return;e.preventDefault();const id=b.dataset.nvx;OPENK=OPENK===id?null:id;document.getElementById("app").classList.remove("collapsed");reNav()});
 const reNav=()=>{const nv=document.querySelector("#app .nav");if(!nv)return;const st=nv.scrollTop;nv.innerHTML=renderNav(cur);lucide.createIcons();nv.scrollTop=st};
 document.addEventListener("click",e=>{const fb=e.target.closest("[data-fav]"),pop=document.querySelector("[data-fav-pop]");if(!pop)return;if(fb){e.preventDefault();pop.classList.toggle("hidden");lucide.createIcons();return}if(!e.target.closest("[data-fav-pop]"))pop.classList.add("hidden")});
 document.addEventListener("click",e=>{const p=e.target.closest("[data-pin]");if(!p)return;e.preventDefault();e.stopImmediatePropagation();const id=p.dataset.pin;PINS=PINS.includes(id)?PINS.filter(x=>x!==id):[...PINS,id];savePins();reNav()},true);
@@ -4941,7 +4975,7 @@ let RCCAT="",RCF="";
 const CAT=[
  ["ops","العمليات والاستقدام","briefcase","العقود والطلبات والوصول والسكن",[
   ["register","recruitment_contracts","سجل عقود الاستقدام","كل عقد في أي مرحلة، ومع مين؟",1,1,1,0,"فتحته النهارده"],
-  ["ops","arrival","تقرير الوصول","مين وصل ومين متأخر عن الوصول؟",1,0,1,0,"فتحته أمس"],
+  ["ops","arrival","تقرير الوصول","مين وصل ومين متأخر عن الوصول؟",1,0,1,0,"فتحته أمس","arrivals"],
   ["types","orders","طلبات الاستقدام","كام طلب جديد ومكتمل وملغي؟",0,1,1],
   ["housing","shelter_contracts","الإيواء","مين في السكن ومين طلع؟",1,0,1,0,"من 3 أيام"],
   ["types","sponsorship_transfers","نقل الكفالة","مين في فترة التجربة ومين اتنقل؟",0,0,1],
@@ -7613,7 +7647,7 @@ document.addEventListener("drop",e=>{if(!on()||UI.dlg!=="up")return;const z=e.ta
 /* ===== v1.34 rec — Recruitment follow-up screens: extensions, renewals, returns, archive, contract finance, post-arrival refunds, Musaned transfers, CV shares & review, supplier invoices, agent payments, arrivals, select-workers page ===== */
 (()=>{
 const {X,SEC,KV,TAG,SW,ROW,FLD,SEL,INP,TXT,STAT,PAGER,ACTS,HEAD,B,TABS,CHIPS,STEPS,FS}=window.CXH;
-const IDS=["rcExtensions","rcRenewals","rcReturns","rcReturnShow","rcArchive","rcFinance","rcFinanceShow","rcRefunds","musanedTransfers","cvShares","cvReview","dispatches","supplierPayments","arrivals","selectWorkers"];
+const IDS=["housingPlaces","rcExtensions","rcRenewals","rcReturns","rcReturnShow","rcArchive","rcFinance","rcFinanceShow","rcRefunds","musanedTransfers","cvShares","cvReview","dispatches","supplierPayments","arrivals","selectWorkers"];
 window.CERP_PAGES=(window.CERP_PAGES||[]).concat(IDS);
 
 /* ---------- local helpers (rq-) ---------- */
@@ -7773,8 +7807,14 @@ S.rcReturnShow=()=>`
 const ARC=[["0058","سلطان الحربي","دارلين أكينو","مكتمل","g","10 نوفمبر","خالد المطيري","انتهاء العقد وتسوية جميع المستحقات"],["0052","هيا العنزي","نيرمالا ديفي","مسترد","n","10 نوفمبر","خالد المطيري","انتهاء العقد وتسوية جميع المستحقات"],["0047","فيصل القرني","إيفون أوما","مرتجع","a","02 نوفمبر","مشرف النظام","إرجاع داخل الضمان — تمت التسوية"],["0041","لمياء الزهراني","سوكانيا بيريرا","مغلق","n","28 أكتوبر","مشرف النظام","إغلاق إداري"]];
 /* eligible tab: contract, client, maid, status, cls, blocker(null=eligible) */
 const ELG=[["0089","مها الدوسري","ريجين لوبيز","مكتمل","g",null],["0083","سامي الغامدي","سيتي أمينة","مكتمل","g",null],["0080","عبير السالم","بريندا أشينغ","مكتمل","g","الضمان ما يزال سارياً حتى 03 ديسمبر"],["0076","ناصر الشهري","رانجيني سيلفا","مرتجع","a","تسوية الإرجاع لم تُعتمد بعد"],["0073","جواهر القحطاني","ماري جوي سانتوس","مكتمل","g","مبلغ الفاتورة لم يُحوَّل من مساند"],["0070","ماجد العمري","نورول هدى","مكتمل","g","شكوى مفتوحة #000139"]];
+/* rental archive — ContractArchiveService: final statuses completed/cancelled; blockers: outstanding balance, open financial request */
+const ARR=[["RC-2026-0031","نورة الحربي","كوماري بيريرا","مكتمل","g","12 نوفمبر","خالد المطيري","انتهاء العقد وسداد كامل المستحقات"],["RC-2026-0027","سامي الحربي","ديلروكشي فرناندو","ملغي","r","05 نوفمبر","مشرف النظام","إلغاء قبل اكتمال المدة وتمت التسوية"],["RC-2026-0019","ليلى الشهراني","جوي باوتيستا","مكتمل","g","29 أكتوبر","سارة القحطاني","انتهاء العقد"]];
+const ELR=[["RC-2026-0039","هند السبيعي","أنجيلا موثوني","مكتمل","g",null],["RC-2026-0036","فهد العتيبي","سري واهيوني","مكتمل","g",null],["RC-2026-0034","منى الحارثي","ماريا لوبيز","ملغي","r","يوجد رصيد مستحق على العقد: 2,800.00 ريال"],["RC-2026-0029","شركة نجد للمقاولات","سيتي آمنة","مكتمل","g","يوجد طلب مالي مفتوح على العقد"]];
+const RCN=n=>`<a href="#" data-go="rentalShow" class="num">${n}</a>`;
 S.rcArchive=()=>`
- ${HEAD("أرشيف عقود الاستقدام","الأرشفة تُخفي العقد المنتهي من القوائم ولوحة التحكم وتجعله للقراءة فقط، ولا يُحذف شيء؛ تبقى الفواتير والقيود ظاهرة في المالية.",B("ghost","building","أرشيف عقود الإيجار")+B("ghost","arrow-right","العودة إلى العقود",'data-go="contracts"'))}
+ ${HEAD("أرشيف العقود","الأرشفة تُخفي العقد المنتهي من القوائم ولوحة التحكم وتجعله للقراءة فقط، ولا يُحذف شيء؛ تبقى الفواتير والقيود ظاهرة في المالية.")}
+ ${RTABS("arT",[["rec","file-text","عقود الاستقدام",ARC.length],["rent","repeat","عقود الإيجار",ARR.length]],"rec")}
+ ${PANE("arT","rec",1,`
  ${RTABS("ar",[["done","archive","العقود المؤرشفة",ARC.length],["elig","archive-x","عقود منتهية (للأرشفة)",ELG.length]],"done")}
  ${PANE("ar","done",1,`
   <div class="fbar">${SRCH("رقم العقد، العميل، الجوال، العاملة، الجواز…")}${B("primary","search","بحث")}${B("ghost","rotate-ccw","مسح")}</div>
@@ -7787,7 +7827,28 @@ S.rcArchive=()=>`
   <div class="rq-bulk"><b>المحدد: <span class="num" data-rq-n="arE">0</span></b><input placeholder="سبب الأرشفة (إلزامي، 3 أحرف على الأقل)">${B("green","archive","أرشفة المحدد")}</div>
   <div class="card flush">${TBL(`<th style="width:40px"><input type="checkbox" data-rq-all="arE"></th><th>رقم العقد</th><th>العميل</th><th>العاملة</th><th>الحالة</th><th>إمكانية الأرشفة</th><th class="act"></th>`,
   ELG.map(r=>`<tr><td>${r[5]?`<input type="checkbox" disabled title="${r[5]}">`:`<input type="checkbox" data-rq-c="arE">`}</td><td>${CN(r[0])}</td><td><b>${r[1]}</b></td><td>${r[2]}</td><td>${TAG(r[4],r[3])}</td><td class="wrap">${r[5]?WHY(r[5]):TAG("g","قابل للأرشفة")}</td><td class="act">${ACTS([["eye","عرض",'data-go="contractShow"']])}</td></tr>`).join(""))}${PAGER("عرض 6 من 6 عقود")}</div>
-  ${SEC("triangle-alert","عقود لم تُنفّذ عليها العملية — آخر محاولة",CHK([["no","CN-2026-0080 — عبير السالم","الضمان ما يزال سارياً حتى 03 ديسمبر"],["no","CN-2026-0073 — جواهر القحطاني","مبلغ الفاتورة لم يُحوَّل من مساند"]]))}`)}`;
+  ${SEC("triangle-alert","عقود لم تُنفّذ عليها العملية — آخر محاولة",CHK([["no","CN-2026-0080 — عبير السالم","الضمان ما يزال سارياً حتى 03 ديسمبر"],["no","CN-2026-0073 — جواهر القحطاني","مبلغ الفاتورة لم يُحوَّل من مساند"]]))}`)}`)}
+ ${PANE("arT","rent",0,`
+ ${RTABS("arr",[["done","archive","العقود المؤرشفة",ARR.length],["elig","archive-x","عقود منتهية (للأرشفة)",ELR.length]],"done")}
+ ${PANE("arr","done",1,`
+  <div class="fbar">${SRCH("رقم العقد، العميل، الجوال، العاملة، الجواز…")}${B("primary","search","بحث")}${B("ghost","rotate-ccw","مسح")}</div>
+  <div class="rq-bulk"><b>المحدد: <span class="num" data-rq-n="arrD">0</span></b><input placeholder="سبب الاسترجاع (اختياري)">${B("ghost","archive-restore","استرجاع المحدد")}</div>
+  <div class="card flush">${TBL(`<th style="width:40px"><input type="checkbox" data-rq-all="arrD"></th><th>رقم العقد</th><th>العميل</th><th>العاملة</th><th>الحالة</th><th>تاريخ الأرشفة</th><th>بواسطة</th><th>السبب</th><th class="act"></th>`,
+  ARR.map(r=>`<tr><td><input type="checkbox" data-rq-c="arrD"></td><td>${RCN(r[0])}</td><td><b>${r[1]}</b></td><td>${r[2]}</td><td>${TAG(r[4],r[3])}</td><td class="num">${r[5]}</td><td>${r[6]}</td><td class="wrap"><small style="color:var(--body)">${r[7]}</small></td><td class="act">${ACTS([["eye","عرض",'data-go="rentalShow"']])}</td></tr>`).join(""))}${PAGER("عرض 3 من 3 عقود مؤرشفة")}</div>`)}
+ ${PANE("arr","elig",0,`
+  <div class="cx-info" style="margin:0 0 16px">${X("info")}<span>تُؤرشف عقود الإيجار في الحالتين: مكتمل وملغي، بشرط ألا يكون على العقد رصيد مستحق أو طلب مالي مفتوح. الحد الأقصى 200 عقد في العملية الواحدة.</span></div>
+  <div class="fbar">${SRCH("رقم العقد، العميل، الجوال، العاملة، الجواز…")}${FB("الإمكانية",SEL(["الكل","قابل للأرشفة","يوجد مانع"]))}${B("primary","search","بحث")}</div>
+  <div class="rq-bulk"><b>المحدد: <span class="num" data-rq-n="arrE">0</span></b><input placeholder="سبب الأرشفة (إلزامي، 3 أحرف على الأقل)">${B("green","archive","أرشفة المحدد")}</div>
+  <div class="card flush">${TBL(`<th style="width:40px"><input type="checkbox" data-rq-all="arrE"></th><th>رقم العقد</th><th>العميل</th><th>العاملة</th><th>الحالة</th><th>إمكانية الأرشفة</th><th class="act"></th>`,
+  ELR.map(r=>`<tr><td>${r[5]?`<input type="checkbox" disabled title="${r[5]}">`:`<input type="checkbox" data-rq-c="arrE">`}</td><td>${RCN(r[0])}</td><td><b>${r[1]}</b></td><td>${r[2]}</td><td>${TAG(r[4],r[3])}</td><td class="wrap">${r[5]?WHY(r[5]):TAG("g","قابل للأرشفة")}</td><td class="act">${ACTS([["eye","عرض",'data-go="rentalShow"']])}</td></tr>`).join(""))}${PAGER("عرض 4 من 4 عقود")}</div>`)}`)}`;
+
+/* shelter sites — ShelterPlaces: title, female/male capacity, address, map */
+const SHP=[["إيواء الرياض — المبنى أ",24,0,24,"حي الملقا، الرياض","12 يناير 2024"],["إيواء الرياض — المبنى ب",16,4,19,"حي العزيزية، الرياض","03 مارس 2024"],["إيواء جدة",12,0,12,"حي الصفا، جدة","20 أغسطس 2024"],["إيواء الدمام",8,2,9,"حي الشاطئ، الدمام","11 فبراير 2025"]];
+S.housingPlaces=()=>`
+ ${HEAD("مقرات الإيواء","أماكن سكن العاملات لدى المكتب: السعة والإشغال الحالي والموقع.",B("ghost","home","إدارة الإيواء",'data-go="housing"')+B("primary","plus","إضافة مقر"))}
+ <div class="statgrid">${STAT("n","building-2","عدد المقرات",SHP.length,1)+STAT("n","bed-double","السعة الكلية",SHP.reduce((n,r)=>n+r[1]+r[2],0))+STAT("a","users","الإشغال الحالي",SHP.reduce((n,r)=>n+r[3],0))+STAT("g","door-open","أماكن شاغرة",SHP.reduce((n,r)=>n+r[1]+r[2]-r[3],0))}</div>
+ <div class="card flush">${TBL(`<th>#</th><th>المقر</th><th>سعة النساء</th><th>سعة الرجال</th><th>الإشغال الحالي</th><th>الموقع</th><th>تاريخ الإضافة</th><th class="act"></th>`,
+ SHP.map((r,i)=>{const c=r[1]+r[2],f=c-r[3];return `<tr><td class="num">${i+1}</td><td><b>${r[0]}</b></td><td class="num">${r[1]}</td><td class="num">${r[2]}</td><td><span class="num">${r[3]} / ${c}</span> ${f?TAG("g",`${f} شاغر`):TAG("r","ممتلئ")}</td><td>${r[4]}</td><td class="num">${r[5]}</td><td class="act">${ACTS([["map-pin","الموقع على الخريطة"],["pencil","تعديل"],["trash-2","حذف"]])}</td></tr>`}).join(""))}${PAGER("عرض 4 من 4 مقرات")}</div>`;
 
 /* =====================================================================
    6) rcFinance — RecruitmentContractFinanceController@index
@@ -8080,7 +8141,7 @@ Object.assign(T,{
  rcRenewals:{ar:"طلبات تجديد العقود",en:"Contract renewal requests"},
  rcReturns:{ar:"طلبات استرجاع العقود",en:"Contract return requests"},
  rcReturnShow:{ar:"طلب الاسترجاع #214",en:"Return request #214"},
- rcArchive:{ar:"أرشيف العقود",en:"Contracts archive"},
+ rcArchive:{ar:"أرشيف العقود",en:"Contracts archive"},housingPlaces:{ar:"مقرات الإيواء",en:"Shelter sites"},
  rcFinance:{ar:"الملف المالي للعقود",en:"Contract financial files"},
  rcFinanceShow:{ar:"الملف المالي للعقد #0109",en:"Contract #0109 financial file"},
  rcRefunds:{ar:"الاسترداد بعد الوصول",en:"Post-arrival refunds"},
@@ -8182,18 +8243,23 @@ const PRF=[
 const prfNext=r=>r[6]==="pending"?decide:r[6]==="approved"?SM("primary","building-2","إضافة المنشأة كعميل",'data-go="clientAdd"'):MUTED("لا إجراء");
 
 const SRC=[
- ["web","globe","طلبات الموقع","نقل الخدمات من الموقع",2,38,"بانتظار إنشاء النقل"],
+ ["rec","shopping-cart","طلبات الاستقدام","طلبات الاستقدام والتوسط",3,74,"جديدة","orders.html?f=rec"],
+ ["rent","shopping-bag","طلبات التأجير","من الموقع والتطبيق",7,146,"بانتظار القبول","rentalOrders.html"],
+ ["web","globe","نقل الخدمات","طلبات النقل من الموقع",2,38,"بانتظار إنشاء النقل"],
+ ["hourly","clock","طلبات الساعات","التأجير بالساعة",4,342,"بانتظار التخصيص","hb-board.html"],
  ["private","user-search","طلبات خاصة","مواصفات عاملة يطلبها العميل",9,318,"بانتظار القرار"],
  ["known","user-check","الخدمة المعروفة","عاملة يعرفها العميل بالاسم",4,64,"بانتظار القرار"],
- ["contact","mail","تواصل معنا","نموذج اتصل بنا",11,1207,"بانتظار التواصل"],
- ["prof","hard-hat","التوظيف المهني","طلبات عمالة مهنية للمنشآت",3,42,"بانتظار القرار"]];
+ ["prof","hard-hat","العمالة المهنية","طلبات عمالة مهنية للمنشآت",3,42,"بانتظار القرار"],
+ ["renew","refresh-cw","تجديد العقود","طلبات التجديد من العملاء",3,118,"في الانتظار","rcRenewals.html"],
+ ["return","undo-2","طلبات الاسترجاع","طلبات استرجاع العقود",2,16,"بانتظار القرار","rcReturns.html"],
+ ["contact","mail","تواصل معنا","نموذج اتصل بنا",11,1207,"بانتظار التواصل"]];
 const TBL=(head,rows,pager)=>`<div class="card flush"><div class="tw"><table><thead><tr>${head.map(h=>`<th${h==="act"?' class="act"':""}>${h==="act"?"":h}</th>`).join("")}</tr></thead><tbody>${rows}</tbody></table></div>${PAGER(pager)}</div>`;
 const EYE=ACTS([["eye","عرض التفاصيل",'data-go="inboundShow"']]);
 const panel=(id,on,inner)=>`<div class="rr-panel${on?"":" hidden"}" data-rrpanel="${id}">${inner}</div>`;
 
 S.inbound=()=>`
- ${HEAD("الطلبات الواردة","كل ما يصل من الموقع والتطبيق في مكان واحد: راجع الطلب، ثم حوّله إلى الخطوة التالية — عميل أو طلب أو عقد أو متابعة.",B("ghost","file-spreadsheet","تصدير"))}
- <div class="rr-srcs">${SRC.map((s,i)=>`<button class="rr-src${i===0?" on":""}" data-rrtab="${s[0]}"><span class="rr-si">${X(s[1])}</span><span class="rr-sb"><b>${s[2]}</b><small>${s[3]}</small></span><span class="rr-sn"><b class="num">${s[4]}</b><small>${s[6]}</small></span><em class="num">الإجمالي ${s[5].toLocaleString("en")}</em></button>`).join("")}</div>
+ ${HEAD("الاستقبال","كل طلبات العملاء في مكان واحد للمبيعات وخدمة العملاء: راجع الطلب، ثم حوّله إلى الإدارة المسؤولة أو الخطوة التالية.",B("ghost","file-spreadsheet","تصدير"))}
+ <div class="rr-srcs">${SRC.map(s=>`<${s[7]?`a href="${s[7]}"`:"button"} class="rr-src${s[0]==="web"?" on":""}"${s[7]?"":` data-rrtab="${s[0]}"`}><span class="rr-si">${X(s[1])}</span><span class="rr-sb"><b>${s[2]}</b><small>${s[3]}</small></span><span class="rr-sn"><b class="num">${s[4]}</b><small>${s[6]}</small></span><em class="num">الإجمالي ${s[5].toLocaleString("en")}</em></${s[7]?"a":"button"}>`).join("")}</div>
 
  ${panel("web",1,`
   <div class="cx-info">${X("info")}<span>طلبات نقل الخدمات التي أنشأها العملاء من الموقع الخارجي. الطلب «الجديد» و«المدفوع» يُحوَّل إلى طلب نقل خدمات، ويمكن إلغاؤه لتعود العاملة متاحة.</span></div>
@@ -8223,7 +8289,7 @@ S.inbound=()=>`
 
 /* ---------- inboundShow — private request #318 ---------- */
 S.inboundShow=()=>`
- <div class="page-head compact"><div><a class="back" href="#" data-go="inbound" style="margin:0 0 8px">${X("arrow-right")}<span>الطلبات الواردة</span></a><h1>طلب خاص #318</h1><p>منيرة الشهري تطلب عاملة منزلية من الفلبين · وصل من الموقع الإلكتروني اليوم 09:14 ص</p></div><div class="actions">${B("ghost","phone","اتصال")+B("ghost","message-circle","واتساب")+B("ghost","x","رفض")+B("green","check","قبول الطلب")}</div></div>
+ <div class="page-head compact"><div><a class="back" href="#" data-go="inbound" style="margin:0 0 8px">${X("arrow-right")}<span>الاستقبال</span></a><h1>طلب خاص #318</h1><p>منيرة الشهري تطلب عاملة منزلية من الفلبين · وصل من الموقع الإلكتروني اليوم 09:14 ص</p></div><div class="actions">${B("ghost","phone","اتصال")+B("ghost","message-circle","واتساب")+B("ghost","x","رفض")+B("green","check","قبول الطلب")}</div></div>
  ${PATH([["وصل الطلب","17 نوفمبر · 09:14 ص"],["قُرئ","مشرف النظام · 09:31 ص"],["القرار","قبول أو رفض"],["التحويل","عقد استقدام"]],2)}
  ${NEXT("gavel","مراجعة الطلب واتخاذ القرار","عند القبول أو الرفض تصل العميلة رسالة نصية بالحالة الجديدة تلقائياً. بعد القبول يمكن تحويل الطلب إلى عقد استقدام.",B("green","check","قبول الطلب")+B("ghost","x","رفض"))}
  <div class="showgrid3 cx-show"><aside class="cvside">
@@ -8450,7 +8516,7 @@ S.setCountry=()=>`
  ${SEC("monitor-smartphone",`معاينة الصفحة للعميل ${NEW}`,`<div class="rr-pv"><h3>سياسات الاستقدام حسب الدولة</h3><p>اطّلع على اشتراطات استقدام العمالة من كل دولة قبل تقديم طلبك.</p><div class="rr-pvg">${CP2.filter(c=>c[5]).map(c=>`<div class="rr-pvc"><span class="rr-flag">${c[0]}</span><b>${c[1]}</b><small>${c[5]+c[6]} ملف</small></div>`).join("")}</div><h3>الحقوق والواجبات</h3><p>حقوق وواجبات صاحب العمل والعاملة المنزلية وفق نظام العمالة المنزلية.</p><div class="rr-pvf"><span>${X("download")}صاحب العمل</span><span>${X("download")}العاملة المنزلية</span></div></div>`)}
  </div></div>`;
 
-Object.assign(T,{inbound:{ar:"الطلبات الواردة",en:"Inbound requests"},inboundShow:{ar:"طلب خاص #318",en:"Request #318"},rentalOrders:{ar:"طلبات الإيجار",en:"Rental orders"},rentalOrderShow:{ar:"RO-2611-0042",en:"Rental order"},
+Object.assign(T,{inbound:{ar:"الاستقبال",en:"Reception"},inboundShow:{ar:"طلب خاص #318",en:"Request #318"},rentalOrders:{ar:"طلبات الإيجار",en:"Rental orders"},rentalOrderShow:{ar:"RO-2611-0042",en:"Rental order"},
  rentalRecruit:{ar:"عقود الاستقدام للتأجير",en:"Recruitment for rental"},transferTerms:{ar:"بنود عقد نقل الخدمات",en:"Transfer contract terms"},couponsHourly:{ar:"كوبونات الساعات",en:"Hourly coupons"},
  crmDispatch:{ar:"الإرسال الجماعي",en:"Bulk messaging"},waTemplates:{ar:"قوالب واتساب",en:"WhatsApp templates"},setCountry:{ar:"سياسات الدول",en:"Country policies"}});
 Object.keys(S).forEach(k=>{screens[k]=S[k]});
@@ -9958,8 +10024,7 @@ const GT=[
  [["hb-alerts","flag","البلاغات","Alerts"],["hbSos","siren","نداءات الطوارئ","SOS alerts"]],
  [["hb-clients","users","العملاء","Clients"],["hbMerge","merge","العملاء المكررون","Duplicate clients"]],
  [["hb-services","package","الخدمات والباقات","Services"],["hb-zones","map","المناطق","Zones"],["hbDrivers","car","السائقون","Drivers"]],
- [["rentalSettings","package","الباقات والإعدادات","Packages & settings"],["rentalTerms","scroll-text","بنود العقد","Contract terms"]],
- [["transfer","arrow-left-right","المعاملات","Transfers"],["transferOverview","activity","حالات نقل الخدمات","Transfer overview"]]];
+ [["rentalSettings","package","الباقات والإعدادات","Packages & settings"],["rentalTerms","scroll-text","بنود العقد","Contract terms"]]];
 const put=()=>{const pg=document.querySelector("#app .page"),c=window.CERP_PAGE;if(!pg||pg.querySelector("[data-scrtabs]"))return;
  const g=GT.find(x=>x.some(y=>y[0]===c));if(!g)return;
  const w=document.createElement("div");w.className="rq-gt";w.dataset.scrtabs="";
@@ -9967,4 +10032,6 @@ const put=()=>{const pg=document.querySelector("#app .page"),c=window.CERP_PAGE;
  const h=pg.querySelector(".page-head");if(h)h.after(w);else pg.prepend(w);
  if(window.lucide)lucide.createIcons({attrs:{"stroke-width":1.8}})};
 const pg=document.querySelector("#app .page");if(pg){new MutationObserver(put).observe(pg,{childList:true});put()}
+if(window.CERP_PAGE==="inbound"&&window.NAVF){const b=document.querySelector(`[data-rrtab="${window.NAVF}"]`);if(b)b.click()}
+const nv=document.querySelector("#app .nav"),on=nv&&nv.querySelector("a.on");if(on){const a=nv.getBoundingClientRect(),b=on.getBoundingClientRect();nv.scrollTop+=b.top-a.top-a.height/2+b.height/2}
 })();

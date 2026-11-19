@@ -1,5 +1,5 @@
 {
-  "version": "v1.44",
+  "version": "v1.45",
   "date": "2026-11-19",
   "entry": "login.html",
   "screens": [
@@ -1081,7 +1081,7 @@
     {
       "id": "inbound",
       "file": "inbound.html",
-      "title": "الطلبات الواردة"
+      "title": "الاستقبال"
     },
     {
       "id": "inboundShow",
@@ -1287,6 +1287,11 @@
       "id": "agent-notifications",
       "file": "agent/notifications.html",
       "title": "بوابة الوكيل — الإشعارات"
+    },
+    {
+      "id": "housingPlaces",
+      "file": "housingPlaces.html",
+      "title": "مقرات الإيواء"
     }
   ],
   "states": [
