@@ -6702,7 +6702,7 @@ td .cms-t+small{color:var(--muted);font-size:12px}
 /* ===== v1.35 — لوحة المعلومات (recDash) ===== */
 .ld-root .page-head{margin-bottom:14px}
 .ld-per button{min-width:0}
-.ld-tabs{position:sticky;top:64px;z-index:14;display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;background:rgba(255,255,255,.97);backdrop-filter:blur(6px);border:1px solid var(--line);border-radius:14px;padding:6px;margin-bottom:18px}
+.ld-tabs{position:sticky;top:64px;z-index:14;display:flex;flex-wrap:wrap;gap:4px;scrollbar-width:none;background:rgba(255,255,255,.97);backdrop-filter:blur(6px);border:1px solid var(--line);border-radius:14px;padding:6px;margin-bottom:18px}
 .ld-tabs::-webkit-scrollbar{display:none}
 .ld-tabs button{--c:var(--navy);flex:none;display:flex;align-items:center;gap:7px;height:38px;padding:0 12px;border:0;border-radius:10px;background:none;color:var(--muted);font:inherit;font-size:13.5px;font-weight:600;cursor:pointer;position:relative;white-space:nowrap}
 .ld-tabs button svg{width:16px;height:16px}
@@ -6934,3 +6934,5 @@ table.ortbl .odt .rr-nx{margin-top:3px;min-width:0}
 .filters.more.orf>.dt{flex:0 1 auto}
 .rr-oks.orready{margin-top:5px}
 .page-head .actions .rr-nx .btn.sm{height:40px;min-height:40px;padding:0 16px;font-size:14px}
+@media (max-width:800px){.ld-tabs{flex-wrap:nowrap;overflow-x:auto}}
+.ld-tabs{gap:2px;padding:5px}.ld-tabs button{padding:0 9px;gap:6px;font-size:13px;height:36px}.ld-tabs button svg{width:15px;height:15px}.ld-tabs em{padding:1px 6px;font-size:11px}
