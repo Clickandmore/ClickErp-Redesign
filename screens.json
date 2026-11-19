@@ -301,7 +301,7 @@
     {
       "id": "orders",
       "file": "orders.html",
-      "title": "الطلبات والحجوزات"
+      "title": "الطلبات"
     },
     {
       "id": "orderShow",
