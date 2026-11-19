@@ -6913,7 +6913,7 @@ table.ortbl .odt .timer small{flex-basis:100%}
 .rcv-steps span{font-size:11.5px;padding:2px 8px;border-radius:99px;background:var(--line-2);color:var(--muted)}
 .rcv-steps span.done{background:var(--green-soft);color:var(--green-d)}
 .rcv-steps span.cur{background:var(--navy);color:#fff}
-/* ===== v1.38 — الطلبات على نمط السير الذاتية ===== */
+/* ===== v1.39 — الطلبات على نمط السير الذاتية ===== */
 .statgrid.slim.or6{grid-template-columns:repeat(6,minmax(0,1fr))}
 @media (max-width:1250px){.statgrid.slim.or6{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media (max-width:640px){.statgrid.slim.or6{grid-template-columns:repeat(2,minmax(0,1fr))}}
@@ -6925,3 +6925,12 @@ table.ortbl .odt .timer small{flex-basis:100%}
 .orflow .ofs.bad b{color:var(--red)}
 table.ortbl .rr-nx{min-width:140px}
 .page-head .actions .rr-nx{min-width:0}
+.osrc.sm{display:inline-flex;align-self:flex-start;gap:4px;padding:2px 8px;margin-top:4px;border-radius:999px;font-size:11px;font-weight:600}
+.osrc.sm svg{width:12px;height:12px}
+table.ortbl .oclz{white-space:nowrap}
+.odt .ost{display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+table.ortbl .odt .rr-nx{margin-top:3px;min-width:0}
+.filters.more.orf>select{width:auto;flex:1 1 170px}
+.filters.more.orf>.dt{flex:0 1 auto}
+.rr-oks.orready{margin-top:5px}
+.page-head .actions .rr-nx .btn.sm{height:40px;min-height:40px;padding:0 16px;font-size:14px}
