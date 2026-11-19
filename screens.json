@@ -1,5 +1,5 @@
 {
-  "version": "v1.42",
+  "version": "v1.44",
   "date": "2026-11-19",
   "entry": "login.html",
   "screens": [
@@ -361,7 +361,7 @@
     {
       "id": "delegations",
       "file": "delegations.html",
-      "title": "تفاويض الإنجاز"
+      "title": "العقود الرجالية (التفاويض)"
     },
     {
       "id": "delAdd",
