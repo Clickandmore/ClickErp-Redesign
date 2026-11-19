@@ -1,5 +1,5 @@
 {
-  "version": "v1.46",
+  "version": "v1.47",
   "date": "2026-11-19",
   "entry": "login.html",
   "screens": [
@@ -161,7 +161,7 @@
     {
       "id": "finReports",
       "file": "finReports.html",
-      "title": "التقارير المالية"
+      "title": "التقارير المحاسبية"
     },
     {
       "id": "finReport",
@@ -251,7 +251,7 @@
     {
       "id": "finSettings",
       "file": "finSettings.html",
-      "title": "الإعدادات المحاسبية"
+      "title": "إعدادات النظام المحاسبي"
     },
     {
       "id": "finAdd",
@@ -1292,6 +1292,66 @@
       "id": "housingPlaces",
       "file": "housingPlaces.html",
       "title": "مقرات الإيواء"
+    },
+    {
+      "id": "finBalances",
+      "file": "finBalances.html",
+      "title": "الأرصدة"
+    },
+    {
+      "id": "finStatements",
+      "file": "finStatements.html",
+      "title": "القوائم المالية"
+    },
+    {
+      "id": "finDaily",
+      "file": "finDaily.html",
+      "title": "حركة الصندوق والبنوك اليومية"
+    },
+    {
+      "id": "finDailyLines",
+      "file": "finDailyLines.html",
+      "title": "بنود تقرير صندوق اليومية"
+    },
+    {
+      "id": "finEntriesPending",
+      "file": "finEntriesPending.html",
+      "title": "قيود بانتظار الاعتماد"
+    },
+    {
+      "id": "finBondsGen",
+      "file": "finBondsGen.html",
+      "title": "السندات العامة"
+    },
+    {
+      "id": "finComPay",
+      "file": "finComPay.html",
+      "title": "صرف عمولات المسوقين"
+    },
+    {
+      "id": "finGuide",
+      "file": "finGuide.html",
+      "title": "إدارة الدليل المحاسبي"
+    },
+    {
+      "id": "finClientCats",
+      "file": "finClientCats.html",
+      "title": "تصنيفات العملاء"
+    },
+    {
+      "id": "finSupplierTypes",
+      "file": "finSupplierTypes.html",
+      "title": "أنواع الموردين"
+    },
+    {
+      "id": "finPurchaseReq",
+      "file": "finPurchaseReq.html",
+      "title": "طلبات الشراء"
+    },
+    {
+      "id": "finTaxReports",
+      "file": "finTaxReports.html",
+      "title": "التقارير الضريبية"
     }
   ],
   "states": [

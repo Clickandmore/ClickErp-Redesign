@@ -110,6 +110,17 @@
 
 ---
 
+
+### v1.47 — المالية العامة (منيو `FV/../finance.blade.php`)
+| الشاشة | المصدر |
+|---|---|
+| `finSettings` | `FV/confirm_settings` · `chart_settings` · `tax_setting` · `years` · `opening_balance` · `fiscal_year_closing` |
+| `finStatements` | `FinancialPositionController` · `IncomeListController` · `ProfitLossController` · `TrailBalanceController` · `ClientTrialBalanceController` · `AuditBudgetController` · `AuditBudgetMonthlyController` |
+| `finBalances` | `FV/balances` · `ObjService::balancesMovementReport` (Account/Client/Supplier/TreasuryAndBank BalancesController) |
+| `finDaily` · `finDailyLines` | `CashMovementController` (view=reference · movement) · `DailyCashReferenceLineController` |
+| `finTaxReports` | `SalesAnalysisController` · `PurchasesAnalysisController` · `TaxInvoiceStatementController` · `TaxDeclarationController` |
+| `finEntriesPending` · `finBondsGen` · `finComPay` · `finGuide` · `finClientCats` · `finSupplierTypes` · `finPurchaseReq` | `constraints.pending` · `general_bond` · `commissions.finance` · `accounting_management` · `client_categories` · `supplier_type` · `procurement?kind=request` |
+
 ## الموارد البشرية — ✅ v1.6 (`hr*`)
 
 المسارات `packages/hr/routes/hr.php` (`/hr`) و`employee.php` (`/employee`). ترتيب القائمة في الكود: الرئيسية، الاعدادات، الموظفين، الاجازات، السلف، العهد، الجزاءات، الاذونات، الحضور، رفع شيت الحضور، التقارير اليومية، حضور جماعي، المرتبات، مسير العاملات، المكافآت.
