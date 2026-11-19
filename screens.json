@@ -554,6 +554,11 @@
       "title": "لوحة الموارد البشرية"
     },
     {
+      "id": "hrEstablishments",
+      "file": "hrEstablishments.html",
+      "title": "المنشآت والكفالة"
+    },
+    {
       "id": "hrEmployees",
       "file": "hrEmployees.html",
       "title": "الموظفون"
