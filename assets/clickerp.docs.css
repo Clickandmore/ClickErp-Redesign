@@ -260,3 +260,90 @@
 .p23-lay .p23-stage .p22-sheet.pp-a5{zoom:1}
 .p23-lay .p23-stage .p22-sheet.thermal{zoom:1.15}
 .p23-lay .p23-stage .p22-pin{inset-inline-end:-20px}
+/* ===== v1.65 أشكال الطباعة (رسمي · حديث · مختصر) ===== */
+.p22-sheet.st-modern .p22-head{border:0;background:var(--pc);color:#fff;margin:-42px -40px 0;padding:24px 40px;border-radius:0}
+.p22-sheet.st-modern .p22-head .p22-brand b,.p22-sheet.st-modern .p22-title h1{color:#fff!important}
+.p22-sheet.st-modern .p22-head small,.p22-sheet.st-modern .p22-title h2{color:rgba(255,255,255,.75)}
+.p22-sheet.st-modern .p22-no{border-color:rgba(255,255,255,.5)}.p22-sheet.st-modern .p22-no small{color:rgba(255,255,255,.7)}
+.p22-sheet.st-modern .p22-logo{background:#fff;border-radius:14px;padding:3px}
+.p22-sheet.st-modern .p22-qrw{background:#fff;padding:4px;border-radius:6px}.p22-sheet.st-modern .p22-qrw small{color:#6b7588}
+.p22-sheet.st-modern .p22-parties>div{border:0;border-top:3px solid var(--pa);border-radius:8px}
+.p22-sheet.st-modern .p22-kv th,.p22-sheet.st-modern .p22-kv td{border-color:transparent;border-bottom:1px solid #e9edf3}
+.p22-sheet.st-modern .p22-lines th{background:color-mix(in srgb,var(--pc) 10%,#fff);color:var(--pc);border-bottom:2px solid var(--pc)}
+.p22-sheet.st-modern .p22-tot tr:last-child th,.p22-sheet.st-modern .p22-tot tr:last-child td{background:var(--pc);color:#fff}
+.p22-sheet.st-modern.thermal .p22-head{margin:-16px -14px 0;padding:14px}
+.p22-sheet.st-compact{font-size:11px;gap:8px;padding:30px 34px 24px}
+.p22-sheet.st-compact .p22-head{border-bottom-width:1px;padding-bottom:8px}
+.p22-sheet.st-compact .p22-logo{width:38px;height:38px}
+.p22-sheet.st-compact .p22-title h1{font-size:16px}
+.p22-sheet.st-compact .p22-parties>div{background:none;border:0;padding:0}
+.p22-sheet.st-compact .p22-kv th{background:none}.p22-sheet.st-compact .p22-kv th,.p22-sheet.st-compact .p22-kv td{padding:3px 6px}
+.p22-sheet.st-compact .p22-lines th{background:none;color:#1b2333;border-bottom:1.5px solid #1b2333}
+.p22-sheet.st-compact .p22-lines td{padding:4px 6px}
+/* نموذج الشركة */
+.p22-ct{margin:6px 0 4px;text-align:center;font-size:20px;color:var(--pc)}
+.p22-ct.plain{margin-top:24px;color:#1b2333}
+.p22-lht{display:flex;align-items:center;gap:12px;margin:-42px -40px 0;padding:0 40px;background:linear-gradient(135deg,color-mix(in srgb,var(--pc) 12%,#fff),#fff 60%);border-bottom:4px double var(--pc);position:relative}
+.p22-lht b{display:block;font-size:17px;color:var(--pc)}.p22-lht small{display:block;font-size:10px;color:#6b7588}
+.p22-lht em{position:absolute;top:6px;inset-inline-start:12px;font-style:normal;font-size:9px;color:#9aa3b2;background:#fff;padding:1px 6px;border-radius:4px;border:1px dashed #cfd6e3}
+.p22-lhb{margin:0 -40px -34px;padding:0 40px;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:2px;font-size:10px;color:#fff;background:var(--pc)}
+.p22-ctext{line-height:2.05;font-size:12.5px}
+.p22-ctext.pfs-s{font-size:11.5px}.p22-ctext.pfs-l{font-size:14px}
+.p22-ctext p{margin:0 0 4px}
+.p22-ctext ol{margin:4px 0 0;padding-inline-start:22px}
+.p22-ctext li{margin-bottom:3px}
+.p22-var{background:#e8eefb;color:#2050b0;border-radius:4px;padding:0 4px;font-weight:700;font-size:.92em}
+.p22-v{color:var(--pc);border-bottom:1px dotted var(--pc)}
+.p22-miss{background:#fbe9e7;color:#c0392b;border-radius:4px;padding:0 4px;font-size:.9em}
+#p22-out .p22-v{border:0}
+/* عرض السعر: فني ومالي وشرائح */
+.p22-sheet.pp-slide{width:1123px;min-height:632px;height:632px;padding:0;gap:0}
+.p22-sheet+.p22-sheet{margin-top:18px}
+.p22-cov{display:flex;flex-direction:column;justify-content:space-between;height:100%;min-height:1040px;padding:20px 0}
+.pp-slide .p22-cov{min-height:0;padding:40px 56px}
+.p22-cov-l{display:flex;align-items:center;gap:10px}.p22-cov-l b{font-size:16px}
+.p22-cov-t{text-align:center;display:flex;flex-direction:column;gap:6px;align-items:center;padding:36px;border:2px solid var(--pc);border-radius:14px}
+.p22-cov-t small{font-size:13px;color:#6b7588;letter-spacing:.5px}.p22-cov-t h1{margin:0;font-size:30px}.p22-cov-t b{font-size:20px}
+.p22-cov-d{display:flex;justify-content:space-between;font-size:12px;color:#4a5568}
+.p22-ph{margin:0 0 6px;font-size:20px}.p22-ph2{margin:12px 0 4px;font-size:15px;border-inline-start:4px solid;padding-inline-start:8px}
+.p22-toc{margin:0;padding-inline-start:22px;line-height:2}
+.p22-sl-h{display:flex;justify-content:space-between;align-items:center;padding:16px 40px;color:#fff}.p22-sl-h b{font-size:22px}
+.p22-sl-b{flex:1;padding:28px 56px;overflow:hidden}
+.p22-sl-f{display:flex;align-items:center;gap:8px;padding:10px 40px;border-top:1px solid #e2e7ef;font-size:11px;color:#6b7588}.p22-sl-f .p22-logo{width:26px;height:26px}
+.p22-sl-2{display:grid;grid-template-columns:1fr 1fr;gap:30px;font-size:16px;line-height:2}.p22-sl-2 h4{margin:0 0 6px;color:var(--pc);font-size:18px}
+.p22-sl-p{font-size:22px;line-height:1.9;margin:30px 0 0}
+.p23-stage.sm .p22-sheet.pp-slide{zoom:.42}
+/* ===== نماذج الشركة (p24) ===== */
+.p24-top{display:flex;gap:12px;align-items:center;margin-bottom:14px}.p24-top .cx-info{flex:1;margin:0}
+.p24-ways{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:16px}
+.p24-way{display:flex;flex-direction:column;gap:6px;padding:16px}.p24-way>svg{width:22px;height:22px;color:var(--navy)}.p24-way small{color:var(--muted);line-height:1.7}
+.p24-lib{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;padding:0 18px 18px}
+.p24-lib>div{display:flex;flex-wrap:wrap;gap:5px;align-items:center}.p24-lib small{width:100%;font-weight:700;color:var(--muted)}
+.p24-lib code,.p24-new{background:#e8eefb;color:#2050b0;border-radius:5px;padding:2px 7px;font-size:12px}
+.p24-old{background:#fbeee0;color:#9a5a12;border-radius:5px;padding:2px 7px;font-size:12px}
+.p24-wiz{display:grid;grid-template-columns:230px minmax(360px,1fr) minmax(0,1.05fr);gap:16px;align-items:start}
+.p24-wiz>*{min-width:0}
+.p24-side{position:sticky;top:80px;display:flex;flex-direction:column;gap:12px}
+.p24-side .steps{flex-direction:column}
+.p24-side .step.on{border-color:var(--navy);background:var(--navy-soft,#eef2f8)}
+.p24-wt{display:flex;gap:10px;align-items:center}.p24-wt svg{width:22px;height:22px;color:var(--navy);flex:none}.p24-wt small{display:block;color:var(--muted);font-size:11.5px}
+.p24-main{padding:18px 20px;display:flex;flex-direction:column;gap:10px}
+.p24-nav{display:flex;justify-content:space-between;margin-top:8px;padding-top:12px;border-top:1px solid var(--line)}
+.p24-file{display:flex;gap:12px;align-items:center;padding:12px 14px;border:1px solid var(--line);border-radius:var(--r);background:var(--bg)}
+.p24-file>svg{width:30px;height:30px;color:#2b579a;flex:none}.p24-file>div{flex:1}.p24-file small{display:block;color:var(--muted);font-size:11.5px}
+.p24-vt td{vertical-align:middle}.p24-vt td small{display:block;color:var(--muted);font-size:11px}.p24-vt tr.off td{opacity:.45}
+.p24-vt td>svg{width:14px;height:14px;color:var(--muted)}
+.p24-fix{display:flex;flex-direction:column;gap:6px}
+.p24-fx{align-items:flex-start!important;padding:8px 10px;border:1px solid var(--line);border-radius:var(--r-s);margin:0!important}
+.p24-fx b{display:block;font-size:13px}.p24-fx small{display:block;color:var(--muted);font-size:11.5px}
+.p24-rng{display:flex;align-items:center;gap:10px}.p24-rng input{flex:1}
+.p24-roles{display:flex;flex-wrap:wrap;gap:6px}.p24-roles button{padding:6px 12px;border:1px solid var(--line);border-radius:999px;background:#fff;font:inherit;font-size:12.5px;cursor:pointer}
+.p24-roles button.on{border-color:var(--navy);background:var(--navy-soft,#eef2f8);color:var(--navy);font-weight:700}
+.p24-done{display:flex;gap:14px;padding:22px}.p24-done>svg{width:30px;height:30px;color:var(--green);flex:none}.p24-done h3{margin:0 0 6px}.p24-done p{margin:0 0 12px;color:var(--body);line-height:1.8}
+.p24-acts{display:flex;gap:8px}
+@media (max-width:1300px){.p24-wiz{grid-template-columns:200px minmax(0,1fr)}.p24-wiz .p23-pv{grid-column:1/-1;position:static}}
+
+.p24-lib code,.p24-new,.p24-old{font-family:inherit;letter-spacing:0;display:inline-block}
+.p22-ctext{color:#1b2333}
+.p22-sheet.st-modern .p22-tot tr:last-child *{color:#fff!important}
+.p23-lay .p23-stage .p22-sheet.pp-slide{zoom:.55}
