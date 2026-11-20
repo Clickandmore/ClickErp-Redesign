@@ -8271,3 +8271,19 @@ td.sxe-dirty{box-shadow:inset 0 -2px 0 var(--green)}
 .sh-tb td small{display:block;color:var(--muted);font-size:11.5px}.sh-acts{white-space:nowrap}.al-lnk.r{color:#b23b3b}
 .sh-hbar{display:flex;justify-content:flex-end;margin:-4px 0 10px}
 @media (max-width:760px){.sh-scope,.sh-how,.sh-opts,.sh-grid{grid-template-columns:1fr 1fr}}
+/* v1.73 — سجل النشاط جوّه شاشات العرض */
+.ra-n{font-style:normal;font-size:11px;background:var(--bg);border-radius:20px;padding:0 7px;margin-inline-start:4px}
+.ra-ov{z-index:9990}.ra-d{width:min(560px,94vw)}
+.ra-chips{display:flex;flex-wrap:wrap;gap:6px;padding:12px 20px;border-bottom:1px solid var(--line)}
+.ra-chips button{border:1px solid var(--line);background:#fff;border-radius:20px;padding:4px 11px;font:inherit;font-size:12.5px;cursor:pointer}.ra-chips button b{font-weight:700;color:var(--muted);margin-inline-start:3px}
+.ra-chips button.on{border-color:var(--navy);background:var(--navy-soft);color:var(--navy);font-weight:700}
+.ra-b{flex:1;overflow:auto;padding:8px 20px 16px}
+.ra-i{display:flex;gap:10px;padding:12px 0;border-bottom:1px dashed var(--line);position:relative}
+.ra-i .al-ic{flex:none}.ra-c{flex:1;min-width:0}
+.ra-h{display:flex;gap:8px;align-items:baseline}.ra-h b{font-size:14px}.ra-h span{margin-inline-start:auto;font-size:12px;color:var(--muted);white-space:nowrap}
+.ra-c>small{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+.ra-ch{margin-top:6px;background:#f7f9fc;border-radius:8px;padding:6px 10px;font-size:12.5px}
+.ra-ch>div{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:2px 0}.ra-ch span{color:var(--muted);min-width:96px}
+.ra-ch del{color:#b23b3b}.ra-ch ins{color:#2f7a1f;text-decoration:none;font-weight:700}.ra-ch svg{width:12px;height:12px;color:var(--muted)}
+.ra-a{display:flex;gap:14px;margin-top:6px}.ra-a .al-lnk{display:inline-flex;align-items:center;gap:4px;font-size:12.5px}.ra-a svg{width:13px;height:13px}
+.ra-d .drawer-f .al-lnk{display:inline-flex;align-items:center;gap:5px}.ra-d .drawer-f svg{width:14px;height:14px}

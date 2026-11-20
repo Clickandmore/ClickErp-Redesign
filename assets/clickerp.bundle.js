@@ -12499,6 +12499,82 @@ try{Object.assign(T,{guideTable:{ar:"مثال: جدول",en:"Example: table"},gu
 Object.keys(S).forEach(k=>{screens[k]=S[k]});
 })();
 
+/* ===== v1.73 — سجل النشاط جوّه كل شاشة عرض («جديد»): العقد، السيرة، التأجير، نقل الخدمات، العميل، الإيواء، الطلب، التفويض، الرحلة، الشكوى…
+   زر «سجل النشاط» في رأس الشاشة بيفتح كل حركات السجل ده (نفس activity_log: subject_type + subject_id)، بفلاتر، وقبل/بعد،
+   ومشاركة حركة واحدة أو السجل كله. الطباعة من الشاشة بتتسجّل حركة «طباعة». نفس الحركات بتظهر في سجل النشاط العام. ===== */
+(()=>{
+const {X,B}=window.CXH;
+const A=[["سارة القحطاني","خدمة العملاء"],["علي ناصر","المبيعات"],["ريم الدوسري","المحاسب"],["محمد العتيبي","مدير النظام"],["النظام","مهمة مجدولة"],["العميل","من الموقع"],["فهد الحربي","مدير فرع"],["هيا الدوسري","الموارد البشرية"]];
+/* [أيام فاتت, الوقت, المنفذ, الحدث, التغييرات [الحقل, قبل, بعد]] */
+const RC={
+ contractShow:["عقد الاستقدام",115,"CN-2026-0115 — منيرة الشهري",[[21,"10:02",0,"created",[["العميل","","منيرة الشهري"],["العاملة","","ماريتس دي لا كروز"],["الجنسية","","الفلبين"],["قيمة العقد","","18,500 ر.س"],["الفرع","","الفرع الرئيسي"]]],[21,"10:20",2,"created",[["فاتورة","","INV-1188"],["المبلغ","","18,500 ر.س"]],"الفاتورة"],[20,"12:40",2,"created",[["سند قبض","","RB-4421"],["المبلغ","","9,250 ر.س"]],"سند قبض"],[18,"11:00",0,"updated",[["المرحلة","عقود جديدة","عقود مساند"],["رقم عقد مساند","","MS-2026-551288"]]],[12,"09:40",1,"updated",[["المرحلة","عقود مساند","التفويض"],["رقم التفويض","","T-778190"],["المسؤول","","علي ناصر"]]],[6,"13:15",1,"updated",[["المرحلة","التفويض","التفييز"],["رقم التأشيرة","","5521004876"]]],[2,"10:41",0,"updated",[["المرحلة","التفييز","التذكرة"],["رقم الرحلة","","PR 656"],["موعد الوصول","","24 نوفمبر 08:40"]]],[1,"09:05",4,"updated",[["رسالة للعميل","","رسالة التذكرة — واتساب"]],"إشعار"]]],
+ cvShow:["السيرة الذاتية",118742,"A-118742 — ماري غرايس سانتوس",[[30,"14:10",1,"created",[["المكتب","","PLATINUM BROTHERS"],["الجنسية","","الفلبين"],["المهنة","","عاملة منزلية"],["الراتب","","1,600 ر.س"]]],[29,"09:30",6,"updated",[["الحالة","بانتظار المراجعة","متاحة"],["ظاهرة في الموقع","لا","نعم"]]],[25,"16:02",1,"updated",[["الفيديو التعريفي","","video_118742.mp4"]]],[9,"11:20",5,"updated",[["الحالة","متاحة","محجوزة"],["العميل","","منيرة الشهري"]]],[9,"11:45",0,"updated",[["سعر الاستقدام","18,500","17,900"]]]]],
+ rentalShow:["عقد الإيجار",44,"RC-2026-0044 — منيرة الشهري",[[40,"12:00",0,"created",[["الباقة","","ثلاثة أشهر"],["العاملة","","ماريتس دي لا كروز"],["القيمة","","4,500 ر.س"]]],[40,"12:30",5,"updated",[["التوقيع الإلكتروني","","وقّع العميل"]]],[40,"13:10",2,"created",[["فاتورة","","INV-1102"],["المبلغ","","4,500 ر.س"]],"الفاتورة"],[37,"08:00",4,"updated",[["الحالة","فترة التجربة","نشط"]]],[3,"09:00",4,"updated",[["رسالة للعميل","","انتهاء عقد الإيجار — واتساب"]],"إشعار"]]],
+ transferShow:["طلب نقل الكفالة",31,"TR-2026-0031 — كوماري بيريرا",[[14,"10:00",5,"created",[["من","","نورة الحربي"],["إلى","","سعد المطيري"],["العاملة","","كوماري بيريرا"]]],[13,"11:30",0,"updated",[["الحالة","جديد","فترة التجربة"],["بداية التجربة","","8 نوفمبر"]]],[13,"12:05",2,"created",[["سند قبض","","RB-4390"],["المبلغ","","2,000 ر.س"]],"سند قبض"],[1,"15:20",0,"updated",[["ملاحظة","","العميل راضي وطلب التأكيد"]]]]],
+ clientShow:["العميل",1042,"CL-1042 — منيرة الشهري",[[120,"10:00",0,"created",[["الاسم","","منيرة الشهري"],["الجوال","","0551203344"],["المدينة","","الرياض"]]],[60,"09:15",0,"updated",[["الجوال","0551203344","0551209900"],["التصنيف","عادي","مميز"]]],[21,"10:02",0,"updated",[["عقد جديد","","CN-2026-0115"]]],[5,"17:30",1,"created",[["متابعة","","اتصال بخصوص موعد الوصول"]],"متابعة"]]],
+ housingShow:["عقد الإيواء",142,"SH-2026-0142 — ماريتس دي لا كروز",[[10,"20:15",0,"created",[["المكان","","إيواء الرياض — المبنى أ"],["السبب","","في انتظار التسليم"]]],[8,"09:00",6,"updated",[["الغرفة","","أ-12"]]],[2,"14:00",0,"updated",[["الحالة","داخل الإيواء","جاهز للنقل"]]]]],
+ orderShow:["طلب الاستقدام",4412,"OR-4412 — منيرة الشهري",[[22,"09:14",5,"created",[["السيرة","","A-118742"],["المهنة","","عاملة منزلية"]]],[22,"09:40",0,"updated",[["الحالة","جديد","تحت الإجراء"],["المسؤول","","سارة القحطاني"]]],[21,"10:02",0,"updated",[["الحالة","تحت الإجراء","مكتمل"],["العقد","","CN-2026-0115"]]]]],
+ delShow:["تفويض إنجاز",42,"DL-0042 — CN-2026-0115",[[12,"09:40",1,"created",[["العقد","","CN-2026-0115"],["المسؤول","","علي ناصر"]]],[7,"10:00",1,"updated",[["الحالة","طلب جديد","تحت الإجراء"]]],[6,"13:15",1,"updated",[["الحالة","تحت الإجراء","تم التنفيذ"],["رقم التأشيرة","","5521004876"]]]]],
+ tripShow:["رحلة",129,"TR-129 — ET 412",[[6,"11:00",0,"created",[["النوع","","رحلة استقدام"],["الرحلة","","ET 412"],["العاملة","","FATUMA NAMUBIRU"]]],[3,"10:20",0,"updated",[["موعد الوصول","19 نوفمبر 06:00","20 نوفمبر 08:40"]]],[0,"08:55",6,"updated",[["الحالة","مجدول","وصلت"]]]]],
+ claimShow:["الشكوى",148,"#000148 — العاملة ترفض العمل",[[9,"18:20",5,"created",[["النوع","","رفض العمل"],["ضد","","العاملة"]]],[9,"19:00",4,"updated",[["رسالة للعميل","","استلام شكوى — واتساب"]],"إشعار"],[8,"10:00",6,"updated",[["الحالة","مفتوحة","تحت المعالجة"],["المسؤول","","فهد الحربي"]]],[4,"12:30",6,"updated",[["الإجراء","","جلسة مع العاملة والعميل"]]]]],
+ rentalCvShow:["سيرة التأجير",2041,"R-2041 — فاطمة أحمدي",[[70,"10:00",1,"created",[["الجنسية","","إثيوبيا"],["الأجر الشهري","","1,500 ر.س"]]],[40,"12:00",0,"updated",[["الحالة","متاحة","في عقد"],["العقد","","RC-2026-0039"]]]]],
+ rentalOrderShow:["طلب الإيجار",42,"RO-2611-0042 — فهد العتيبي",[[2,"21:10",5,"created",[["الباقة","","ستة أشهر"],["العاملة","","سيتي آمنة"]]],[1,"09:30",0,"updated",[["الحالة","جديد","تحت المراجعة"]]]]],
+ abscShow:["بلاغ هروب",98,"CN-2026-0098 — جوي ماري سانتوس",[[15,"08:30",0,"created",[["العقد","","CN-2026-0098"],["تاريخ الغياب","","4 نوفمبر"]]],[14,"11:00",3,"updated",[["رقم البلاغ في أبشر","","AB-55120"]]]]],
+ hrEmployeeShow:["الموظف",14,"EMP-014 — سارة القحطاني",[[400,"09:00",7,"created",[["الوظيفة","","مسؤولة خدمة عملاء"],["الراتب الأساسي","","6,500 ر.س"]]],[90,"10:00",7,"updated",[["الراتب الأساسي","6,500 ر.س","7,000 ر.س"]]],[12,"13:00",7,"updated",[["الإقامة","تنتهي 2026-12-01","تنتهي 2027-12-01"]]]]],
+ hrWorkerShow:["العاملة",2431,"نيلانثي سيلفا",[[200,"10:00",7,"created",[["رقم الإقامة","","2431190874"],["الكفالة","","المكتب"]]],[30,"11:00",0,"updated",[["العقد","","RC-2026-0044"]]]]],
+ visaShow:["طلب التأشيرات",33,"VR-0033",[[50,"10:00",3,"created",[["العدد","","10 تأشيرات"],["الجنسية","","الفلبين"]]],[20,"09:00",3,"updated",[["الحالة","تحت الإجراء","مكتمل"],["رقم التأشيرة","","V-7781204"]]]]],
+ inboundShow:["طلب خاص",318,"#318 — منيرة الشهري",[[0,"09:14",5,"created",[["المصدر","","الموقع الإلكتروني"],["الطلب","","عاملة منزلية — الفلبين"]]]]],
+ rcReturnShow:["طلب الاسترجاع",214,"#214 — CN-2026-0109",[[3,"16:00",5,"created",[["العقد","","CN-2026-0109"],["السبب","","العاملة مريضة"]]],[2,"10:00",2,"updated",[["المبلغ المقترح","","6,000 ر.س"]]]]],
+ finRequestShow:["الطلب المالي",418,"FR-0418 — سداد مساند",[[4,"11:00",0,"created",[["النوع","","سداد مساند"],["المبلغ","","2,300 ر.س"]]],[3,"09:30",2,"updated",[["الحالة","جديد","بانتظار الاعتماد"]]]]],
+ agentShow:["الوكيل الخارجي",7,"PLATINUM BROTHERS",[[700,"10:00",3,"created",[["الدولة","","الفلبين"]]],[30,"12:00",2,"updated",[["الرصيد","12,400 $","9,100 $"]]]]],
+ couponShow:["الكوبون",26,"RAMADAN26",[[40,"10:00",3,"created",[["الخصم","","15%"],["الحد الأقصى","","1,000 ر.س"]]],[10,"09:00",3,"updated",[["الانتهاء","2026-03-30","2026-04-10"]]]]],
+ finAssetShow:["الأصل",14,"AS-014 — هيونداي H1",[[500,"10:00",2,"created",[["القيمة","","118,000 ر.س"],["الإهلاك","","قسط ثابت 60 شهر"]]],[20,"02:00",4,"updated",[["الإهلاك الشهري","","1,966 ر.س"]],"قيد إهلاك"]]],
+ myRequestShow:["طلب الموظف",1043,"RQ-1043 — عمر حداد",[[8,"09:14",7,"created",[["النوع","","إجازة سنوية + خروج وعودة"]]],[7,"12:00",6,"updated",[["الحالة","جديد","موافقة المدير"]]]]],
+ rcFinanceShow:["الملف المالي للعقد",109,"#0109 — عبدالرحمن الزهراني",[[60,"10:00",2,"created",[["قيمة العقد","","17,500 ر.س"]]],[30,"11:00",2,"updated",[["المدفوع","8,750 ر.س","17,500 ر.س"]]]]]};
+const LK="cerp.reclog.v1";
+const RL=()=>{try{return JSON.parse(localStorage.getItem(LK)||"[]")}catch(_){return []}};
+const day0=()=>{const d=new Date();d.setHours(0,0,0,0);return d.getTime()};
+/* حركات كل السجلات (بتدخل في build() بتاع سجل النشاط) */
+const entries=()=>{const z=day0(),out=[];Object.keys(RC).forEach((pg,pi)=>{const r=RC[pg];r[3].forEach((e,i)=>{const [h,m]=e[1].split(":").map(Number);const a=A[e[2]];
+  out.push({id:189000+pi*40+i,t:z-e[0]*864e5+(h*60+m)*6e4,actor:a[0],role:a[1],cid:e[2]===4||e[2]===5?null:e[2]+2,ck:null,ev:e[3],type:r[0],sid:r[1],desc:r[2]+(e[5]?" · "+e[5]:""),log:/فاتورة|سند|المبلغ|الإهلاك|الرصيد|المدفوع/.test(e[4].map(c=>c[0]).join())?"finance":/الموظف|طلب الموظف|العاملة/.test(r[0])?"hr":"default",ch:e[4],go:pg,px:null,raw:e[3]})})});
+ RL().forEach((x,i)=>{const r=RC[x.pg];if(r)out.push({id:192000+i,t:x.t,actor:x.by||"مشرف النظام",role:"مدير النظام",cid:1,ck:"m",ev:"printed",type:r[0],sid:r[1],desc:r[2],log:"default",ch:[["المستند","",x.doc]],go:x.pg,px:null,raw:"printed"})});
+ return out};
+window.CERP_RECACT={entries,cfg:p=>RC[p]};
+/* ---- الزر والدرج في شاشة العرض ---- */
+const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const ico=()=>{if(window.lucide)lucide.createIcons({attrs:{"stroke-width":1.8}})};
+const cfg=()=>RC[window.CERP_PAGE];
+const recRows=()=>{const c=cfg(),api=window.CERP_ACT;return c&&api?api.forRecord(c[0],c[1]):[]};
+const CAT=e=>/printed|shared|share_viewed/.test(e.ev)?"pd":e.ch.some(c=>/المرحلة|الحالة/.test(c[0]))?"st":e.log==="finance"||e.ch.some(c=>/فاتورة|سند|المبلغ|قيمة|المدفوع|الراتب|سعر/.test(c[0]))?"fin":"ed";
+let F="all",OPEN=0,MORE={};
+const btn=()=>{const pg=document.querySelector("#app .page");if(!pg||!cfg())return;const act=pg.querySelector(".page-head .actions");if(!act)return;let b=act.querySelector("[data-ra-open]");const n=recRows().length;
+ if(!b){act.insertAdjacentHTML("afterbegin",`<button class="btn btn-ghost" data-ra-open="">${X("history")}سجل النشاط <em class="num ra-n">${n}</em></button>`);ico()}else{const e=b.querySelector(".ra-n");if(e)e.textContent=n}};
+const paint=()=>{let w=document.getElementById("raDr");if(!OPEN){if(w)w.remove();return}
+ const c=cfg(),L=recRows(),api=window.CERP_ACT;const cnt=k=>k==="all"?L.length:L.filter(e=>CAT(e)===k).length;const V=F==="all"?L:L.filter(e=>CAT(e)===F);
+ if(!w){w=document.createElement("div");w.id="raDr";document.body.appendChild(w)}
+ w.innerHTML=`<div class="drawer-ov ra-ov" data-ra-x=""><div class="drawer ra-d" role="dialog" aria-modal="true" aria-labelledby="raT"><div class="drawer-h"><div><h3 id="raT">سجل النشاط</h3><p>${esc(c[0])} · ${esc(c[2])} · <span class="num">${L.length}</span> حركة، الأحدث فوق</p></div><button class="icon-btn" data-ra-x="" aria-label="إغلاق">${X("x")}</button></div>
+ <div class="ra-chips">${[["all","الكل"],["st","المراحل والحالة"],["ed","البيانات"],["fin","المالية"],["pd","الطباعة والمشاركة"]].filter(x=>x[0]==="all"||cnt(x[0])).map(x=>`<button class="${F===x[0]?"on":""}" data-ra-f="${x[0]}">${x[1]} <b class="num">${cnt(x[0])}</b></button>`).join("")}</div>
+ <div class="ra-b">${V.length?V.map(e=>{const v=api.ev(e),open=MORE[e.id],ch=e.ch.filter(x=>x[0]!=="مفتاح الإعداد");return `<div class="ra-i"><span class="al-ic ${v[2]}">${X(v[1])}</span><div class="ra-c"><div class="ra-h"><b>${esc(api.title(e))}</b><span class="num">${api.when(e.t)}</span></div><small>${esc(e.actor)}${e.role?" · "+esc(e.role):""}${e.desc&&e.desc!==c[2]?" · "+esc(e.desc.replace(c[2]+" · ","")):""}</small>
+  ${ch.length?`<div class="ra-ch">${(open?ch:ch.slice(0,3)).map(x=>`<div><span>${esc(x[0])}</span>${x[1]&&e.ev==="updated"?`<del>${esc(x[1])}</del>${X("arrow-left")}`:""}<ins>${esc(x[2]||x[1])}</ins></div>`).join("")}${ch.length>3&&!open?`<button class="al-lnk" data-ra-more="${e.id}">+${ch.length-3} كمان</button>`:""}</div>`:""}
+  <div class="ra-a"><button class="al-lnk" data-ra-share="${e.id}">${X("share-2")}مشاركة</button><a class="al-lnk" href="setActivity.html#a${e.id}">${X("external-link")}في سجل النشاط</a></div></div></div>`}).join(""):`<div class="sxe-none">${X("history")}<b>مفيش حركات هنا</b></div>`}</div>
+ <div class="drawer-f"><a class="al-lnk" href="setActivity.html${L[0]?"#a"+L[0].id+"-h":""}">${X("external-link")}افتح في سجل النشاط</a><div style="display:flex;gap:8px">${B("ghost","printer","طباعة السجل",'data-ra-print=""')}${B("primary","share-2","مشاركة السجل كله",'data-ra-share="all"')}</div></div></div></div>`;ico()};
+const share=(id)=>{const c=cfg(),L=recRows(),api=window.CERP_ACT;const one=id==="all"?null:L.find(e=>e.id===+id);api.share({rows:L,one,label:`تاريخ ${c[0]} — ${c[2]}`,rec:{type:c[0],sid:c[1],desc:c[2]},scope:one?"one":"rec"})};
+const logPrint=doc=>{const L=RL();L.push({pg:window.CERP_PAGE,t:Date.now(),doc,by:"مشرف النظام"});try{localStorage.setItem(LK,JSON.stringify(L))}catch(_){}if(window.CERP_ACT)window.CERP_ACT.rebuild();btn();paint()};
+document.addEventListener("click",e=>{const t=e.target;if(!t.closest)return;let el;
+ if(t.closest("[data-ra-open]")){OPEN=1;F="all";paint();return}
+ if(!cfg())return;
+ if((el=t.closest("#app .page button,#app .page a.btn"))&&!el.matches("[data-ra-open],[data-sx-hist]")&&!el.closest("#raDr")&&/^(طباعة|نموذج)/.test(el.textContent.trim())){logPrint(el.textContent.trim().replace(/\s+/g," "));return}
+ if(!t.closest("#raDr"))return;
+ if(t.matches("[data-ra-x]")||t.closest("button[data-ra-x]")){OPEN=0;paint();return}
+ if((el=t.closest("[data-ra-f]"))){F=el.dataset.raF;paint();return}
+ if((el=t.closest("[data-ra-more]"))){MORE[el.dataset.raMore]=1;paint();return}
+ if((el=t.closest("[data-ra-share]"))){share(el.dataset.raShare);return}
+ if(t.closest("[data-ra-print]")){const L=recRows();window.CERP_ACT.share({rows:L,one:null,label:`تاريخ ${cfg()[0]} — ${cfg()[2]}`,rec:{type:cfg()[0],sid:cfg()[1],desc:cfg()[2]},scope:"rec",how:"pdf",why:"طباعة داخلية"});return}});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&OPEN&&!document.querySelector("#alShare .sh-dlg")){OPEN=0;paint()}});
+window.addEventListener("cerp-act-changed",()=>{btn();if(OPEN)paint()});
+const pg=document.querySelector("#app .page");if(pg){new MutationObserver(()=>setTimeout(btn,0)).observe(pg,{childList:true})}
+})();
+
 /* ===== v1.62 — سجل النشاط (dash.activity.log): التبويب الرابع في المستخدمين، من ActivityLogController الحقيقي.
    v1.63: قائمة مضغوطة (سطر لكل حركة) + نافذة منبثقة لكل حركة فيها 3 تبويبات: التفاصيل · تاريخ السجل · مرجع تقني
    (أعمدة activity_log، مفاتيح الحقول، properties الخام، الملف اللي بيسجّل الحركة في ClickERP، استعلام SQL، وملاحظات للمطور).
@@ -12679,11 +12755,13 @@ const build=()=>{const z=day0(),out=[];
  ((sx&&sx.log)||[]).forEach(l=>{let g=sg.find(y=>y.t===l.t&&y.page===l.page);if(!g){g={t:l.t,page:l.page,by:l.by,kind:l.kind,sec:l.sec,reason:l.reason,ch:[]};sg.push(g)}
   g.ch.push(l.kind==="set"?[l.label,l.from,l.to]:[l.label,"",l.kind==="add"?"أُضيف"+(l.to?" — "+l.to:""):l.kind==="del"?"اتمسح":l.to||"تم"])});
  sg.forEach((g,i)=>out.push({id:186000+i,t:g.t,actor:g.by||"مشرف النظام",role:"مدير النظام",cid:1,ck:"m",ev:SXEV[g.kind]||"updated",type:(typeof T!=="undefined"&&T[g.page]&&T[g.page].ar)||g.page,sid:null,desc:g.sec+(g.reason?" — السبب: "+g.reason:""),log:"settings",ch:g.ch,go:g.page,px:null,raw:SXEV[g.kind]||"updated"}));
+ /* v1.73 — حركات السجلات من شاشات العرض (CERP_RECACT) */
+ (window.CERP_RECACT?window.CERP_RECACT.entries():[]).forEach(x=>out.push(x));
  /* v1.71 — المشاركات نفسها حركات في السجل (cerp.shares.v1) */
  let shs;try{shs=JSON.parse(localStorage.getItem("cerp.shares.v1")||"[]")}catch(_){shs=[]}
  (shs||[]).forEach((d,i)=>{const how={link:"رابط للقراءة",wa:"واتساب",mail:"إيميل",pdf:"PDF",csv:"CSV"}[d.how]||d.how;
-  out.push({id:187000+i,t:d.t,actor:d.by||"مشرف النظام",role:"مدير النظام",cid:1,ck:"m",ev:"shared",type:"سجل النشاط",sid:null,desc:`${d.ref} — ${d.title}`,log:"default",ch:[["اللي اتشارك","",`${d.rows.length} حركة`],["الطريقة","",how+(d.to?" — "+d.to:"")],["السبب","",d.why||""],["البيانات الحساسة","",d.opts&&d.opts.mask?"مخفية":"ظاهرة"]].concat(d.revoked?[["الحالة","شغال","ملغي"]]:[]).concat(d.views&&d.views.length?[["اتفتح","",d.views.length+" مرة"]]:[]),go:null,px:{share_ref:d.ref,expires_at:d.exp?new Date(d.exp).toISOString():null},raw:"shared"})});
- (shs||[]).forEach((d,i)=>(d.views||[]).forEach((v,j)=>out.push({id:188000+i*50+j,t:v,actor:"زائر الرابط",role:"من خارج النظام",cid:null,ck:null,ev:"share_viewed",type:"",sid:null,desc:`${d.ref} — ${d.title}`,log:"default",ch:[],go:null,px:{share_ref:d.ref},raw:"share_viewed"})));
+  out.push({id:187000+i,t:d.t,actor:d.by||"مشرف النظام",role:"مدير النظام",cid:1,ck:"m",ev:"shared",type:d.rec?d.rec.type:"سجل النشاط",sid:d.rec?d.rec.sid:null,desc:`${d.ref} — ${d.title}`,log:"default",ch:[["اللي اتشارك","",`${d.rows.length} حركة`],["الطريقة","",how+(d.to?" — "+d.to:"")],["السبب","",d.why||""],["البيانات الحساسة","",d.opts&&d.opts.mask?"مخفية":"ظاهرة"]].concat(d.revoked?[["الحالة","شغال","ملغي"]]:[]).concat(d.views&&d.views.length?[["اتفتح","",d.views.length+" مرة"]]:[]),go:null,px:{share_ref:d.ref,expires_at:d.exp?new Date(d.exp).toISOString():null},raw:"shared"})});
+ (shs||[]).forEach((d,i)=>(d.views||[]).forEach((v,j)=>out.push({id:188000+i*50+j,t:v,actor:"زائر الرابط",role:"من خارج النظام",cid:null,ck:null,ev:"share_viewed",type:d.rec?d.rec.type:"",sid:d.rec?d.rec.sid:null,desc:`${d.ref} — ${d.title}`,log:"default",ch:[],go:null,px:{share_ref:d.ref},raw:"share_viewed"})));
  return applyRVS(out)};
 let ALL=build();
 const byId=id=>ALL.find(e=>e.id===id);
@@ -12950,19 +13028,19 @@ if(!window.__alBound){window.__alBound=1;
 const SHK="cerp.shares.v1";
 const shLoad=()=>{try{return JSON.parse(localStorage.getItem(SHK)||"[]")}catch(_){return []}};
 const shSave=L=>{try{localStorage.setItem(SHK,JSON.stringify(L))}catch(_){}};
-EV.shared=["مشاركة","share-2","b"];EV.share_viewed=["فتح رابط مشاركة","eye","n"];
+EV.shared=["مشاركة","share-2","b"];EV.printed=["طباعة","printer","n"];EV.share_viewed=["فتح رابط مشاركة","eye","n"];
 const MASKF=/جوال|هاتف|الهوية|الإقامة|الجواز|IBAN|الآيبان|حساب|كلمة المرور|IP|العنوان \(IP\)/;
 const MONF=/مبلغ|المبلغ|قيمة|القيمة|الراتب|السعر|المدفوع|الرصيد|ر\.س/;
 const maskV=(f,v)=>{v=String(v==null?"":v);if(!v)return v;if(MONF.test(f)||/ر\.س/.test(v))return "•••• (مخفي)";if(MASKF.test(f)||/\d{9,}/.test(v.replace(/\s/g,"")))return v.replace(/\d(?=[\d\s-]{2,}\d{2}(\D|$))/g,"•");return v};
 const SH={scope:"one",vals:1,names:1,mask:1,tech:0,how:"link",exp:"7",pin:"",aud:"link",why:"",to:"",done:null};
-const scopeRows=sc=>{const e=byId(U.pop);return sc==="one"?(e?[e]:[]):sc==="rec"?(e?sameRec(e):[]):rows().slice(0,500)};
-const scopeLabel=sc=>{const e=byId(U.pop);return sc==="one"?(e?`${title(e)}${e.desc?" — "+e.desc:""}`:""):sc==="rec"?(e?`تاريخ ${subj(e)||e.type}${e.desc?" — "+e.desc:""}`:""):"نتائج سجل النشاط بالفلاتر الحالية"};
+const scopeRows=sc=>{if(SH.custom)return sc==="one"&&SH.custom.one?[SH.custom.one]:SH.custom.rows;const e=byId(U.pop);return sc==="one"?(e?[e]:[]):sc==="rec"?(e?sameRec(e):[]):rows().slice(0,500)};
+const scopeLabel=sc=>{if(SH.custom)return sc==="one"&&SH.custom.one?`${title(SH.custom.one)} — ${SH.custom.rec.desc}`:SH.custom.label;const e=byId(U.pop);return sc==="one"?(e?`${title(e)}${e.desc?" — "+e.desc:""}`:""):sc==="rec"?(e?`تاريخ ${subj(e)||e.type}${e.desc?" — "+e.desc:""}`:""):"نتائج سجل النشاط بالفلاتر الحالية"};
 const snap=()=>{const R=scopeRows(SH.scope);return R.map(e=>({t:e.t,ev:evOf(e)[0],evc:evOf(e)[2],ttl:title(e),desc:e.desc||"",actor:SH.names?e.actor:"موظف في المكتب",role:SH.names?e.role:"",src:SRC[e.log]||e.log,up:e.ev==="updated",
  ch:SH.vals?e.ch.filter(c=>c[0]!=="مفتاح الإعداد").map(c=>[c[0],SH.mask?maskV(c[0],c[1]):c[1],SH.mask?maskV(c[0],c[2]):c[2]]):e.ch.map(c=>[c[0],"",""]),id:SH.tech?e.id:null}))};
 const shW=()=>{let w=document.getElementById("alShare");if(!w){w=document.createElement("div");w.id="alShare";document.body.appendChild(w)}return w};
-const shOpen=sc=>{Object.assign(SH,{scope:sc,done:null,why:"",to:"",pin:""});shPaint()};
+const shOpen=sc=>{Object.assign(SH,{scope:sc,done:null,why:"",to:"",pin:"",custom:null});shPaint()};
 const shClose=()=>{shW().innerHTML="";};
-const shCounts=()=>({one:U.pop?1:0,rec:U.pop?sameRec(byId(U.pop)).length:0,list:Math.min(rows().length,500)});
+const shCounts=()=>SH.custom?{one:SH.custom.one?1:0,rec:SH.custom.rows.length,list:0}:({one:U.pop?1:0,rec:U.pop?sameRec(byId(U.pop)).length:0,list:Math.min(rows().length,500)});
 const shPaint=()=>{const n=shCounts(),R=scopeRows(SH.scope),sens=R.some(e=>e.ch.some(c=>MASKF.test(c[0])||MONF.test(c[0])||/\d{9,}/.test(String(c[2]||c[1]).replace(/\s/g,""))));
  const opt=(k,t,s)=>`<label class="sh-opt"><span class="sw ${SH[k]?"on":""}" data-sh-tog="${k}"></span><span><b>${t}</b>${s?`<small>${s}</small>`:""}</span></label>`;
  const how=[["link","link","رابط للقراءة بس","بمدة صلاحية وتقدر تلغيه"],["wa","message-circle","واتساب","رسالة فيها الرابط"],["mail","mail","إيميل","رسالة فيها الرابط"],["pdf","printer","PDF / طباعة","تقرير جاهز للطباعة"],["csv","file-spreadsheet","Excel (CSV)","للتحليل"]];
@@ -12988,7 +13066,7 @@ const shPaint=()=>{const n=shCounts(),R=scopeRows(SH.scope),sens=R.some(e=>e.ch.
  <div class="al-ft sh-ft"><small>${X("shield-check")} المشاركة بتتسجّل في سجل النشاط</small><span style="flex:1"></span>${B("ghost","","إلغاء",'data-sh-x=""')}${B("primary",SH.how==="pdf"?"printer":SH.how==="csv"?"download":"share-2",SH.how==="link"?"إنشاء الرابط":SH.how==="wa"?"إنشاء وإرسال واتساب":SH.how==="mail"?"إنشاء وإرسال إيميل":SH.how==="pdf"?"فتح للطباعة":"تنزيل",'data-sh-act="go"')}</div></div>`;ico()};
 const shUrl=d=>location.href.replace(/[^/]*$/,"")+"activityShare.html#t="+d.tok;
 const shMake=()=>{const R=snap();const days=+SH.exp;const t=Date.now();const L=shLoad();
- const d={tok:Math.random().toString(36).slice(2,10)+Math.random().toString(36).slice(2,8),ref:"SH-"+(1040+L.length+1),t,by:"مشرف النظام",scope:SH.scope,title:scopeLabel(SH.scope),rows:R,opts:{vals:SH.vals,names:SH.names,mask:SH.mask,tech:SH.tech},exp:SH.how==="pdf"||SH.how==="csv"?null:(days?t+days*864e5:null),pin:SH.pin,aud:SH.aud,why:SH.why,how:SH.how,to:SH.to,views:[],revoked:0,office:"مكتب الريادة للاستقدام"};
+ const d={tok:Math.random().toString(36).slice(2,10)+Math.random().toString(36).slice(2,8),ref:"SH-"+(1040+L.length+1),t,by:"مشرف النظام",scope:SH.scope,title:scopeLabel(SH.scope),rows:R,opts:{vals:SH.vals,names:SH.names,mask:SH.mask,tech:SH.tech},exp:SH.how==="pdf"||SH.how==="csv"?null:(days?t+days*864e5:null),pin:SH.pin,aud:SH.aud,why:SH.why,how:SH.how,to:SH.to,views:[],revoked:0,office:"مكتب الريادة للاستقدام",rec:SH.custom?SH.custom.rec:(()=>{const e=byId(U.pop);return e&&SH.scope!=="list"&&e.type?{type:e.type,sid:e.sid,desc:e.desc}:null})()};
  L.unshift(d);shSave(L);ALL=build();return d};
 const shCsv=d=>{const q=v=>`"${String(v==null?"":v).replace(/"/g,'""')}"`;const L=[["التاريخ","الوقت","العملية","السجل","المنفذ","الحقل","قبل","بعد"].map(q).join(",")];d.rows.forEach(r=>{const base=[ymd(r.t),hm(r.t),r.ev,r.ttl+(r.desc?" — "+r.desc:""),r.actor];if(!r.ch.length)L.push(base.concat(["","",""]).map(q).join(","));r.ch.forEach(c=>L.push(base.concat(c).map(q).join(",")))});
  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob(["﻿"+L.join("\r\n")],{type:"text/csv;charset=utf-8"}));a.download=`activity-${d.ref}.csv`;document.body.appendChild(a);a.click();a.remove()};
@@ -13013,15 +13091,20 @@ document.addEventListener("click",ev=>{const t=ev.target;if(!t.closest)return;le
   if(a==="go"){const why=(shW().querySelector('[data-sh-f="why"]')||{}).value||"";SH.why=why.trim();const er=shW().querySelector("[data-sh-err]");
    const bad=!SH.why?"اكتب سبب المشاركة — بيتسجّل للمراجعة":SH.pin&&!/^\d{4}$/.test(SH.pin)?"الـ PIN لازم 4 أرقام":SH.how==="wa"&&SH.to&&!/^\+?\d{9,15}$/.test(SH.to.replace(/\s/g,""))?"رقم الواتساب مش صحيح":SH.how==="mail"&&SH.to&&!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(SH.to)?"البريد مش صحيح":!scopeRows(SH.scope).length?"مفيش حركات تتشارك":"";
    if(bad){er.innerHTML=`<div class="al-note2 r">${X("alert-circle")}<span>${bad}</span></div>`;ico();return}
-   const dd=shMake();paint();
-   if(SH.how==="csv"){shCsv(dd);shClose();flash(`نزل ملف ${dd.ref} — والمشاركة اتسجّلت`);return}
-   if(SH.how==="pdf"){window.open(shUrl(dd)+"&print=1","_blank");shClose();flash(`اتفتح التقرير ${dd.ref} للطباعة — والمشاركة اتسجّلت`);return}
+   const dd=shMake();paint();window.dispatchEvent(new Event("cerp-act-changed"));
+   if(SH.how==="csv"){shCsv(dd);shClose();shFlash(`نزل ملف ${dd.ref} — والمشاركة اتسجّلت`);return}
+   if(SH.how==="pdf"){window.open(shUrl(dd)+"&print=1","_blank");shClose();shFlash(`اتفتح التقرير ${dd.ref} للطباعة — والمشاركة اتسجّلت`);return}
    SH.done=dd;shPaint();if(SH.how==="wa"||SH.how==="mail")shW().querySelector(`[data-sh-act="${SH.how}"]`).click();return}}});
 document.addEventListener("input",ev=>{const el=ev.target;if(el.matches&&el.matches("#alShare [data-sh-f]")){SH[el.dataset.shF]=el.value;if(el.dataset.shF==="why")shW().querySelectorAll("[data-sh-why]").forEach(b=>b.classList.toggle("on",b.dataset.shWhy===el.value))}});
 document.addEventListener("change",ev=>{const el=ev.target;if(el.matches&&el.matches("#alShare select[data-sh-f]")){SH[el.dataset.shF]=el.value;shPaint()}});
 document.addEventListener("keydown",ev=>{if(ev.key==="Escape"&&document.querySelector("#alShare .sh-dlg")){ev.stopImmediatePropagation();shClose()}},true);
 window.addEventListener("storage",e=>{if(e.key===SHK&&document.getElementById("alog")){ALL=build();paint()}});
 
+/* v1.73 — واجهة لشاشات العرض: حركات سجل واحد، ومشاركة من برّه سجل النشاط */
+const shFlash=m=>document.getElementById("alog")?flash(m):(window.SXE&&SXE.toast?SXE.toast(m):0);
+window.CERP_ACT={forRecord:(type,sid)=>ALL.filter(x=>x.type===type&&x.sid===sid).sort((a,b)=>b.t-a.t||b.id-a.id),ev:evOf,title,when:t=>`${dayLab(t)} · ${hm(t)}`,
+ rebuild:()=>{ALL=build();if(document.getElementById("alog"))paint()},
+ share:o=>{Object.assign(SH,{scope:o.scope||"rec",done:null,why:o.why||"",to:"",pin:"",how:o.how||SH.how,custom:o});if(o.how==="pdf"){const dd=shMake();window.open(shUrl(dd)+"&print=1","_blank");SH.custom=null;window.CERP_ACT.rebuild();window.dispatchEvent(new Event("cerp-act-changed"));shFlash(`اتفتح ${dd.ref} للطباعة — والطباعة اتسجّلت`);return}shPaint()}};
 const S={};
 S.setActivity=()=>{setTimeout(()=>{paint();const m=location.hash.match(/^#a(\d+)(?:-([dht]))?$/);if(m&&byId(+m[1])){openP(+m[1]);if(m[2]){U.ptab=m[2];paintPop()}}},0);const list=rows();return `<div id="alog">
  ${HEAD("سجل النشاط","كل حركة في النظام: مين عمل إيه، على أي سجل، وإمتى. اضغط أي حركة لتفاصيلها وتاريخ السجل ومرجعها التقني في ClickERP.",`<label class="al-as" title="جرّب التراجع بصلاحيات مختلفة">${X("user-cog")}<span>تجربة كـ</span><select data-al-as="">${Object.keys(ASU).map(k=>`<option value="${k}"${U.as===k?" selected":""}>${ASU[k].name} — ${ASU[k].role}${ASU[k].perm?"":" (من غير صلاحية التراجع)"}</option>`).join("")}</select></label>`+B("ghost","link","الروابط المشاركة",'data-al-share="links"')+B("ghost","share-2","مشاركة النتائج",'data-al-share="list"')+B("ghost","file-spreadsheet","CSV",'data-al-csv=""')+B("ghost","printer","PDF",'data-al-pdf="" title="طباعة أو حفظ PDF — أحدث 500 حركة بنفس الفلاتر"'),["setHome","الإعدادات"])}
