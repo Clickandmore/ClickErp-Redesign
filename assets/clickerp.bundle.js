@@ -3581,7 +3581,7 @@ const PROGS={
  tasks:{ar:"نظام المهام والموارد البشرية",en:"Tasks & HR",i:"list-checks",c:"tsk",home:"tcMy",d:"شركة خدمات شغلها مهام وفريق: مركز المهام والحضور والطلبات والرواتب، من غير استقدام ولا مالية"}};
 const PG_DEPT={all:["recruitment","general","tasks"],ops:["recruitment","general"],crm:["recruitment","general","tasks"],finance:["recruitment","general"],commerce:["general"],hr:["recruitment","general","tasks"],tasks:["general","tasks"],settings:["recruitment","general","tasks"]};
 const PG_RG=["recruitment","general"],PG_R=["recruitment"];
-const PG_ITEM={setSite:PG_RG,cmsHome:PG_RG,rentalSettings:PG_R,transferTerms:PG_R,visaSettings:PG_R,claimTypes:PG_R,couponSettings:PG_RG,finSettings:PG_RG,finCommissionRules:PG_RG,tcSettings:["general","tasks"],dashboard:PG_R,reports:PG_RG,recDash:PG_RG,"hb-board":PG_RG,"hb-visits":PG_RG,"hb-alerts":PG_RG,"hb-clients":PG_RG,hbCollect:PG_RG,"hb-services":PG_RG,claims:PG_R,hrWorkers:PG_R,coupons:PG_RG,selectWorkers:PG_R,setCountry:PG_R,setRecruit:PG_R,setRental:PG_R};
+const PG_ITEM={arrivals:PG_R,finAgents:PG_R,setSite:PG_RG,cmsHome:PG_RG,rentalSettings:PG_R,transferTerms:PG_R,visaSettings:PG_R,claimTypes:PG_R,couponSettings:PG_RG,finSettings:PG_RG,finCommissionRules:PG_RG,tcSettings:["general","tasks"],dashboard:PG_R,reports:PG_RG,recDash:PG_RG,"hb-board":PG_RG,"hb-visits":PG_RG,"hb-alerts":PG_RG,"hb-clients":PG_RG,hbCollect:PG_RG,"hb-services":PG_RG,claims:PG_R,hrWorkers:PG_R,coupons:PG_RG,selectWorkers:PG_R,setCountry:PG_R,setRecruit:PG_R,setRental:PG_R};
 const PG_OPS_DEF=PG_R; /* أي سطر في العمليات من غير تحديد = استقدام بس */
 const PG_KEY="clickerp-program";
 let PROG=(QP.get("program")||"").trim();
@@ -3592,7 +3592,7 @@ window.CERP_TX=PROG==="recruitment"?{sub:"استقدام وتأجير ونقل �
 window.CERP_CO=PROG==="recruitment"?"مكتب الريادة للاستقدام":"شركة الريادة للخدمات";
 const pgOf=(d,p)=>PG_ITEM[p.id]||(d.id==="ops"?PG_OPS_DEF:PG_DEPT[d.id]);
 const PG_ALL=DEPTS.map(d=>({d,items:d.items.slice()}));
-window.CERP_PGOF=id=>{for(const x of PG_ALL)for(const p of x.items)if(!p.sec&&(p.id===id||(SUBS[p.id]||[]).includes(id)||(p.k||[]).concat(p.to?[p.to]:[]).some(k=>!k.sec&&k.page===id)))return pgOf(x.d,p);return null};
+window.CERP_PGOF=id=>{if(["arrivals","finAgents"].includes(id))return PG_R; /* v1.76: شاشات فرعية للاستقدام بس */for(const x of PG_ALL)for(const p of x.items)if(!p.sec&&(p.id===id||(SUBS[p.id]||[]).includes(id)||(p.k||[]).concat(p.to?[p.to]:[]).some(k=>!k.sec&&k.page===id)))return pgOf(x.d,p);return null};
 window.CERP_DEPTS_ALL=DEPTS.map(d=>({id:d.id,ar:d.ar,i:d.i,d:d.d,pg:PG_DEPT[d.id],items:d.items.filter(p=>!p.sec).map(p=>({id:p.id,ar:p.ar,pg:pgOf(d,p)}))}));
 for(let k=DEPTS.length-1;k>=0;k--){const d=DEPTS[k];
  if(!PG_DEPT[d.id].includes(PROG)){DEPTS.splice(k,1);continue}
@@ -3600,8 +3600,12 @@ for(let k=DEPTS.length-1;k>=0;k--){const d=DEPTS[k];
  d.items=keep.filter((p,j)=>!p.sec||(keep[j+1]&&!keep[j+1].sec));}
 /* v1.75 — قسم التجارة: نوع المحاسبة «خدمات» بيخفيه كله، وكل سطر بيستخبى لو ميزته مقفولة (CommerceModules::active). المصدر: Super Admin ← نوع المحاسبة والنشاط */
 (()=>{let C=null;try{C=JSON.parse(localStorage.getItem("cerp.commerce.v1"))}catch(e){}
+ /* v1.76: نوع المحاسبة لازم يتختار صراحة (مفيش افتراضي). ?acct=commercial|services للمعاينة زي ?program= */
+ const qa=QP.get("acct");if(qa==="commercial"||qa==="services"){C=Object.assign({},C||{},{acct:qa});try{localStorage.setItem("cerp.commerce.v1",JSON.stringify(C))}catch(e){}}
+ window.CERP_ACCT=C&&C.acct||null;
+ if(PROG!=="recruitment"&&curReport==="register")curReport="finance"; /* تقرير «سجل عقود الاستقدام» الافتراضي مالوش مكان في العام */
  const on=k=>!C||!C.f||C.f[k]!==false;const ix=DEPTS.findIndex(d=>d.id==="commerce");if(ix<0)return;
- if(C&&C.acct==="services"){DEPTS.splice(ix,1);return}
+ if(!C||C.acct!=="commercial"){DEPTS.splice(ix,1);return}
  const P=["pos"],NEED={cmShifts:P,cmPosInvoices:P,cmRegisters:P,cmCashiers:P,cmPayMethods:P,cmSettle:P,cmZatca:P,cmPromos:["pos","promotions"],cmPrices:["price_lists"]};
  const d=DEPTS[ix],keep=d.items.filter(p=>p.sec||(NEED[p.id]||[]).every(on));
  d.items=keep.filter((p,j)=>!p.sec||(keep[j+1]&&!keep[j+1].sec))})();
@@ -6043,7 +6047,7 @@ Object.assign(RDEF,{
 });
 
 /* ---- state ---- */
-let RKEY="recruitment_contracts",RS=null;
+let RKEY=window.CERP_PROG&&window.CERP_PROG!=="recruitment"?"trail-balance":"recruitment_contracts",RS=null; /* v1.76: التقرير الافتراضي في العام = ميزان المراجعة */
 const rpInit=(k,preset)=>{const d=RDEF[k];RKEY=k;RS={f:{...(d.defF||{})},per:d.per,from:"",to:"",dt:d.dateTypes[0][0],view:d.defView||"rows",q:"",cmp:false,sort:null,dir:-1,cols:d.cols.filter(c=>c[4]).map(c=>c[0]),n:15,add:false,colp:false,open:null,...(preset||{})}};
 const PERS=[["month","الشهر ده"],["last","الشهر اللي فات"],["q","آخر 3 شهور"],["year","السنة دي"],["pyear","السنة اللي فاتت"],["all","كل الفترات"],["custom","مخصص"]];
 const rpRange=(p)=>{const y=+RP_TODAY.slice(0,4),m=+RP_TODAY.slice(5,7);
@@ -13173,7 +13177,9 @@ const GT=[
  [["finPurchases","file-text","فواتير الشراء","Purchase invoices"],["finPurchaseReq","clipboard-list","طلبات الشراء","Purchase requests"],["finReturns","undo-2","مرتجع المشتريات","Purchase returns"]],
  [["finCenters","target","عمليات مراكز التكلفة","Cost centre operations"],["finCentersTree","git-fork","إدارة مراكز التكلفة","Cost centre management"]]];
 const put=()=>{const pg=document.querySelector("#app .page"),c=window.CERP_PAGE;if(!pg||pg.querySelector("[data-scrtabs]"))return;
- const g=GT.find(x=>x.some(y=>y[0]===c));if(!g)return;
+ let g=GT.find(x=>x.some(y=>y[0]===c));if(!g)return;
+ if(window.CERP_PGOF&&window.CERP_PROG)g=g.filter(x=>{const o=window.CERP_PGOF(x[0]);return !o||o.includes(window.CERP_PROG)}); /* v1.76: تبويب لشاشة مش ضمن البرنامج ما يظهرش */
+ if(g.length<2)return;
  const w=document.createElement("div");w.className="rq-gt";w.dataset.scrtabs="";
  w.innerHTML=`<div class="vtabs">${g.map(x=>`<button class="${x[0]===c?"on":""}" data-go="${x[0]}"${x[0]===c?' aria-current="page"':""}><i data-lucide="${x[1]}"></i><span>${t(x[2],x[3])}</span></button>`).join("")}</div>`;
  const h=pg.querySelector(".page-head");if(h)h.after(w);else pg.prepend(w);
@@ -13223,4 +13229,70 @@ const nv=document.querySelector("#app .nav"),on=nv&&nv.querySelector("a.on");if(
   hits.forEach(el=>{if(!el||el.closest(".nav,.side,.prog-wrap,thead,h1,.page-head"))return;
    for(let e=el;e&&e!==main;e=e.parentElement){if((e.textContent||"").length>420)break;if(rep(e)){e.style.display="none";break}}})};
  const app=document.getElementById("app");if(app){new MutationObserver(()=>{if(!q)q=setTimeout(scan,60)}).observe(app,{childList:true,subtree:true});scan()}
+})();
+
+/* v1.76 — فصل النظام العام عن الاستقدام في كل الشاشات (مش الإعدادات بس زي v1.72).
+   في الكود: كل نسخة «عام» بياناتها بتاعتها، فمفيش «عملاء الاستقدام» ولا «مقار الإيواء» ولا «الوكلاء الخارجيون».
+   هنا بيانات العيّنة مشتركة بين البرامج، فالطبقة دي: (1) بتبدّل أسماء الاستقدام بمقابلها في شركة خدمات وتجارة،
+   (2) بتخفي أي صف/اختيار/بطاقة لسه خاص بالاستقدام. شاشات التجارة (cm*) مكتوبة للعام أصلاً، ومركز المهام بياناته عن عملاء الشركة. */
+(()=>{const G=window.CERP_PROG,P=window.CERP_PAGE||"";if(G!=="general"||!P||/^cm[A-Z]/.test(P))return;
+ const TC=/^tc[A-Z]/.test(P);
+ const SUB=TC?[["مكتب الريادة","مؤسسة النخبة التجارية"],["الربط مع مساند","الربط مع بوابة الدفع"],["بمنصة مساند","ببوابة الدفع"],["رقم التأشيرة","رقم الطلب"],["عقود الاستقدام","فواتير المبيعات"],["عقد استقدام","فاتورة مبيعات"]]:[
+  ["أكواد خصم على الاستقدام والتأجير ونقل الخدمات","أكواد خصم على الخدمات بالساعة والمبيعات"],["الاستقدام والتأجير الشهري","الخدمات بالساعة"],
+  ["لعقود التأجير وتجديدها ونقل الخدمات وطلبات الساعات","لطلبات الساعات"],["رابط نقل الخدمات","رابط فاتورة"],
+  [" · التحويل عبر قنوات مساند فقط.",""],["التحويل عبر قنوات مساند فقط.",""],["العمليات والاستقدام","العمليات"],
+  ["خطوات استقدام عاملة منزلية من الفلبين في 2026","كيف تختار باقة التنظيف المناسبة لمنزلك"],["استقدام عاملة من الفلبين 2026","باقات التنظيف بالساعة 2026"],["كم تستغرق مدة الاستقدام من الفلبين؟","كم تستغرق زيارة التنظيف الواحدة؟"],
+  ["riyada.clickerp.sa/admin مكتب الريادة","riyada.clickerp.sa/admin شركة الريادة للخدمات"],[" | مكتب الريادة"," | شركة الريادة للخدمات"],
+  ["مكتب الريادة للاستقدام","شركة الريادة للخدمات"],["الريادة للاستقدام","الريادة للخدمات"],["الريادة لخدمات الإيواء","الريادة للتجارة"],["خدمات الإيواء","الريادة للتجارة"],
+  ["إيواء الرياض","مستودع الرياض"],["مباني ومقار الإيواء","مباني ومستودعات"],["أصل الإيواء (رسملة الإعاشة)","بضاعة بالطريق"],["سكن الإيواء","المستودع"],["مقر الإيواء","المستودع"],
+  ["مصاريف الإيواء","مصاريف المستودع"],["إعاشة الإيواء","ضيافة الموظفين"],["مشرف الإيواء","أمين المستودع"],["للإيواء","للمستودع"],["جودة خدمة الإيواء","جودة خدمة العملاء"],
+  ["عملاء الاستقدام","عملاء المبيعات"],["عملاء نقل الكفالة","عملاء التجزئة"],["عملاء التأجير","عملاء الخدمات بالساعة"],
+  ["تحصيل عقود الاستقدام","تحصيل فواتير المبيعات"],["تحصيل عقود التأجير","تحصيل الخدمات بالساعة"],["تحويلات مساند","تحصيلات نقاط البيع"],["نقل الكفالة","مبيعات التجزئة"],
+  ["التزامات عقود الاستقدام","دفعات مقدمة من العملاء"],["إيرادات خدمات الاستقدام","إيرادات المبيعات"],["الاستقدام والتفويض","المبيعات"],
+  ["الوكلاء الخارجيون — الفلبين","موردو البضاعة"],["الوكلاء الخارجيون","موردو البضاعة"],["أرصدة الوكلاء الخارجيين","أرصدة الموردين الرئيسيين"],["Manila Prime Agency","مؤسسة التوريدات الحديثة"],
+  ["مكاتب استقدام خارجية","موردو بضاعة"],["مكتب استقدام","مورد بضاعة"],["مكاتب خارجية","موردو بضاعة"],
+  ["فاتورة استقدام","فاتورة مبيعات"],["فاتورة تأجير","فاتورة خدمات"],["تأشيرات ورسوم","رسوم حكومية"],
+  ["CC-01 الاستقدام","CC-01 المبيعات"],["CC-03 الإيواء","CC-03 المستودعات"]];
+ /* بعد التبديل: أي نص لسه فيه حاجة خاصة بالاستقدام بيستخبى عنصره المتكرر. «تأشيرة» و«تفويض» و«الكفالة» كلمات عادية في الموارد البشرية فمش هنا */
+ const RX=/مساند|استقدام|السير الذاتية|السيرة|الإيواء|إيواء|نقل الخدمات|التأجير الشهري|الجنسيات|التفاويض|التفييز|المكتب الخارجي|مكاتب الاستقدام|الوكيل الخارجي|وكلاء الاستقدام|وصول العاملة|استلام العاملة|تسليم عاملة|بلاغ هروب|عمالة منزلية|عاملات منزلية|عقود الوصول|نظام الاستقدام|عقود التأجير|نقل الخدمات/;
+ const key=e=>e.tagName+"."+((typeof e.className==="string"?e.className:"").split(/\s+/)[0]||"");
+ const rep=el=>{const p=el.parentElement;if(!p)return false;if(/^(TR|LI|OPTION)$/.test(el.tagName))return true;
+  if(el.matches("[class*='info'],[class*='note'],[class*='alert'],[class*='warn']"))return true;
+  const k=key(el);let n=0;for(const c of p.children)if(key(c)===k)n++;return n>=2};
+ const EXACT={"الاستقدام":"المبيعات","الإيواء":"المستودعات","تأشيرات ورسوم":"رسوم حكومية","مكتب الريادة":"شركة الريادة للخدمات"};
+ const fix=root=>{const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);let n;while((n=w.nextNode())){let v=n.nodeValue,o=v;if(!TC&&EXACT[v.trim()])v=v.replace(v.trim(),EXACT[v.trim()]);SUB.forEach(s=>{if(v.includes(s[0]))v=v.split(s[0]).join(s[1])});if(v!==o)n.nodeValue=v;
+   if(!TC&&/شكل اللوحة حسب نوع البرنامج/.test(v)){let e=n.parentElement;while(e&&e.parentElement&&(e.parentElement.textContent||"").length<160)e=e.parentElement;if(e)e.style.display="none"}}
+  root.querySelectorAll("input[value],input[placeholder]").forEach(i=>SUB.forEach(s=>{if(i.value.includes(s[0]))i.value=i.value.split(s[0]).join(s[1]);if(i.placeholder.includes(s[0]))i.placeholder=i.placeholder.split(s[0]).join(s[1])}))};
+ let q=0,busy=0;
+ const scan=()=>{q=0;const main=document.querySelector("#app main");if(!main)return;busy=1;fix(main);
+  if(!TC){const w=document.createTreeWalker(main,NodeFilter.SHOW_TEXT),hits=[];let n;while((n=w.nextNode()))if(RX.test(n.nodeValue))hits.push(n.parentElement);
+   hits.forEach(el=>{if(!el||el.closest(".prog-wrap,.prog-note,[data-prog-note]"))return;
+    for(let e=el;e&&e!==main;e=e.parentElement){if((e.textContent||"").length>420)break;if(rep(e)){e.style.display="none";break}}})}
+  busy=0};
+ const app=document.getElementById("app");if(app){new MutationObserver(()=>{if(!busy&&!q)q=setTimeout(scan,40)}).observe(app,{childList:true,subtree:true,characterData:true});scan()}
+})();
+
+/* v1.76 — نوع المحاسبة في النظام العام: خدمي أو تجاري، لازم يتختار (مفيش افتراضي).
+   في النسخة الحقيقية بيتحدد من Super Admin ← نوع المحاسبة والنشاط. هنا اختيار للمعاينة بيكتب نفس المفتاح (cerp.commerce.v1). */
+(()=>{const G=window.CERP_PROG,P=window.CERP_PAGE||"";if(G!=="general"||!P)return;
+ /* الشعار في القائمة الجانبية: الشركة مش «مكتب» */
+ const br=document.querySelector("#app .sb-brand");if(br){const b=br.querySelector(".sb-name b");if(b&&b.textContent.trim()==="مكتب الريادة")b.textContent="شركة الريادة";br.title="شركة الريادة للخدمات";const l=br.querySelector(".sb-logo");if(l)l.setAttribute("aria-label","شعار شركة الريادة للخدمات")}
+ const A=window.CERP_ACCT;const set=v=>{let c={};try{c=JSON.parse(localStorage.getItem("cerp.commerce.v1"))||{}}catch(e){}c.acct=v;try{localStorage.setItem("cerp.commerce.v1",JSON.stringify(c))}catch(e){}
+  location.href=(v==="commercial"?(/^cm[A-Z]/.test(P)?P:"cmDash"):(/^cm[A-Z]/.test(P)?"finDashGen":P))+".html?program=general"};
+ const lbl=A==="commercial"?"تجاري":A==="services"?"خدمي":"لم يُحدد";
+ const card=()=>{const d=document.createElement("div");d.className="acct-pick"+(A?" set":"");d.dataset.acctPick="";
+  d.innerHTML=A?`<span class="ap-i">${I(A==="commercial"?"store":"hand-helping")}</span><div><b>نوع المحاسبة: ${lbl}</b><small>${A==="commercial"?"الخدمات + الأصناف والمخازن والتكلفة ونقاط البيع — قسم «التجارة» ظاهر.":"محاسبة الخدمات: فواتير بنوع خدمة من غير أصناف ولا مخازن — قسم «التجارة» مخفي."}</small></div><div class="ap-b"><button data-acct-set="${A==="commercial"?"services":"commercial"}" class="btn btn-ghost sm">${I("repeat")}تحويل إلى ${A==="commercial"?"خدمي":"تجاري"} (معاينة)</button><a class="btn btn-ghost sm" href="superadmin/commerce.html">${I("shield-check")}Super Admin</a></div>`
+  :`<span class="ap-i warn">${I("calculator")}</span><div><b>اختر نوع المحاسبة للنسخة</b><small>النظام العام يعمل خدمياً أو تجارياً. التجاري يضيف ولا يلغي: كل شاشات المالية تبقى، ويُضاف قسم «التجارة» (الأصناف والمخازن والتكلفة ونقاط البيع).</small></div><div class="ap-b"><button class="ap-c" data-acct-set="services">${I("hand-helping")}<b>خدمي</b><small>فواتير بنوع خدمة</small></button><button class="ap-c" data-acct-set="commercial">${I("store")}<b>تجاري</b><small>أصناف ومخازن ونقاط بيع</small></button></div>`;
+  return d};
+ const put=()=>{const pg=document.querySelector("#app .page");if(!pg||pg.querySelector("[data-acct-pick]"))return;
+  const home=P==="finDashGen"||P==="finSettings",cm=/^cm[A-Z]/.test(P);
+  if(!home&&!(cm&&A!=="commercial"))return;
+  const c=card();const h=pg.querySelector(".page-head");if(h)h.after(c);else pg.prepend(c);if(window.lucide)lucide.createIcons({attrs:{"stroke-width":1.8}})};
+ const pg=document.querySelector("#app .page");if(pg){new MutationObserver(put).observe(pg,{childList:true});put()}
+ /* نفس الاختيار في قائمة البرامج أعلى الشاشة */
+ const pop=()=>{const r=document.querySelector("[data-prog-pop] .pp-row.pg-gen");if(!r||r.nextElementSibling&&r.nextElementSibling.matches(".pp-acct"))return;
+  const d=document.createElement("div");d.className="pp-acct";d.innerHTML=`<small>نوع المحاسبة</small>${[["services","خدمي"],["commercial","تجاري"]].map(x=>`<button data-acct-set="${x[0]}" class="${A===x[0]?"on":""}">${x[1]}</button>`).join("")}${A?"":`<em>لم يُحدد</em>`}`;r.after(d)};
+ const tr=document.querySelector("#app .top-right");if(tr){new MutationObserver(pop).observe(tr,{childList:true,subtree:true});pop()}
+ const pill=document.querySelector(".prog-pill span");if(pill&&!pill.dataset.acct){pill.dataset.acct=1;pill.textContent+=" · "+lbl}
+ document.addEventListener("click",e=>{const b=e.target.closest("[data-acct-set]");if(b){e.preventDefault();e.stopPropagation();set(b.dataset.acctSet)}},true);
 })();

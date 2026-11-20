@@ -12,7 +12,7 @@ const CM=window.CM={};
 CM.FEAT=window.CM_FEAT;CM.TPL=window.CM_TPL;
 const CK="cerp.commerce.v1";
 CM.flagsOf=tpl=>{const t=CM.TPL[tpl];const f={};CM.FEAT.forEach(x=>{const v=t&&t.f?t.f[x[0]]:0;f[x[0]]=x[4]==="soon"?false:v===1});return f};
-CM.DEF={acct:"commercial",tpl:"grocery",f:CM.flagsOf("grocery"),costing:"avg",since:"2026-11-02",limits:{branches:3,stores:6,devices:4,users:25}};
+CM.DEF={acct:null,tpl:"grocery",f:CM.flagsOf("grocery"),costing:"avg",since:"2026-11-02",limits:{branches:3,stores:6,devices:4,users:25}};
 CM.cfg=()=>{let c=null;try{c=JSON.parse(localStorage.getItem(CK))}catch(e){}return Object.assign({},CM.DEF,c||{},{f:Object.assign({},CM.DEF.f,(c&&c.f)||{})})};
 CM.save=c=>{try{localStorage.setItem(CK,JSON.stringify(c))}catch(e){}};
 CM.on=k=>{const c=CM.cfg();return c.acct==="commercial"&&c.f[k]!==false&&!!c.f[k]};

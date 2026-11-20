@@ -8287,3 +8287,14 @@ td.sxe-dirty{box-shadow:inset 0 -2px 0 var(--green)}
 .ra-ch del{color:#b23b3b}.ra-ch ins{color:#2f7a1f;text-decoration:none;font-weight:700}.ra-ch svg{width:12px;height:12px;color:var(--muted)}
 .ra-a{display:flex;gap:14px;margin-top:6px}.ra-a .al-lnk{display:inline-flex;align-items:center;gap:4px;font-size:12.5px}.ra-a svg{width:13px;height:13px}
 .ra-d .drawer-f .al-lnk{display:inline-flex;align-items:center;gap:5px}.ra-d .drawer-f svg{width:14px;height:14px}
+/* v1.76 — نوع المحاسبة في النظام العام */
+.acct-pick{display:flex;align-items:center;gap:14px;padding:14px 18px;margin:0 0 16px;border-radius:var(--r);background:#fff;border:1.5px solid var(--amber);box-shadow:var(--shadow);flex-wrap:wrap}
+.acct-pick.set{border:1px solid var(--line);padding:10px 16px}
+.acct-pick>div:nth-child(2){flex:1;min-width:240px}.acct-pick b{display:block;font-size:14.5px;color:var(--ink)}.acct-pick small{display:block;color:var(--muted);font-size:12.5px;line-height:1.7}
+.acct-pick .ap-i{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;background:var(--navy-soft);color:var(--navy);flex:none}.acct-pick .ap-i.warn{background:var(--amber-soft);color:var(--amber)}.acct-pick .ap-i svg{width:21px;height:21px}
+.acct-pick .ap-b{display:flex;gap:10px;flex-wrap:wrap}
+.acct-pick .ap-c{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:132px;padding:10px 14px;border:1.5px solid var(--line);border-radius:12px;background:#fff;cursor:pointer;font:inherit;transition:.15s}
+.acct-pick .ap-c:hover{border-color:var(--navy);background:var(--navy-soft)}.acct-pick .ap-c svg{width:20px;height:20px;color:var(--navy)}.acct-pick .ap-c b{font-size:14px}.acct-pick .ap-c small{font-size:11.5px}
+.pp-acct{display:flex;align-items:center;gap:6px;margin:-4px 12px 8px;padding:6px 10px;border-radius:10px;background:#f6f8fb;font-size:12px}
+.pp-acct small{color:var(--muted);margin-inline-end:auto}.pp-acct em{font-style:normal;color:var(--amber);font-weight:700;font-size:11.5px}
+.pp-acct button{border:1px solid var(--line);background:#fff;border-radius:7px;padding:3px 10px;font:inherit;font-size:12px;cursor:pointer}.pp-acct button.on{background:var(--navy);color:#fff;border-color:var(--navy)}
