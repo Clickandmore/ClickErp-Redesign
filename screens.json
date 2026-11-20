@@ -1526,7 +1526,7 @@
     {
       "id": "cmDash",
       "file": "cmDash.html",
-      "title": "لوحة نقاط البيع اليوم"
+      "title": "مبيعات اليوم"
     },
     {
       "id": "cmItems",
@@ -1551,7 +1551,7 @@
     {
       "id": "cmCats",
       "file": "cmCats.html",
-      "title": "التصنيفات"
+      "title": "أقسام الأصناف"
     },
     {
       "id": "cmUnits",
@@ -1561,7 +1561,7 @@
     {
       "id": "cmPrices",
       "file": "cmPrices.html",
-      "title": "قوائم الأسعار"
+      "title": "الأسعار"
     },
     {
       "id": "cmPriceEdit",
@@ -1571,17 +1571,17 @@
     {
       "id": "cmStock",
       "file": "cmStock.html",
-      "title": "أرصدة المخزون"
+      "title": "الكميات في المخزن"
     },
     {
       "id": "cmDocs",
       "file": "cmDocs.html",
-      "title": "حركات المخزون"
+      "title": "إدخال وإخراج بضاعة"
     },
     {
       "id": "cmDocShow",
       "file": "cmDocShow.html",
-      "title": "مستند حركة مخزون"
+      "title": "إدخال أو إخراج بضاعة"
     },
     {
       "id": "cmCount",
@@ -1601,12 +1601,12 @@
     {
       "id": "cmSales",
       "file": "cmSales.html",
-      "title": "فواتير بيع المنتجات"
+      "title": "فواتير البيع"
     },
     {
       "id": "cmSaleAdd",
       "file": "cmSaleAdd.html",
-      "title": "فاتورة بيع منتجات"
+      "title": "فاتورة بيع"
     },
     {
       "id": "cmSaleShow",
@@ -1616,17 +1616,17 @@
     {
       "id": "cmPurchases",
       "file": "cmPurchases.html",
-      "title": "مشتريات البضاعة"
+      "title": "شراء بضاعة"
     },
     {
       "id": "cmPurchaseAdd",
       "file": "cmPurchaseAdd.html",
-      "title": "فاتورة شراء بضاعة"
+      "title": "فاتورة شراء"
     },
     {
       "id": "cmReturns",
       "file": "cmReturns.html",
-      "title": "مرتجعات البيع والشراء"
+      "title": "المرتجعات"
     },
     {
       "id": "cmReturnAdd",
@@ -1636,7 +1636,7 @@
     {
       "id": "cmShifts",
       "file": "cmShifts.html",
-      "title": "الورديات"
+      "title": "ورديات الكاشير"
     },
     {
       "id": "cmShiftShow",
@@ -1656,7 +1656,7 @@
     {
       "id": "cmRegisters",
       "file": "cmRegisters.html",
-      "title": "نقاط البيع والأجهزة"
+      "title": "أجهزة الكاشير"
     },
     {
       "id": "cmDevicePair",
@@ -1681,12 +1681,12 @@
     {
       "id": "cmSettle",
       "file": "cmSettle.html",
-      "title": "تسويات البطاقات"
+      "title": "تسوية مدى والبطاقات"
     },
     {
       "id": "cmZatca",
       "file": "cmZatca.html",
-      "title": "وحدات ZATCA للأجهزة"
+      "title": "ربط الأجهزة بالزكاة"
     },
     {
       "id": "cmZatcaWizard",
@@ -1696,7 +1696,7 @@
     {
       "id": "cmReports",
       "file": "cmReports.html",
-      "title": "تقارير المبيعات والمخزون"
+      "title": "تقارير البيع والمخزون"
     },
     {
       "id": "cmSettings",
