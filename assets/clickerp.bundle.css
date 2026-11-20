@@ -8302,3 +8302,23 @@ td.sxe-dirty{box-shadow:inset 0 -2px 0 var(--green)}
 .acct-kpis .ak{display:flex;flex-direction:column;gap:2px;padding:12px 14px;text-decoration:none;color:inherit;transition:.15s}.acct-kpis .ak:hover{box-shadow:var(--shadow);border-color:#c9d1df}
 .acct-kpis .ak svg{width:17px;height:17px;color:var(--navy)}.acct-kpis .ak span{font-size:12.5px;color:var(--muted);font-weight:600}.acct-kpis .ak b{font-size:20px;color:var(--ink)}.acct-kpis .ak small{font-size:11.5px;color:var(--muted)}
 .acct-kpis .ak.ok b{color:var(--green-d)}.acct-kpis .ak.warn b{color:var(--amber)}.acct-kpis .ak.bad b{color:var(--red)}
+/* v1.82 — الشريط العلوي على كل المقاسات (مشترك لكل الشاشات): الأقل أهمية يستخبى الأول، ومفيش حاجة تخرج برّه الشاشة */
+.top{min-width:0}.top .crumb{min-width:0}.top .crumb b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.top-right{min-width:0;flex-shrink:1}
+.top-right>*{flex-shrink:0}
+@media (max-width:1500px){.top-right .tclock{display:none!important}.top-search{max-width:240px}}
+@media (max-width:1400px){.top-right>.pill:not(.prog-pill):not(.sa-pill) span{display:none}.top-right [data-whatsnew]{display:none}.top-search{display:none}}
+@media (max-width:1180px){.tw-att .tw-in small{display:none}.prog-pill .chev{display:none}}
+@media (max-width:900px){
+ .top-right .sa-pill,.top-right [data-menu],.top-right .fav-wrap,.top-right .lang,.top-right>.sep,.top-right>.pill:not(.prog-pill){display:none!important}
+ .prog-pill span{display:none}.prog-pill{padding:0 8px}
+ .tw-att .tw-in{padding:4px 10px}.tw-att .tw-in b{font-size:12px}
+ .top .crumb span{display:none}.top .crumb b{font-size:14px}
+}
+@media (max-width:420px){.tw-att .tw-in span{display:none}.tw-att .tw-in{width:38px;height:38px;padding:0;justify-content:center}}
+.top .crumb{flex:0 1 auto}.top-search{flex:1 1 140px;min-width:0}.top-search .inp{min-width:0}
+@media (max-width:1600px){.top-search{max-width:200px}.top-right [data-whatsnew]{display:none}}
+@media (max-width:1460px){.top-search{display:none}.top-right>.pill:not(.prog-pill):not(.sa-pill) span{display:none}}
+@media (max-width:900px){table.pr-mx{display:block;overflow-x:auto;max-width:100%}}
+@media (max-width:900px){.pr-lay{grid-template-columns:minmax(0,1fr)!important}.pr-main,.pr-lay>*{min-width:0}}
+@media (max-width:900px){.pr-tbl{overflow-x:auto;max-width:100%}table.pr-mx{display:table;min-width:560px}}

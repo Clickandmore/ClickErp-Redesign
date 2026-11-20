@@ -164,3 +164,21 @@ td .cm-sub,.cm-sub{display:block;color:var(--muted);font-size:12px;font-weight:5
  .cvform{grid-template-columns:1fr!important}.cvopts{position:static!important}
 }
 .cm-st{max-width:100%}.cm-st span{white-space:normal}@media (max-width:760px){.cm-st{height:auto;min-height:24px;padding:3px 9px;line-height:1.4}}
+
+/* ---------- الدورة التجارية (v1.82) ---------- */
+.cmc-cycle{display:flex;align-items:center;gap:10px 16px;flex-wrap:wrap;padding:10px 12px;margin:-4px 0 16px;border:1px solid var(--line);border-radius:var(--r);background:#fff;box-shadow:var(--shadow)}
+.cmc-steps{display:flex;align-items:center;gap:2px;overflow-x:auto;flex:1 1 520px;min-width:0;scrollbar-width:thin;padding-bottom:2px}
+.cmc-st{display:inline-flex;align-items:center;gap:5px;flex:none;padding:5px 9px;border-radius:999px;font-size:12px;font-weight:600;color:var(--muted);text-decoration:none;white-space:nowrap}
+.cmc-st svg{width:14px;height:14px}.cmc-st:hover{background:#f3f5f9;color:var(--navy)}
+.cmc-st.done{color:var(--green-d)}.cmc-st.on{background:var(--navy);color:#fff}
+.cmc-ar{display:inline-grid;color:#c3cad6;flex:none}.cmc-ar svg{width:13px;height:13px}
+.cmc-next{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.cmc-next small{color:var(--muted);font-size:12px;font-weight:600}
+.cmc-ov{position:fixed;inset:0;z-index:300;background:rgba(17,28,51,.45);display:grid;place-items:center;padding:16px}
+.cmc-dlg{width:min(620px,100%);max-height:90vh;overflow:auto;padding:18px 20px}
+.cmc-who{padding:10px 12px;border-radius:var(--r-s);background:#f6f8fb;margin-bottom:12px}.cmc-who small{display:block;color:var(--muted);font-size:12px}.cmc-who b{font-size:14px}
+.cmc-dlg .cm-jv{margin-top:12px}
+.cmc-done{display:flex;gap:12px;align-items:flex-start;padding:6px 0}.cmc-done>svg{width:34px;height:34px;color:var(--green);flex:none}.cmc-done p{margin:4px 0 12px;color:var(--muted);line-height:1.8}
+@media (max-width:760px){.cmc-cycle{padding:8px}.cmc-st span{display:none}.cmc-st.on span{display:inline}.cmc-next{width:100%}.cmc-next .btn{flex:1 1 auto}}
+.cmc-steps{flex:1 1 100%;overflow:visible;flex-wrap:wrap;row-gap:4px}
+@media (max-width:1180px){.cmc-st:not(.on) span{display:none}.cmc-st{padding:5px 7px}}
+@media (max-width:420px){.cmc-ar{display:none}.cmc-steps{justify-content:space-between}}

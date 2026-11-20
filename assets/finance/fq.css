@@ -64,3 +64,4 @@
 .fq-follow{padding:14px;display:flex;flex-direction:column;gap:8px;justify-content:center}.fq-follow small{color:var(--muted);font-size:12px}
 .fq-paper{overflow-x:auto}
 .fq-sum b .cm-m,.cm-kpi b .cm-m{font-size:inherit!important}
+.fq-l2 .inp,.fq-l2 input,.fq-l2 select{min-width:0;width:100%}.fq-l2 .inp input{width:100%}

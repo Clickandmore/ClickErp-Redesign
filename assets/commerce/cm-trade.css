@@ -145,3 +145,4 @@ td small.cm-u,td small.cm-q2{display:inline!important}
 .cmt-jg .cm-jt{table-layout:fixed}.cmt-jg .cm-jt th:not(:first-child),.cmt-jg .cm-jt td:not(:first-child){width:96px}
 .cmt-jg .cm-jt td:first-child{word-break:break-word}
 .cmt-tr{flex-wrap:nowrap}.cmt-tool{flex-wrap:nowrap}
+.cmt-tr{flex-wrap:wrap}.cmt-tr>*{min-width:0}

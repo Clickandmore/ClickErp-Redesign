@@ -4,7 +4,7 @@
 import re, os, json
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 CSS = ["cm.css", "cm-items.css", "cm-stock.css", "cm-trade.css", "cm-pos.css"]
-SCRIPTS = ["cm-features.js", "cm-core.js", "cm-items.js", "cm-stock.js", "cm-trade.js", "cm-pos.js"]
+SCRIPTS = ["cm-features.js", "cm-core.js", "cm-items.js", "cm-stock.js", "cm-trade.js", "cm-pos.js", "cm-cycle.js"]
 PAGES = {
  "cmDash": "مبيعات اليوم", "cmItems": "المنتجات", "cmItemAdd": "منتج جديد", "cmItemCard": "كارت المنتج", "cmImport": "استيراد المنتجات من Excel",
  "cmCats": "أقسام المنتجات", "cmUnits": "الوحدات", "cmPrices": "الأسعار", "cmPriceEdit": "محرر الأسعار",
@@ -24,7 +24,7 @@ FIN = {"finQuotes": "عروض الأسعار", "finQuoteAdd": "عرض سعر ج�
 ALL = dict(PAGES); ALL.update(FIN)
 for pid, title in ALL.items():
     css = CSS + (["../finance/fq.css"] if pid in FIN else [])
-    scripts = ["cm-features.js", "cm-core.js", "../finance/fq.js"] if pid in FIN else SCRIPTS
+    scripts = ["cm-features.js", "cm-core.js", "../finance/fq.js", "cm-cycle.js"] if pid in FIN else SCRIPTS
     h = head.replace("<title>الموردون — Click ERP</title>", f"<title>{title} — Click ERP</title>")
     h = h.replace('<link rel="stylesheet" href="assets/clickerp.bundle.css">', '<link rel="stylesheet" href="assets/clickerp.bundle.css">\n' + "\n".join(f'<link rel="stylesheet" href="assets/commerce/{c}">' for c in css))
     h = re.sub(r"<!-- Screen: [^>]*-->", f"<!-- Screen: {pid} · {title} · v1.75 · الأقسام التجارية (جديد) — docs/modules/general modula/COMMERCE_POS_MASTER_PLAN.md -->", h)
