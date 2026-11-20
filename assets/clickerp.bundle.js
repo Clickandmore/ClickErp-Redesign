@@ -10598,9 +10598,9 @@ const GRPS=["الوقت والإجازات","المالية","السفر وال�
 
 /* ================= طلباتي ================= */
 S.myRequests=()=>`
- ${H("طلباتي","سارة القحطاني · خدمة العملاء · أي طلب تقدّمينه من هنا بدل البريد الإلكتروني، وترين عند من هو الآن.",B("ghost","file-text","خطاباتي")+B("primary","plus","طلب جديد",'data-go="myRequestNew"'))}
+ ${H("طلباتي","سارة القحطاني · خدمة العملاء · أي طلب تقدّمينه من هنا بدل البريد الإلكتروني، وترين عند من هو الآن.",B("ghost","file-text","خطاباتي")+B("primary","plus","طلب جديد",'data-go="myRequestNew" data-h14-pre="me"'))}
  ${myTabs("myRequests")}
- <div class="h9-quick">${[["calendar-days","إجازة"],["clock-4","استئذان"],["fingerprint","تصحيح بصمة"],["hand-coins","سلفة"],["receipt","مطالبة مصروفات"],["file-badge","خطاب"]].map(q=>`<button data-go="myRequestNew">${X(q[0])}<span>${q[1]}</span></button>`).join("")}<button data-go="myRequestNew" class="more">${X("layout-grid")}<span>كل الأنواع</span></button></div>
+ <div class="h9-quick">${[["calendar-days","إجازة","leave"],["clock-4","استئذان","perm"],["fingerprint","تصحيح بصمة","punch"],["hand-coins","سلفة","adv"],["receipt","مطالبة مصروفات","exp"],["file-badge","خطاب","letter"]].map(q=>`<button data-go="myRequestNew" data-h14-pre="me:${q[2]}">${X(q[0])}<span>${q[1]}</span></button>`).join("")}<button data-go="myRequestNew" data-h14-pre="me" class="more">${X("layout-grid")}<span>كل الأنواع</span></button></div>
  <div class="cx-note" style="margin-bottom:14px">${X("message-circle-question")}<div><b>المالية بحاجة إلى إجراء منك</b><span>مطالبة مصروفات RQ-1051 (180 ر.س): «ارفعي صورة الفاتورة الأصلية بدل لقطة الشاشة».</span></div>${B("primary sm","reply","الرد")}</div>
  <div class="grid-2 wide-l"><div>
   <div class="card flush fx-t"><div class="card-h pad"><div><h3>الطلبات</h3><p>المفتوحة أولاً</p></div>${CHIPS([["الكل","",9],["مفتوحة","a",3],["معتمد","g",5],["مرفوض","r",1]])}</div>
@@ -10618,21 +10618,111 @@ S.myRequests=()=>`
   ${CARD("وثائقي وعهدي","",`<div class="hx-exp">${[["id-card","الهوية الوطنية","2028-04-11","","n"],["file-signature","عقد العمل · موثّق في قوى","غير محدد المدة","","n"],["key-round","شريحة جوال الشركة SIM-014","استلمتِها 2022-03-01","إقرار موقّع","n"]].map(e=>`<div class="${e[4]}">${X(e[0])}<div><b>${e[1]}</b><small class="num">${e[2]}</small></div><em>${e[3]}</em></div>`).join("")}</div>`,B("ghost sm","pencil","طلب تعديل بيانات",'data-go="myRequestNew"'))}
  </div></div>`;
 
-/* ================= طلب جديد ================= */
-S.myRequestNew=()=>`
- ${H("طلب جديد","اختاري نوع الطلب. كل الأنواع متاحة لجميع الموظفين، والذي يختلف حسب فئتك (سعودية أو مقيمة) هو خطوات التنفيذ فقط.",B("ghost","","حفظ كمسودة")+B("primary","send","إرسال الطلب"),["myRequests","طلباتي"])}
- ${myTabs("myRequestNew")}
- <div class="h9-who card"><div>${X("user-round")}<b>مقدّم الطلب</b></div><div class="cx-seg2"><button class="on">أنا</button><button>نيابة عن موظف</button></div><small>«نيابة عن موظف» للموارد البشرية فقط: للعاملات المنزليات ولمن ليس له مستخدم، ويُسجَّل الطلب باسم من أدخله.</small></div>
- <div class="h9-types">${GRPS.map(g=>`<div class="g"><small>${g}</small><div>${RT.filter(t=>t[3]===g).map(t=>`<button class="${t[0]==="leave"?"on":""}">${X(t[1])}<span>${t[2]}</span></button>`).join("")}</div></div>`).join("")}<div class="g"><small>مخصص</small><div><button>${X("shapes")}<span>بدل سكن مقدماً</span></button></div></div></div>
- <div class="grid-2 wide-l"><div>
-  ${FS(1,"تفاصيل الإجازة",`<div class="fgrid">${FLD("النوع",SEL(["سنوية","مرضية","زواج","مولود","وفاة الزوج/ة أو أحد الأصول أو الفروع","وفاة أخ أو أخت","وضع","حج","عدة","بدون راتب"]),1)}${FLD("من",'<input type="date" value="2026-12-06">',1)}${FLD("إلى",'<input type="date" value="2026-12-10">',1)}${FLD("الأيام",INP("","5 أيام عمل",0),0,"الجمعة والسبت غير محسوبين")}${FLD("من يغطي عملك",SEL(["أمل الغامدي","منى الزهراني","غير مطلوب"]))}${FLD("رقم للتواصل أثناء الإجازة",INP("","0551234880",1))}${FLD("ملاحظة",TXT("اختياري",2),0,"",1)}</div>${ROW("صرف أجر الإجازة مقدماً","مع مسير نوفمبر",SW(0))}`)}
-  ${FS(2,"المرفقات",`<div class="dropz sm">${X("upload-cloud")}<b>غير مطلوبة للسنوية</b><small>المرضية: تقرير طبي · الزواج: عقد الزواج · المولود: شهادة الميلاد خلال 7 أيام · الوضع: تقرير بالموعد المرجّح · الحج: تصريح الحج · الوفاة والعدة: شهادة الوفاة</small></div>`)}
+/* ================= طلب جديد (v1.55): نموذج شغال لكل نوع ================= */
+/* حقول كل نوع: [مفتاح، العنوان، النوع، خيارات أو قيمة، إلزامي، ملاحظة] */
+const LVT=["سنوية","مرضية","زواج","مولود","وفاة الزوج/ة أو أحد الأصول أو الفروع","وفاة أخ أو أخت","وضع","حج","عدة","بدون راتب"];
+const LVA={"مرضية":"تقرير طبي","زواج":"عقد الزواج","مولود":"شهادة الميلاد (خلال 7 أيام من الولادة)","وفاة الزوج/ة أو أحد الأصول أو الفروع":"شهادة الوفاة","وفاة أخ أو أخت":"شهادة الوفاة","وضع":"تقرير طبي بالموعد المرجّح","حج":"تصريح الحج","عدة":"شهادة الوفاة"};
+const FORM={
+ leave:[["lt","نوع الإجازة","sel",LVT,1],["from","من","date","2026-12-06",1],["to","إلى","date","2026-12-10",1],["days","الأيام","calc","",0,"الجمعة والسبت غير محسوبين"],["cover","من يغطي العمل","sel",["أمل الغامدي","منى الزهراني","غير مطلوب"],0],["phone","رقم للتواصل أثناء الإجازة","txt","0551234880",1],["adv","صرف أجر الإجازة مقدماً","sel",["لا","نعم — مع المسير القادم"],0],["note","ملاحظة","area","",0]],
+ perm:[["date","التاريخ","date","2026-11-26",1],["from","من الساعة","time","13:00",1],["to","إلى الساعة","time","15:00",1],["why","السبب","txt","",1]],
+ punch:[["date","اليوم","date","2026-11-18",1],["kind","التصحيح","sel",["وقت الدخول","وقت الخروج"],1],["time","الوقت الصحيح","time","07:55",1],["why","السبب","sel",["نسيت البصمة","عطل في الجهاز","زيارة عميل","أخرى"],1]],
+ ot:[["date","التاريخ","date","2026-11-27",1],["hrs","عدد الساعات","num","3",1,"بأجر الساعة + 50% من الأساسي"],["task","العمل المطلوب","area","",1]],
+ remote:[["from","من","date","2026-12-01",1],["to","إلى","date","2026-12-03",1],["place","مكان العمل","sel",["المنزل — الموقع المعتمد"],1],["task","المهام","area","",1]],
+ adv:[["amt","المبلغ (ر.س)","num","2,000",1],["n","عدد الأقساط","sel",["4","2","3","6","8","10","12"],1],["start","بداية الخصم","sel",["مسير ديسمبر 2026","مسير يناير 2027"],1],["pay","طريقة الصرف","sel",["تحويل بنكي","شيك"],1]],
+ exp:[["amt","المبلغ (ر.س)","num","",1],["date","التاريخ","date","2026-11-19",1],["item","البند","sel",["مواصلات","ضيافة عملاء","مستلزمات مكتبية","أخرى"],1],["cc","مركز التكلفة","sel",["خدمة العملاء","المبيعات","العمليات"],1]],
+ trip:[["to","الوجهة","txt","",1],["from","من","date","2026-12-14",1],["back","إلى","date","2026-12-16",1],["why","الغرض","txt","",1],["per","البدل اليومي","calc","",0,"حسب السياسة"]],
+ ticket:[["to","الوجهة","txt","",1],["date","التاريخ","date","2027-01-10",1],["how","الاستحقاق","sel",["حجز من الشركة","بدل نقدي"],1]],
+ exit:[["to","الوجهة","txt","",1],["from","المغادرة","date","2026-12-06",1],["back","العودة","date","2026-12-10",1],["lv","الإجازة المرتبطة","sel",["سنوية 6–10 ديسمبر (تحت الاعتماد)","بدون إجازة — عطلة نهاية الأسبوع"],1]],
+ exitx:[["trip","السفرة الحالية","sel",["دبي 1–3 ديسمبر"],1],["act","الإجراء","sel",["تعديل التواريخ","إلغاء السفر"],1],["date","التاريخ الجديد للعودة","date","2026-12-04",0],["why","السبب","txt","",1]],
+ letter:[["kind","نوع الخطاب","sel",["تعريف بالراتب","تعريف بدون راتب","شهادة خبرة"],1],["to","موجّه إلى","txt","",1],["lang","اللغة","sel",["العربية","الإنجليزية"],1]],
+ data:[["what","البيان المطلوب تعديله","sel",["الآيبان","رقم الجوال","العنوان","بيانات الجواز","المؤهل الدراسي"],1],["val","القيمة الجديدة","txt","",1]],
+ cust:[["act","الإجراء","sel",["طلب عهدة","إرجاع عهدة"],1],["item","العهدة","sel",["شريحة جوال الشركة SIM-014","لابتوب","مفتاح","أخرى"],1],["why","السبب","txt","",0]],
+ resign:[["date","تاريخ تقديم الاستقالة","date","2026-11-20",1],["last","آخر يوم عمل","calc","",0,"بعد 30 يوماً من الإشعار (العقد غير محدد المدة)"],["why","السبب","area","",1]],
+ custom:[["m","عدد الأشهر مقدماً","sel",["3","6","12"],1],["why","السبب","txt","",1]]};
+/* المرفق: [النص، إلزامي] */
+const ATT={exp:["الفاتورة الأصلية",1],data:["المستند الداعم (شهادة الآيبان، الجواز…)",1],resign:["خطاب الاستقالة موقّعاً",1],punch:["صورة أو إثبات (اختياري)",0],exit:["صورة الجواز إذا تغيّر (اختياري)",0]};
+const LVN={"المدير المباشر":"فيصل الدوسري","الموارد البشرية":"هند العتيبي","مدير القسم":"مدير خدمة العملاء","المالية":"مدير المالية","مسؤول الجوازات":"خالد الجوازات","مسؤول العهد":"مسؤول العهد"};
+const FMI={type:"leave",who:"me",emp:"",vals:{},att:0,sent:null,err:{},msg:""};
+const FM=JSON.parse(JSON.stringify(FMI));
+const tyById=id=>id==="custom"?["custom","shapes","بدل سكن مقدماً","مخصص","حسب الإعداد","المدير المباشر ← الموارد البشرية","","حسب الإعداد"]:RT.find(t=>t[0]===id);
+const val=f=>FM.vals[FM.type+"."+f[0]]!==undefined?FM.vals[FM.type+"."+f[0]]:(f[2]==="sel"?f[3][0]:f[3]);
+const bdays=(a,b)=>{const d1=new Date(a),d2=new Date(b);if(isNaN(d1)||isNaN(d2)||d2<d1)return 0;let n=0;for(let d=new Date(d1);d<=d2;d.setDate(d.getDate()+1)){const w=d.getDay();if(w!==5&&w!==6)n++}return n};
+const fv=k=>{const f=(FORM[FM.type]||[]).find(x=>x[0]===k);return f?val(f):""};
+const calc=k=>{if(FM.type==="leave"&&k==="days"){const n=bdays(fv("from"),fv("to"));return n?n+" أيام عمل":"—"}
+ if(FM.type==="trip"&&k==="per"){const d=Math.max(1,Math.round((new Date(fv("back"))-new Date(fv("from")))/864e5)+1);return isNaN(d)?"—":`${d} × 300 = ${(d*300).toLocaleString("en-US")} ر.س`}
+ if(FM.type==="resign"&&k==="last"){const d=new Date(fv("date"));if(isNaN(d))return "—";d.setDate(d.getDate()+30);return d.toISOString().slice(0,10)}return ""};
+const attNeed=()=>FM.type==="leave"?(LVA[fv("lt")]?[LVA[fv("lt")],1]:null):ATT[FM.type]||null;
+const ctl=f=>{const k=FM.type+"."+f[0],v=val(f),e=FM.err[f[0]]?" h14-bad":"";
+ if(f[2]==="sel")return `<select data-h14-k="${f[0]}" class="${e}">${f[3].map(o=>`<option${o===v?" selected":""}>${o}</option>`).join("")}</select>`;
+ if(f[2]==="calc")return `<div class="inp h14-calc"><input class="num" readonly value="${calc(f[0])}"></div>`;
+ if(f[2]==="area")return `<textarea data-h14-k="${f[0]}" rows="2" class="${e}" placeholder="${f[4]?"":"اختياري"}">${v}</textarea>`;
+ return `<div class="inp${e}"><input data-h14-k="${f[0]}" type="${f[2]==="num"||f[2]==="txt"?"text":f[2]}" class="${f[2]==="num"||f[2]==="date"||f[2]==="time"?"num":""}" value="${v}"></div>`};
+const checks=()=>{const t=FM.type,out=[];
+ if(t==="leave"){const n=bdays(fv("from"),fv("to")),lt=fv("lt");
+  if(lt==="سنوية")out.push(n<=14?["الرصيد كافٍ",`14 يوماً ← يصبح ${14-n}`,"ok"]:["الرصيد لا يكفي",`المطلوب ${n} والرصيد 14`,"bad"]);
+  else if(lt==="مولود")out.push(["خلال 7 أيام من الولادة","يُرفض بعدها تلقائياً","warn"]);
+  else if(lt==="حج")out.push(["مرة واحدة بعد سنتين خدمة","خدمتك 4 سنوات و8 أشهر · لم تأخذيها من قبل","ok"]);
+  else out.push(["نوع نظامي بمدته",lt==="بدون راتب"?"يحتاج موافقة ولا يُحتسب أجر":"بأجر","ok"]);
+  out.push(fv("from")<="2026-12-08"&&fv("to")>="2026-12-07"?["زملاء من القسم في إجازة في الفترة نفسها","منى الزهراني 7–8 وجود الحارثي 7–11 (تحت الاعتماد)","warn"]:["لا أحد من القسم في إجازة في الفترة","","ok"]);
+  out.push(["مدة الإشعار حسب السياسة","الحد 7 أيام قبل البداية","ok"])}
+ else if(t==="perm")out.push(["الحد الشهري 4 ساعات","استُخدم ساعتان هذا الشهر","ok"]);
+ else if(t==="punch")out.push(["يوجد سجل خام لهذا اليوم","بصمة دخول 08:12 من جهاز الفرع","ok"]);
+ else if(t==="ot")out.push([+String(fv("hrs")).replace(/,/g,"")>12?"تتجاوز الحد الأسبوعي":"ضمن الحد الأسبوعي","الحد 12 ساعة إضافية في الأسبوع",+String(fv("hrs")).replace(/,/g,"")>12?"bad":"ok"]);
+ else if(t==="adv"){const a=+String(fv("amt")).replace(/,/g,"")||0,n=+fv("n")||1,q=a/n,p=Math.round(q/8775*100);out.push([`القسط ${q.toLocaleString("en-US",{maximumFractionDigits:2})} ر.س = ${p}% من الراتب`,"الحد 25%",p<=25?"ok":"bad"],["سلفة مفتوحة","1,000 ر.س متبقية — المالية توافق على سلفة جديدة","warn"]);if(a>3000)out.push(["المبلغ فوق 3,000","يمر على المالية","warn"])}
+ else if(t==="exit"||t==="exitx")out.push(["الجواز يغطي مدة السفر","ساري حتى 2030","ok"],[FM.who==="me"?"سعودية: إشعار سفر فقط":"مقيم: تأشيرة خروج وعودة","الجوازات "+(FM.who==="me"?"ليست في السلسلة":"تنفذ في مقيم"),"ok"]);
+ else if(t==="letter")out.push(["الأجر الموثّق في قوى","8,775 ر.س","ok"]);
+ else if(t==="resign")out.push(["مدة الإشعار 30 يوماً","آخر يوم عمل "+calc("last"),"ok"],["عهد لديك","شريحة جوال الشركة SIM-014 — تُعاد قبل آخر يوم","warn"]);
+ else out.push(["لا يوجد طلب مفتوح متعارض","","ok"]);
+ const a=attNeed();if(a&&a[1])out.push([FM.att?"المرفق مرفوع":"المرفق مطلوب",a[0],FM.att?"ok":"bad"]);
+ return out};
+const chainL=()=>{const t=tyById(FM.type);let lv=t[5].split(" ← ").map(x=>x.trim());
+ lv=lv.filter(l=>!(l.indexOf("للمقيم")>-1&&FM.who==="me")&&!(l.indexOf("فوق 3,000")>-1&&(+String(fv("amt")).replace(/,/g,"")||0)<=3000));
+ return lv.map((l,i)=>{const b=l.replace(/ \(.*\)/,"");return [b,LVN[b]||"حسب الإعداد",FM.sent?(i===0?1:0):0,FM.sent?(i===0?"عنده الآن · مهلة 24 ساعة":""):"مهلة 24 ساعة"]})};
+const typesH=()=>`${GRPS.map(g=>`<div class="g"><small>${g}</small><div>${RT.filter(t=>t[3]===g).map(t=>`<button data-h14-type="${t[0]}" class="${t[0]===FM.type?"on":""}">${X(t[1])}<span>${t[2]}</span></button>`).join("")}</div></div>`).join("")}<div class="g"><small>مخصص</small><div><button data-h14-type="custom" class="${FM.type==="custom"?"on":""}">${X("shapes")}<span>بدل سكن مقدماً</span></button></div></div>`;
+const bodyH=()=>{const t=tyById(FM.type),fs=FORM[FM.type],a=attNeed(),ck=checks();
+ if(FM.sent)return `<div class="card h14-ok">${X("check-circle-2")}<div><h3>تم إرسال الطلب ${FM.sent}</h3><p>${t[2]}${FM.who==="me"?"":` · نيابة عن ${FM.emp} · سُجِّل باسم هند العتيبي`} · يصل إشعار عند كل خطوة داخل البرنامج وعلى واتساب.</p></div></div>
+  <div class="grid-2 wide-l"><div>${CARD("الطلب الآن عند","",CHAIN(chainL()))}${CARD("بعد الاعتماد","",`<div class="h8-after">${t[7].split(" · ").map(x=>`<span>${X("check")}${x}</span>`).join("")}</div>`)}</div><div>${CARD("التالي","",`<div class="h14-next">${B("primary","send","طلباتي",'data-go="myRequests"')}${FM.who==="me"?"":B("ghost","inbox","طلبات الموظفين",'data-go="hrRequests"')}${B("ghost","plus","طلب جديد آخر",'data-h14-reset=""')}</div><small class="fhint">يمكن إلغاء الطلب من «طلباتي» ما دام لم يعتمده أحد.</small>`)}</div></div>`;
+ return `<div class="grid-2 wide-l"><div>
+  ${FS(1,`تفاصيل الطلب — ${t[2]}`,`<div class="fgrid">${FM.who==="me"?"":FLD("الموظف",`<select data-h14-emp="" class="${FM.err.emp?"h14-bad":""}"><option value="">اختر الموظف…</option>${["عبدالعزيز الشمري — ليس له مستخدم","آمنة نالوجا — عاملة منزلية","نيلانثي سيلفا — عاملة منزلية"].map(o=>`<option${o===FM.emp?" selected":""}>${o}</option>`).join("")}</select>`,1,"يُسجَّل الطلب باسم من أدخله")}${fs.map(f=>`${FLD(f[1],ctl(f),f[4],FM.err[f[0]]?`<span class="h13-err">مطلوب</span>`:f[5]||"")}`).join("")}</div>`)}
+  ${FS(2,"المرفقات",a?`<button class="dropz sm h14-drop${FM.att?" on":""}${FM.err.att?" h14-bad":""}" data-h14-att="">${X(FM.att?"file-check-2":"upload-cloud")}<b>${FM.att?"مرفق.pdf — اضغط للإزالة":a[0]}</b><small>${a[1]?"إلزامي":"اختياري"} · PDF أو صورة</small></button>`:`<div class="dropz sm">${X("upload-cloud")}<b>غير مطلوبة لهذا النوع</b><small>يمكن إرفاق ملف اختياري</small></div>`)}
+  ${FM.msg?`<div class="cx-info${FM.msg.indexOf("أكمل")===0?" warn":""}">${X(FM.msg.indexOf("أكمل")===0?"alert-triangle":"save")}<span>${FM.msg}</span></div>`:""}
+  <div class="h14-bar">${B("ghost","save","حفظ كمسودة",'data-h14-draft=""')}${B("primary","send","إرسال الطلب",'data-h14-send=""')}</div>
  </div><div>
-  ${CARD("قبل أن ترسلي","يراجع البرنامج تلقائياً",CHK([["رصيدك كافٍ","14 يوم ← يصبح 9","ok"],["زملاء من قسمك في إجازة في الفترة نفسها","منى الزهراني 7–8 وجود الحارثي 7–11 (تحت الاعتماد) — اختاري شخصاً آخر للتغطية","warn"],["إجازات رسمية في الفترة","لا يوجد","ok"],["لا يوجد طلب مفتوح متعارض","","ok"]]))}
-  ${CARD("يسير الطلب على","سلسلة اعتماد الإجازة",`${CHAIN([["المدير المباشر","فيصل الدوسري",0,"مهلة 24 ساعة"],["الموارد البشرية","هند العتيبي",0,"مهلة 24 ساعة"]])}<small class="fhint">إذا انتهت المهلة يُصعَّد الطلب إلى مدير العمليات. وإذا كان فيصل في إجازة يذهب إلى من فوّضه.</small>`)}
-  ${CARD("هل ستسافرين خارج المملكة أثناء الإجازة؟","اختياري",`${ROW("أضيف طلب «سفر خارج المملكة»","بنفس التواريخ · لأنك سعودية فلا تحتاجين تأشيرة خروج وعودة، والجوازات ليست في السلسلة",SW(0))}<small class="fhint">بعد الاعتماد تؤكدين «سافرت» و«رجعت» من طلباتي، لكي تعرف الشركة مكانك أثناء الإجازة.</small>`)}
-  ${CARD("بعد الاعتماد","",`<div class="h8-after">${["تُخصم الأيام من دفتر إجازتك","تظهر في تقويم فريقك ويُعلَّم الحضور «إجازة»","يصلك إشعار هنا وعلى واتساب"].map(x=>`<span>${X("check")}${x}</span>`).join("")}</div>`)}
- </div></div>`;
+  ${CARD("قبل الإرسال","يراجع البرنامج تلقائياً ويتحدّث مع كل تعديل",CHK(ck))}
+  ${CARD("يسير الطلب على",`سلسلة اعتماد «${t[2]}»`,`${CHAIN(chainL())}<small class="fhint">إذا انتهت المهلة يُصعَّد الطلب للمستوى الأعلى. وإذا كان المعتمد في إجازة يذهب لمن فوّضه.</small>`)}
+  ${FM.type==="leave"&&FM.who==="me"?CARD("هل ستسافرين خارج المملكة أثناء الإجازة؟","اختياري",`<button class="h14-link" data-h14-type="exit">${X("plane")}أضف طلب «سفر خارج المملكة» بنفس التواريخ</button><small class="fhint">لأنك سعودية فلا تحتاجين تأشيرة خروج وعودة.</small>`):""}
+  ${CARD("بعد الاعتماد","",`<div class="h8-after">${t[7].split(" · ").map(x=>`<span>${X("check")}${x}</span>`).join("")}</div>`)}
+ </div></div>`};
+const paint14=()=>{const r=document.getElementById("h14");if(!r)return;const q=s=>r.querySelector(s);
+ q("[data-h14-types]").innerHTML=typesH();q("[data-h14-body]").innerHTML=bodyH();
+ r.querySelectorAll("[data-h14-whob]").forEach(b=>b.classList.toggle("on",b.dataset.h14Whob===FM.who));
+ q("[data-h14-types]").style.display=FM.sent?"none":"";if(window.lucide)lucide.createIcons({attrs:{"stroke-width":1.8}})};
+const send14=()=>{FM.err={};(FORM[FM.type]||[]).forEach(f=>{if(f[4]&&f[2]!=="calc"&&!String(val(f)).trim())FM.err[f[0]]=1});
+ if(FM.who!=="me"&&!FM.emp)FM.err.emp=1;const a=attNeed();if(a&&a[1]&&!FM.att)FM.err.att=1;
+ if(Object.keys(FM.err).length){FM.msg="أكمل الحقول المعلَّمة"+(FM.err.att?" وارفع المرفق المطلوب":"")+" ثم أرسل الطلب.";paint14();return}
+ FM.sent="RQ-"+(1053+Math.floor(Math.random()*40));FM.msg="";paint14();window.scrollTo(0,0)};
+if(!window.__h14){window.__h14=1;
+ /* يحدد نوع الطلب ومقدّمه قبل فتح الشاشة من أي زر */
+ document.addEventListener("click",e=>{const p=e.target.closest&&e.target.closest("[data-h14-pre]");if(p)try{sessionStorage.setItem("h14pre",p.dataset.h14Pre)}catch(_){}},true);
+ document.addEventListener("click",e=>{if(!e.target.closest||!e.target.closest("#h14"))return;const c=s=>e.target.closest(s);
+  if(c("[data-h14-type]")){FM.type=c("[data-h14-type]").dataset.h14Type;FM.err={};FM.att=0;FM.msg="";paint14()}
+  else if(c("[data-h14-whob]")){FM.who=c("[data-h14-whob]").dataset.h14Whob;FM.err={};FM.msg="";if(FM.who!=="me"&&FM.type==="leave"&&!FM.vals["leave.cover"])FM.vals["leave.cover"]="غير مطلوب";paint14()}
+  else if(c("[data-h14-att]")){e.preventDefault();FM.att=FM.att?0:1;delete FM.err.att;paint14()}
+  else if(c("[data-h14-send]")){e.preventDefault();send14()}
+  else if(c("[data-h14-draft]")){e.preventDefault();FM.msg="حُفظت المسودة · تجدها في «طلباتي» ويمكن إكمالها لاحقاً.";paint14()}
+  else if(c("[data-h14-reset]")){const w=FM.who;Object.assign(FM,JSON.parse(JSON.stringify(FMI)),{who:w});paint14()}});
+ const keep=e=>{const t=e.target;if(!t.closest||!t.closest("#h14"))return;
+  if(t.dataset.h14K!==undefined){FM.vals[FM.type+"."+t.dataset.h14K]=t.value;delete FM.err[t.dataset.h14K]}
+  else if(t.dataset.h14Emp!==undefined){FM.emp=t.value;delete FM.err.emp}
+  if(e.type==="change"){FM.msg=FM.msg.indexOf("أكمل")===0?FM.msg:"";paint14()}};
+ document.addEventListener("input",keep);document.addEventListener("change",keep)}
+S.myRequestNew=()=>{try{const p=sessionStorage.getItem("h14pre");if(p){sessionStorage.removeItem("h14pre");const[w,ty]=p.split(":");Object.assign(FM,JSON.parse(JSON.stringify(FMI)),{who:w==="behalf"?"behalf":"me"});if(ty&&(FORM[ty]))FM.type=ty}}catch(_){}
+ return `<div id="h14">
+ ${H("طلب جديد","اختر نوع الطلب واملأ تفاصيله. كل الأنواع متاحة لجميع الموظفين، والذي يختلف حسب الفئة (سعودي أو مقيم) هو خطوات التنفيذ فقط.",B("ghost","save","حفظ كمسودة",'data-h14-draft=""')+B("primary","send","إرسال الطلب",'data-h14-send=""'),["myRequests","طلباتي"])}
+ ${myTabs("myRequestNew")}
+ <div class="h9-who card"><div>${X("user-round")}<b>مقدّم الطلب</b></div><div class="cx-seg2"><button data-h14-whob="me" class="${FM.who==="me"?"on":""}">أنا</button><button data-h14-whob="behalf" class="${FM.who!=="me"?"on":""}">نيابة عن موظف</button></div><small>«نيابة عن موظف» للموارد البشرية فقط: للعاملات المنزليات ولمن ليس له مستخدم، ويُسجَّل الطلب باسم من أدخله.</small></div>
+ <div class="h9-types" data-h14-types=""${FM.sent?' style="display:none"':""}>${typesH()}</div>
+ <div data-h14-body="">${bodyH()}</div></div>`};
 
 /* ================= تفاصيل طلب: خروج وعودة ================= */
 S.myRequestShow=()=>`
@@ -10795,7 +10885,7 @@ if(!window.__h13){window.__h13=1;
   if(e.key==="ArrowDown"||e.key==="ArrowUp"){const v=vis(),i=v.findIndex(x=>x[0]===FL.sel),j=i+(e.key==="ArrowDown"?1:-1);if(v[j]){e.preventDefault();FL.sel=v[j][0];paint();const el=document.querySelector(`#h13 [data-h13-sel="${FL.sel}"]`);if(el&&el.scrollIntoView)el.scrollIntoView({block:"nearest"})}}
   else if(e.key==="Enter"){const row=e.target.closest&&e.target.closest("[data-h13-sel]");if(row){FL.sel=row.dataset.h13Sel;paint()}}})}
 S.hrRequests=()=>`<div id="h13">
- ${HEAD("طلبات الموظفين","كل طلبات الموظفين في صندوق واحد مرتب بدورة الطلب: التقديم، ثم الفحص التلقائي، ثم الاعتماد، ثم التنفيذ في الشاشة المرتبطة، ثم الإغلاق.",B("ghost","file-spreadsheet","Excel")+B("ghost","book-open","دفتر الإجازات",'data-go="hrLeaves"')+B("primary","plus","طلب نيابة عن موظف",'data-go="myRequestNew"'))}
+ ${HEAD("طلبات الموظفين","كل طلبات الموظفين في صندوق واحد مرتب بدورة الطلب: التقديم، ثم الفحص التلقائي، ثم الاعتماد، ثم التنفيذ في الشاشة المرتبطة، ثم الإغلاق.",B("ghost","file-spreadsheet","Excel")+B("ghost","book-open","دفتر الإجازات",'data-go="hrLeaves"')+B("ghost","user-plus","طلب نيابة عن موظف",'data-go="myRequestNew" data-h14-pre="behalf"')+B("primary","plus","طلب جديد",'data-go="myRequestNew" data-h14-pre="me"'))}
  <div class="statgrid" data-h13-stats="">${statsH()}</div>
  <div class="card fx-track h13-cyc" data-h13-cyc="">${cycH()}</div>
  <div data-h13-chips="">${chipsH()}</div>
