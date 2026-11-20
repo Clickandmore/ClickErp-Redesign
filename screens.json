@@ -824,6 +824,11 @@
       "title": "نماذج الطباعة"
     },
     {
+      "id": "setCustom",
+      "file": "setCustom.html",
+      "title": "تقارير ونماذج الشركة"
+    },
+    {
       "id": "setIntegrations",
       "file": "setIntegrations.html",
       "title": "التكاملات"
