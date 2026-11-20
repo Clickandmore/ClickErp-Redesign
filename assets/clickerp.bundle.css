@@ -7756,3 +7756,14 @@ button.pr-pin{cursor:pointer;color:var(--navy);font-weight:600;background:var(--
 #prl .pr-deps button{flex:1 1 118px}
 #prl .pr-deps button>span{overflow:visible}
 .pr-qc{white-space:nowrap}
+/* v1.58 — remaining HR screens in the CV pattern */
+.h17-pad{padding:16px 20px}
+.h17-in{padding:12px 16px}
+.h17-in .h8-tl,.h17-in .hx-slip{margin:0}
+.h17-tot{display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding:12px 14px;border-radius:var(--r-s);background:var(--green-soft);font-weight:700}
+.h17-tot b{font-size:17px;color:var(--green-d)}
+.h17-path{padding:0;overflow:hidden;margin-bottom:14px}
+.h17-path .h15-chain{border-bottom:0}
+.h17-acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.h17-acts .btn{flex:1;justify-content:center}
+.h15 .h8-dur label{cursor:pointer}
