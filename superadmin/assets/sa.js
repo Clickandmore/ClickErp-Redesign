@@ -25,11 +25,18 @@
       { id: 'deploy',    href: 'deploy.html',    icon: 'rocket',         label: 'تحديث الكود' },
       { id: 'incidents', href: 'incidents.html', icon: 'siren',          label: 'الأعطال والتنبيهات', count: 2 }
     ]},
-    { id: 'system', icon: 'server-cog', label: 'النظام', desc: 'العميل والاشتراك والموديلات والتشغيل', items: [
+    /* «جديد» v1.58 — البرامج الثلاثة على نفس الكود: الاستقدام · العام (المالية) · المهام والموارد البشرية */
+    { id: 'programs', icon: 'boxes', label: 'البرامج', desc: 'الاستقدام · العام (المالية) · المهام والموارد البشرية', items: [
+      { id: 'programs',     href: 'programs.html',     icon: 'boxes',           label: 'البرامج الثلاثة', isNew: true },
+      { id: 'modules',      href: 'modules.html',      icon: 'layout-grid',     label: 'الموديلات ونوع البرنامج', route: 'dev-superadmin.modules' },
+      { id: 'open-rec',     href: '../dashboard.html?program=recruitment', icon: 'briefcase',  label: 'افتح: نظام الاستقدام' },
+      { id: 'open-gen',     href: '../finDashGen.html?program=general',    icon: 'wallet',     label: 'افتح: النظام العام' },
+      { id: 'open-tsk',     href: '../tcMy.html?program=tasks',            icon: 'list-checks', label: 'افتح: المهام والموارد' }
+    ]},
+    { id: 'system', icon: 'server-cog', label: 'النظام', desc: 'العميل والاشتراك والتشغيل', items: [
       { id: 'overview',     href: 'index.html',        icon: 'activity',        label: 'نظرة عامة', isNew: true },
       { id: 'subscription', href: 'subscription.html', icon: 'badge-check',     label: 'العميل والاشتراك', route: 'dev-superadmin.subscription' },
       { id: 'employees',    href: 'employees.html',    icon: 'users',           label: 'الموظفون', route: 'dev-superadmin.employees' },
-      { id: 'modules',      href: 'modules.html',      icon: 'layout-grid',     label: 'الموديلات', route: 'dev-superadmin.modules' },
       { id: 'designs',      href: 'designs.html',      icon: 'panels-top-left', label: 'تصاميم لوحة التحكم', route: 'dev-superadmin.dashboard-designs' },
       { id: 'updates',      href: 'updates.html',      icon: 'refresh-cw',      label: 'تحديثات النظام', route: 'dev-superadmin.product-updates' },
       { id: 'backups',      href: 'backups.html',      icon: 'database',        label: 'النسخ الاحتياطية', route: 'dev-superadmin.database-backups' },
@@ -110,9 +117,9 @@
         '<div class="top-search"><div class="inp">' + ic('search') + '<input placeholder="ابحث في Super Admin… موظف، فاتورة، إعداد"><kbd>Ctrl K</kbd></div></div>' +
         '<div class="top-right">' +
           '<button class="pill" title="العميل">' + ic('building-2') + '<span>' + SA_ENV.client + '</span></button>' +
-          '<button class="pill" title="البيئة · نوع البرنامج">' + ic('server') + '<span>' + SA_ENV.env + ' · ' + SA_ENV.profile + '</span></button>' +
+          '<a class="pill" href="programs.html" title="البيئة · نوع البرنامج — البرامج الثلاثة">' + ic('boxes') + '<span>' + SA_ENV.env + ' · ' + SA_ENV.profile + '</span></a>' +
           '<span class="sep"></span>' +
-          '<a class="icon-btn" href="../dashboard.html" title="لوحة الإدارة">' + ic('external-link') + '</a>' +
+          '<a class="pill" href="../dashboard.html?program=recruitment" title="الرجوع للبرنامج">' + ic('arrow-right-left') + '<span>لوحة الإدارة</span></a>' +
           '<button class="icon-btn" title="التنبيهات">' + ic('bell') + '<span class="dot"></span></button>' +
           '<div class="lang"><button class="on">AR</button><button>EN</button></div>' +
           '<a class="icon-btn av-btn" href="login.html" title="خروج"><span class="av-sm">SA</span></a>' +

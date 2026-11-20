@@ -110,12 +110,19 @@ footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
   .brand small{display:none}
 }
 @media (prefers-reduced-motion:reduce){.frame{transition:none}}
+.progs .pg-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.progs .pg{display:flex;flex-direction:column;gap:6px;padding:18px;border-radius:14px;background:var(--card);border:1px solid var(--line);border-top:4px solid var(--pc);text-decoration:none;--pc:var(--navy)}
+.progs .pg.gen{--pc:#2f6fd6}.progs .pg.tsk{--pc:#b26a00}.progs .pg.sa{--pc:var(--green);background:var(--navy);color:#fff;border-color:var(--navy)}
+.progs .pg b{font-family:var(--display);font-size:17px}.progs .pg small{color:var(--muted);font-size:13.5px;line-height:1.7}.progs .pg.sa small{color:#c4cee0}
+.progs .pg em{margin-top:auto;font-style:normal;font-weight:700;color:var(--pc);font-size:14px}
+.progs .pg:hover{box-shadow:0 12px 28px -18px rgba(16,26,46,.5)}
+@media (max-width:900px){.progs .pg-grid{grid-template-columns:1fr 1fr}}@media (max-width:560px){.progs .pg-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
 <div class="top"><div class="wrap">
   <div class="brand"><img src="assets/logo-light-tight.png" alt="Click &amp; More"><span>Click ERP <small>· إعادة التصميم v1.3.1</small></span></div>
-  <nav><a class="btn gh" href="screens.html">فهرس الشاشات</a><a class="btn pri" href="login.html">افتح النموذج الحي</a></nav>
+  <nav><a class="btn gh" href="superadmin/programs.html">Super Admin</a><a class="btn gh" href="screens.html">فهرس الشاشات</a><a class="btn pri" href="login.html">افتح النموذج الحي</a></nav>
 </div></div>
 
 <section class="cover">
@@ -140,6 +147,16 @@ footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
 <div class="cover-pad"></div>
 
 <main class="wrap">
+  <!-- v1.58: البرامج الثلاثة + Super Admin — ادخل على أي واحد مباشرة -->
+  <section class="progs">
+    <header class="sec-h"><span class="idx">00</span><div><h2>البرامج الثلاثة و Super Admin</h2><p>نفس الكود بيطلع 3 برامج منفصلة. كل واحد بقائمته ورئيسيته، وSuper Admin بيحدد نوع كل نسخة.</p></div></header>
+    <div class="pg-grid">
+      <a class="pg rec" href="dashboard.html?program=recruitment"><b>نظام الاستقدام</b><small>أساس البرنامج: العمليات · العملاء · المالية · الموارد البشرية · الإعدادات</small><em>افتح ←</em></a>
+      <a class="pg gen" href="finDashGen.html?program=general"><b>النظام العام — المالية</b><small>المحاسبة العامة لأي شركة، ومعها الساعات ومركز المهام اختياري</small><em>افتح ←</em></a>
+      <a class="pg tsk" href="tcMy.html?program=tasks"><b>نظام المهام والموارد البشرية</b><small>مركز المهام والحضور والطلبات والرواتب، من غير استقدام ولا مالية</small><em>افتح ←</em></a>
+      <a class="pg sa" href="superadmin/programs.html"><b>Super Admin</b><small>خريطة البرامج والموديلات، ونوع النسخة، ونقل ميزة من برنامج لبرنامج</small><em>افتح ←</em></a>
+    </div>
+  </section>
   <section>
     <header class="sec-h"><span class="idx">01</span><div><h2>لوحة التحكم</h2><p>صورة الشركة في الشهر، وكارت الحضور وتسجيل الانصراف، وعرض حسب دور المستخدم.</p></div></header>
     <div class="login-feature">

@@ -15,6 +15,7 @@ superadmin/
   assets/sa.css      مكوّنات شاشات Super Admin بس (sa-*) — كل ألوانها من متغيرات الثيم
   login.html         الدخول — نفس ماركب login.html في الثيم (.lx)
   index.html         نظرة عامة («جديد» — مش موجودة في الكود)
+  programs.html      البرامج الثلاثة («جديد»): الاستقدام · العام (المالية) · المهام والموارد — الإدارات والموديولات لكل برنامج ونقل ميزة
   fleet.html  instance.html  servers.html  deploy.html  incidents.html   مركز التحكم في النسخ («جديد»)
   subscription.html  employees.html  modules.html  designs.html  updates.html  update-form.html
   backups.html  scheduler.html  recovery.html

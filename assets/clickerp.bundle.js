@@ -3675,7 +3675,9 @@ document.addEventListener("click",e=>{const ap=document.getElementById("app");if
 const DEST={staff:"dashboard",agent:"cvs"};
 document.addEventListener("click",e=>{
  if(!e.target.closest("[data-login]"))return;
- const to=DEST[ROLE]||"dashboard";
+ let to=DEST[ROLE]||"dashboard";
+ /* v1.58: الموظف بيدخل على رئيسية برنامج النسخة */
+ if(ROLE!=="agent"){try{to={general:"finDashGen",tasks:"tcMy"}[localStorage.getItem("clickerp-program")]||to}catch(e){}}
  if(window.CERP_PAGE){e.preventDefault();e.stopImmediatePropagation();location.href=to+".html";return}
  cur=to; // original handler then shows #app and renders cur
 },true);

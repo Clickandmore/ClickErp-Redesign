@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="design-version" content="v1.58">
+<title>البرامج الثلاثة — Super Admin · Click ERP</title>
+<link rel="stylesheet" href="../assets/clickerp.bundle.css">
+<link rel="stylesheet" href="assets/sa.css">
+</head>
+<body dir="rtl" data-page="programs">
+<!-- Screen: programs («جديد») · خريطة البرامج الثلاثة على نفس الكود
+     المصدر: config/product_profiles.php (النوع) · config/superadmin_modules.php مفتاح profiles (الموديول) · config/v2_nav.php مفتاح profiles (سطر القائمة)
+     نفس التقسيم مطبّق في قائمة التصميم (assets/clickerp.bundle.js → PROGS · PG_DEPT · PG_ITEM) -->
+<main class="sa-content">
+
+  <div class="sa-page-header">
+    <div>
+      <h1 class="sa-page-title">البرامج الثلاثة <span class="sa-new">جديد</span></h1>
+      <p class="sa-page-desc">كود واحد بيطلع منه 3 برامج. كل نسخة عميل نوعها واحد، والنوع بيحدد الإدارات اللي في القائمة والرئيسية والمسارات المفتوحة. افتح أي برنامج وشوفه زي ما العميل شايفه.</p>
+      <div class="sa-page-chips"><span class="heading-chip">نوع النسخة دي: <b>نظام الاستقدام</b></span><span class="heading-chip">الإدارات: <b class="num">7</b></span><span class="heading-chip">الموديلات: <b class="num">14</b></span></div>
+    </div>
+    <div class="sa-page-header-end"><a class="btn btn-ghost" href="modules.html"><i data-lucide="layout-grid"></i>موديلات النسخة</a></div>
+  </div>
+
+  <!-- البرامج -->
+  <div class="sa-prog-grid">
+    <section class="sa-card sa-prog sa-prog--rec">
+      <div class="sa-prog-top"><span class="sa-prog-ic"><i data-lucide="briefcase"></i></span><div><h2>نظام الاستقدام</h2><span class="sa-badge sa-badge--success">أساس البرنامج · الحالي</span></div></div>
+      <p class="sa-prog-desc">مكاتب الاستقدام والتأجير: العقود والسير والطلبات ونقل الخدمات والإيواء، ومعاهم العملاء والمالية والموارد البشرية.</p>
+      <dl class="sa-prog-kv"><div><dt>الرئيسية</dt><dd>لوحة التحكم (الاستقدام)</dd></div><div><dt>الشاشات في القائمة</dt><dd class="num">106</dd></div><div><dt>المفتاح</dt><dd class="sa-mono" dir="ltr">recruitment</dd></div></dl>
+      <div class="sa-prog-sec">الإدارات بالترتيب</div>
+      <div class="sa-prog-depts"><span class="is-core"><i data-lucide="briefcase"></i>العمليات</span><span><i data-lucide="users"></i>العملاء</span><span><i data-lucide="wallet"></i>المالية</span><span><i data-lucide="user-cog"></i>الموارد البشرية</span><span><i data-lucide="settings"></i>الإعدادات</span></div>
+      <div class="sa-prog-sec">مش ظاهر فيه</div>
+      <p class="sa-prog-off">مركز المهام · الحسابات التقنية والتسويق</p>
+      <div class="sa-prog-foot"><a class="btn btn-primary" href="../dashboard.html?program=recruitment"><i data-lucide="external-link"></i>افتح البرنامج</a></div>
+    </section>
+
+    <section class="sa-card sa-prog sa-prog--gen">
+      <div class="sa-prog-top"><span class="sa-prog-ic"><i data-lucide="wallet"></i></span><div><h2>النظام العام — المالية</h2><span class="sa-badge sa-badge--info">لأي شركة</span></div></div>
+      <p class="sa-prog-desc">محاسبة عامة: القيود والسندات والفواتير والحسابات والتقارير والقوائم المالية، من غير عمليات الاستقدام. التأجير بالساعة ومركز المهام بيتفتحوا لو محتاجهم.</p>
+      <dl class="sa-prog-kv"><div><dt>الرئيسية</dt><dd>لوحة المالية (النظام العام)</dd></div><div><dt>الشاشات في القائمة</dt><dd class="num">82</dd></div><div><dt>المفتاح</dt><dd class="sa-mono" dir="ltr">general</dd></div></dl>
+      <div class="sa-prog-sec">الإدارات بالترتيب</div>
+      <div class="sa-prog-depts"><span class="is-core"><i data-lucide="wallet"></i>المالية</span><span><i data-lucide="briefcase"></i>العمليات <small>لوحة المعلومات + الساعات</small></span><span><i data-lucide="users"></i>العملاء</span><span><i data-lucide="user-cog"></i>الموارد البشرية</span><span class="is-opt"><i data-lucide="list-checks"></i>مركز المهام <small>اختياري</small></span><span><i data-lucide="settings"></i>الإعدادات</span></div>
+      <div class="sa-prog-sec">مش ظاهر فيه</div>
+      <p class="sa-prog-off">الاستقدام · التأجير الشهري · نقل الخدمات · اللوجستيات · مالية التشغيل · الشكاوى · إعدادات الاستقدام والتأجير</p>
+      <div class="sa-prog-foot"><a class="btn btn-primary" href="../finDashGen.html?program=general"><i data-lucide="external-link"></i>افتح البرنامج</a></div>
+    </section>
+
+    <section class="sa-card sa-prog sa-prog--tsk">
+      <div class="sa-prog-top"><span class="sa-prog-ic"><i data-lucide="list-checks"></i></span><div><h2>نظام المهام والموارد البشرية</h2><span class="sa-badge sa-badge--warning">جديد</span></div></div>
+      <p class="sa-prog-desc">شركات الخدمات اللي شغلها مهام وفريق: مركز المهام وتسجيل الوقت، والحضور والطلبات والرواتب. من غير استقدام ومن غير شاشات المالية.</p>
+      <dl class="sa-prog-kv"><div><dt>الرئيسية</dt><dd>يومي (مركز المهام)</dd></div><div><dt>الشاشات في القائمة</dt><dd class="num">54</dd></div><div><dt>المفتاح</dt><dd class="sa-mono" dir="ltr">tasks</dd></div></dl>
+      <div class="sa-prog-sec">الإدارات بالترتيب</div>
+      <div class="sa-prog-depts"><span class="is-core"><i data-lucide="list-checks"></i>مركز المهام</span><span class="is-core"><i data-lucide="user-cog"></i>الموارد البشرية</span><span><i data-lucide="users"></i>العملاء</span><span><i data-lucide="settings"></i>الإعدادات</span></div>
+      <div class="sa-prog-sec">مش ظاهر فيه</div>
+      <p class="sa-prog-off">العمليات كلها · المالية كلها · العاملات (مرتبطات بسير الاستقدام) · الشكاوى</p>
+      <div class="sa-prog-foot"><a class="btn btn-primary" href="../tcMy.html?program=tasks"><i data-lucide="external-link"></i>افتح البرنامج</a></div>
+    </section>
+  </div>
+
+  <div class="sa-layout">
+    <div class="sa-stack">
+
+      <!-- الإدارات × البرامج -->
+      <section class="sa-card sa-card--flush">
+        <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="panels-top-left"></i></span><div><h2 class="sa-card-title">الإدارات في كل برنامج</h2><p class="sa-card-desc">كل إدارة زر في الـ rail. الرقم = الشاشات اللي بتظهر منها في قائمة البرنامج.</p></div></div></div>
+        <div class="sa-table-wrap"><table class="sa-table sa-prog-table">
+          <thead><tr><th>الإدارة</th><th>نظام الاستقدام</th><th>النظام العام</th><th>المهام والموارد</th></tr></thead>
+          <tbody>
+            <tr><td><b>الرئيسية</b><small>لوحة التحكم ومركز التقارير والمثبتة</small></td><td><span class="sa-cell is-core num">2</span></td><td><span class="sa-cell is-part num">1</span></td><td><span class="sa-cell is-part">المثبتة بس</span></td></tr>
+            <tr><td><b>العمليات</b><small>الاستقدام · التأجير · نقل الخدمات · الساعات · اللوجستيات · مالية التشغيل</small></td><td><span class="sa-cell is-core num">38</span></td><td><span class="sa-cell is-part num">7</span><small>لوحة المعلومات + التأجير بالساعة</small></td><td><span class="sa-cell is-off">—</span></td></tr>
+            <tr><td><b>العملاء</b><small>CRM والمحادثات والحملات وخدمة العملاء</small></td><td><span class="sa-cell is-core num">11</span></td><td><span class="sa-cell is-core num">10</span><small>من غير الشكاوى</small></td><td><span class="sa-cell is-core num">10</span><small>من غير الشكاوى</small></td></tr>
+            <tr><td><b>المالية</b><small>المحاسبة العامة فقط</small></td><td><span class="sa-cell is-core num">18</span></td><td><span class="sa-cell is-core num">18</span></td><td><span class="sa-cell is-off">—</span></td></tr>
+            <tr><td><b>الموارد البشرية</b><small>الموظفون والحضور والطلبات والرواتب</small></td><td><span class="sa-cell is-core num">19</span></td><td><span class="sa-cell is-core num">19</span></td><td><span class="sa-cell is-core num">18</span><small>من غير العاملات</small></td></tr>
+            <tr class="is-moved"><td><b>مركز المهام</b> <span class="sa-badge sa-badge--warning">إدارة لوحدها</span><small>كان جوه الموارد البشرية — بقى زر مستقل في الـ rail</small></td><td><span class="sa-cell is-off">—</span></td><td><span class="sa-cell is-opt num">13</span><small>اختياري</small></td><td><span class="sa-cell is-core num">13</span></td></tr>
+            <tr><td><b>الإعدادات</b><small>المكتب والمستخدمون والتكاملات</small></td><td><span class="sa-cell is-core num">18</span></td><td><span class="sa-cell is-core num">14</span></td><td><span class="sa-cell is-core num">13</span></td></tr>
+          </tbody></table></div>
+      </section>
+
+      <!-- الموديلات × البرامج: نقل ميزة -->
+      <section class="sa-card sa-card--flush" data-pm>
+        <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="shuffle"></i></span><div><h2 class="sa-card-title">الموديلات على البرامج — ونقل ميزة لبرنامج تاني</h2><p class="sa-card-desc">اضغط على أي خانة: «مش متاح» ← «متاح» ← «أساسي». التغيير بيتكتب تحت بالسطر اللي هيتعدّل في الكود.</p></div></div></div>
+        <div class="sa-table-wrap"><table class="sa-table sa-pm-table">
+          <thead><tr><th>الموديول</th><th>الاستقدام</th><th>العام</th><th>المهام</th></tr></thead>
+          <tbody>
+            <tr data-mod="operations" data-name="إدارة التشغيل"><td><b>إدارة التشغيل</b><small>العقود والطلبات والسير والنقل والإيواء</small></td><td><button class="sa-pm" data-st="core"></button></td><td><button class="sa-pm" data-st="off"></button></td><td><button class="sa-pm" data-st="off"></button></td></tr>
+            <tr data-mod="company_visas" data-name="تأشيرات الشركة"><td><b>تأشيرات الشركة</b><small>رصيد التأشيرات قبل العقود</small></td><td><button class="sa-pm" data-st="opt"></button></td><td><button class="sa-pm" data-st="off"></button></td><td><button class="sa-pm" data-st="off"></button></td></tr>
+            <tr data-mod="hourly_rental" data-name="إيجار الساعات"><td><b>إيجار الساعات</b><small>الخدمات والزيارات والتطبيقات</small></td><td><button class="sa-pm" data-st="opt"></button></td><td><button class="sa-pm" data-st="opt"></button></td><td><button class="sa-pm" data-st="off"></button></td></tr>
+            <tr data-mod="finance" data-name="المالية والفوترة"><td><b>المالية والفوترة</b><small>القيود والسندات والفواتير والضريبة</small></td><td><button class="sa-pm" data-st="opt"></button></td><td><button class="sa-pm" data-st="core"></button></td><td><button class="sa-pm" data-st="off"></button></td></tr>
+            <tr data-mod="general_operations" data-name="الموديل التشغيلي العام"><td><b>الموديل التشغيلي العام</b><small>أساس عمليات الشركات العامة</small></td><td><button class="sa-pm" data-st="off"></button></td><td><button class="sa-pm" data-st="core"></button></td><td><button class="sa-pm" data-st="off"></button></td></tr>
+            <tr data-mod="tech_company_finance" data-name="حسابات شركات التقنية والتسويق"><td><b>حسابات شركات التقنية والتسويق</b><small>عروض الأسعار والاشتراكات والتجديدات والربحية</small></td><td><button class="sa-pm" data-st="off"></button></td><td><button class="sa-pm" data-st="opt"></button></td><td><button class="sa-pm" data-st="off"></button></td></tr>
+            <tr data-mod="task_center" data-name="مركز المهام وتسجيل الوقت"><td><b>مركز المهام وتسجيل الوقت</b><small>المهام والتسليم والاختبار والمؤقت</small></td><td><button class="sa-pm" data-st="off"></button></td><td><button class="sa-pm" data-st="opt"></button></td><td><button class="sa-pm" data-st="core"></button></td></tr>
+            <tr data-mod="hr" data-name="الموارد البشرية"><td><b>الموارد البشرية</b><small>الموظفون والحضور والرواتب</small></td><td><button class="sa-pm" data-st="opt"></button></td><td><button class="sa-pm" data-st="opt"></button></td><td><button class="sa-pm" data-st="core"></button></td></tr>
+            <tr data-mod="geo_attendance" data-name="الحضور بالموقع"><td><b>الحضور بالموقع</b><small>بيشتغل لوحده مع مركز المهام · محتاج الموارد البشرية</small></td><td><button class="sa-pm" data-st="opt"></button></td><td><button class="sa-pm" data-st="opt"></button></td><td><button class="sa-pm" data-st="opt"></button></td></tr>
+            <tr data-mod="crm" data-name="CRM"><td><b>CRM</b><small>العملاء والمحادثات</small></td><td><button class="sa-pm" data-st="opt"></button></td><td><button class="sa-pm" data-st="opt"></button></td><td><button class="sa-pm" data-st="opt"></button></td></tr>
+            <tr data-mod="coupons" data-name="كوبونات الخصم"><td><b>كوبونات الخصم</b><small>الاستقدام والتأجير ونقل الخدمات والساعات</small></td><td><button class="sa-pm" data-st="opt"></button></td><td><button class="sa-pm" data-st="opt"></button></td><td><button class="sa-pm" data-st="off"></button></td></tr>
+            <tr data-mod="website" data-name="الموقع الخارجي"><td><b>الموقع الخارجي</b><small>موقع المكتب والمحتوى</small></td><td><button class="sa-pm" data-st="opt"></button></td><td><button class="sa-pm" data-st="opt"></button></td><td><button class="sa-pm" data-st="opt"></button></td></tr>
+            <tr data-mod="branches" data-name="إدارة الفروع"><td><b>إدارة الفروع</b><small>الفروع والتقارير بالفرع</small></td><td><button class="sa-pm" data-st="opt"></button></td><td><button class="sa-pm" data-st="opt"></button></td><td><button class="sa-pm" data-st="opt"></button></td></tr>
+            <tr data-mod="api_links" data-name="روابط API والربط"><td><b>روابط API والربط</b><small>الرسائل وواتساب وSMS</small></td><td><button class="sa-pm" data-st="opt"></button></td><td><button class="sa-pm" data-st="opt"></button></td><td><button class="sa-pm" data-st="opt"></button></td></tr>
+          </tbody></table></div>
+        <div class="sa-pm-legend"><span><i class="sa-pm-dot is-core"></i>أساسي — مفتوح دايمًا ومش بيتقفل</span><span><i class="sa-pm-dot is-opt"></i>متاح — بيتشغّل ويتقفل من «الموديلات»</span><span><i class="sa-pm-dot is-off"></i>مش متاح — مساراته مقفولة للنوع ده</span></div>
+        <div class="sa-pm-diff" data-pm-diff hidden>
+          <div class="sa-pm-diff-h"><i data-lucide="git-compare"></i><b>التغييرات</b><span class="num" data-pm-n></span><button class="btn btn-ghost sm" data-pm-reset>تراجع</button></div>
+          <ul data-pm-list></ul>
+        </div>
+      </section>
+    </div>
+
+    <aside class="sa-layout-side sa-stack">
+      <section class="sa-card">
+        <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="layers-3"></i></span><div><h2 class="sa-card-title">الفصل بيتعمل في 3 أماكن</h2><p class="sa-card-desc">عشان نقل ميزة يبقى سطر واحد.</p></div></div></div>
+        <ol class="sa-prog-layers">
+          <li><b>النوع</b><span>البرنامج نفسه، رئيسيته وموديولاته الأساسية.</span><code dir="ltr">config/product_profiles.php</code></li>
+          <li><b>الموديول</b><span>البرامج اللي الموديول متاح فيها (<code dir="ltr">profiles</code>) ومساراته.</span><code dir="ltr">config/superadmin_modules.php</code></li>
+          <li><b>سطر القائمة</b><span>الإدارة اللي يظهر تحتها (<code dir="ltr">dept</code>) والبرامج (<code dir="ltr">profiles</code>).</span><code dir="ltr">config/v2_nav.php</code></li>
+        </ol>
+        <p class="sa-help">مثال: عشان مركز المهام يتفتح لمكاتب الاستقدام، بيتضاف <code dir="ltr">'recruitment'</code> لـ <code dir="ltr">profiles</code> بتاعه — والشاشات والإدارة زي ما هم.</p>
+      </section>
+
+      <section class="sa-card">
+        <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="route"></i></span><div><h2 class="sa-card-title">الدخول على Super Admin</h2></div></div></div>
+        <ul class="sa-prog-ways">
+          <li><i data-lucide="shield-check"></i><span>زر <b>Super Admin</b> في الشريط العلوي لأي شاشة في البرنامج (للمطوّر بس).</span></li>
+          <li><i data-lucide="chevrons-up-down"></i><span>زر <b>نوع البرنامج</b> جنبه: بيعرض البرامج التلاتة ويوصل للصفحة دي.</span></li>
+          <li><i data-lucide="log-in"></i><span>رابط <b>دخول Super Admin</b> تحت شاشة الدخول.</span></li>
+          <li><i data-lucide="settings"></i><span>الإعدادات ← المطوّر (Super Admin) زي ما كان.</span></li>
+        </ul>
+      </section>
+    </aside>
+  </div>
+
+</main>
+<script src="https://unpkg.com/lucide@0.451.0/dist/umd/lucide.min.js"></script>
+<script src="assets/sa.js"></script>
+<script>
+/* معاينة نقل الموديول بين البرامج (مش للإنتاج) */
+(function () {
+  var ST = ['off', 'opt', 'core'], LB = { off: 'مش متاح', opt: 'متاح', core: 'أساسي' }, PN = ['recruitment', 'general', 'tasks'], PA = ['نظام الاستقدام', 'النظام العام', 'نظام المهام'];
+  var box = document.querySelector('[data-pm]'); if (!box) return;
+  var cells = box.querySelectorAll('.sa-pm');
+  cells.forEach(function (b) { b.dataset.orig = b.dataset.st; b.textContent = LB[b.dataset.st]; });
+  function diff() {
+    var out = [];
+    box.querySelectorAll('tr[data-mod]').forEach(function (tr) {
+      var bs = tr.querySelectorAll('.sa-pm'), ch = false, prof = [];
+      bs.forEach(function (b, i) {
+        if (b.dataset.st !== 'off') prof.push("'" + PN[i] + "'");
+        if (b.dataset.st !== b.dataset.orig) { ch = true; b.classList.add('is-changed'); out.push('<li><b>' + tr.dataset.name + '</b> في «' + PA[i] + '»: ' + LB[b.dataset.orig] + ' ← <b>' + LB[b.dataset.st] + '</b></li>'); } else b.classList.remove('is-changed');
+      });
+      if (ch) out.push('<li class="is-code"><code dir="ltr">\'' + tr.dataset.mod + "' => ['profiles' => [" + prof.join(', ') + ']]</code></li>');
+    });
+    var d = box.querySelector('[data-pm-diff]');
+    d.hidden = !out.length;
+    box.querySelector('[data-pm-list]').innerHTML = out.join('');
+    box.querySelector('[data-pm-n]').textContent = out.filter(function (x) { return x.indexOf('is-code') < 0; }).length;
+  }
+  box.addEventListener('click', function (e) {
+    var b = e.target.closest('.sa-pm');
+    if (b) { b.dataset.st = ST[(ST.indexOf(b.dataset.st) + 1) % 3]; b.textContent = LB[b.dataset.st]; diff(); return; }
+    if (e.target.closest('[data-pm-reset]')) { cells.forEach(function (c) { c.dataset.st = c.dataset.orig; c.textContent = LB[c.dataset.st]; }); diff(); }
+  });
+})();
+</script>
+</body>
+</html>
