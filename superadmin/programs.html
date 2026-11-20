@@ -106,6 +106,34 @@
           <ul data-pm-list></ul>
         </div>
       </section>
+
+      <!-- v1.60: كل موديول منفصل بمساراته وصلاحياته وكوده — المصدر: مراجعة كود ClickERP2 -->
+      <section class="sa-card sa-card--flush">
+        <div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon"><i data-lucide="boxes"></i></span><div><h2 class="sa-card-title">كل موديول منفصل: مساراته وصلاحياته وكوده <span class="sa-new">جديد</span></h2><p class="sa-card-desc">الموديول يتقفل ويتفتح لوحده، وصلاحياته باسمه، وما يتفتحش بصلاحية موديول تاني. الأحمر = اللي في الكود دلوقتي ولازم يتغيّر.</p></div></div></div>
+        <div class="sa-table-wrap"><table class="sa-table sa-sep-table">
+          <thead><tr><th>الموديول</th><th>المسارات</th><th>الصلاحيات</th><th>الكود</th><th>بيعتمد على</th></tr></thead>
+          <tbody>
+            <tr><td><b>الاستقدام</b><small>operations · أساس البرنامج</small></td><td><code dir="ltr">RecruitmentContract.* · orders.* · maids.* …</code></td><td>صلاحيات الشاشات نفسها</td><td>التطبيق الأساسي</td><td>العملاء · مالية التشغيل</td></tr>
+            <tr><td><b>المالية</b><small>finance</small></td><td><code dir="ltr">finance.* · zatca.*</code></td><td><code dir="ltr">finance_*</code></td><td><code dir="ltr">packages/finance</code></td><td>—</td></tr>
+            <tr><td><b>الموارد البشرية</b><small>hr</small></td><td><code dir="ltr">hr.* · v2.hr.*</code><span class="sa-sep-fix">ما يشملش <code dir="ltr">hr.task-center.*</code></span></td><td><code dir="ltr">hr_* · employee_*</code></td><td><code dir="ltr">packages/hr</code></td><td>—</td></tr>
+            <tr class="is-focus"><td><b>مركز المهام</b><small>task_center</small></td>
+              <td><s dir="ltr">hr.task-center.*</s><code dir="ltr">task-center.* · v2.task-center.*</code></td>
+              <td><s dir="ltr">hr_task_center_*</s><code dir="ltr">task_center_*</code><span class="sa-sep-fix">22 صلاحية · <code dir="ltr">hr_module</code> ما تفتحهاش</span></td>
+              <td><s dir="ltr">packages/hr</s><code dir="ltr">packages/tasks</code></td>
+              <td>الموارد البشرية (الحضور وتكلفة الساعة)<span class="sa-sep-fix">المالية اختياري: ربط العميل ومركز التكلفة</span></td></tr>
+            <tr><td><b>الحضور بالموقع</b><small>geo_attendance</small></td><td><s dir="ltr">v2.task-center.checkin.*</s><code dir="ltr">v2.hr.checkin.*</code></td><td><code dir="ltr">hr_attendance_*</code></td><td><code dir="ltr">packages/hr</code></td><td>الموارد البشرية (لازم)<span class="sa-sep-fix">ما يشتغلش لو HR مقفول</span></td></tr>
+          </tbody></table></div>
+        <div class="sa-sep-list">
+          <b><i data-lucide="list-checks"></i>اللي هيتصلّح عشان الفصل يبقى حقيقي</b>
+          <ol>
+            <li><b>القائمة:</b> إدارة «مركز المهام» في <code dir="ltr">Navigation::DEPARTMENTS</code> بدل <code dir="ltr">'dept' => 'hr'</code> المكتوبة يدوي.</li>
+            <li><b>القفل:</b> نمط <code dir="ltr">hr.*</code> ما يقفلش مركز المهام، و<code dir="ltr">EnsurePackageRoutePermission</code> يطبّق قفل موديول الحزمة على مساراتها (دلوقتي بيستثنيه).</li>
+            <li><b>الصلاحيات:</b> <code dir="ltr">hr_task_center_*</code> ← <code dir="ltr">task_center_*</code> بـ migration للأدوار، وقسم لوحده في شاشة الأدوار، و<code dir="ltr">hr_module</code> ما تفتحهوش.</li>
+            <li><b>البيانات:</b> المهمة ليها عميل ومشروع من مركز المهام نفسه. الربط بعميل المالية ومركز التكلفة اختياري لو المالية مفتوحة، ومركز المهام ما يضيفش حسابات في الدليل المحاسبي.</li>
+            <li><b>الكود:</b> الموديلات والخدمات والشاشات والجداول تتنقل من <code dir="ltr">packages/hr</code> لحزمة لوحدها، وسجل النشاط يتكتب «tasks» مش «hr».</li>
+          </ol>
+        </div>
+      </section>
     </div>
 
     <aside class="sa-layout-side sa-stack">
