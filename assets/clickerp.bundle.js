@@ -10723,35 +10723,100 @@ const RQ=[
  ["RW-0031","reward","مكافأة","ريم الدوسري","المالية","1,000 ر.س · إقفال الربع الثالث مبكراً",["n","بمبادرة مدير المالية"],2,"الموارد البشرية",["n","متبقٍ 22 ساعة"],""],
  ["RQ-1046","letter","خطاب تعريف بالراتب","لمى العنزي","المبيعات","موجّه إلى بنك الرياض · بالأجر الموثّق في قوى",["g","من حسابها"],3,"الموارد البشرية · إصدار PDF",["n","اليوم"],""],
  ["RQ-1041","resign","استقالة","سلطان القرني","العمليات","آخر يوم 30 نوفمبر · إشعار 30 يوماً من 31 أكتوبر",["g","من حسابه"],3,"المخالصة ES-2026-009",["n","30 نوفمبر"],""]];
-const GCNT=g=>RQ.filter(r=>TY(r[1])[3]===g).length;
-S.hrRequests=()=>`
+/* v1.54 — تفاصيل كل طلب: [وصف، المحتوى، الفحص، سلسلة الاعتماد، الأثر بعد الاعتماد] */
+const DET={
+ "RQ-1052":["نورة السبيعي · مندوبة مبيعات · قُدِّم 15 نوفمبر 10:12 من حسابها",[["النوع","سنوية"],["الفترة","الأحد 24 – الخميس 28 نوفمبر"],["الأيام","5 أيام عمل · الجمعة والسبت غير محسوبين"],["يغطي العمل","منى الزهراني"],["رقم التواصل","0553311207"],["صرف الأجر مقدماً","لا"],["المرفقات","غير مطلوبة للسنوية"]],[["الرصيد يكفي","14 ← 9 أيام","ok"],["من القسم نفسه في إجازة","خالد المطيري 26–27 نوفمبر","warn"],["إجازات رسمية في الفترة","لا يوجد","ok"],["مدة الإشعار حسب السياسة","9 أيام قبل البداية · الحد 7","ok"],["لا يوجد طلب متعارض","","ok"]],[["المدير المباشر","مدير المبيعات",2,"15 نوفمبر 13:40"],["الموارد البشرية","هند العتيبي",1,"متبقٍ 6 ساعات"]],[["hrLeaves","book-open","دفتر الإجازات","−5 أيام · الرصيد 9"],["hrAttendance","clock","الحضور","«إجازة» من 24 إلى 28 نوفمبر"],["hrTeam","users","تقويم الفريق","تظهر لمدير المبيعات"],["hrPayroll","wallet","الرواتب","إجازة مدفوعة · دون خصم"]]],
+ "RQ-1043":["عمر حداد · محاسب · مقيم (الأردن) · قُدِّم 12 نوفمبر 09:14 من حسابه",[["الإجازة","سنوية · 14 يوماً · 20 ديسمبر – 3 يناير"],["الرصيد","19 ← 5 أيام"],["التأشيرة","خروج وعودة مفردة · 30 يوماً"],["الرسوم","على الشركة حسب العقد · 200 ر.س"],["السفر","عمّان · 20 ديسمبر"],["يغطي العمل","ريم الدوسري"]],[["الإقامة تغطي مدة التأشيرة","سارية حتى 2027-02-08","ok"],["الجواز يغطي المدة","ينتهي 2027-04-28 — نبّهه للتجديد","warn"],["لا توجد تأشيرة سارية غير مستخدمة","","ok"],["اشتراك مقيم للمنشأة ساري","حتى 2027-01-07","ok"]],[["المدير المباشر","مدير المالية",2,"12 نوفمبر 11:02"],["الموارد البشرية","هند العتيبي",1,"متأخر يومين · صُعِّد"],["مسؤول الجوازات","التنفيذ في مقيم",0,""],["الموظف","يؤكد السفر والعودة",0,""]],[["hrLeaves","book-open","دفتر الإجازات","−14 يوماً · الرصيد 5"],["hrTravel","plane","السفر والتأشيرات","مهمة إصدار التأشيرة في مقيم"],["hrEntries","book-open-check","قيود الموارد البشرية","قيد مسودة 200 ر.س رسوم حكومية"],["hrTeam","users","تقويم الفريق","تظهر لمدير المالية"]]],
+ "RQ-1044":["يوسف البقمي · مندوب مبيعات · قُدِّم 17 نوفمبر 08:30 من حسابه",[["البيان","الآيبان"],["القيمة الحالية","لا يوجد"],["القيمة الجديدة","SA•• •••• •••• •••• 7519"],["البنك","بنك الراجحي"],["المرفق","شهادة الآيبان من البنك.pdf"]],[["المرفق موجود","","ok"],["اسم صاحب الحساب يطابق اسم الموظف","","ok"],["مطلوب قبل تجهيز ملف حماية الأجور لنوفمبر","بدونه يُستبعد من الملف","warn"]],[["الموارد البشرية","هند العتيبي",1,"قبل تجهيز الملف"]],[["hrEmployeeShow","user-round","ملف الموظف","يُحدَّث الآيبان"],["hrWps","shield-check","حماية الأجور","يختفي تنبيه «لا يوجد آيبان»"],["hrPayroll","wallet","الرواتب","يدخل مسير نوفمبر بتحويل بنكي"]]],
+ "RQ-1050":["عبدالعزيز الشمري · مشرف إيواء · أدخلته هند العتيبي نيابة عنه 16 نوفمبر",[["المبلغ","3,000 ر.س"],["الأقساط","6 × 500 ر.س"],["بداية الخصم","مسير ديسمبر 2026"],["طريقة الصرف","تحويل بنكي"],["سبب الإدخال نيابة","ليس له مستخدم في البرنامج"]],[["القسط 9% من الراتب","الحد 25%","ok"],["لا توجد سلفة مفتوحة","","ok"],["المبلغ لا يتجاوز 3,000","لا يمر على المالية","ok"],["غاب يومين هذا الشهر","للعلم فقط","warn"]],[["المدير المباشر","مشرف الإيواء",2,"16 نوفمبر 09:20"],["الموارد البشرية","هند العتيبي",1,"متبقٍ 20 ساعة"]],[["hrPayroll","wallet","الرواتب","قسط 500 ر.س من ديسمبر"],["finBonds","receipt-text","سندات الصرف","سند صرف 3,000 ر.س"],["hrEmployeeShow","user-round","ملف الموظف","سلفة متبقية 3,000"]]],
+ "RQ-1049":["أمل الغامدي · المالية · قُدِّم 16 نوفمبر 07:50 من حسابها",[["النوع","مرضية"],["الفترة","16–17 نوفمبر"],["الأيام","يومان"],["الشريحة","أجر كامل · اليوم 3 و4 من 30"],["بداية سنة المرضية","2026-06-02"],["المرفق","تقرير طبي معتمد.pdf"]],[["التقرير الطبي مرفق","","ok"],["ضمن الثلاثين يوماً بأجر كامل","","ok"]],[["الموارد البشرية","هند العتيبي",1,"متبقٍ 18 ساعة"]],[["hrLeaves","book-open","دفتر الإجازات","المرضية بأجر كامل: 26 من 30 متبقية"],["hrAttendance","clock","الحضور","«إجازة مرضية» 16–17 نوفمبر"],["hrPayroll","wallet","الرواتب","أجر كامل دون خصم"]]],
+ "RQ-1048":["سارة القحطاني · خدمة العملاء · قُدِّم 18 نوفمبر 08:05 من حسابها",[["التاريخ","الخميس 19 نوفمبر"],["الوقت","13:00 – 15:00"],["المدة","ساعتان"],["السبب","موعد طبي"]],[["الحد الشهري 4 ساعات","2 من 4 بعد الطلب","ok"],["لا يتعارض مع مناوبة","","ok"]],[["المدير المباشر","فيصل الدوسري",1,"متبقٍ 21 ساعة"]],[["hrAttendance","clock","الحضور","استئذان ساعتين دون خصم"],["myRequests","send","طلباتي","يظهر لسارة «معتمد»"]]],
+ "RQ-1047":["جود الحارثي · خدمة العملاء · قُدِّم 18 نوفمبر 10:40 من حسابها",[["النوع","زواج"],["الفترة","7–11 ديسمبر"],["الأيام","5 أيام بأجر كامل"],["المرفق","عقد الزواج.pdf"]],[["إجازة نظامية بأجر كامل","م 113","ok"],["المستند مرفق","","ok"],["منى الزهراني في إجازة 7–8 ديسمبر","يحتاج تغطية","warn"]],[["المدير المباشر","فيصل الدوسري",1,"متبقٍ 23 ساعة"],["الموارد البشرية","هند العتيبي",0,""]],[["hrLeaves","book-open","دفتر الإجازات","تُسجَّل إجازة زواج 5 أيام"],["hrAttendance","clock","الحضور","«إجازة» من 7 إلى 11 ديسمبر"],["hrTeam","users","تقويم الفريق","تظهر لفيصل الدوسري"]]],
+ "RW-0031":["ريم الدوسري · محاسبة · بمبادرة مدير المالية 14 نوفمبر",[["المبلغ","1,000 ر.س"],["السبب","إقفال الربع الثالث مبكراً"],["بدأها","مدير المالية"],["الصرف","مع مسير نوفمبر"]],[["ضمن ميزانية المكافآت للربع","","ok"]],[["مدير المالية","بادر بها",2,"14 نوفمبر"],["الموارد البشرية","هند العتيبي",1,"متبقٍ 22 ساعة"]],[["hrPayroll","wallet","الرواتب","+1,000 في مسير نوفمبر"],["hrReview","award","سجل الإنجازات","تُضاف لملف تقييمها"]]],
+ "RQ-1046":["لمى العنزي · المبيعات · قُدِّم 16 نوفمبر 14:20 من حسابها",[["النوع","تعريف بالراتب"],["الجهة","بنك الرياض"],["اللغة","العربية"],["إظهار الراتب","نعم · الأجر الموثّق 6,750"]],[["الأجر مطابق لما في قوى","","ok"]],[["الموارد البشرية","هند العتيبي",2,"17 نوفمبر 09:05"]],[["myRequests","send","طلباتي","PDF بختم ورمز QR للتحقق"]]],
+ "RQ-1041":["سلطان القرني · العمليات · قُدِّم 31 أكتوبر من حسابه",[["تاريخ الاستقالة","31 أكتوبر 2026"],["آخر يوم عمل","30 نوفمبر 2026"],["مدة الإشعار","30 يوماً من العامل · مكتملة"],["السبب","ظروف عائلية"],["المرفق","خطاب الاستقالة.pdf"]],[["مدة الإشعار مكتملة","لا يوجد تعويض إشعار","ok"],["العهد","لابتوب LAP-031 أُعيد 12 نوفمبر","ok"]],[["المدير المباشر","مدير العمليات",2,"31 أكتوبر"],["مدير القسم","مدير العمليات",2,"1 نوفمبر"],["الموارد البشرية","هند العتيبي",2,"2 نوفمبر"]],[["hrEos","door-open","المخالصات","ES-2026-009 بانتظار الاعتماد"],["hrGosi","landmark","التأمينات","الاستبعاد من 1 ديسمبر"],["hrEmployeeShow","user-round","ملف الموظف","إيقاف الحساب بعد آخر يوم"]]]};
+/* الحالة أثناء التصفح: المرحلة وعند من والمهلة والسلسلة والسجل لكل طلب */
+const ST={};
+const st=r=>ST[r[0]]||(ST[r[0]]={stage:r[7],holder:r[8],due:r[9],chain:DET[r[0]][3].map(c=>c.slice()),log:[],res:null});
+const FL={grp:"الكل",stg:"open",src:"",who:"",q:"",late:0,sel:"RQ-1052",err:""};
+const vis=()=>RQ.filter(r=>{const s=st(r);
+ if(FL.grp!=="الكل"&&TY(r[1])[3]!==FL.grp)return false;
+ if(FL.stg==="open"&&s.stage>=4)return false;
+ if(typeof FL.stg==="number"&&s.stage!==FL.stg)return false;
+ if(FL.late&&!(s.due[0]==="r"&&s.stage<4))return false;
+ if(FL.src&&r[6][1].indexOf(FL.src)<0)return false;
+ if(FL.who&&s.holder.indexOf(FL.who)<0)return false;
+ if(FL.q&&(r[0]+" "+r[2]+" "+r[3]).indexOf(FL.q)<0)return false;
+ return true});
+const CNT=()=>{const a=RQ.map(st);return {ap:a.filter(s=>s.stage===2).length,late:a.filter(s=>s.stage<4&&s.due[0]==="r").length,ex:a.filter(s=>s.stage===3).length,cl:a.filter(s=>s.stage===4).length}};
+const ico=()=>{if(window.lucide)lucide.createIcons({attrs:{"stroke-width":1.8}})};
+const statsH=()=>{const c=CNT();return [["a","inbox","بانتظار الاعتماد",c.ap,2],["r","alarm-clock","متأخرة عن المهلة",c.late,"late"],["n","play","قيد التنفيذ",c.ex,3],["g","check-check","أُغلقت هذا الشهر",46+c.cl,4]].map(x=>{const on=x[4]==="late"?FL.late:(!FL.late&&FL.stg===x[4]);return STAT(x[0],x[1],x[2],x[3],on).replace('<div class="scard','<div data-h13-stg="'+x[4]+'" role="button" tabindex="0" class="h13-st scard')}).join("")};
+const cycH=()=>{const c=CNT();return STG.map((s,i)=>{const n=i===2?c.ap:i===3?c.ex:i===4?46+c.cl:0;return `<div class="s${FL.stg===i&&!FL.late?" now":""}"${i>=2?` data-h13-stg="${i}" role="button"`:""}><span class="n">${X(s[0])}</span><div><b>${s[1]}${n?` <em class="num">${n}</em>`:""}</b><small>${s[2]}</small></div></div>`}).join(`<i class="l"></i>`)};
+const chipsH=()=>{const base=RQ.filter(r=>FL.stg==="open"?st(r).stage<4:typeof FL.stg==="number"?st(r).stage===FL.stg:true);return `<div class="cx-chips">${["الكل"].concat(GRPS).map(g=>`<button data-h13-grp="${g}" class="${FL.grp===g?"on":""}">${g}<b class="num">${g==="الكل"?base.length:base.filter(r=>TY(r[1])[3]===g).length}</b></button>`).join("")}</div>`};
+const STL={2:["a","الاعتماد"],3:["n","التنفيذ"],4:["g","مغلق"]};
+const listH=()=>{const v=vis();
+ if(!v.length)return `<div class="h13-empty">${X("inbox")}<b>لا توجد طلبات بهذه الفلاتر</b><button class="btn btn-ghost sm" data-h13-reset="">مسح الفلاتر</button></div>`;
+ if(!v.some(r=>r[0]===FL.sel))FL.sel=v[0][0];
+ return TBL(["الطلب والموظف","التفاصيل","المرحلة والمهلة"],v.map(r=>{const t=TY(r[1]),s=st(r);return `<tr class="h13-row${r[0]===FL.sel?" h9-sel":""}" data-h13-sel="${r[0]}" tabindex="0"><td><span class="h8-doc">${X(t[1])}<b>${r[2]}</b></span><small class="h8-hj num">${r[0]} · ${t[3]}</small><div class="h13-who">${AV(r[3])}<span>${r[3]}<small>${r[4]} · ${r[6][1]}</small></span></div></td><td><small>${r[5]}</small>${r[10]&&s.stage<4?`<div style="margin-top:6px">${TAG(r[10][0],r[10][1])}</div>`:""}</td><td>${DOTS(s.stage)}<small class="h13-at">${STG[s.stage][1]} · ${s.holder}</small><div style="margin-top:5px">${s.res?TAG(s.res[0],s.res[1]):TAG(s.due[0],s.due[1])}</div></td></tr>`}))};
+const now=()=>{const d=new Date();return "اليوم "+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0")};
+const panelH=()=>{const v=vis(),r=RQ.find(x=>x[0]===FL.sel);if(!r||!v.length)return `<div class="card h13-det h13-empty">${X("mouse-pointer-click")}<b>اختر طلباً من القائمة</b></div>`;
+ const t=TY(r[1]),s=st(r),d=DET[r[0]],i=v.findIndex(x=>x[0]===r[0]),sl=STL[s.stage];
+ let act="";
+ if(s.stage===2&&s.holder.indexOf("الموظف")===0)act=`<div class="cx-info">${X("message-circle-question")}<span>بانتظار رد الموظف على الاستيضاح.</span></div><div class="b">${B("primary","reply","تسجيل رد الموظف",'data-h13-act="reply"')}</div>`;
+ else if(s.stage===2)act=`<div class="fgrid one">${FLD("سبب الرفض",`<select data-h13-reason=""><option value="">اختر السبب عند الرفض…</option><option>تعارض مع احتياج العمل</option><option>الرصيد لا يكفي</option><option>مستند ناقص</option><option>أخرى</option></select>`,0,FL.err?`<span class="h13-err">${FL.err}</span>`:"يصل السبب للموظف ويُحفظ في سجل الطلب")}</div><div class="b">${B("ghost","message-circle-question","طلب استيضاح",'data-h13-act="ask"')}${B("ghost","x","رفض",'data-h13-act="reject"')}${B("primary","check","اعتماد",'data-h13-act="approve"')}</div>`;
+ else if(s.stage===3)act=`<div class="cx-info">${X("play")}<span>الطلب معتمد وينتظر التنفيذ في «${RTF[r[1]]?RTF[r[1]][3]:"الرواتب"}».</span></div><div class="b">${r[1]==="resign"?B("ghost","door-open","فتح المخالصة",'data-go="hrEos"'):""}${B("primary","check-check",r[1]==="letter"?"إصدار الخطاب وإغلاق الطلب":"تم التنفيذ — إغلاق الطلب",'data-h13-act="done"')}</div>`;
+ else act=`<div class="cx-info">${X(s.res&&s.res[0]==="r"?"x-circle":"check-circle-2")}<span>${s.res?s.res[1]:"مغلق"} · وصل إشعار للموظف داخل البرنامج وعلى واتساب.</span></div>`;
+ return `<div class="card h13-det">
+  <div class="h13-nav"><button class="icon-btn" data-h13-nav="-1"${i<=0?" disabled":""} title="السابق">${X("chevron-right")}</button><span class="num">${i+1} من ${v.length}</span><button class="icon-btn" data-h13-nav="1"${i>=v.length-1?" disabled":""} title="التالي">${X("chevron-left")}</button>${r[0]==="RQ-1043"?`<a href="#" data-go="myRequestShow" class="h13-full">السجل الكامل</a>`:""}</div>
+  <div class="card-h"><div><h3>${r[0]} · ${r[2]}</h3><p>${d[0]}</p></div>${TAG(sl[0],sl[1])}</div>
+  ${DOTS(s.stage)}<small class="h13-at">${STG[s.stage][1]} · ${s.holder}</small>
+  <div class="h13-sh">${X(t[1])}<b>محتوى الطلب</b></div>${KV(d[1])}
+  <div class="h13-sh">${X("scan-search")}<b>الفحص التلقائي</b></div>${CHK(d[2])}
+  <div class="h13-sh">${X("git-branch")}<b>سلسلة الاعتماد</b></div>${CHAIN(s.chain)}
+  <div class="h13-sh">${X("play")}<b>${s.stage>=3?"يتحدّث في":"بعد الاعتماد يتحدّث تلقائياً"}</b></div>
+  <div class="h13-fx">${d[4].map(f=>`<a href="#" data-go="${f[0]}">${X(f[1])}<span><b>${f[2]}</b><small>${f[3]}</small></span>${X("chevron-left")}</a>`).join("")}</div>
+  ${s.log.length?`<div class="h13-sh">${X("history")}<b>ما تم الآن</b></div><div class="h8-tl">${s.log.map(l=>`<div class="${l[2]}"><span class="d">${X(l[3])}</span><div><small class="num">${l[0]}</small><b>${l[1]}</b></div></div>`).join("")}</div>`:""}
+  <div class="h13-act">${act}</div></div>`};
+const paint=()=>{const root=document.getElementById("h13");if(!root)return;
+ const put=(id,h)=>{const el=root.querySelector(id);if(el)el.innerHTML=h};
+ put("[data-h13-stats]",statsH());put("[data-h13-cyc]",cycH());put("[data-h13-chips]",chipsH());put("[data-h13-list]",listH());put("[data-h13-panel]",panelH());
+ const s=root.querySelector('[data-h13-f="stg"]');if(s)s.value=FL.late?"late":String(FL.stg);ico()};
+const doAct=a=>{const r=RQ.find(x=>x[0]===FL.sel);if(!r)return;const s=st(r),cur=s.chain.findIndex(c=>c[2]===1||c[2]===4);FL.err="";
+ if(a==="approve"){s.chain.forEach(c=>{if(c[2]!==2){c[2]=2;c[3]=now()}});s.stage=3;s.holder=RTF[r[1]]?RTF[r[1]][3]:"الرواتب";s.due=["n","بانتظار التنفيذ"];s.log.push([now(),"اعتمدته هند العتيبي","g","check"])}
+ else if(a==="reject"){const sel=document.querySelector("[data-h13-reason]");const why=sel&&sel.value;if(!why){FL.err="اختر سبب الرفض أولاً";paint();return}
+  if(cur>=0){s.chain[cur][2]=3;s.chain[cur][3]=now()}s.stage=4;s.holder="مغلق";s.res=["r","مرفوض: "+why];s.log.push([now(),"رُفض — "+why,"r","x"])}
+ else if(a==="ask"){if(cur>=0){s.chain[cur][2]=4;s.chain[cur][3]="طُلب استيضاح"}s.holder="الموظف: استيضاح";s.due=["a","بانتظار رد الموظف"];s.log.push([now(),"طُلب استيضاح من الموظف","a","message-circle-question"])}
+ else if(a==="reply"){if(cur>=0){s.chain[cur][2]=1;s.chain[cur][3]="عاد بعد الاستيضاح"}s.holder=r[8];s.due=r[9];s.log.push([now(),"ردّ الموظف على الاستيضاح","n","reply"])}
+ else if(a==="done"){s.stage=4;s.holder="مغلق";s.res=["g",r[1]==="letter"?"صدر الخطاب":"نُفِّذ وأُغلق"];s.log.push([now(),"تم التنفيذ وأُغلق الطلب","g","check-check"])}
+ paint()};
+if(!window.__h13){window.__h13=1;
+ document.addEventListener("click",e=>{if(!e.target.closest||!e.target.closest("#h13"))return;
+  const g=e.target.closest("[data-h13-grp]"),sg=e.target.closest("[data-h13-stg]"),row=e.target.closest("[data-h13-sel]"),nv=e.target.closest("[data-h13-nav]"),ac=e.target.closest("[data-h13-act]"),rs=e.target.closest("[data-h13-reset]");
+  if(g){FL.grp=g.dataset.h13Grp;FL.err="";paint()}
+  else if(sg){const v=sg.dataset.h13Stg;if(v==="late"){FL.late=FL.late?0:1;FL.stg="open"}else{const n=+v;FL.late=0;FL.stg=FL.stg===n?"open":n}FL.err="";paint()}
+  else if(row){FL.sel=row.dataset.h13Sel;FL.err="";paint()}
+  else if(nv){const v=vis(),i=v.findIndex(x=>x[0]===FL.sel),j=i+(+nv.dataset.h13Nav);if(v[j]){FL.sel=v[j][0];FL.err="";paint()}}
+  else if(ac){e.preventDefault();doAct(ac.dataset.h13Act)}
+  else if(rs){Object.assign(FL,{grp:"الكل",stg:"open",src:"",who:"",q:"",late:0});document.querySelectorAll("#h13 [data-h13-f]").forEach(x=>{x.value=x.tagName==="INPUT"?"":x.options[0].value});paint()}});
+ document.addEventListener("input",e=>{if(e.target.matches&&e.target.matches('#h13 [data-h13-f="q"]')){FL.q=e.target.value.trim();paint()}});
+ document.addEventListener("change",e=>{const f=e.target.closest&&e.target.closest("#h13 [data-h13-f]");if(!f)return;const k=f.dataset.h13F,v=f.value;
+  if(k==="stg"){FL.late=v==="late"?1:0;FL.stg=v==="late"||v==="open"||v==="all"?(v==="all"?"all":"open"):+v}else FL[k]=v;paint()});
+ document.addEventListener("keydown",e=>{if(!document.getElementById("h13")||/INPUT|SELECT|TEXTAREA/.test((e.target.tagName||"")))return;
+  if(e.key==="ArrowDown"||e.key==="ArrowUp"){const v=vis(),i=v.findIndex(x=>x[0]===FL.sel),j=i+(e.key==="ArrowDown"?1:-1);if(v[j]){e.preventDefault();FL.sel=v[j][0];paint();const el=document.querySelector(`#h13 [data-h13-sel="${FL.sel}"]`);if(el&&el.scrollIntoView)el.scrollIntoView({block:"nearest"})}}
+  else if(e.key==="Enter"){const row=e.target.closest&&e.target.closest("[data-h13-sel]");if(row){FL.sel=row.dataset.h13Sel;paint()}}})}
+S.hrRequests=()=>`<div id="h13">
  ${HEAD("طلبات الموظفين","كل طلبات الموظفين في صندوق واحد مرتب بدورة الطلب: التقديم، ثم الفحص التلقائي، ثم الاعتماد، ثم التنفيذ في الشاشة المرتبطة، ثم الإغلاق.",B("ghost","file-spreadsheet","Excel")+B("ghost","book-open","دفتر الإجازات",'data-go="hrLeaves"')+B("primary","plus","طلب نيابة عن موظف",'data-go="myRequestNew"'))}
- <div class="statgrid">${STAT("a","inbox","بانتظار الاعتماد","8",1)+STAT("r","alarm-clock","متأخرة عن المهلة","1")+STAT("n","play","قيد التنفيذ","2")+STAT("g","check-check","أُغلقت هذا الشهر","46")}</div>
- <div class="card fx-track h13-cyc">${STG.map((s,i)=>{const c=RQ.filter(r=>r[7]===i).length;return `<div class="s"><span class="n">${X(s[0])}</span><div><b>${s[1]}${c?` <em class="num">${c}</em>`:""}</b><small>${s[2]}</small></div></div>`}).join(`<i class="l"></i>`)}</div>
- ${CHIPS([["الكل","",RQ.length]].concat(GRPS.map(g=>[g,"",GCNT(g)])))}
- <div class="fbar"><div class="fb grow"><label>بحث</label><div class="inp">${X("search")}<input placeholder="اسم الموظف أو رقم الطلب"></div></div><div class="fb"><label>المرحلة</label>${SEL(["كل المراحل","الاعتماد","التنفيذ","المغلقة"])}</div><div class="fb"><label>عند من</label>${SEL(["الكل","عندي","المدير المباشر","المالية","مسؤول الجوازات"])}</div><div class="fb"><label>المصدر</label>${SEL(["كل المصادر","من حساب الموظف","نيابة عن موظف","بمبادرة المدير"])}</div></div>
+ <div class="statgrid" data-h13-stats="">${statsH()}</div>
+ <div class="card fx-track h13-cyc" data-h13-cyc="">${cycH()}</div>
+ <div data-h13-chips="">${chipsH()}</div>
+ <div class="fbar"><div class="fb grow"><label>بحث</label><div class="inp">${X("search")}<input data-h13-f="q" placeholder="اسم الموظف أو رقم الطلب أو نوعه"></div></div><div class="fb"><label>المرحلة</label><select data-h13-f="stg"><option value="open">المفتوحة</option><option value="2">الاعتماد</option><option value="3">التنفيذ</option><option value="4">المغلقة</option><option value="late">المتأخرة</option><option value="all">الكل</option></select></div><div class="fb"><label>عند من</label><select data-h13-f="who"><option value="">الكل</option><option>الموارد البشرية</option><option>المدير المباشر</option><option value="الموظف">الموظف (استيضاح)</option><option value="المخالصة">المخالصة</option></select></div><div class="fb"><label>المصدر</label><select data-h13-f="src"><option value="">كل المصادر</option><option value="من حساب">من حساب الموظف</option><option value="نيابة">نيابة عن موظف</option><option value="بمبادرة">بمبادرة المدير</option></select></div></div>
  <div class="grid-2 wide-l h13-lay"><div>
-  <div class="card flush fx-t"><div class="card-h pad"><div><h3>الطلبات المفتوحة</h3><p>المتأخر أولاً · اضغط على الطلب ليظهر محتواه في اللوحة</p></div></div>
-  ${TBL(["الطلب والموظف","التفاصيل","المرحلة والمهلة"],RQ.map((r,i)=>{const t=TY(r[1]);return `<tr class="h13-row${i===0?" h9-sel":""}"${r[0]==="RQ-1043"?' data-go="myRequestShow"':""}><td><span class="h8-doc">${X(t[1])}<b>${r[2]}</b></span><small class="h8-hj num">${r[0]} · ${t[3]}</small><div class="h13-who">${AV(r[3])}<span>${r[3]}<small>${r[4]} · ${r[6][1]}</small></span></div></td><td><small>${r[5]}</small>${r[10]?`<div style="margin-top:6px">${TAG(r[10][0],r[10][1])}</div>`:""}</td><td>${DOTS(r[7])}<small class="h13-at">${STG[r[7]][1]} · ${r[8]}</small><div style="margin-top:5px">${TAG(r[9][0],r[9][1])}</div></td></tr>`}))}</div>
- </div><div>
-  <div class="card h13-det"><div class="card-h"><div><h3>RQ-1052 · إجازة سنوية</h3><p>نورة السبيعي · مندوبة مبيعات · قُدِّم 15 نوفمبر 10:12 من حسابها</p></div>${TAG("a","الاعتماد")}</div>
-   ${DOTS(2)}
-   <div class="h13-sh">${X("file-text")}<b>محتوى الطلب</b></div>
-   ${KV([["النوع","سنوية"],["الفترة",'<span class="num">الأحد 24 – الخميس 28 نوفمبر</span>'],["الأيام",'<span class="num">5 أيام عمل</span> <small>الجمعة والسبت غير محسوبين</small>'],["يغطي العمل","منى الزهراني"],["رقم التواصل",'<span class="num">0553311207</span>'],["صرف الأجر مقدماً","لا"],["المرفقات","غير مطلوبة للسنوية"]])}
-   <div class="h13-sh">${X("scan-search")}<b>الفحص التلقائي</b></div>
-   ${CHK([["الرصيد يكفي","14 ← 9 أيام","ok"],["من القسم نفسه في إجازة","خالد المطيري 26–27 نوفمبر","warn"],["إجازات رسمية في الفترة","لا يوجد","ok"],["مدة الإشعار حسب السياسة","9 أيام قبل البداية · الحد 7","ok"],["لا يوجد طلب متعارض","","ok"]])}
-   <div class="h13-sh">${X("git-branch")}<b>سلسلة الاعتماد</b></div>
-   ${CHAIN([["المدير المباشر","مدير المبيعات",2,"15 نوفمبر 13:40"],["الموارد البشرية","هند العتيبي",1,"متبقٍ 6 ساعات"]])}
-   <div class="h13-sh">${X("play")}<b>بعد الاعتماد يتحدّث تلقائياً</b></div>
-   <div class="h13-fx">${[["hrLeaves","book-open","دفتر الإجازات","−5 أيام · الرصيد 9"],["hrAttendance","clock","الحضور","«إجازة» من 24 إلى 28 نوفمبر"],["hrTeam","users","تقويم الفريق","تظهر لمدير المبيعات"],["hrPayroll","wallet","الرواتب","إجازة مدفوعة · دون خصم"]].map(f=>`<a href="#" data-go="${f[0]}">${X(f[1])}<span><b>${f[2]}</b><small>${f[3]}</small></span>${X("chevron-left")}</a>`).join("")}</div>
-   <small class="fhint">ثم يُغلق الطلب ويصل إشعار للموظفة داخل البرنامج وعلى واتساب.</small>
-   <div class="h13-act"><div class="fgrid one">${FLD("سبب الرفض",SEL(["اختر السبب عند الرفض…","تعارض مع احتياج العمل","الرصيد لا يكفي","مستند ناقص","أخرى (اكتب السبب)"]),0,"يصل السبب للموظفة ويُحفظ في سجل الطلب")}</div><div class="b">${B("ghost","message-circle-question","طلب استيضاح")}${B("ghost","x","رفض")}${B("primary","check","اعتماد")}</div></div>
-  </div>
- </div></div>
+  <div class="card flush fx-t"><div class="card-h pad"><div><h3>الطلبات</h3><p>اضغط على الطلب أو تنقّل بالأسهم ↑ ↓ · المتأخر أولاً</p></div></div><div data-h13-list="">${listH()}</div></div>
+ </div><div data-h13-panel="">${panelH()}</div></div>
  <div class="card flush fx-t h13-cat"><div class="card-h pad"><div><h3>ماذا يحتوي كل طلب ${NW}</h3><p>${RT.length} نوعاً في ${GRPS.length} مجموعات · من التقديم حتى الأثر في شاشات الموارد البشرية</p></div>${B("ghost sm","settings-2","الأنواع وسلاسل الاعتماد",'data-go="hrApprovalFlows"')}</div>
   ${GRPS.map((g,gi)=>`<details${gi===0?" open":""}><summary><b>${g}</b><small class="num">${RT.filter(t=>t[3]===g).length} أنواع</small>${X("chevron-down")}</summary>${TBL(["النوع","يحتوي على","المرفق","الفحص التلقائي","الاعتماد","الأثر بعد الاعتماد","يُنفَّذ في"],RT.filter(t=>t[3]===g).map(t=>{const f=RTF[t[0]];return `<tr><td><span class="h8-doc">${X(t[1])}<b>${t[2]}</b></span><small class="h8-hj">${t[4]==="الكل"?"لكل الموظفين":t[4]}</small></td><td><small>${f[0]}</small></td><td><small>${f[1]}</small></td><td><small>${t[6]||"—"}</small></td><td><small>${t[5]}</small></td><td><small>${t[7]}</small></td><td><a href="#" data-go="${f[2]}" class="h13-go">${f[3]}</a></td></tr>`}))}</details>`).join("")}
   <div class="cx-info" style="margin:14px 20px 18px">${X("gift")}<span>المكافأة ليست طلباً من الموظف: يبدأها المدير وتمر على الموارد البشرية، ثم تدخل المسير.</span></div>
- </div>`;
+ </div></div>`;
 
 Object.assign(T,{myRequests:{ar:"طلباتي",en:"My requests"},myRequestNew:{ar:"طلب جديد",en:"New request"},myRequestShow:{ar:"RQ-1043",en:"Request details"},hrTeam:{ar:"فريقي",en:"My team"},hrApprovalFlows:{ar:"أنواع الطلبات والاعتماد",en:"Request types & approvals"}});
 Object.keys(S).forEach(k=>{screens[k]=S[k]});

@@ -7371,3 +7371,16 @@ tr.h9-sel td{background:var(--navy-soft)}
 .h13-who span{display:flex;flex-direction:column;font-size:13px;font-weight:600}
 .h13-who small{font-weight:400;font-size:11.5px;color:var(--muted)}
 .h13-lay .fx-t td{vertical-align:top}
+/* v1.54 — interactive requests inbox */
+.h13-st{cursor:pointer}
+.h13-cyc .s[data-h13-stg]{cursor:pointer;border-radius:10px}
+.h13-cyc .s[data-h13-stg]:hover{background:var(--bg)}
+.h13-row:focus{outline:2px solid var(--navy);outline-offset:-2px}
+.h13-nav{display:flex;align-items:center;gap:6px;margin:-4px 0 8px;padding-bottom:8px;border-bottom:1px solid var(--line-2);font-size:12.5px;color:var(--muted)}
+.h13-nav .icon-btn{width:30px;height:30px}
+.h13-nav .icon-btn[disabled]{opacity:.35;cursor:default}
+.h13-full{margin-inline-start:auto;font-weight:600;color:var(--navy);font-size:12.5px}
+.h13-empty{display:flex;flex-direction:column;align-items:center;gap:8px;padding:40px 20px;color:var(--muted);text-align:center}
+.h13-empty svg{width:28px;height:28px}
+.h13-err{color:var(--red);font-weight:600}
+.h13-det .h8-tl{margin-bottom:6px}
