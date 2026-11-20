@@ -282,3 +282,9 @@ html{font-size:min(1.25vw,2vh)}
  .pos-paper{position:fixed!important;inset:0 auto auto 0;width:74mm!important;box-shadow:none!important;-webkit-mask:none!important;mask:none!important;padding:0 1mm!important;font-size:9pt}
  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
+/* v1.80 — تطبيق الويب */
+.pos-install,.pos-webmode,.pos-weboff{display:flex;align-items:center;gap:.9rem;padding:.9rem 1.1rem;border-radius:var(--r);background:var(--surface);border:1px solid var(--line);margin:1rem auto 0;max-width:70rem;width:100%}
+.pos-install>svg,.pos-webmode>svg,.pos-weboff>svg{width:1.8rem;height:1.8rem;flex:none;color:var(--navy)}
+.pos-install>div,.pos-webmode>div,.pos-weboff>div{flex:1}.pos-install b,.pos-webmode b,.pos-weboff b{display:block;font-size:1rem}.pos-install small,.pos-webmode small,.pos-weboff small{display:block;color:var(--muted);font-size:.85rem;line-height:1.6}
+.pos-webmode{margin:0 0 1rem;background:var(--navy-soft);border-color:transparent}
+.pos-weboff{margin:0 0 .5rem;background:var(--amber-soft);border-color:#f0d9b0}.pos-weboff>svg{color:var(--amber)}.pos-weboff b{color:#8a5a12;font-size:.9rem}

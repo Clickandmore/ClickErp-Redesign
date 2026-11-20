@@ -1596,7 +1596,7 @@
     {
       "id": "cmStores",
       "file": "cmStores.html",
-      "title": "المخازن"
+      "title": "قائمة المخازن"
     },
     {
       "id": "cmSales",
@@ -1706,7 +1706,7 @@
     {
       "id": "pos",
       "file": "pos.html",
-      "title": "تطبيق الكاشير"
+      "title": "الكاشير — تطبيق ويب"
     },
     {
       "id": "finQuotes",

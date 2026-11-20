@@ -294,9 +294,9 @@ S.cmStores=()=>{const list=D.stores.filter(s=>CM.allBr()||s[2]==="b1"),cost=CM.c
   <div class="cmk-sm"><span>${X("network")}${s[3]}</span><span>${X("book")}${s[4]}</span><span>${X(s[6]?"shield-alert":"shield-check")}${s[6]?"يسمح بالسالب":"لا يسمح بالسالب"}</span></div>
   <div class="cmk-sa"><button class="btn btn-ghost sm" data-cmk-act="sedit" data-v="${s[0]}">${X("pencil")}تعديل</button><button class="btn btn-ghost sm" data-go="cmStock" data-cmk-act="sfilt" data-v="${s[0]}">${X("boxes")}الأرصدة</button></div></div>`}).join("")}
   <button class="card cmk-sc cmk-add" data-cmk-act="snew">${X("plus")}<b>مخزن جديد</b><small>${list.length} من ${CM.cfg().limits.stores} مخازن مسموحة</small></button></div>`;
- return `${HEAD("المخازن","كل مخزن مرتبط بفرع ومركز تكلفة وحساب مخزون خاص به.",B("primary","plus","مخزن جديد",'data-cmk-act="snew"'))}${CM.pvbar({st:1})}${CM.view(body,CM.empty("warehouse","لا مخازن بعد","أضف أول مخزن لتبدأ تسجيل الأرصدة.",B("primary","plus","مخزن جديد",'data-cmk-act="snew"')))}`};
+ return `${HEAD("قائمة المخازن","كل مخزن مرتبط بفرع ومركز تكلفة وحساب مخزون خاص به.",B("primary","plus","مخزن جديد",'data-cmk-act="snew"'))}${CM.pvbar({st:1})}${CM.view(body,CM.empty("warehouse","لا مخازن بعد","أضف أول مخزن لتبدأ تسجيل الأرصدة.",B("primary","plus","مخزن جديد",'data-cmk-act="snew"')))}`};
 
-Object.assign(T,{cmStock:{ar:"الكميات في المخزن",en:"Stock balances"},cmDocs:{ar:"إدخال وإخراج بضاعة",en:"Stock documents"},cmDocShow:{ar:"إدخال أو إخراج بضاعة",en:"Stock document"},cmCount:{ar:"الجرد",en:"Stock count"},cmCountRun:{ar:"شاشة العدّ",en:"Counting"},cmStores:{ar:"المخازن",en:"Stores"}});
+Object.assign(T,{cmStock:{ar:"الكميات في المخزن",en:"Stock balances"},cmDocs:{ar:"إدخال وإخراج بضاعة",en:"Stock documents"},cmDocShow:{ar:"إدخال أو إخراج بضاعة",en:"Stock document"},cmCount:{ar:"الجرد",en:"Stock count"},cmCountRun:{ar:"شاشة العدّ",en:"Counting"},cmStores:{ar:"قائمة المخازن",en:"Stores"}});
 Object.keys(S).forEach(k=>{screens[k]=S[k]});
 
 /* ============ التفاعل ============ */

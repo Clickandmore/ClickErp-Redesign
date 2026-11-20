@@ -8,7 +8,7 @@ SCRIPTS = ["cm-features.js", "cm-core.js", "cm-items.js", "cm-stock.js", "cm-tra
 PAGES = {
  "cmDash": "مبيعات اليوم", "cmItems": "المنتجات", "cmItemAdd": "منتج جديد", "cmItemCard": "كارت المنتج", "cmImport": "استيراد المنتجات من Excel",
  "cmCats": "أقسام المنتجات", "cmUnits": "الوحدات", "cmPrices": "الأسعار", "cmPriceEdit": "محرر الأسعار",
- "cmStock": "الكميات في المخزن", "cmDocs": "إدخال وإخراج بضاعة", "cmDocShow": "إدخال أو إخراج بضاعة", "cmCount": "الجرد", "cmCountRun": "شاشة العدّ", "cmStores": "المخازن",
+ "cmStock": "الكميات في المخزن", "cmDocs": "إدخال وإخراج بضاعة", "cmDocShow": "إدخال أو إخراج بضاعة", "cmCount": "الجرد", "cmCountRun": "شاشة العدّ", "cmStores": "قائمة المخازن",
  "cmSales": "فواتير البيع", "cmSaleAdd": "فاتورة بيع", "cmSaleShow": "فاتورة بيع", "cmPurchases": "شراء بضاعة", "cmPurchaseAdd": "فاتورة شراء",
  "cmReturns": "المرتجعات", "cmReturnAdd": "مرتجع جديد",
  "cmShifts": "ورديات الكاشير", "cmShiftShow": "تفاصيل الوردية", "cmPosInvoices": "فواتير الكاشير", "cmPosInvoiceShow": "فاتورة كاشير",

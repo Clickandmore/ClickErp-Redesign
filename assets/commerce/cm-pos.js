@@ -146,7 +146,7 @@ const QR=(seed,n)=>{n=n||25;const r=rnd(seed);let s=`<svg class="cmp-qr" viewBox
 const go=(to,html,ctx,cls)=>`<a href="#" class="${cls||""}" data-go="${to}"${ctx?` data-cmp-ctx="${ctx}"`:""}>${html}</a>`;
 const btnGo=(cls,ic,txt,to,ctx)=>B(cls,ic,txt,`data-go="${to}"${ctx?` data-cmp-ctx="${ctx}"`:""}`);
 const cmpB=(cls,ic,txt,act,extra)=>B(cls,ic,txt,`data-cmp="${act}" ${extra||""}`);
-const posLink=()=>`<a class="btn btn-ghost" href="pos.html" target="_blank">${X("tablet-smartphone")}معاينة تطبيق الكاشير</a>`;
+const posLink=()=>`<a class="btn btn-ghost" href="pos.html" target="_blank">${X("monitor-smartphone")}افتح الكاشير (تطبيق ويب)</a>`;
 const modal=()=>{const m=P.modal;if(!m)return "";
  let body="";
  if(m.t==="revoke"){const d=getDev(m.dev),open=shifts().filter(s=>s.dev===d.id&&s.status==="open").length,unrep=invs().filter(i=>i.dev===d.id&&i.z==="unreported").length;
@@ -238,7 +238,7 @@ S.cmDash=()=>{
     <a href="#" data-go="cmShifts" data-cmp-ctx="sc:closed"><span>ورديات مقفلة بانتظار الترحيل</span><b>${num(waiting.length)}</b></a>
    </div></div>
  </div>
- <div class="cmp-foot">${X("info")}<span>الكاشير يعمل بدون إنترنت ويرفع فواتيره لاحقاً؛ لذلك قد تظهر فواتير يومٍ متأخرة. تطبيق الكاشير: ${`<a href="pos.html" target="_blank">فتح المعاينة</a>`}.</span></div>`;
+ <div class="cmp-foot">${X("info")}<span>الكاشير يعمل الآن كتطبيق ويب من المتصفح، وكل فاتورة تُبلّغ للهيئة فوراً. مع تطبيق أندرويد (المرحلة 3) يبيع بدون إنترنت ويرفع لاحقاً. ${`<a href="pos.html" target="_blank">افتح الكاشير</a>`}.</span></div>`;
  return `${HEAD("مبيعات اليوم","مبيعات نقاط البيع لحظياً، والأمور التي تحتاج تصرفك الآن",posLink()+btnGo("ghost","monitor-smartphone","أجهزة الكاشير","cmRegisters")+btnGo("primary","shield-check","ربط الأجهزة بالزكاة","cmZatca"))}${CM.pvbar()}${CM.view(normal,CM.empty("store","لا توجد نقاط بيع بعد","أضف أول نقطة بيع واربط جهازاً ليظهر هنا بيع اليوم.",btnGo("primary","monitor-smartphone","أجهزة الكاشير","cmRegisters")))}`};
 
 /* ====================================================================================== */
@@ -287,9 +287,9 @@ S.cmDevicePair=()=>{
  const p=P.pair,reg=getReg(P.ctx.reg);
  if(p.state==="none"||p.reg!==reg.id&&p.state==="none"){p.reg=reg.id}
  const st=p.state==="waiting"&&p.exp<=Date.now()?"expired":p.state;
- const steps=[["قدّم الكود","في التطبيق: «ربط جهاز» ثم امسح الـQR أو اكتب الثمانية خانات"],["صالح 15 دقيقة","بعدها يُلغى تلقائياً ويُولَّد كود جديد"],["مرة واحدة","يتحول الكود لرمز دخول للجهاز ولا يُعرض ثانية"]];
+ const steps=[["افتح الكاشير على الجهاز","من المتصفح على التابلت أو الكمبيوتر أو الجوال: افتح رابط الكاشير وثبّته على الشاشة الرئيسية"],["قدّم الكود","في الكاشير: «ربط جهاز» ثم امسح الـQR أو اكتب الثمانية خانات"],["صالح 15 دقيقة","بعدها يُلغى تلقائياً ويُولَّد كود جديد"],["مرة واحدة","يتحول الكود لرمز دخول للجهاز ولا يُعرض ثانية"]];
  let main="";
- if(st==="none")main=`<div class="card sec"><div class="sec-h">${X("tablet-smartphone")}<b>تجهيز جهاز جديد</b></div><div class="fgrid two">${FLD("نقطة البيع",`<select data-cmp-pf="reg">${P.regs.filter(x=>vis(x.id)).map(x=>`<option value="${x.id}"${x.id===reg.id?" selected":""}>${x.name}</option>`).join("")}</select>`,1,"يحمل الجهاز إعدادات هذه النقطة")}${FLD("اسم الجهاز",`<input data-cmp-pf="name" placeholder="مثال: آيباد الكاشير 2" value="${p.name||""}">`,1,"يظهر في الورديات والفواتير")}</div>
+ if(st==="none")main=`<div class="card cmp-weblink">${X("globe")}<div><b>الكاشير الآن تطبيق ويب</b><small>يعمل على أي تابلت أو كمبيوتر أو جوال من المتصفح، ويتثبّت كأيقونة على الشاشة الرئيسية. يحتاج إنترنت للبيع. تطبيق أندرويد بطابعة مدمجة وبيع بدون إنترنت في المرحلة 3.</small><span class="cm-mono">riyada.clickerp.sa/pos</span></div><a class="btn btn-ghost sm" href="pos.html" target="_blank">${X("external-link")}فتح</a></div><div class="card sec"><div class="sec-h">${X("tablet-smartphone")}<b>تجهيز جهاز جديد</b></div><div class="fgrid two">${FLD("نقطة البيع",`<select data-cmp-pf="reg">${P.regs.filter(x=>vis(x.id)).map(x=>`<option value="${x.id}"${x.id===reg.id?" selected":""}>${x.name}</option>`).join("")}</select>`,1,"يحمل الجهاز إعدادات هذه النقطة")}${FLD("اسم الجهاز",`<input data-cmp-pf="name" placeholder="مثال: آيباد الكاشير 2" value="${p.name||""}">`,1,"يظهر في الورديات والفواتير")}</div>
   <div class="cmp-padbtn">${cmpB("primary","qr-code","إنشاء كود الربط","paygen")}</div></div>`;
  else if(st==="waiting")main=`<div class="card cmp-pair"><div class="cmp-pq">${QR("pair"+p.code,25)}</div><div class="cmp-pc"><small>كود الربط · ${p.name||"جهاز جديد"} · ${regName(p.reg)}</small>
   <div class="cmp-code" dir="ltr">${p.code.slice(0,4)}<i></i>${p.code.slice(4)}</div>

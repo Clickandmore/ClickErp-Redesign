@@ -187,3 +187,5 @@
 .cmp-col.two .cmp-seg{flex-direction:row}.cmp-col.two .cmp-seg button{flex:1}
 @media (max-width:900px){.cmp-col.two{grid-template-columns:1fr}}
 .cmp-mb16{margin-bottom:16px}
+
+.cmp-weblink{display:flex;align-items:center;gap:12px;padding:14px 16px;margin-bottom:14px;background:var(--navy-soft);border-color:transparent}.cmp-weblink>svg{width:26px;height:26px;color:var(--navy);flex:none}.cmp-weblink>div{flex:1}.cmp-weblink b{display:block}.cmp-weblink small{display:block;color:var(--muted);font-size:12.5px;line-height:1.7}.cmp-weblink .cm-mono{font-size:12px;color:var(--navy)}

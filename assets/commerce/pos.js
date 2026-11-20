@@ -40,7 +40,7 @@ const PAIR_OK="K7M29QXA";
 const SCALE_CODE="2100106003750";
 
 /* ---------- الحالة ---------- */
-const S={screen:"pair",online:true,stale:false,printerOff:false,stockMode:"warn",blind:true,newPrices:false,priceApplied:false,
+const S={mode:"web",screen:"pair",online:true,stale:false,printerOff:false,stockMode:"warn",blind:true,newPrices:false,priceApplied:false,
  cashier:null,cart:[],cust:CUSTS[0],seq:153,uid:1,pending:3,lastSync:"10:42",modal:null,msg:null,q:"",cat:"الكل",catalog:null,
  prices:{},held:[],sentimentPrev:false,
  pair:{code:"",state:"",prog:0},login:{sel:null,pin:"",tries:0,err:"",locked:false},
@@ -94,7 +94,7 @@ R.pair=()=>{const p=S.pair,st=p.state;
   <div class="pos-cells" dir="ltr">${[0,1,2,3,4,5,6,7].map(i=>`<b class="${i===p.code.length?"cur":""}">${p.code[i]||""}</b>`).join("")}</div>${msg}
   <div class="pos-kb" dir="ltr">${KEYS.map(k=>`<button class="pos-key" data-a="pairKey" data-k="${k}">${k}</button>`).join("")}<button class="pos-key" data-a="pairKey" data-k="del">${I("delete")}</button></div>
   <button class="pos-btn pos-green pos-lg" data-a="pairGo" ${p.code.length<8?"disabled":""}>ربط الجهاز</button><small class="pos-muted">كود التجربة: ${PAIR_OK}</small></div></div>`}
- return`<div class="pos-plain">${brand()}<div class="pos-plainbody">${body}</div></div>`};
+ return`<div class="pos-plain">${brand()}<div class="pos-plainbody">${body}${installCard()}</div></div>`};
 
 /* ---------- الدخول ---------- */
 R.login=()=>{const L=S.login,sel=CASHIERS.find(c=>c.id===L.sel);
@@ -122,14 +122,22 @@ R.shift=()=>{const sh=S.shift;
 /* ---------- الغلاف: بنر 20 ساعة + شريط المزامنة الدائم ---------- */
 function syncBar(){const off=!S.online,st=S.stale;
  return`<footer class="pos-sync ${off?"off":""} ${st?"stale":""}" data-a="go" data-s="sync">
- <span class="pos-sdot"></span><b>${off?"غير متصل — البيع مستمر":"متصل"}</b>
- <span class="pos-sep"></span>${I("upload-cloud")}<span>غير مرفوع: <b class="num">${S.pending}</b> فاتورة</span>
+ <span class="pos-sdot"></span><b>${off?(WEB()?"غير متصل — البيع متوقف حتى يعود الاتصال":"غير متصل — البيع مستمر"):"متصل"}</b>
+ ${WEB()?`<span class="pos-sep"></span>${I("globe")}<span>تطبيق ويب — كل فاتورة تُبلّغ للهيئة فوراً</span>`:`<span class="pos-sep"></span>${I("upload-cloud")}<span>غير مرفوع: <b class="num">${S.pending}</b> فاتورة</span>`}
  <span class="pos-sep"></span>${I("refresh-cw")}<span>آخر مزامنة <b class="num">${S.stale?"أمس 14:05":S.lastSync}</b></span>
  ${S.sync.rejected.length?`<span class="pos-sep"></span><span class="pos-tag err">${I("octagon-alert")}مرفوضة: ${S.sync.rejected.length}</span>`:""}
  ${S.sync.update?`<span class="pos-tag amber">${I("download")}تحديث مطلوب</span>`:""}
  <span class="pos-grow"></span><span class="pos-ver num">${REG.prefix} · v1.0.3</span><span class="pos-pvgap"></span></footer>`}
-function warn20(){return S.stale&&!["pair","login","shift"].includes(S.screen)?`<div class="pos-warn20">${I("triangle-alert")}<div><b>مرّت 20 ساعة دون رفع الفواتير إلى الهيئة.</b> يجب إبلاغ الهيئة بكل فاتورة خلال 24 ساعة من إصدارها. وصّل الجهاز بالإنترنت وزامن الآن.</div><button class="pos-btn pos-white" data-a="syncNow">${I("refresh-cw")}مزامنة الآن</button></div>`:""}
+function warn20(){return !WEB()&&S.stale&&!["pair","login","shift"].includes(S.screen)?`<div class="pos-warn20">${I("triangle-alert")}<div><b>مرّت 20 ساعة دون رفع الفواتير إلى الهيئة.</b> يجب إبلاغ الهيئة بكل فاتورة خلال 24 ساعة من إصدارها. وصّل الجهاز بالإنترنت وزامن الآن.</div><button class="pos-btn pos-white" data-a="syncNow">${I("refresh-cw")}مزامنة الآن</button></div>`:""}
 
+/* v1.80 — نسخة الويب أولاً: الكاشير يشتغل من المتصفح ويتثبّت على الجهاز كتطبيق (PWA). الفاتورة تصدر من السيرفر وتُبلّغ للهيئة بوحدة النظام،
+   فالبيع يحتاج إنترنت؛ والسلة محفوظة على الجهاز لو الاتصال انقطع. تطبيق أندرويد (المرحلة 3) هو اللي يبيع بدون إنترنت ويوقّع من الجهاز. */
+const WEB=()=>S.mode==="web";
+let INSTALL=null;window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();INSTALL=e;try{render()}catch(_){}});
+const STANDALONE=()=>matchMedia("(display-mode: standalone)").matches||navigator.standalone===true;
+const IOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
+function installCard(){if(!WEB()||STANDALONE())return "";return `<div class="pos-install">${I("download")}<div><b>ثبّت الكاشير على هذا الجهاز</b><small>${IOS?"من Safari: زر المشاركة ← «إضافة إلى الشاشة الرئيسية».":"يفتح بملء الشاشة من أيقونة على الشاشة الرئيسية، من غير شريط المتصفح."}</small></div>${IOS?"":`<button class="pos-btn pos-navy" data-a="install">${I("monitor-down")}تثبيت</button>`}</div>`}
+function webOffBox(){return WEB()&&!S.online?`<div class="pos-weboff">${I("wifi-off")}<div><b>انقطع الإنترنت — نسخة الويب لا تصدر فواتير بدون اتصال.</b><small>السلة محفوظة على الجهاز، وتقدر تكمّل الدفع أول ما يرجع الاتصال. تطبيق أندرويد (قريباً) يبيع بدون إنترنت.</small></div></div>`:""}
 /* ---------- البيع ---------- */
 function lineHTML(l){const it=item(l.id),c=lineCalc(l),u=it.units[l.u];
  const unit=it.units.length>1?`<button class="pos-unit" data-a="unit" data-u="${l.uid}">${u[0]}${I("repeat-2")}</button>`:`<span class="pos-unit fixed">${u[0]}</span>`;
@@ -167,10 +175,10 @@ R.sale=()=>{const c=calc(),empty=!S.cart.length;
    <div class="pos-cart-h"><h2>الفاتورة <small class="num">${REG.prefix}-${pad(S.seq)}</small></h2><span class="pos-chip">${c.n} منتجات</span><div class="pos-grow"></div>${empty?"":`<button class="pos-btn pos-text" data-a="clearcart">${I("trash")}إفراغ</button>`}</div>
    ${S.newPrices&&!S.priceApplied?`<div class="pos-note amber">${I("tag")}<span>وصلت أسعار جديدة بالمزامنة (3 منتجات) — تسري على <b>الفاتورة التالية</b>، لا على هذه السلة.</span></div>`:""}
    <div class="pos-lines" id="pos-lines">${empty?`<div class="pos-cart-empty">${I("scan-barcode","pos-big")}<b>السلة فارغة</b><p>امسح باركود المنتج أو المس منتجًا من القائمة لإضافته</p></div>`:S.cart.map(lineHTML).join("")}</div>
-   <div class="pos-foot">
+   <div class="pos-foot">${webOffBox()}
     <div class="pos-sums"><div><span>المجموع</span><b class="num">${fm(c.gross)}</b></div><div class="${c.disc?"disc":""}"><span>الخصم</span><b class="num">${c.disc?"−":""}${fm(c.disc)}</b></div><div><span>ضريبة 15% <i>(مشمولة)</i></span><b class="num">${fm(c.vat)}</b></div></div>
     <div class="pos-grand"><span>الإجمالي</span><strong>${money(c.total)}</strong></div>
-    <div class="pos-acts"><button class="pos-btn pos-ghost pos-hold" data-a="hold" ${empty?"disabled":""}>${I("pause")}<span>تعليق</span></button><button class="pos-btn pos-green pos-paybtn" data-a="topay" ${empty?"disabled":""}><span>الدفع</span>${I("chevron-left")}</button></div>
+    <div class="pos-acts"><button class="pos-btn pos-ghost pos-hold" data-a="hold" ${empty?"disabled":""}>${I("pause")}<span>تعليق</span></button><button class="pos-btn pos-green pos-paybtn" data-a="topay" ${empty||(WEB()&&!S.online)?"disabled":""}><span>${WEB()&&!S.online?"بانتظار الاتصال":"الدفع"}</span>${I("chevron-left")}</button></div>
    </div></aside></div></div>`};
 
 /* ---------- الدفع ---------- */
@@ -307,8 +315,8 @@ R.sync=()=>{const sy=S.sync,off=!S.online;
 
 /* ---------- الإعدادات ---------- */
 R.settings=()=>{const opt=(k,v,cur,ic,n,sub,st)=>`<button class="pos-opt ${cur===v?"on":""}" data-a="cfg" data-k="${k}" data-v="${v}">${I(ic)}<div><b>${n}</b><small>${sub}</small></div>${st&&st[1]?`<span class="pos-tag ${st[0]}">${st[1]}</span>`:""}</button>`;
- return`<div class="pos-sub">${bar("الإعدادات","sale")}<div class="pos-subbody wide"><div class="pos-setgrid">
- <div class="pos-card"><h3>${I("printer")}الطابعة الحرارية 80 مم</h3>${opt("printer","built",S.printer,"smartphone","مدمجة في الجهاز","الأسرع وبدون إعداد",["green","متصلة"])}${opt("printer","usb",S.printer,"usb","USB","Epson TM-T20III",["green","متصلة"])}${opt("printer","net",S.printer,"network","شبكة (IP)","192.168.1.40 : 9100",["amber","لم تُختبر"])}${opt("printer","bt",S.printer,"bluetooth","بلوتوث","لا توجد أجهزة مقترنة",["",""])}
+ return`<div class="pos-sub">${bar("الإعدادات","sale")}<div class="pos-subbody wide">${installCard()}${WEB()?`<div class="pos-webmode">${I("globe")}<div><b>يعمل الآن كتطبيق ويب</b><small>الطباعة من نافذة طباعة الجهاز على الطابعة الحرارية (USB أو شبكة أو بلوتوث)، والماسح يعمل كلوحة مفاتيح، والدرج يُفتح عبر الطابعة. الفواتير تُبلّغ للهيئة فوراً من السيرفر.</small></div></div>`:""}<div class="pos-setgrid">
+ <div class="pos-card"><h3>${I("printer")}الطابعة الحرارية 80 مم</h3>${opt("printer","built",S.printer,"smartphone",WEB()?"طابعة الجهاز (من المتصفح)":"مدمجة في الجهاز",WEB()?"تختار الطابعة من نافذة الطباعة مرة واحدة":"الأسرع وبدون إعداد",["green","متصلة"])}${opt("printer","usb",S.printer,"usb","USB","Epson TM-T20III",["green","متصلة"])}${opt("printer","net",S.printer,"network","شبكة (IP)","192.168.1.40 : 9100",["amber","لم تُختبر"])}${opt("printer","bt",S.printer,"bluetooth","بلوتوث","لا توجد أجهزة مقترنة",["",""])}
   <button class="pos-btn pos-navy pos-lg" data-a="testPage">${I("file-text")}طباعة صفحة تجربة</button></div>
  <div class="pos-col"><div class="pos-card"><h3>${I("scan-barcode")}ماسح الباركود</h3>${opt("scanner","kbd",S.scanner,"keyboard","ماسح USB / بلوتوث (كلوحة مفاتيح)","لا يحتاج حقلاً محدداً",["green","يعمل"])}${opt("scanner","cam",S.scanner,"camera","كاميرا الجهاز","للطوارئ فقط",null)}<label class="pos-field"><small>جرّب المسح الآن</small><input data-model="" id="pos-scantest" placeholder="امسح أي باركود…"></label></div>
  <div class="pos-card"><h3>${I("scale")}الميزان</h3>${opt("scale","usb",S.scale,"usb","ميزان USB / سيريال","قراءة الوزن الحية",["green","0.000 كجم"])}${opt("scale","none",S.scale,"scale","بدون ميزان","المنتجات الموزونة بالباركود فقط",null)}</div>
@@ -351,6 +359,7 @@ const SCREENS=[["pair","ربط الجهاز"],["login","الدخول"],["shift",
 function pvHTML(){const t=(k,n,v)=>`<button class="pos-tg ${v?"on":""}" data-a="pvt" data-k="${k}"><i></i>${n}</button>`;
  return`<button class="pos-pvbtn" data-a="pvopen">${I("eye")}معاينة</button>${S.pv.open?`<aside class="pos-pv"><div class="pos-pvh"><b>${I("eye")}معاينة — للتصميم فقط</b><button data-a="pvopen" aria-label="إغلاق">${I("x")}</button></div><div class="pos-pvb">
  <small>الانتقال لشاشة</small><div class="pos-pvs">${SCREENS.map(([k,n])=>`<button class="${S.screen===k?"on":""}" data-a="pvgo" data-s="${k}">${n}</button>`).join("")}</div>
+ <small>نوع التشغيل</small><div class="pos-pvs"><button class="${WEB()?"on":""}" data-a="pvmode" data-v="web">تطبيق ويب (الآن)</button><button class="${WEB()?"":"on"}" data-a="pvmode" data-v="android">أندرويد (المرحلة 3)</button></div>
  <small>الحالات</small><div class="pos-pvt">${t("online","متصل بالإنترنت",S.online)}${t("stale","تحذير 20 ساعة",S.stale)}${t("printerOff","الطابعة غير متصلة",S.printerOff)}${t("stockBlock","منع البيع عند نقص الرصيد",S.stockMode==="block")}${t("newPrices","وصلت أسعار جديدة",S.newPrices)}${t("blind","عدّ أعمى عند الإقفال",S.blind)}${t("b2b","عميل برقم ضريبي (B2B)",!!S.cust.vat)}${t("update","تحديث التطبيق مطلوب",S.sync.update)}${t("prev","وردية سابقة مفتوحة",S.shift.prev)}</div>
  <small>اختبار الباركود</small><div class="pos-pvs">${[["6281000101015","أرز"],[SCALE_CODE,"ميزان 0.375"],["6281000999999","مجهول"],["6281000102012","زيت"]].map(([c,n])=>`<button data-a="fakeScan" data-v="${c}">${n}</button>`).join("")}</div>
  <small>قرارات مفتوحة</small><div class="pos-pvn"><b>الأسعار شاملة الضريبة (افتراضي):</b> سعر الرف 15% مشمولة، والسلة تعرض جزء الضريبة. القرار النهائي مفتوح (القسم 13).<br><b>العدّ الأعمى:</b> افتراضي، والمتوقع يظهر بعد العدّ.<br><b>B2B دون اتصال:</b> الحالتان مصمّمتان (D6).<br><b>رموز التجربة:</b> كاشير 1111 · مشرف 2468 · كود الربط ${PAIR_OK}</div></div></aside>`:""}`}
@@ -417,10 +426,12 @@ const A={
   if(s==="pay"){S.pay={m:"cash",lines:[],amt:"",ref:"",b2b:null}}if(s==="close")S.close={step:1,counts:{},other:{},blind:S.blind};
   if(s==="ret")S.ret={code:"",inv:null,qty:{},err:"",method:"cash",done:null};if(s==="login")S.login={sel:null,pin:"",tries:0,err:"",locked:false};if(s==="pair")S.pair={code:"",state:"",prog:0};
   go(s)},
+ pvmode:d=>{S.mode=d.v;render()},
  pvt:d=>{const k=d.k;if(k==="online")S.online=!S.online;if(k==="stale")S.stale=!S.stale;if(k==="printerOff")S.printerOff=!S.printerOff;if(k==="stockBlock")S.stockMode=S.stockMode==="block"?"warn":"block";
   if(k==="newPrices"){S.newPrices=!S.newPrices;S.priceApplied=false;S.prices={}}if(k==="blind"){S.blind=!S.blind;S.close.blind=S.blind}if(k==="b2b")S.cust=S.cust.vat?CUSTS[0]:CUSTS[1];
   if(k==="update")S.sync.update=!S.sync.update;if(k==="prev")S.shift.prev=!S.shift.prev;render()},
  toggleNet:()=>{S.online=!S.online;render()},
+ install:()=>{if(INSTALL){INSTALL.prompt();INSTALL.userChoice.then(()=>{INSTALL=null;render()})}else toast("افتح الصفحة من المتصفح على https لتظهر نافذة التثبيت","err")},
  /* ربط */
  pairKey:d=>{const p=S.pair;if(d.k==="del")p.code=p.code.slice(0,-1);else if(p.code.length<8)p.code+=d.k;p.state="";render()},
  pairState:d=>{S.pair={code:"",state:d.v,prog:0};render()},
@@ -455,7 +466,7 @@ const A={
  fakeScan:d=>{const wasModal=S.modal;S.modal=null;if(S.screen!=="sale"){S.cashier=S.cashier||CASHIERS[0];S.screen="sale"}scan(d.v)},
  clearcart:()=>{S.cart=[];render()},
  hold:()=>{holdCart();render();msg("ok",`عُلّقت الفاتورة — يمكن استدعاؤها من القائمة ← المعلقة (${S.held.length})`,2800)},
- topay:()=>{if(!S.cart.length)return;S.pay={m:"cash",lines:[],amt:"",ref:"",b2b:null};go("pay")},
+ topay:()=>{if(!S.cart.length)return;if(WEB()&&!S.online){toast("نسخة الويب تحتاج إنترنت لإصدار الفاتورة — السلة محفوظة","err");return}S.pay={m:"cash",lines:[],amt:"",ref:"",b2b:null};go("pay")},
  recall:d=>{if(S.cart.length)openModal({type:"recall",id:d.id});else loadHeld(d.id)},
  recallHold:d=>{holdCart();loadHeld(d.id)},recallReplace:d=>{S.cart=[];loadHeld(d.id)},
  delheld:d=>{S.held=S.held.filter(h=>h.id!==d.id);render()},
@@ -524,7 +535,7 @@ document.addEventListener("keydown",e=>{const t=e.target,inp=t.tagName==="INPUT"
 
 /* ---------- البدء ---------- */
 function init(){const q=new URLSearchParams(location.search),h=(location.hash||"").replace("#","")||"pair",f=k=>q.get(k);
- if(f("offline"))S.online=false;if(f("stale")){S.stale=true;S.pending=9}if(f("printer")==="off")S.printerOff=true;if(f("stock")==="block")S.stockMode="block";
+ if(f("app")==="android")S.mode="android";if(f("offline"))S.online=false;if(f("stale")){S.stale=true;S.pending=9}if(f("printer")==="off")S.printerOff=true;if(f("stock")==="block")S.stockMode="block";
  if(f("price")){S.newPrices=true}if(f("update"))S.sync.update=true;if(f("blind")==="0"){S.blind=false}
  if(f("sync")==="update")S.sync.update=true;if(f("sync")==="rejected"){}
  if(!["pair","login"].includes(h)){S.cashier=CASHIERS[0];S.shift.open=h!=="shift"}

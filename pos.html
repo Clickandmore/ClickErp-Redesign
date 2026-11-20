@@ -3,7 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>تطبيق الكاشير — ClickERP</title>
+<title>الكاشير — ClickERP</title>
+<!-- v1.80: الكاشير يبدأ كتطبيق ويب (PWA) يتثبّت من المتصفح؛ تطبيق أندرويد في المرحلة 3 بنفس التصميم -->
+<link rel="manifest" href="pos.webmanifest">
+<meta name="theme-color" content="#16233f">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="الكاشير">
+<link rel="apple-touch-icon" href="assets/pos/icon-192.png">
+<link rel="icon" type="image/png" href="assets/pos/icon-192.png">
 <link rel="stylesheet" href="assets/clickerp.bundle.css">
 <link rel="stylesheet" href="assets/commerce/pos.css">
 </head>
@@ -11,5 +20,6 @@
 <div id="pos-root" class="pos-app"></div>
 <script src="https://unpkg.com/lucide@0.451.0/dist/umd/lucide.min.js"></script>
 <script src="assets/commerce/pos.js"></script>
+<script>if("serviceWorker" in navigator&&location.protocol.startsWith("http"))navigator.serviceWorker.register("pos-sw.js").catch(()=>{});</script>
 </body>
 </html>
