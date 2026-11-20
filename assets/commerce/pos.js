@@ -40,7 +40,7 @@ const PAIR_OK="K7M29QXA";
 const SCALE_CODE="2100106003750";
 
 /* ---------- الحالة ---------- */
-const S={mode:"web",screen:"pair",online:true,stale:false,printerOff:false,stockMode:"warn",blind:true,newPrices:false,priceApplied:false,
+const S={ptab:"items",mode:"web",screen:"pair",online:true,stale:false,printerOff:false,stockMode:"warn",blind:true,newPrices:false,priceApplied:false,
  cashier:null,cart:[],cust:CUSTS[0],seq:153,uid:1,pending:3,lastSync:"10:42",modal:null,msg:null,q:"",cat:"الكل",catalog:null,
  prices:{},held:[],sentimentPrev:false,
  pair:{code:"",state:"",prog:0},login:{sel:null,pin:"",tries:0,err:"",locked:false},
@@ -167,7 +167,8 @@ R.sale=()=>{const c=calc(),empty=!S.cart.length;
   <button class="pos-cust ${S.cust.cash?"":"on"}" data-a="custm">${I(S.cust.cash?"user-round":"building-2")}<div><small>العميل</small><b>${S.cust.n}</b></div>${S.cust.vat?`<span class="pos-tag green">رقم ضريبي</span>`:""}</button>
   <button class="pos-btn pos-ghost pos-sq" data-a="menu" aria-label="القائمة">${I("menu")}${S.held.length?`<i class="pos-count">${S.held.length}</i>`:""}</button>
  </header>
- <div class="pos-main">
+ <nav class="pos-ptabs" aria-label="عرض"><button class="${S.ptab!=="cart"?"on":""}" data-a="ptab" data-v="items">${I("layout-grid")}المنتجات</button><button class="${S.ptab==="cart"?"on":""}" data-a="ptab" data-v="cart">${I("receipt")}الفاتورة <b class="num">${c.n}</b>${c.n?`<span class="num">${fm(c.total)}</span>`:""}</button></nav>
+ <div class="pos-main" data-ptab="${S.ptab==="cart"?"cart":"items"}">
   <section class="pos-catalog"><div id="pos-msg" class="pos-msg"></div><div id="pos-sresw">${searchRes()}</div>
    <nav class="pos-cats">${cats.map(([n,ic])=>`<button class="pos-cat ${S.cat===n?"on":""}" data-a="cat" data-c="${n}"><span>${I(ic)}</span>${n}</button>`).join("")}</nav>
    <div class="pos-grid">${list.map(itemCard).join("")}</div></section>
@@ -219,7 +220,7 @@ function qrSVG(seed){let h=hashN(seed);const rnd=()=>{h^=h<<13;h>>>=0;h^=h>>>17;
  return`<svg viewBox="0 0 ${N} ${N}" shape-rendering="crispEdges"><path d="${d}" fill="#000"/></svg>`}
 function barSVG(s){let x=0,r="";for(const ch of "S"+s+"E"){const c=ch.charCodeAt(0);for(let k=0;k<6;k++){const w=1+((c>>k)&1)+(k%3===0?1:0);if(k%2===0)r+=`<rect x="${x}" y="0" width="${w}" height="40"/>`;x+=w}}return`<svg viewBox="0 0 ${x} 40" preserveAspectRatio="none">${r}</svg>`}
 function receiptHTML(v){const c=v.c,b2b=v.mode!=="simp";
- return`<div class="pos-paper"><div class="pos-pc"><b class="pos-co">شركة الريادة للتجارة</b><div>أسواق الريادة — صالة الرياض</div><div class="num">الرقم الضريبي 310123456700003</div><div class="num">س.ت 1010456789 · هاتف 920001234</div></div>
+ return`<div class="pos-paper"><div class="pos-pc"><b class="pos-co">شركة الريادة للخدمات</b><div>فرع الرياض — صالة البيع</div><div class="num">الرقم الضريبي 310123456700003</div><div class="num">س.ت 1010456789 · هاتف 920001234</div></div>
  <div class="pos-ptitle">${v.mode==="pending"?"إيصال مؤقت — فاتورة ضريبية بانتظار الاعتماد":b2b?"فاتورة ضريبية":"فاتورة ضريبية مبسطة"}<small>${v.mode==="pending"?"Provisional receipt":b2b?"Tax Invoice":"Simplified Tax Invoice"}</small></div>
  <div class="pos-pm"><span>رقم الفاتورة</span><b class="num">${v.no}</b><span>التاريخ</span><b class="num">${v.t}</b><span>الكاشير</span><b>${v.cashier}</b><span>الجهاز</span><b>${REG.prefix} · ${REG.name}</b>${b2b?`<span>العميل</span><b>${v.cust.n}</b><span>الرقم الضريبي</span><b class="num">${v.cust.vat}</b>`:""}</div>
  <table class="pos-pt"><thead><tr><th>المنتج</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th></tr></thead><tbody>${v.lines.map(l=>`<tr><td>${l.n}${l.promo?`<small>${l.promo}</small>`:""}${l.disc?`<small>خصم ${l.disc}%</small>`:""}</td><td class="num">${l.w?l.q.toFixed(3)+" كجم":l.q+" "+l.unit}</td><td class="num">${fm(l.price)}</td><td class="num">${fm(l.total)}</td></tr>`).join("")}</tbody></table>
@@ -427,6 +428,7 @@ const A={
   if(s==="ret")S.ret={code:"",inv:null,qty:{},err:"",method:"cash",done:null};if(s==="login")S.login={sel:null,pin:"",tries:0,err:"",locked:false};if(s==="pair")S.pair={code:"",state:"",prog:0};
   go(s)},
  pvmode:d=>{S.mode=d.v;render()},
+ ptab:d=>{S.ptab=d.v;render();scrollTo(0,0)},
  pvt:d=>{const k=d.k;if(k==="online")S.online=!S.online;if(k==="stale")S.stale=!S.stale;if(k==="printerOff")S.printerOff=!S.printerOff;if(k==="stockBlock")S.stockMode=S.stockMode==="block"?"warn":"block";
   if(k==="newPrices"){S.newPrices=!S.newPrices;S.priceApplied=false;S.prices={}}if(k==="blind"){S.blind=!S.blind;S.close.blind=S.blind}if(k==="b2b")S.cust=S.cust.vat?CUSTS[0]:CUSTS[1];
   if(k==="update")S.sync.update=!S.sync.update;if(k==="prev")S.shift.prev=!S.shift.prev;render()},

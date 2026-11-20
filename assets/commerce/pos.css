@@ -1,5 +1,5 @@
 /* ClickERP — تطبيق الكاشير. كل الأصناف بادئتها pos-. الألوان من متغيرات الثيم فقط. */
-html{font-size:min(1.25vw,2vh)}
+html{font-size:max(11px,min(1.25vw,2vh))}
 .pos-body{margin:0;height:100vh;overflow:hidden;font-size:1rem;background:var(--bg);color:var(--ink);user-select:none;-webkit-user-select:none;touch-action:manipulation}
 .pos-app,.pos-shell{height:100vh;display:flex;flex-direction:column}
 .pos-stage{flex:1;min-height:0;display:flex;flex-direction:column;position:relative}
@@ -270,7 +270,36 @@ html{font-size:min(1.25vw,2vh)}
  .pos-tables{grid-template-columns:repeat(3,1fr)}.pos-q5{grid-template-columns:repeat(3,1fr)}.pos-kb{grid-template-columns:repeat(8,1fr)}
  .pos-sale,.pos-main,.pos-payscr,.pos-rcscr{flex:none;min-height:0}
  .pos-np{grid-auto-rows:3.6rem}
- .pos-foot{position:sticky;bottom:2.5rem;z-index:5}
+ /* الإجمالي وزر الدفع (وزر الإتمام) ثابتين فوق شريط المزامنة طول الوقت */
+ .pos-foot,.pos-payfoot{position:fixed!important;inset-inline:0;bottom:2.5rem;z-index:20;background:var(--surface);box-shadow:0 -10px 24px -14px rgba(16,26,46,.35);border-top:1px solid var(--line)}
+ .pos-payfoot{padding:.6rem}
+ .pos-main{padding-bottom:12.5rem}.pos-payscr{padding-bottom:6.5rem}
+ .pos-sync{position:fixed!important;inset-inline:0;bottom:0}
+ .pos-top{display:flex;flex-wrap:wrap}.pos-search{order:9;flex:1 1 100%!important;min-width:0}
+ /* تبويب «المنتجات | الفاتورة»: شاشة واحدة في المرة، والإجمالي وزر الدفع ظاهرين في الاتنين */
+ .pos-ptabs{display:grid!important;grid-template-columns:1fr 1fr;gap:.4rem;padding:.5rem .6rem;background:var(--surface);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:7}
+ .pos-ptabs button{display:flex;align-items:center;justify-content:center;gap:.4rem;height:2.9rem;border-radius:var(--r-s);border:1px solid var(--line);background:#fff;font:inherit;font-size:.95rem;font-weight:700;color:var(--body);cursor:pointer}
+ .pos-ptabs button svg{width:1.1rem;height:1.1rem}.pos-ptabs button b{background:var(--navy-soft);color:var(--navy);border-radius:999px;padding:0 .5rem;font-size:.8rem}.pos-ptabs button span{color:var(--muted);font-size:.8rem;font-weight:600}
+ .pos-ptabs button.on{background:var(--navy);color:#fff;border-color:var(--navy)}.pos-ptabs button.on b{background:#fff}.pos-ptabs button.on span{color:#cfd7e6}
+ .pos-main[data-ptab=items] .pos-cart>:not(.pos-foot){display:none}
+ .pos-main[data-ptab=cart] .pos-catalog{display:none}
+ .pos-main[data-ptab=cart] .pos-lines{max-height:none;overflow:visible}
+ .pos-payfoot{position:sticky;bottom:2.5rem;z-index:5;background:var(--bg);padding:.5rem 0}
+ .pos-kb{grid-template-columns:repeat(7,minmax(0,1fr))!important}.pos-kb .pos-key{min-width:0;padding:0}
+ .pos-who small{display:none}
+}
+/* شريط المزامنة على الجوال: سطر واحد بالحالة والمرفوض بس */
+@media (max-width:820px) and (orientation:portrait),(max-width:640px){
+ .pos-sync{height:2.5rem!important;flex-wrap:nowrap!important;overflow:hidden;white-space:nowrap}
+ .pos-sync>*:not(.pos-sdot):not(b):not(.pos-tag):not(.pos-grow):not(.pos-pvgap){display:none!important}
+}
+/* الجوال بالعرض والشاشات القصيرة (≤ 520 ارتفاع): نفس تخطيط التابلت بخط 11px، وكل عمود بيسكرول لوحده */
+@media (max-height:520px) and (orientation:landscape){
+ .pos-top{height:3.6rem}.pos-sync{height:2.2rem}
+ .pos-foot .pos-sums{display:none}.pos-foot{padding:.4rem .7rem .5rem;gap:.3rem}
+ .pos-cats{padding-block:.3rem}.pos-cat{height:2.6rem}
+ .pos-plainbody,.pos-subbody{overflow:auto;align-items:flex-start}
+ .pos-payscr>*,.pos-rcscr>*{overflow:auto;min-height:0}
  .pos-sync{position:sticky;bottom:0;z-index:6;flex-wrap:wrap;height:auto;min-height:2.5rem}
 }
 /* v1.79 — طباعة الإيصال من المتصفح (لحد ما يصدر تطبيق أندرويد): الإيصال بس على ورق 80 مم */
@@ -282,9 +311,15 @@ html{font-size:min(1.25vw,2vh)}
  .pos-paper{position:fixed!important;inset:0 auto auto 0;width:74mm!important;box-shadow:none!important;-webkit-mask:none!important;mask:none!important;padding:0 1mm!important;font-size:9pt}
  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
+.pos-ptabs{display:none}
 /* v1.80 — تطبيق الويب */
 .pos-install,.pos-webmode,.pos-weboff{display:flex;align-items:center;gap:.9rem;padding:.9rem 1.1rem;border-radius:var(--r);background:var(--surface);border:1px solid var(--line);margin:1rem auto 0;max-width:70rem;width:100%}
 .pos-install>svg,.pos-webmode>svg,.pos-weboff>svg{width:1.8rem;height:1.8rem;flex:none;color:var(--navy)}
 .pos-install>div,.pos-webmode>div,.pos-weboff>div{flex:1}.pos-install b,.pos-webmode b,.pos-weboff b{display:block;font-size:1rem}.pos-install small,.pos-webmode small,.pos-weboff small{display:block;color:var(--muted);font-size:.85rem;line-height:1.6}
 .pos-webmode{margin:0 0 1rem;background:var(--navy-soft);border-color:transparent}
 .pos-weboff{margin:0 0 .5rem;background:var(--amber-soft);border-color:#f0d9b0}.pos-weboff>svg{color:var(--amber)}.pos-weboff b{color:#8a5a12;font-size:.9rem}
+/* v1.81 — الشاشات العادية (الربط/الدخول/الوردية): المحتوى في النص وبطاقة التثبيت تحته، مش جنبه */
+.pos-plainbody{flex-direction:column;gap:1rem;overflow:auto}
+.pos-plainbody>.pos-install{max-width:70rem;margin:0}
+@media (max-width:820px) and (orientation:portrait),(max-width:640px){.pos-plainbody{justify-content:flex-start;padding:1rem}.pos-plainbody>*{width:100%}}
+.pos-plainbody{justify-content:safe center}
