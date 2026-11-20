@@ -219,3 +219,25 @@
 | `myProfile` · `notifCenter` · `noPerm` | `routes/admin.php` profile · change-password · two-factor · `routes/web.php` notifications · `admin/no-permissions` |
 | `cms*` | `config/home_sections.php` · `HomeSectionSettingsController` · `ING/blogs · offers · fast_news · home_hero · sliders · home_sections · why_us · why_choose_us · what_do · about_us · musaned_section · find_us · steps · feature · testimonials · partenrs · questions` |
 | `agent/*` | `routes/agent.php` · `app/Http/Controllers/Agent/*` · `resources/views/agent/*` · `routes/office.php` |
+
+## التجارة: المخزون والفواتير التجارية ونقاط البيع — ✅ v1.75 (`cm*` · `pos.html` · `superadmin/commerce.html`) «جديد»
+
+موديول جديد مش موجود في ClickERP لسه. المرجع المعتمد: `docs/modules/general modula/COMMERCE_POS_MASTER_PLAN.md` (الخطة) + «موجز التصميم» (docx في نفس الفولدر). لما يختلفوا، الخطة هي المعتمدة.
+
+- **مكانه:** قسم «التجارة» (`dept = commerce`) في نسخ «عام» بس (`PG_DEPT.commerce = ["general"]`)، بعد المالية. نوع المحاسبة «خدمات» بيخفي القسم كله، وكل سطر بيستخبى لو ميزته مقفولة (`CommerceModules::active`).
+- **الملفات:** `assets/commerce/cm-features.js` (الميزات والقوالب — مصدر واحد للوحة وSuper Admin) · `cm-core.js` (شارات الحالة، تنسيق الكميات والتكلفة، معاينة رؤية التكلفة والفرع والحالات، بيانات العيّنة) · `cm-items.js` · `cm-stock.js` · `cm-trade.js` · `cm-pos.js` · `pos.js`. الصفحات بتتولد بـ `python3 design/tools/mk-commerce-pages.py`.
+- **الخطّاف في الباندل:** `window.CERP_EXT` بيتشغّل قبل أول رسم، فملفات التجارة بتسجّل شاشاتها من غير ما تدخل الباندل.
+
+| شاشتنا | الكود المقترح (الخطة) |
+|---|---|
+| `superadmin/commerce.html` | `dev-superadmin.commerce` · `CommerceSettings` (`fn_commerce_settings`) · `config/commerce_templates.php` · `config/superadmin_modules.php` (commerce_inventory ← commerce_pos ← commerce_restaurant) |
+| `cmItems` · `cmItemAdd` · `cmItemCard` · `cmImport` | `fn_items` (+ name_en, base_unit_id, tracking, is_weighted, cogs_account_id, is_active, commerce_kind) · `fn_item_units` · `fn_item_barcodes` · `fn_item_components` · `ItemCatalogService` |
+| `cmCats` · `cmUnits` · `cmPrices` · `cmPriceEdit` | `fn_categories` (+ الحسابات والضريبة و pos_visible و kitchen_station_id) · `fn_units` · `fn_price_lists` · `fn_price_list_items` |
+| `cmStock` · `cmDocs` · `cmDocShow` · `cmCount` · `cmCountRun` · `cmStores` | `fn_stock_ledger` · `fn_stock_balances` · `fn_stock_documents(_lines)` · `fn_stocks` (+ cost_center_id, inventory_account_id, is_default, allow_negative) · `StockLedgerService` · `CostingService` · `StockDocumentService` |
+| `cmSales` · `cmSaleAdd` · `cmSaleShow` · `cmPurchases` · `cmPurchaseAdd` · `cmReturns` · `cmReturnAdd` | `fn_sales`/`fn_purchases` بـ `origin = 'commerce'` · `CommercialSaleService` · `CommercialPurchaseService` · `CommercialReturnService` · ZATCA عبر الوحدة الحالية |
+| `cmDash` · `cmShifts` · `cmShiftShow` · `cmPosInvoices` · `cmPosInvoiceShow` · `cmRegisters` · `cmDevicePair` · `cmCashiers` · `cmPayMethods` · `cmPromos` · `cmSettle` | `fn_pos_*` · `fn_payment_methods` · `fn_promotions` · `fn_card_settlements` · `PosSessionService` · `PosShiftPostingService` · `PosOrderIngestService` |
+| `cmZatca` · `cmZatcaWizard` | `fn_zatca_egs_units` · `fn_zatca_submissions` · `EgsOnboardingService` · `EgsReportingService` · `commerce:zatca-report` |
+| `cmReports` · `cmSettings` | `config/v2_reports_catalog.php` (قسم التجارة) · `CommerceAccountSettings` · `commerce:provision-accounts` · `commerce:import-legacy-stock` |
+| `pos.html` (تطبيق الكاشير) | Flutter أوفلاين · `/api/pos/v1` بتوكن جهاز · `pos.device` middleware |
+
+**قواعد ثابتة في كل الشاشات:** شارة حالة بلون ثابت لكل معنى (مسودة رمادي · بانتظار كهرماني · منتهي أخضر · مشكلة أحمر · ملغى مشطوب). «اعتماد» و«ترحيل» زرين منفصلين، ومعاينة القيد قبل الترحيل، والمرحّل للقراءة بـ «عكس» بدل «حذف». الكمية لحد 4 خانات من غير أصفار زايدة، والتكلفة خانتين والكاملة عند المرور، والسالب بلون تحذير. صلاحية «رؤية التكلفة» بتخفي التكلفة والربح والقيمة من كل الشاشات.

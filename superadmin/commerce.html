@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="design-version" content="v1.75">
+<title>نوع المحاسبة والنشاط — Super Admin · Click ERP</title>
+<link rel="stylesheet" href="../assets/clickerp.bundle.css">
+<link rel="stylesheet" href="assets/sa.css">
+<style>
+/* v1.75 — مكوّنات الشاشة دي بس (sac-) ومبنية على متغيرات الثيم */
+.sac-pv{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px;padding:8px 12px;margin:0 0 16px;border:1px dashed #c9d1df;border-radius:12px;background:#fbfcfe;font-size:12px}
+.sac-pv b{display:inline-flex;align-items:center;gap:5px;color:var(--navy)}.sac-pv b svg{width:14px;height:14px}
+.sac-pv label{color:var(--muted)}
+.sac-seg{display:inline-flex;background:#eef1f6;border-radius:8px;padding:2px}.sac-seg button{border:0;background:none;font:inherit;font-size:12px;padding:4px 10px;border-radius:6px;cursor:pointer;color:var(--body)}.sac-seg button.on{background:#fff;color:var(--navy);font-weight:700;box-shadow:0 1px 2px rgba(16,26,46,.12)}
+.sac-acct{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:760px){.sac-acct{grid-template-columns:1fr}}
+.sac-ac{display:flex;gap:14px;align-items:flex-start;padding:18px;border:1.5px solid var(--line);border-radius:14px;background:#fff;cursor:pointer;text-align:start;font:inherit;transition:.15s}
+.sac-ac:hover{border-color:#c9d1df}
+.sac-ac.on{border-color:var(--navy);background:var(--navy-soft);box-shadow:0 0 0 3px rgba(22,35,63,.06)}
+.sac-ac.no{opacity:.55;cursor:not-allowed}
+.sac-ac-i{width:46px;height:46px;border-radius:12px;display:grid;place-items:center;background:#f0f3f8;color:var(--navy);flex:none}.sac-ac-i svg{width:24px;height:24px}
+.sac-ac.on .sac-ac-i{background:var(--navy);color:#fff}
+.sac-ac b{display:block;font-size:16px;color:var(--ink);margin-bottom:3px}.sac-ac small{display:block;color:var(--muted);font-size:12.5px;line-height:1.7}
+.sac-ac .sac-r{margin-inline-start:auto;width:20px;height:20px;border-radius:50%;border:2px solid #c9d1df;flex:none;margin-top:2px}.sac-ac.on .sac-r{border:6px solid var(--navy)}
+.sac-tpls{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@media (max-width:1100px){.sac-tpls{grid-template-columns:repeat(2,1fr)}}
+.sac-tp{position:relative;display:flex;flex-direction:column;gap:6px;padding:16px;border:1.5px solid var(--line);border-radius:14px;background:#fff;cursor:pointer;text-align:start;font:inherit;transition:.15s}
+.sac-tp:hover{border-color:#c9d1df}.sac-tp.on{border-color:var(--green);background:#f7fbf3;box-shadow:0 0 0 3px var(--green-soft)}
+.sac-tp-h{display:flex;align-items:center;gap:10px}.sac-tp-i{width:38px;height:38px;border-radius:10px;background:var(--navy-soft);color:var(--navy);display:grid;place-items:center}.sac-tp-i svg{width:20px;height:20px}
+.sac-tp.on .sac-tp-i{background:var(--green);color:#fff}
+.sac-tp-h b{font-size:15px;color:var(--ink)}.sac-tp-h small{display:block;font-size:12px;color:var(--muted)}
+.sac-tp ul{list-style:none;margin:4px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:4px}
+.sac-tp li{font-size:11.5px;padding:2px 8px;border-radius:999px;background:#f3f5f9;color:var(--body)}
+.sac-tp .sa-badge{position:absolute;top:12px;inset-inline-end:12px}
+.sac-feats{display:grid;grid-template-columns:1fr 1fr;gap:8px 14px}
+@media (max-width:900px){.sac-feats{grid-template-columns:1fr}}
+.sac-f{display:flex;align-items:center;gap:12px;padding:11px 13px;border:1px solid var(--line);border-radius:12px;background:#fff}
+.sac-grp{border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:12px;background:#fbfcfe}
+.sac-grp-h{display:flex;align-items:center;gap:10px;margin-bottom:10px}.sac-grp-h .sac-f{flex:1;border:0;background:none;padding:2px 4px}
+.sac-grp-h .sac-f-t b{font-size:15px}
+.sac-grp-i{width:38px;height:38px;border-radius:10px;background:var(--navy);color:#fff;display:grid;place-items:center;flex:none}.sac-grp-i svg{width:19px;height:19px}
+.sac-f-t{flex:1;min-width:0}.sac-f-t b{display:flex;align-items:center;gap:6px;font-size:13.5px;color:var(--ink)}.sac-f-t small{display:block;font-size:12px;color:var(--muted)}
+.sac-mod{font-size:10.5px;font-weight:700;color:var(--amber);background:var(--amber-soft);padding:1px 7px;border-radius:999px}
+.sac-req{font-size:11px;color:var(--muted-2)}
+.sac-f.off-dis{opacity:.55}
+.sac-warn{display:flex;gap:10px;align-items:flex-start;padding:11px 14px;border-radius:10px;background:var(--amber-soft);color:#8a5a12;font-size:13px;line-height:1.7;margin-top:12px}.sac-warn svg{width:17px;height:17px;flex:none;margin-top:3px}
+.sac-warn.bad{background:var(--red-soft);color:#a3302a}.sac-warn.info{background:var(--navy-soft);color:var(--navy)}
+.sac-cost{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.sac-lim{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+@media (max-width:900px){.sac-lim{grid-template-columns:repeat(2,1fr)}}
+.sac-lim .sa-field small{color:var(--muted);font-size:11.5px}
+.sac-chain{display:flex;flex-direction:column;gap:0}
+.sac-ch{display:flex;align-items:center;gap:10px;padding:9px 0;position:relative}
+.sac-ch+.sac-ch:before{content:"";position:absolute;inset-inline-start:15px;top:-9px;height:18px;border-inline-start:2px solid var(--line)}
+.sac-ch i{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;background:#f0f3f8;color:var(--muted);flex:none}.sac-ch i svg{width:16px;height:16px}
+.sac-ch.on i{background:var(--green-soft);color:var(--green-d)}
+.sac-ch b{font-size:13.5px}.sac-ch small{display:block;font-size:11.5px;color:var(--muted)}
+.sac-off{position:relative}
+.sac-off>*:not(.sac-block){filter:grayscale(1);opacity:.45;pointer-events:none}
+.sac-block{display:flex;gap:14px;align-items:center;padding:18px 20px;border-radius:14px;background:#fff;border:1.5px solid var(--amber);margin-bottom:16px}
+.sac-block>svg{width:28px;height:28px;color:var(--amber);flex:none}.sac-block b{display:block;font-size:15px}.sac-block small{color:var(--muted)}
+.sac-block .btn{margin-inline-start:auto}
+.sac-dlg{width:min(640px,calc(100vw - 32px))}
+.sac-dlg .sa-dialog-body{max-height:70vh;overflow:auto}
+.sac-diff{display:flex;flex-direction:column;gap:6px;margin:4px 0}
+.sac-diff div{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:9px;background:#f6f8fb;font-size:13px}
+.sac-diff s{color:var(--muted)}.sac-diff svg{width:14px;height:14px;color:var(--muted)}
+.sac-acc{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:6px}
+.sac-acc th{text-align:start;color:var(--muted);font-weight:600;padding:6px 8px;border-bottom:1px solid var(--line)}
+.sac-acc td{padding:7px 8px;border-bottom:1px solid var(--line-2);vertical-align:middle}
+.sac-acc select{height:32px;font-size:12px}
+.sac-steps{display:flex;gap:6px;margin-bottom:6px}.sac-steps span{flex:1;height:4px;border-radius:4px;background:var(--line)}.sac-steps span.on{background:var(--green)}
+.sac-log td small{color:var(--muted)}
+.sac-num{font-family:inherit;font-variant-numeric:tabular-nums}
+</style>
+</head>
+<body dir="rtl" data-page="commerce">
+<!-- Screen: commerce · dev-superadmin.commerce (جديد — الخطة §6.1 والموجز §5) · DevSuperAdminController أو controller مجاور تحت dev.superadmin
+     يحفظ: نوع المحاسبة (خدمات/تجاري = تفعيل commerce_inventory) · القالب (config/commerce_templates.php) · مفاتيح CommerceSettings · costing_method (يُقفل بعد أول صف في fn_stock_ledger) · الحدود (حسب الباقة) · سجل التغييرات.
+     المعاينة بتكتب في localStorage «cerp.commerce.v1»، فقسم «التجارة» في لوحة التحكم بيتغيّر معاها. -->
+<main class="sa-content">
+  <div class="sa-page-header">
+    <div>
+      <h1 class="sa-page-title">نوع المحاسبة والنشاط <span class="sa-badge sa-badge--warning">جديد</span></h1>
+      <p class="sa-page-desc">هنا يقرر فريق كليك هل النسخة «خدمات» أم «تجاري»، وأي ميزات تعمل. التجاري يضيف ولا يلغي: كل شاشات المالية الحالية تبقى.</p>
+      <div class="sa-page-chips" data-sac-chips></div>
+    </div>
+    <div class="sa-page-header-end"><a class="btn btn-ghost" href="modules.html"><i data-lucide="layout-grid"></i>الموديلات ونوع البرنامج</a><button class="btn btn-primary" data-sac-save><i data-lucide="save"></i>حفظ</button></div>
+  </div>
+  <div id="sac"></div>
+</main>
+<dialog class="sa-dialog sac-dlg" id="sacDlg"></dialog>
+<script src="https://unpkg.com/lucide@0.451.0/dist/umd/lucide.min.js"></script>
+<script src="assets/sa.js"></script>
+<script src="../assets/commerce/cm-features.js"></script>
+<script>
+(function(){
+var FEAT=window.CM_FEAT,TPL=window.CM_TPL,KEY="cerp.commerce.v1";
+var LAUNCH={grocery:1,feed:1,retail:1,custom:1}; /* D3: الإطلاق الأول بقالة + أعلاف + تجزئة عامة */
+var ic=function(n){return '<i data-lucide="'+n+'"></i>'};
+var flagsOf=function(t){var f={};FEAT.forEach(function(x){var v=TPL[t]&&TPL[t].f?TPL[t].f[x[0]]:0;f[x[0]]=x[4]==="soon"?false:v===1});return f};
+var load=function(){var c=null;try{c=JSON.parse(localStorage.getItem(KEY))}catch(e){}return c||{acct:"commercial",tpl:"grocery",f:flagsOf("grocery"),costing:"avg",since:"2026-11-02",limits:{branches:3,stores:6,devices:4,users:25}}};
+var saved=load();
+var S={c:JSON.parse(JSON.stringify(saved)),prog:"general",inst:saved.acct==="commercial"?"used":"first",step:0,pw:"",pwErr:0};
+var LOG=[["مازن الحربي — Click","20 نوفمبر 2026 · 11:42","البيع الآجل","مقفول","مفعّل"],["مازن الحربي — Click","2 نوفمبر 2026 · 09:10","نوع المحاسبة","خدمات","تجاري — بقالة"],["سارة علي — Click","2 نوفمبر 2026 · 09:10","طريقة التكلفة","—","المتوسط المرجح"],["سارة علي — Click","1 نوفمبر 2026 · 16:25","حد أجهزة الكاشير","2","4"]];
+var name=function(k){var x=FEAT.filter(function(f){return f[0]===k})[0];return x?x[1]:k};
+var kids=function(k){return FEAT.filter(function(f){return f[3]===k}).map(function(f){return f[0]})};
+var desc=function(k){var out=[];kids(k).forEach(function(x){out.push(x);out=out.concat(desc(x))});return out};
+var tplDiff=function(){if(S.c.tpl==="custom")return {};var t=flagsOf(S.c.tpl),d={};FEAT.forEach(function(f){if(!!S.c.f[f[0]]!==!!t[f[0]])d[f[0]]=1});return d};
+var changes=function(){var a=[],o=saved,n=S.c;
+ if(o.acct!==n.acct)a.push(["نوع المحاسبة",o.acct==="commercial"?"تجاري":"خدمات",n.acct==="commercial"?"تجاري":"خدمات"]);
+ if(n.acct==="commercial"){if(o.tpl!==n.tpl)a.push(["قالب النشاط",(TPL[o.tpl]||{}).n||"—",TPL[n.tpl].n]);
+  FEAT.forEach(function(f){if(!!o.f[f[0]]!==!!n.f[f[0]])a.push([f[1],o.f[f[0]]?"مفعّل":"مقفول",n.f[f[0]]?"مفعّل":"مقفول"])});
+  ["branches","stores","devices","users"].forEach(function(k,i){if(String(o.limits[k])!==String(n.limits[k]))a.push([["حد الفروع","حد المخازن","حد أجهزة الكاشير","حد المستخدمين"][i],o.limits[k],n.limits[k]])})}
+ return a};
+var stopped=function(){return FEAT.filter(function(f){return saved.f[f[0]]&&!S.c.f[f[0]]&&S.inst==="used"}).map(function(f){return f[1]})};
+
+function render(){
+ var c=S.c,com=c.acct==="commercial",used=S.inst==="used",d=tplDiff(),gen=S.prog==="general";
+ document.querySelector("[data-sac-chips]").innerHTML='<span class="heading-chip">نوع البرنامج: <b>'+(gen?"نظام عام — المالية":"نظام الاستقدام")+'</b></span><span class="heading-chip">نوع المحاسبة الحالي: <b>'+(saved.acct==="commercial"?"تجاري — "+((TPL[saved.tpl]||{}).n||"مخصص"):"خدمات")+'</b></span><span class="heading-chip">آخر تغيير: <b>'+LOG[0][0]+' · '+LOG[0][1]+'</b></span>';
+ var h='<div class="sac-pv"><b>'+ic("eye")+'معاينة</b><label>نوع البرنامج</label><div class="sac-seg">'+[["general","عام"],["recruitment","استقدام"]].map(function(x){return '<button class="'+(S.prog===x[0]?"on":"")+'" data-sac-pv="prog:'+x[0]+'">'+x[1]+'</button>'}).join("")+'</div><label>بيانات النسخة</label><div class="sac-seg">'+[["first","أول تفعيل — بلا حركات"],["used","فيها حركات وورديات"]].map(function(x){return '<button class="'+(S.inst===x[0]?"on":"")+'" data-sac-pv="inst:'+x[0]+'">'+x[1]+'</button>'}).join("")+'</div><a href="../cmDash.html?program=general" style="margin-inline-start:auto;color:var(--navy);font-weight:600;text-decoration:none">'+ic("store")+' قسم التجارة في لوحة التحكم</a></div>';
+ h+='<div class="'+(gen?"":"sac-off")+'">';
+ if(!gen)h+='<div class="sac-block">'+ic("lock")+'<div><b>متاح لنسخ النظام العام فقط</b><small>نسخ الاستقدام لا ترى موديول التجارة ولا تصل لمساراته حتى بالرابط (قاعدة العزل R1).</small></div><a class="btn btn-primary" href="modules.html">'+ic("repeat")+'تغيير نوع البرنامج</a></div>';
+ h+='<div class="sa-layout"><div class="sa-stack">';
+ /* نوع المحاسبة */
+ h+='<section class="sa-card"><div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon">'+ic("calculator")+'</span><div><h2 class="sa-card-title">نوع المحاسبة</h2><p class="sa-card-desc">«تجاري» = تشغيل موديول المخزون (commerce_inventory). الخدمات تبقى تعمل في الحالتين.</p></div></div></div>';
+ h+='<div class="sac-acct">'+[["services","hand-helping","خدمات","محاسبة الخدمات الحالية: فواتير بنوع خدمة، بلا أصناف ولا مخازن."],["commercial","store","تجاري","أصناف ومخازن وتكلفة بضاعة مباعة ونقاط بيع، والخدمة تُباع كصنف غير مخزني."]].map(function(x){var blocked=x[0]==="services"&&used&&saved.acct==="commercial";return '<button class="sac-ac'+(c.acct===x[0]?" on":"")+(blocked&&c.acct!==x[0]?" no":"")+'" data-sac-acct="'+x[0]+'"><span class="sac-ac-i">'+ic(x[1])+'</span><span><b>'+x[2]+'</b><small>'+x[3]+'</small></span><span class="sac-r"></span></button>'}).join("")+'</div>';
+ if(S.blockSvc)h+='<div class="sac-warn bad">'+ic("octagon-alert")+'<div><b>لا يمكن الرجوع إلى «خدمات»:</b> توجد حركات مخزون منذ 2 نوفمبر 2026 و37 وردية كاشير مرحّلة. <b>البديل:</b> أوقف الميزات من القائمة تحت، فتُخفى الشاشات وتبقى البيانات والتقارير السابقة.</div></div>';
+ h+='</section>';
+ if(com){
+  /* القالب */
+  h+='<section class="sa-card"><div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon">'+ic("layout-template")+'</span><div><h2 class="sa-card-title">قالب النشاط</h2><p class="sa-card-desc">اختيار القالب يملأ الميزات تحته، ولا يُحفظ حتى تضغط «حفظ».</p></div></div></div><div class="sac-tpls">';
+  Object.keys(TPL).forEach(function(k){var t=TPL[k],on=c.tpl===k,list=t.f?FEAT.filter(function(f){return t.f[f[0]]===1&&f[0]!=="inventory"}).map(function(f){return f[1]}):["تضبط كل ميزة بنفسك"];
+   h+='<button class="sac-tp'+(on?" on":"")+'" data-sac-tpl="'+k+'">'+(LAUNCH[k]?(on?'<span class="sa-badge sa-badge--success">المختار</span>':""):'<span class="sa-badge sa-badge--muted">قريباً</span>')+'<span class="sac-tp-h"><span class="sac-tp-i">'+ic(t.i)+'</span><span><b>'+t.n+'</b><small>'+t.d+'</small></span></span><ul>'+list.slice(0,6).map(function(x){return '<li>'+x+'</li>'}).join("")+(list.length>6?'<li>+'+(list.length-6)+'</li>':"")+'</ul></button>'});
+  h+='</div></section>';
+  /* الميزات */
+  var nd=Object.keys(d).length;
+  h+='<section class="sa-card"><div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon">'+ic("toggle-right")+'</span><div><h2 class="sa-card-title">الميزات</h2><p class="sa-card-desc">'+(nd?'<b style="color:var(--amber)">'+nd+' معدّلة يدوياً</b> عن قالب «'+TPL[c.tpl].n+'»، فيصبح القالب «مخصص» عند الحفظ.':"كل الميزات مطابقة للقالب.")+' الميزة الموقوفة تُخفي شاشاتها ولا تحذف بياناتها.</p></div></div></div>';
+  var row=function(f,head){var k=f[0],soon=f[4]==="soon",pOn=!f[3]||c.f[f[3]],on=!!c.f[k]&&pOn;
+   return '<div class="sac-f'+(head?" head":"")+(soon||!pOn?" off-dis":"")+'"><div class="sac-f-t"><b>'+f[1]+(d[k]?' <span class="sac-mod">معدّل يدوياً</span>':"")+(soon?' <span class="sa-badge sa-badge--muted">قريباً</span>':"")+'</b><small>'+f[2]+(!pOn&&f[3]?' · <span class="sac-req">يتطلب '+name(f[3])+'</span>':"")+'</small></div><button class="sa-switch'+(on?" is-on":"")+'" role="switch" aria-checked="'+on+'" data-sac-f="'+k+'"'+(soon||!pOn?" disabled":"")+'></button></div>'};
+  [["inventory","boxes"],["pos","monitor-smartphone"],["restaurant","utensils-crossed"]].forEach(function(g){var p=FEAT.filter(function(f){return f[0]===g[0]})[0],ks=FEAT.filter(function(f){return f[3]===g[0]&&f[0]!=="pos"&&f[0]!=="restaurant"});
+   h+='<div class="sac-grp"><div class="sac-grp-h"><span class="sac-grp-i">'+ic(g[1])+'</span>'+row(p,1)+'</div><div class="sac-feats">'+ks.map(function(f){return row(f)}).join("")+'</div></div>'});
+  if(S.dep)h+='<div class="sac-warn">'+ic("git-branch")+'<div>'+S.dep+'</div></div>';
+  var st=stopped();if(st.length)h+='<div class="sac-warn info">'+ic("eye-off")+'<div><b>إيقاف ميزة مستخدمة:</b> '+st.join("، ")+'. تُخفى الشاشات وتبقى البيانات والتقارير السابقة، ويمكن إعادة التشغيل في أي وقت.</div></div>';
+  h+='</section>';
+  /* التكلفة */
+  h+='<section class="sa-card"><div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon">'+ic("scale")+'</span><div><h2 class="sa-card-title">طريقة التكلفة</h2><p class="sa-card-desc">'+(used?ic("lock")+' مقفلة: توجد حركات مخزون منذ 2 نوفمبر 2026.':"تُقفل تلقائياً بعد أول حركة مخزون.")+'</p></div></div></div><div class="sac-cost">'+
+   '<label class="sa-choice is-on"><input type="radio" checked'+(used?" disabled":"")+'><span><b>المتوسط المرجح المستمر '+(used?ic("lock"):"")+'</b><small>الوارد يعيد حساب المتوسط لكل صنف في كل مخزن، والصادر يخرج بالمتوسط الحالي.</small></span></label>'+
+   '<label class="sa-choice" style="opacity:.55;pointer-events:none"><input type="radio" disabled><span><b>الوارد أولاً يصرف أولاً (FIFO) <span class="sa-badge sa-badge--muted">غير متاح حالياً</span></b><small>يُضاف كخيار لاحقاً إن طُلب (المرحلة 1b).</small></span></label></div></section>';
+  /* الحدود */
+  h+='<section class="sa-card"><div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon">'+ic("gauge")+'</span><div><h2 class="sa-card-title">الحدود</h2><p class="sa-card-desc">ترتبط بالباقة المباعة. التسعير لكل جهاز أم لكل فرع ما زال قراراً تجارياً مفتوحاً (D8).</p></div></div></div><div class="sac-lim">'+
+   [["branches","الفروع","3 مستخدمة"],["stores","المخازن","3 مستخدمة"],["devices","أجهزة الكاشير","4 مستخدمة"+(c.limits.devices<4?' — <b style="color:var(--red)">أقل من المستخدم</b>':"")],["users","المستخدمون","18 مستخدماً"]].map(function(x){return '<div class="sa-field"><label class="sa-label">'+x[1]+'</label><input class="sa-input sac-num" dir="ltr" type="number" min="0" value="'+c.limits[x[0]]+'" data-sac-lim="'+x[0]+'"><small>'+x[2]+'</small></div>'}).join("")+'</div></section>';
+ }
+ /* السجل */
+ h+='<section class="sa-card sa-card--flush"><div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon">'+ic("history")+'</span><div><h2 class="sa-card-title">سجل التغييرات</h2><p class="sa-card-desc">كل حفظ يطلب كلمة مرور Super Admin ويُسجّل هنا.</p></div></div></div><div class="sa-table-wrap"><table class="sa-table sac-log"><thead><tr><th>من</th><th>متى</th><th>المفتاح</th><th>قبل</th><th>بعد</th></tr></thead><tbody>'+LOG.map(function(r){return '<tr><td><b>'+r[0]+'</b></td><td><small>'+r[1]+'</small></td><td>'+r[2]+'</td><td><small>'+r[3]+'</small></td><td><b>'+r[4]+'</b></td></tr>'}).join("")+'</tbody></table></div></section>';
+ h+='</div>';
+ /* الجانب */
+ var on=FEAT.filter(function(f){return com&&c.f[f[0]]&&(!f[3]||c.f[f[3]])}).length;
+ h+='<aside class="sa-layout-side"><section class="sa-card"><div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon">'+ic("git-branch")+'</span><div><h2 class="sa-card-title">الموديولات الثلاثة</h2><p class="sa-card-desc">إيقاف الأب يوقف الأبناء.</p></div></div></div><div class="sac-chain">'+
+  [["commerce_inventory","المخزون والفواتير التجارية","inventory","boxes"],["commerce_pos","نقاط البيع","pos","monitor-smartphone"],["commerce_restaurant","المطاعم","restaurant","utensils-crossed"]].map(function(m){var o=com&&c.f[m[2]]&&(m[2]==="inventory"||c.f.inventory)&&(m[2]!=="restaurant"||c.f.pos);return '<div class="sac-ch'+(o?" on":"")+'"><i>'+ic(m[3])+'</i><div><b>'+m[1]+'</b><small class="cm-mono" dir="ltr">'+m[0]+'</small></div><span class="sa-badge '+(o?"sa-badge--success":"sa-badge--muted")+'" style="margin-inline-start:auto">'+(o?"مفعّل":"مقفول")+'</span></div>'}).join("")+'</div></section>'+
+  '<section class="sa-card"><div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon">'+ic("pie-chart")+'</span><div><h2 class="sa-card-title">ملخص بعد الحفظ</h2></div></div></div><div class="sa-summary">'+
+  '<div class="sa-summary-row">نوع المحاسبة<b>'+(com?"تجاري":"خدمات")+'</b></div><div class="sa-summary-row">القالب<b>'+(com?(Object.keys(d).length?"مخصص":TPL[c.tpl].n):"—")+'</b></div><div class="sa-summary-row">الميزات المفعّلة<b class="num">'+on+' / '+FEAT.length+'</b></div><div class="sa-summary-row">قسم «التجارة»<b>'+(com?"ظاهر للنسخة":"مخفي")+'</b></div><div class="sa-summary-row">التغييرات غير المحفوظة<b class="num">'+changes().length+'</b></div></div>'+
+  (changes().length?'<button class="btn btn-primary" style="width:100%;margin-top:12px" data-sac-save>'+ic("save")+'حفظ التغييرات</button>':"")+'</section>'+
+  '<section class="sa-card"><div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon">'+ic("shield-check")+'</span><div><h2 class="sa-card-title">ضمان العزل عن الاستقدام</h2></div></div></div><div class="sa-summary"><div class="sa-summary-row">مسار ZATCA الحالي<b>لا يتغير</b></div><div class="sa-summary-row">فواتير الكاشير في fn_sales<b>لا تُكتب</b></div><div class="sa-summary-row">نسخ الاستقدام<b>404 لكل مسار تجاري</b></div></div></section></aside></div></div>';
+ document.getElementById("sac").innerHTML=h;
+ if(window.lucide)lucide.createIcons({attrs:{"stroke-width":1.8}});
+}
+
+/* نافذة الحفظ: ملخص التغيير ← (أول تفعيل: معاينة الحسابات) ← كلمة المرور */
+var dlg=document.getElementById("sacDlg");
+var first=function(){return saved.acct!=="commercial"&&S.c.acct==="commercial"};
+var ACC=[["حساب المخزون","1141 مخزون — المستودع الرئيسي","114 المخزون"],["بضاعة مستلمة لم تُفوتر","2121 بضاعة مستلمة لم تُفوتر","212 الخصوم المتداولة"],["تكلفة البضاعة المباعة","5101 تكلفة البضاعة المباعة","51 المصروفات المباشرة"],["فروقات المخزون","5205 فروقات المخزون","52 المصروفات"],["تالف وهالك","5206 تالف وهالك","52 المصروفات"],["مردودات المبيعات","4111 مردودات المبيعات","41 الإيرادات"],["خصم مسموح به","4112 خصم مسموح به","41 الإيرادات"],["عجز وزيادة الصناديق","5310 عجز وزيادة الصناديق","53 المصروفات الأخرى"],["عملاء نقاط البيع","1124 عملاء نقاط البيع","112 العملاء"],["عمولات بنكية","5320 عمولات بنكية","53 المصروفات الأخرى"]];
+function dlgRender(){var ch=changes(),steps=first()?3:2,i=S.step,b='<div class="sa-dialog-body"><div class="sac-steps">'+Array.from({length:steps}).map(function(_,k){return '<span class="'+(k<=i?"on":"")+'"></span>'}).join("")+'</div>';
+ if(i===0){b+='<span class="sa-dialog-icon" style="background:var(--navy-soft);color:var(--navy)">'+ic("list-checks")+'</span><h2 class="sa-dialog-title">ملخص ما تغيّر</h2><div class="sac-diff">'+(ch.length?ch.map(function(x){return '<div><b>'+x[0]+'</b><s>'+x[1]+'</s>'+ic("arrow-left")+'<b>'+x[2]+'</b></div>'}).join(""):'<div>لا توجد تغييرات</div>')+'</div>'+(stopped().length?'<div class="sac-warn info">'+ic("eye-off")+'<div>تُخفى شاشات: '+stopped().join("، ")+'. البيانات والتقارير تبقى.</div></div>':"")}
+ else if(i===1&&first()){b+='<span class="sa-dialog-icon" style="background:var(--green-soft);color:var(--green-d)">'+ic("book-plus")+'</span><h2 class="sa-dialog-title">أول تفعيل للتجاري: ما سيُنشأ</h2><p class="sa-dialog-text">حسابات جديدة في الدليل (عبر AccountService::storeAccount، بالنوع لا بالكود). اربط أي حساب بحساب موجود بدل إنشائه.</p><table class="sac-acc"><thead><tr><th>الدور</th><th>الحساب</th><th>الإجراء</th></tr></thead><tbody>'+ACC.map(function(a,k){return '<tr><td>'+a[0]+'</td><td><b>'+a[1]+'</b><br><small style="color:var(--muted)">تحت: '+a[2]+'</small></td><td><select><option>إنشاء جديد</option><option'+(k===9?" selected":"")+'>ربط بـ 5301 مصروفات بنكية</option><option>ربط بحساب آخر…</option></select></td></tr>'}).join("")+'</tbody></table><div class="sac-warn info">'+ic("package-open")+'<div><b>نقل أرصدة المخزون القديم:</b> وُجد رصيد لـ 18 صنفاً في شاشات المخزون القديمة. يُنقل مرة واحدة كمستند «رصيد افتتاحي» مسودة تراجعه قبل الترحيل (commerce:import-legacy-stock).</div></div>'}
+ else{b+='<span class="sa-dialog-icon">'+ic("key-round")+'</span><h2 class="sa-dialog-title">كلمة مرور Super Admin</h2><p class="sa-dialog-text">التغيير يمس شاشات النسخة كلها ويُسجّل في سجل التغييرات باسمك.</p><div class="sa-field"><div class="sa-input-group"><input class="sa-input" type="password" dir="ltr" placeholder="••••••••" data-sac-pw value="'+S.pw+'"></div>'+(S.pwErr?'<small class="sa-field-error">كلمة المرور مطلوبة</small>':"")+'</div>'}
+ b+='</div><div class="sa-dialog-actions"><button class="btn btn-ghost" data-sac-dlg="cancel">إلغاء</button>'+(i>0?'<button class="btn btn-ghost" data-sac-dlg="back">رجوع</button>':"")+'<button class="btn btn-primary" data-sac-dlg="next"'+(!ch.length?" disabled":"")+'>'+(i===steps-1?ic("save")+"تأكيد وحفظ":"متابعة")+'</button></div>';
+ dlg.innerHTML=b;if(window.lucide)lucide.createIcons({attrs:{"stroke-width":1.8}})}
+
+document.addEventListener("click",function(e){var t=function(s){return e.target.closest(s)};var x;
+ if((x=t("[data-sac-pv]"))){var p=x.dataset.sacPv.split(":");S[p[0]]=p[1];if(p[0]==="inst"){if(p[1]==="first")saved={acct:"services",tpl:"grocery",f:flagsOf("grocery"),costing:"avg",limits:{branches:3,stores:6,devices:4,users:25}};else{saved=load();saved.acct="commercial"}S.c=JSON.parse(JSON.stringify(saved))}S.blockSvc=0;S.dep="";render();return}
+ if((x=t("[data-sac-acct]"))){var v=x.dataset.sacAcct;if(v==="services"&&S.inst==="used"&&saved.acct==="commercial"){S.blockSvc=1;render();return}S.blockSvc=0;S.c.acct=v;render();return}
+ if((x=t("[data-sac-tpl]"))){var k=x.dataset.sacTpl;if(!LAUNCH[k]){window.saToast&&saToast("«"+TPL[k].n+"» قريباً — بعد الإطلاق الأول");return}S.c.tpl=k;if(TPL[k].f)S.c.f=flagsOf(k);S.dep="";render();return}
+ if((x=t("[data-sac-f]"))){e.stopPropagation();if(x.disabled)return;var f=x.dataset.sacF,now=!S.c.f[f];S.c.f[f]=now;S.dep="";
+  if(!now){var ds=desc(f).filter(function(k){return S.c.f[k]});if(ds.length){ds.forEach(function(k){S.c.f[k]=false});S.dep="إيقاف «"+name(f)+"» سيوقف أيضاً: <b>"+ds.map(name).join("، ")+"</b>."}}
+  render();return}
+ if(t("[data-sac-save]")){S.step=0;S.pw="";S.pwErr=0;dlgRender();dlg.showModal();return}
+ if((x=t("[data-sac-dlg]"))){var a=x.dataset.sacDlg,steps=first()?3:2;
+  if(a==="cancel"){dlg.close();return}if(a==="back"){S.step--;dlgRender();return}
+  if(S.step<steps-1){S.step++;dlgRender();return}
+  var pw=dlg.querySelector("[data-sac-pw]");if(!pw||!pw.value){S.pwErr=1;dlgRender();return}
+  var ch=changes(),d=tplDiff();if(Object.keys(d).length&&S.c.acct==="commercial")S.c.tpl="custom";
+  ch.forEach(function(r){LOG.unshift(["أنت — Super Admin","الآن",r[0],r[1],r[2]])});
+  saved=JSON.parse(JSON.stringify(S.c));if(saved.acct==="commercial"&&!saved.since)saved.since="2026-11-20";
+  try{localStorage.setItem("cerp.commerce.v1",JSON.stringify(saved))}catch(_){}
+  if(S.inst==="first")S.inst="used";
+  dlg.close();S.dep="";render();window.saToast&&saToast("حُفظ وسُجّل — "+ch.length+" تغييرات. قسم «التجارة» في النسخة يتحدّث فوراً");return}
+},true);
+document.addEventListener("input",function(e){var el=e.target;if(el.matches("[data-sac-lim]")){S.c.limits[el.dataset.sacLim]=el.value;var y=scrollY;render();scrollTo(0,y);var n=document.querySelector('[data-sac-lim="'+el.dataset.sacLim+'"]');if(n){n.focus()}}if(el.matches("[data-sac-pw]"))S.pw=el.value});
+var q=new URLSearchParams(location.search);if(q.get("program")==="recruitment")S.prog="recruitment";if(q.get("inst")==="first"){saved={acct:"services",tpl:"grocery",f:flagsOf("grocery"),costing:"avg",limits:{branches:3,stores:6,devices:4,users:25}};S.inst="first";S.c=JSON.parse(JSON.stringify(saved))}
+render();
+})();
+</script>
+</body>
+</html>

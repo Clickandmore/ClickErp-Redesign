@@ -1522,6 +1522,191 @@
       "id": "finTaxReports",
       "file": "finTaxReports.html",
       "title": "التقارير الضريبية"
+    },
+    {
+      "id": "cmDash",
+      "file": "cmDash.html",
+      "title": "لوحة التجارة اليوم"
+    },
+    {
+      "id": "cmItems",
+      "file": "cmItems.html",
+      "title": "الأصناف"
+    },
+    {
+      "id": "cmItemAdd",
+      "file": "cmItemAdd.html",
+      "title": "صنف جديد"
+    },
+    {
+      "id": "cmItemCard",
+      "file": "cmItemCard.html",
+      "title": "كارت الصنف"
+    },
+    {
+      "id": "cmImport",
+      "file": "cmImport.html",
+      "title": "استيراد الأصناف من Excel"
+    },
+    {
+      "id": "cmCats",
+      "file": "cmCats.html",
+      "title": "التصنيفات"
+    },
+    {
+      "id": "cmUnits",
+      "file": "cmUnits.html",
+      "title": "الوحدات"
+    },
+    {
+      "id": "cmPrices",
+      "file": "cmPrices.html",
+      "title": "قوائم الأسعار"
+    },
+    {
+      "id": "cmPriceEdit",
+      "file": "cmPriceEdit.html",
+      "title": "محرر الأسعار"
+    },
+    {
+      "id": "cmStock",
+      "file": "cmStock.html",
+      "title": "أرصدة المخزون"
+    },
+    {
+      "id": "cmDocs",
+      "file": "cmDocs.html",
+      "title": "مستندات المخزون"
+    },
+    {
+      "id": "cmDocShow",
+      "file": "cmDocShow.html",
+      "title": "مستند مخزون"
+    },
+    {
+      "id": "cmCount",
+      "file": "cmCount.html",
+      "title": "الجرد"
+    },
+    {
+      "id": "cmCountRun",
+      "file": "cmCountRun.html",
+      "title": "شاشة العدّ"
+    },
+    {
+      "id": "cmStores",
+      "file": "cmStores.html",
+      "title": "المخازن"
+    },
+    {
+      "id": "cmSales",
+      "file": "cmSales.html",
+      "title": "فواتير البيع"
+    },
+    {
+      "id": "cmSaleAdd",
+      "file": "cmSaleAdd.html",
+      "title": "فاتورة بيع جديدة"
+    },
+    {
+      "id": "cmSaleShow",
+      "file": "cmSaleShow.html",
+      "title": "فاتورة بيع"
+    },
+    {
+      "id": "cmPurchases",
+      "file": "cmPurchases.html",
+      "title": "فواتير الشراء"
+    },
+    {
+      "id": "cmPurchaseAdd",
+      "file": "cmPurchaseAdd.html",
+      "title": "فاتورة شراء جديدة"
+    },
+    {
+      "id": "cmReturns",
+      "file": "cmReturns.html",
+      "title": "المرتجعات"
+    },
+    {
+      "id": "cmReturnAdd",
+      "file": "cmReturnAdd.html",
+      "title": "مرتجع جديد"
+    },
+    {
+      "id": "cmShifts",
+      "file": "cmShifts.html",
+      "title": "الورديات"
+    },
+    {
+      "id": "cmShiftShow",
+      "file": "cmShiftShow.html",
+      "title": "تفاصيل الوردية"
+    },
+    {
+      "id": "cmPosInvoices",
+      "file": "cmPosInvoices.html",
+      "title": "فواتير نقاط البيع"
+    },
+    {
+      "id": "cmPosInvoiceShow",
+      "file": "cmPosInvoiceShow.html",
+      "title": "فاتورة نقطة بيع"
+    },
+    {
+      "id": "cmRegisters",
+      "file": "cmRegisters.html",
+      "title": "نقاط البيع والأجهزة"
+    },
+    {
+      "id": "cmDevicePair",
+      "file": "cmDevicePair.html",
+      "title": "ربط جهاز كاشير"
+    },
+    {
+      "id": "cmCashiers",
+      "file": "cmCashiers.html",
+      "title": "الكاشيرية"
+    },
+    {
+      "id": "cmPayMethods",
+      "file": "cmPayMethods.html",
+      "title": "طرق الدفع"
+    },
+    {
+      "id": "cmPromos",
+      "file": "cmPromos.html",
+      "title": "العروض"
+    },
+    {
+      "id": "cmSettle",
+      "file": "cmSettle.html",
+      "title": "تسويات البطاقات"
+    },
+    {
+      "id": "cmZatca",
+      "file": "cmZatca.html",
+      "title": "وحدات ZATCA للأجهزة"
+    },
+    {
+      "id": "cmZatcaWizard",
+      "file": "cmZatcaWizard.html",
+      "title": "ربط جهاز بالهيئة"
+    },
+    {
+      "id": "cmReports",
+      "file": "cmReports.html",
+      "title": "تقارير التجارة"
+    },
+    {
+      "id": "cmSettings",
+      "file": "cmSettings.html",
+      "title": "إعدادات التجارة والحسابات"
+    },
+    {
+      "id": "pos",
+      "file": "pos.html",
+      "title": "تطبيق الكاشير"
     }
   ],
   "states": [

@@ -29,6 +29,7 @@
     { id: 'programs', icon: 'boxes', label: 'البرامج', desc: 'الاستقدام · العام (المالية) · المهام والموارد البشرية', items: [
       { id: 'programs',     href: 'programs.html',     icon: 'boxes',           label: 'البرامج الثلاثة', isNew: true },
       { id: 'modules',      href: 'modules.html',      icon: 'layout-grid',     label: 'الموديلات ونوع البرنامج', route: 'dev-superadmin.modules' },
+      { id: 'commerce',     href: 'commerce.html',     icon: 'store',           label: 'نوع المحاسبة والنشاط', route: 'dev-superadmin.commerce', isNew: true },
       { id: 'open-rec',     href: '../dashboard.html?program=recruitment', icon: 'briefcase',  label: 'افتح: نظام الاستقدام' },
       { id: 'open-gen',     href: '../finDashGen.html?program=general',    icon: 'wallet',     label: 'افتح: النظام العام' },
       { id: 'open-tsk',     href: '../tcMy.html?program=tasks',            icon: 'list-checks', label: 'افتح: المهام والموارد' }
