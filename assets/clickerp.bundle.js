@@ -10678,25 +10678,44 @@ const checks=()=>{const t=FM.type,out=[];
 const chainL=()=>{const t=tyById(FM.type);let lv=t[5].split(" ← ").map(x=>x.trim());
  lv=lv.filter(l=>!(l.indexOf("للمقيم")>-1&&FM.who==="me")&&!(l.indexOf("فوق 3,000")>-1&&(+String(fv("amt")).replace(/,/g,"")||0)<=3000));
  return lv.map((l,i)=>{const b=l.replace(/ \(.*\)/,"");return [b,LVN[b]||"حسب الإعداد",FM.sent?(i===0?1:0):0,FM.sent?(i===0?"عنده الآن · مهلة 24 ساعة":""):"مهلة 24 ساعة"]})};
-const typesH=()=>`${GRPS.map(g=>`<div class="g"><small>${g}</small><div>${RT.filter(t=>t[3]===g).map(t=>`<button data-h14-type="${t[0]}" class="${t[0]===FM.type?"on":""}">${X(t[1])}<span>${t[2]}</span></button>`).join("")}</div></div>`).join("")}<div class="g"><small>مخصص</small><div><button data-h14-type="custom" class="${FM.type==="custom"?"on":""}">${X("shapes")}<span>بدل سكن مقدماً</span></button></div></div>`;
-const bodyH=()=>{const t=tyById(FM.type),fs=FORM[FM.type],a=attNeed(),ck=checks();
+/* v1.56 — نفس منطق «إضافة سيرة ذاتية»: لوحة خيارات ثابتة بالخطوات، وأقسام مرقّمة في بطاقة واحدة، ومراجعة قبل الإرسال */
+const ME=["سارة القحطاني","خدمة العملاء · مسؤولة خدمة عملاء · سعودية"];
+const stOk=()=>{const fs=FORM[FM.type]||[],a=attNeed();const s1=FM.who==="me"||!!FM.emp,s2=fs.every(f=>!f[4]||f[2]==="calc"||String(val(f)).trim()),s3=!(a&&a[1])||!!FM.att,bad=checks().some(c=>c[2]==="bad"&&c[0].indexOf("المرفق")!==0);return [s1,s2,s3,s1&&s2&&s3&&!bad]};
+const STEPS14=["مقدّم الطلب ونوعه","تفاصيل الطلب","المرفقات","المراجعة والإرسال"];
+const tSel=()=>`<select data-h14-tsel="">${GRPS.concat(["مخصص"]).map(g=>`<optgroup label="${g}">${(g==="مخصص"?[tyById("custom")]:RT.filter(t=>t[3]===g)).map(t=>`<option value="${t[0]}"${t[0]===FM.type?" selected":""}>${t[2]}</option>`).join("")}</optgroup>`).join("")}</select>`;
+const typesH=()=>"";
+const bodyH=()=>{const t=tyById(FM.type),fs=FORM[FM.type],a=attNeed(),ck=checks(),ok=stOk(),cur=ok.findIndex(x=>!x);
  if(FM.sent)return `<div class="card h14-ok">${X("check-circle-2")}<div><h3>تم إرسال الطلب ${FM.sent}</h3><p>${t[2]}${FM.who==="me"?"":` · نيابة عن ${FM.emp} · سُجِّل باسم هند العتيبي`} · يصل إشعار عند كل خطوة داخل البرنامج وعلى واتساب.</p></div></div>
   <div class="grid-2 wide-l"><div>${CARD("الطلب الآن عند","",CHAIN(chainL()))}${CARD("بعد الاعتماد","",`<div class="h8-after">${t[7].split(" · ").map(x=>`<span>${X("check")}${x}</span>`).join("")}</div>`)}</div><div>${CARD("التالي","",`<div class="h14-next">${B("primary","send","طلباتي",'data-go="myRequests"')}${FM.who==="me"?"":B("ghost","inbox","طلبات الموظفين",'data-go="hrRequests"')}${B("ghost","plus","طلب جديد آخر",'data-h14-reset=""')}</div><small class="fhint">يمكن إلغاء الطلب من «طلباتي» ما دام لم يعتمده أحد.</small>`)}</div></div>`;
- return `<div class="grid-2 wide-l"><div>
-  ${FS(1,`تفاصيل الطلب — ${t[2]}`,`<div class="fgrid">${FM.who==="me"?"":FLD("الموظف",`<select data-h14-emp="" class="${FM.err.emp?"h14-bad":""}"><option value="">اختر الموظف…</option>${["عبدالعزيز الشمري — ليس له مستخدم","آمنة نالوجا — عاملة منزلية","نيلانثي سيلفا — عاملة منزلية"].map(o=>`<option${o===FM.emp?" selected":""}>${o}</option>`).join("")}</select>`,1,"يُسجَّل الطلب باسم من أدخله")}${fs.map(f=>`${FLD(f[1],ctl(f),f[4],FM.err[f[0]]?`<span class="h13-err">مطلوب</span>`:f[5]||"")}`).join("")}</div>`)}
-  ${FS(2,"المرفقات",a?`<button class="dropz sm h14-drop${FM.att?" on":""}${FM.err.att?" h14-bad":""}" data-h14-att="">${X(FM.att?"file-check-2":"upload-cloud")}<b>${FM.att?"مرفق.pdf — اضغط للإزالة":a[0]}</b><small>${a[1]?"إلزامي":"اختياري"} · PDF أو صورة</small></button>`:`<div class="dropz sm">${X("upload-cloud")}<b>غير مطلوبة لهذا النوع</b><small>يمكن إرفاق ملف اختياري</small></div>`)}
-  ${FM.msg?`<div class="cx-info${FM.msg.indexOf("أكمل")===0?" warn":""}">${X(FM.msg.indexOf("أكمل")===0?"alert-triangle":"save")}<span>${FM.msg}</span></div>`:""}
-  <div class="h14-bar">${B("ghost","save","حفظ كمسودة",'data-h14-draft=""')}${B("primary","send","إرسال الطلب",'data-h14-send=""')}</div>
- </div><div>
-  ${CARD("قبل الإرسال","يراجع البرنامج تلقائياً ويتحدّث مع كل تعديل",CHK(ck))}
-  ${CARD("يسير الطلب على",`سلسلة اعتماد «${t[2]}»`,`${CHAIN(chainL())}<small class="fhint">إذا انتهت المهلة يُصعَّد الطلب للمستوى الأعلى. وإذا كان المعتمد في إجازة يذهب لمن فوّضه.</small>`)}
-  ${FM.type==="leave"&&FM.who==="me"?CARD("هل ستسافرين خارج المملكة أثناء الإجازة؟","اختياري",`<button class="h14-link" data-h14-type="exit">${X("plane")}أضف طلب «سفر خارج المملكة» بنفس التواريخ</button><small class="fhint">لأنك سعودية فلا تحتاجين تأشيرة خروج وعودة.</small>`):""}
-  ${CARD("بعد الاعتماد","",`<div class="h8-after">${t[7].split(" · ").map(x=>`<span>${X("check")}${x}</span>`).join("")}</div>`)}
+ const nOk=ck.filter(c=>c[2]==="ok").length,nW=ck.filter(c=>c[2]==="warn").length,nB=ck.filter(c=>c[2]==="bad").length;
+ const rev=fs.map(f=>[f[1],f[2]==="calc"?calc(f[0]):(String(val(f)).trim()||'<span class="empty">—</span>')]);
+ if(FM.who!=="me")rev.unshift(["الموظف",FM.emp||'<span class="h13-err">لم يُختر</span>']);
+ if(a)rev.push(["المرفق",FM.att?"مرفق.pdf":(a[1]?'<span class="h13-err">مطلوب</span>':"لا يوجد")]);
+ return `<div class="cvform h15">
+ <div class="card cvopts">
+  <div class="cvbar-g"><span>مقدّم الطلب</span><div class="seg">${[["me","أنا"],["behalf","نيابة عن موظف"]].map(x=>`<button data-h14-whob="${x[0]}" class="${FM.who===x[0]?"on":""}">${x[1]}</button>`).join("")}</div></div>
+  <div class="cvbar-g"><span>نوع الطلب</span>${tSel()}<div class="h15-quick">${["leave","perm","adv","exp","letter"].map(id=>{const q=tyById(id);return `<button data-h14-type="${id}" class="${FM.type===id?"on":""}">${X(q[1])}${q[2]}</button>`}).join("")}</div></div>
+  <div class="steps">${STEPS14.map((s,i)=>`<button class="step${i===cur?" on":""}${ok[i]?" done":""}" data-h14-step="${i}"><span class="num">${ok[i]?X("check"):i+1}</span><b>${i===3&&ok[3]?"جاهز للإرسال":s}</b></button>`).join("")}</div>
+  <div class="cvbar-g col"><span>حالة الطلب</span><div class="h15-st"><span class="g">${X("check-circle-2")}${nOk} سليمة</span>${nW?`<span class="a">${X("alert-circle")}${nW} للانتباه</span>`:""}${nB?`<span class="r">${X("x-circle")}${nB} تمنع الإرسال</span>`:""}</div><small class="fhint">يمر على: ${chainL().map(c=>c[1]).join(" ← ")}</small></div>
+  ${B("primary","send","إرسال الطلب",'data-h14-send=""')}
+ </div>
+ <div class="card cvfields">
+  <div class="fs-h" id="h14-s0"><span class="fs-n num">1</span><b>مقدّم الطلب ونوعه</b></div>
+  <div class="fgrid h15-g">${FM.who==="me"?FLD("مقدّم الطلب",`<div class="inp h14-calc"><input readonly value="${ME[0]} · ${ME[1]}"></div>`):FLD("الموظف",`<select data-h14-emp="" class="${FM.err.emp?"h14-bad":""}"><option value="">اختر الموظف…</option>${["عبدالعزيز الشمري — ليس له مستخدم","آمنة نالوجا — عاملة منزلية","نيلانثي سيلفا — عاملة منزلية"].map(o=>`<option${o===FM.emp?" selected":""}>${o}</option>`).join("")}</select>`,1,FM.err.emp?'<span class="h13-err">مطلوب</span>':"يُسجَّل الطلب باسم من أدخله (هند العتيبي)")}${FLD("نوع الطلب",`<div class="inp h14-calc"><input readonly value="${t[2]} · ${t[3]}"></div>`,0,"غيّره من اللوحة الجانبية")}</div>
+  <div class="fs-h" id="h14-s1"><span class="fs-n num">2</span><b>تفاصيل الطلب — ${t[2]}</b></div>
+  <div class="fgrid h15-g">${fs.map(f=>FLD(f[1],ctl(f),f[4],FM.err[f[0]]?`<span class="h13-err">مطلوب</span>`:f[5]||"")).join("")}</div>
+  ${FM.type==="leave"&&FM.who==="me"?`<div class="cvnote">${X("plane")}<span>مسافرة خارج المملكة أثناء الإجازة؟ <button class="h15-lnk" data-h14-type="exit">أضيفي طلب «سفر خارج المملكة»</button> — لأنك سعودية لا تحتاجين تأشيرة خروج وعودة.</span></div>`:""}
+  <div class="fs-h" id="h14-s2"><span class="fs-n num">3</span><b>المرفقات</b><span class="empty" style="margin-inline-start:auto">${a?(a[1]?"إلزامي لهذا النوع":"اختياري"):"غير مطلوبة لهذا النوع"}</span></div>
+  <div class="msgrid up"><button class="mtile up h15-tile${FM.att?" on":""}${FM.err.att?" h14-bad":""}" data-h14-att=""><span class="mimg">${X(FM.att?"file-check-2":"upload-cloud")}</span><b>${FM.att?"مرفق.pdf":a?a[0]:"مرفق اختياري"}${a&&a[1]?'<i class="rq">*</i>':""}</b><small>${FM.att?"اضغط للإزالة":"اسحب الملف أو اضغط للاختيار — PDF · صورة"}</small></button><div class="mtile h15-help"><span class="mimg">${X("info")}</span><b>المستند حسب النوع</b><small>المرضية: تقرير طبي · الزواج: عقد الزواج · المولود: شهادة الميلاد · الحج: تصريح الحج · المصروفات: الفاتورة · الاستقالة: الخطاب</small></div></div>
+  <div class="fs-h" id="h14-s3"><span class="fs-n num">4</span><b>المراجعة قبل الإرسال</b><span class="empty" style="margin-inline-start:auto">راجع ما سيصل للمعتمد</span></div>
+  <div class="h15-rev"><div class="msec"><div class="msec-h">${X("file-text")}<b>ملخص الطلب</b></div>${KV(rev)}</div>
+   <div class="msec"><div class="msec-h">${X("scan-search")}<b>الفحص التلقائي</b></div>${CHK(ck)}</div>
+   <div class="msec"><div class="msec-h">${X("git-branch")}<b>سلسلة الاعتماد</b></div>${CHAIN(chainL())}<small class="fhint" style="padding:0 16px 12px;display:block">إذا انتهت المهلة يُصعَّد للمستوى الأعلى، وإذا كان المعتمد في إجازة يذهب لمن فوّضه.</small></div>
+   <div class="msec"><div class="msec-h">${X("play")}<b>بعد الاعتماد</b></div><div class="h8-after">${t[7].split(" · ").map(x=>`<span>${X("check")}${x}</span>`).join("")}</div></div></div>
+  ${FM.msg?`<div class="cvnote${FM.msg.indexOf("أكمل")===0?" h15-warn":""}">${X(FM.msg.indexOf("أكمل")===0?"alert-triangle":"save")}<span>${FM.msg}</span></div>`:""}
+  <div class="cvactions">${B("primary","send","إرسال الطلب",'data-h14-send=""')}${B("ghost","save","حفظ كمسودة",'data-h14-draft=""')}${B("ghost","","إلغاء",'data-go="myRequests"')}<span class="empty">الحقول المعلّمة * إلزامية</span></div>
  </div></div>`};
-const paint14=()=>{const r=document.getElementById("h14");if(!r)return;const q=s=>r.querySelector(s);
- q("[data-h14-types]").innerHTML=typesH();q("[data-h14-body]").innerHTML=bodyH();
- r.querySelectorAll("[data-h14-whob]").forEach(b=>b.classList.toggle("on",b.dataset.h14Whob===FM.who));
- q("[data-h14-types]").style.display=FM.sent?"none":"";if(window.lucide)lucide.createIcons({attrs:{"stroke-width":1.8}})};
+const paint14=()=>{const r=document.getElementById("h14");if(!r)return;r.querySelector("[data-h14-body]").innerHTML=bodyH();if(window.lucide)lucide.createIcons({attrs:{"stroke-width":1.8}})};
 const send14=()=>{FM.err={};(FORM[FM.type]||[]).forEach(f=>{if(f[4]&&f[2]!=="calc"&&!String(val(f)).trim())FM.err[f[0]]=1});
  if(FM.who!=="me"&&!FM.emp)FM.err.emp=1;const a=attNeed();if(a&&a[1]&&!FM.att)FM.err.att=1;
  if(Object.keys(FM.err).length){FM.msg="أكمل الحقول المعلَّمة"+(FM.err.att?" وارفع المرفق المطلوب":"")+" ثم أرسل الطلب.";paint14();return}
@@ -10710,18 +10729,18 @@ if(!window.__h14){window.__h14=1;
   else if(c("[data-h14-att]")){e.preventDefault();FM.att=FM.att?0:1;delete FM.err.att;paint14()}
   else if(c("[data-h14-send]")){e.preventDefault();send14()}
   else if(c("[data-h14-draft]")){e.preventDefault();FM.msg="حُفظت المسودة · تجدها في «طلباتي» ويمكن إكمالها لاحقاً.";paint14()}
+  else if(c("[data-h14-step]")){const el=document.getElementById("h14-s"+c("[data-h14-step]").dataset.h14Step);if(el&&el.scrollIntoView)el.scrollIntoView({behavior:"smooth",block:"start"})}
   else if(c("[data-h14-reset]")){const w=FM.who;Object.assign(FM,JSON.parse(JSON.stringify(FMI)),{who:w});paint14()}});
  const keep=e=>{const t=e.target;if(!t.closest||!t.closest("#h14"))return;
+  if(t.dataset.h14Tsel!==undefined){if(e.type!=="change")return;FM.type=t.value;FM.err={};FM.att=0;FM.msg="";paint14();return}
   if(t.dataset.h14K!==undefined){FM.vals[FM.type+"."+t.dataset.h14K]=t.value;delete FM.err[t.dataset.h14K]}
   else if(t.dataset.h14Emp!==undefined){FM.emp=t.value;delete FM.err.emp}
   if(e.type==="change"){FM.msg=FM.msg.indexOf("أكمل")===0?FM.msg:"";paint14()}};
  document.addEventListener("input",keep);document.addEventListener("change",keep)}
 S.myRequestNew=()=>{try{const p=sessionStorage.getItem("h14pre");if(p){sessionStorage.removeItem("h14pre");const[w,ty]=p.split(":");Object.assign(FM,JSON.parse(JSON.stringify(FMI)),{who:w==="behalf"?"behalf":"me"});if(ty&&(FORM[ty]))FM.type=ty}}catch(_){}
  return `<div id="h14">
- ${H("طلب جديد","اختر نوع الطلب واملأ تفاصيله. كل الأنواع متاحة لجميع الموظفين، والذي يختلف حسب الفئة (سعودي أو مقيم) هو خطوات التنفيذ فقط.",B("ghost","save","حفظ كمسودة",'data-h14-draft=""')+B("primary","send","إرسال الطلب",'data-h14-send=""'),["myRequests","طلباتي"])}
+ ${H("طلب جديد","بنفس ترتيب «إضافة سيرة ذاتية»: اختر مقدّم الطلب ونوعه من اللوحة الجانبية، ثم املأ الأقسام بالترتيب، وراجع الطلب قبل الإرسال.",B("ghost","","إلغاء",'data-go="myRequests"'),["myRequests","طلباتي"])}
  ${myTabs("myRequestNew")}
- <div class="h9-who card"><div>${X("user-round")}<b>مقدّم الطلب</b></div><div class="cx-seg2"><button data-h14-whob="me" class="${FM.who==="me"?"on":""}">أنا</button><button data-h14-whob="behalf" class="${FM.who!=="me"?"on":""}">نيابة عن موظف</button></div><small>«نيابة عن موظف» للموارد البشرية فقط: للعاملات المنزليات ولمن ليس له مستخدم، ويُسجَّل الطلب باسم من أدخله.</small></div>
- <div class="h9-types" data-h14-types=""${FM.sent?' style="display:none"':""}>${typesH()}</div>
  <div data-h14-body="">${bodyH()}</div></div>`};
 
 /* ================= تفاصيل طلب: خروج وعودة ================= */
