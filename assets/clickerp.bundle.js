@@ -3542,19 +3542,47 @@ const DEPTS=[
   H("الأصول ومراكز التكلفة"),A("finAssets","building","الأصول","Assets"),A("finCenters","target","مراكز التكلفة","Cost centres"),
   H("التقارير والقوائم"),A("finReports","bar-chart-3","التقارير المحاسبية","Accounting reports"),A("finStatements","file-bar-chart","القوائم المالية","Financial statements"),A("finTax","badge-check","الضريبة و ZATCA","Tax & ZATCA"),
   H("الإعدادات"),A("finSettings","settings-2","إعدادات النظام المحاسبي","Accounting settings")]},
- {id:"hr",i:"user-cog",ar:"الموارد البشرية",en:"HR",s:"الموارد",d:"الموظفون والحضور والرواتب ومركز المهام",items:[
+ {id:"hr",i:"user-cog",ar:"الموارد البشرية",en:"HR",s:"الموارد",d:"الموظفون والحضور والطلبات والرواتب",items:[
   H("أنا"),A("myRequests","send","طلباتي","My requests"),A("hrTeam","users-round","فريقي","My team"),
   H("كل يوم"),A("hrDash","gauge","لوحة الموارد البشرية","HR dashboard"),A("hrRequests","inbox","طلبات الموظفين","Employee requests","7"),A("hrAttendance","clock","الحضور","Attendance"),
   H("الموظفون والوثائق"),A("hrEmployees","id-card","الموظفون","Employees"),A("hrWorkers","user-round","العاملات","Workers"),A("hrDocuments","folder-check","الوثائق والإقامات","Documents & iqamas"),A("hrTravel","plane","السفر والتأشيرات","Travel & visas"),
   H("كل شهر"),A("hrPayroll","banknote","الرواتب","Payroll"),A("hrWps","shield-check","حماية الأجور","Wage protection"),
   H("الإجازات والأداء"),A("hrLeaves","calendar-days","الإجازات والتقويم","Leave ledger & calendar"),A("hrPerformance","target","تقييم الأداء","Performance"),A("hrSanctions","gavel","الجزاءات","Sanctions"),A("hrDaily","notebook-pen","التقارير اليومية","Daily reports"),
   H("العقود ونهاية الخدمة"),A("hrContracts","file-signature","العقود وتوثيق قوى","Contracts & Qiwa"),A("hrCustody","key-round","العهد","Custody"),A("hrEos","door-open","المخالصات","End of service"),
-  H("الإعدادات"),A("hrSettings","settings-2","إعدادات الموارد البشرية","HR settings"),
-  H("مركز المهام"),A("tcMy","sun","يومي","My day"),A("tcInbox","inbox","الوارد","Intake"),A("tcBoard","columns-3","لوحة المهام","Task board"),A("tcHandoff","arrow-left-right","التسليم والاستلام","Handoffs"),A("tcQA","flask-conical","الاختبار","Testing"),A("tcSpecs","file-text","التحليل والمواصفات","Specs"),A("tcAdmin","briefcase","مهام الإدارة","Management"),A("tcVault","key-round","بيانات الدخول","Credentials"),A("tcArchive","archive","الأرشيف","Archive"),A("tcTeam","users","متابعة الفريق","Team"),A("tcApprovals","hourglass","موافقات الوقت","Time approvals"),A("tcHours","bar-chart-3","الساعات والتكلفة","Hours & cost"),A("tcSettings","settings","إعدادات مركز المهام","Settings")]},
+  H("الإعدادات"),A("hrSettings","settings-2","إعدادات الموارد البشرية","HR settings")]},
+ {id:"tasks",i:"list-checks",ar:"مركز المهام",en:"Task Center",s:"المهام",d:"المهام والتسليم والاختبار وتسجيل الوقت",items:[
+  H("شغلي"),A("tcMy","sun","يومي","My day"),A("tcInbox","inbox","الوارد","Intake"),A("tcBoard","columns-3","لوحة المهام","Task board"),A("tcHandoff","arrow-left-right","التسليم والاستلام","Handoffs"),A("tcArchive","archive","الملفات والأرشيف","Files & archive"),
+  H("مراحل الشغل"),A("tcSpecs","file-text","التحليل والمواصفات","Specs"),A("tcQA","flask-conical","الاختبار","Testing"),A("tcAdmin","briefcase","مهام الإدارة","Management"),A("tcVault","key-round","بيانات الدخول","Credentials"),
+  H("الفريق والوقت"),A("tcTeam","users","متابعة الفريق","Team"),A("tcApprovals","hourglass","موافقات الوقت","Time approvals"),A("tcHours","bar-chart-3","الساعات والتكلفة","Hours & cost"),
+  H("الإعدادات"),A("tcSettings","settings","إعدادات مركز المهام","Settings")]},
  {id:"settings",i:"settings",ar:"الإعدادات",en:"Settings",s:"الإعدادات",d:"إعدادات المكتب والمستخدمين والتكاملات",items:[
   A("setHome","layout-grid","كل الإعدادات","All settings"),A("setGeneral","sliders-horizontal","العامة","General"),A("coupons","ticket-percent","كوبونات الخصم","Coupons"),A("setSite","globe","موقع المكتب","Office website"),A("cmsHome","layout-template","محتوى الموقع","Website content"),A("selectWorkers","list-checks","صفحة اختيار العمالة","Select-workers page"),A("setCountry","flag","سياسات الدول","Country policies"),A("setRecruit","files","الاستقدام والسير","Recruitment & CVs"),A("setRental","repeat","التأجير","Rental"),
   A("setUsers","shield-check","المستخدمون والصلاحيات","Users & roles"),A("setBranches","git-branch","الفروع","Branches"),A("setLists","list","القوائم المرجعية","Reference lists"),A("setMessages","bell","الرسائل والإشعارات","Messages & notifications"),
   A("setIntegrations","plug","التكاملات","Integrations"),A("setImport","upload","استيراد البيانات","Data import"),A("setAi","sparkles","المساعد الذكي","AI assistant"),A("setSupport","life-buoy","الدعم","Support"),A("setDev","code","المطوّر (Super Admin)","Developer")]}];
+/* v1.58 — البرامج الثلاثة: كل نسخة نوعها واحد (config/product_profiles.php) والقائمة بتتفلتر بيه زي مفتاح profiles في config/v2_nav.php.
+   الإدارة = موديول ممكن يتنقل لبرنامج تاني بتعديل PG_DEPT/PG_ITEM بس. */
+const PROGS={
+ recruitment:{ar:"نظام الاستقدام",en:"Recruitment",i:"briefcase",c:"rec",home:"dashboard",d:"أساس البرنامج: الاستقدام والتأجير ونقل الخدمات والإيواء، ومعاهم العملاء والمالية والموارد البشرية"},
+ general:{ar:"النظام العام — المالية",en:"General — Finance",i:"wallet",c:"gen",home:"finDashGen",d:"محاسبة عامة لأي شركة: القيود والسندات والفواتير والتقارير، والتأجير بالساعة ومركز المهام اختياري"},
+ tasks:{ar:"نظام المهام والموارد البشرية",en:"Tasks & HR",i:"list-checks",c:"tsk",home:"tcMy",d:"شركة خدمات شغلها مهام وفريق: مركز المهام والحضور والطلبات والرواتب، من غير استقدام ولا مالية"}};
+const PG_DEPT={all:["recruitment","general","tasks"],ops:["recruitment","general"],crm:["recruitment","general","tasks"],finance:["recruitment","general"],hr:["recruitment","general","tasks"],tasks:["general","tasks"],settings:["recruitment","general","tasks"]};
+const PG_RG=["recruitment","general"],PG_R=["recruitment"];
+const PG_ITEM={dashboard:PG_R,reports:PG_RG,recDash:PG_RG,"hb-board":PG_RG,"hb-visits":PG_RG,"hb-alerts":PG_RG,"hb-clients":PG_RG,hbCollect:PG_RG,"hb-services":PG_RG,claims:PG_R,hrWorkers:PG_RG,coupons:PG_RG,selectWorkers:PG_R,setCountry:PG_R,setRecruit:PG_R,setRental:PG_R};
+const PG_OPS_DEF=PG_R; /* أي سطر في العمليات من غير تحديد = استقدام بس */
+const PG_KEY="clickerp-program";
+let PROG=(QP.get("program")||"").trim();
+if(PROGS[PROG]){try{localStorage.setItem(PG_KEY,PROG)}catch(e){}}else{try{PROG=localStorage.getItem(PG_KEY)}catch(e){}if(!PROGS[PROG])PROG="recruitment"}
+window.CERP_PROG=PROG;window.CERP_PROGS=PROGS;
+const pgOf=(d,p)=>PG_ITEM[p.id]||(d.id==="ops"?PG_OPS_DEF:PG_DEPT[d.id]);
+const PG_ALL=DEPTS.map(d=>({d,items:d.items.slice()}));
+window.CERP_PGOF=id=>{for(const x of PG_ALL)for(const p of x.items)if(!p.sec&&(p.id===id||(SUBS[p.id]||[]).includes(id)||(p.k||[]).concat(p.to?[p.to]:[]).some(k=>!k.sec&&k.page===id)))return pgOf(x.d,p);return null};
+window.CERP_DEPTS_ALL=DEPTS.map(d=>({id:d.id,ar:d.ar,i:d.i,d:d.d,pg:PG_DEPT[d.id],items:d.items.filter(p=>!p.sec).map(p=>({id:p.id,ar:p.ar,pg:pgOf(d,p)}))}));
+for(let k=DEPTS.length-1;k>=0;k--){const d=DEPTS[k];
+ if(!PG_DEPT[d.id].includes(PROG)){DEPTS.splice(k,1);continue}
+ const keep=d.items.filter(p=>p.sec||pgOf(d,p).includes(PROG));
+ d.items=keep.filter((p,j)=>!p.sec||(keep[j+1]&&!keep[j+1].sec));}
+const PG_ORDER={recruitment:["all","ops","crm","finance","hr","settings"],general:["all","finance","ops","crm","hr","tasks","settings"],tasks:["all","tasks","hr","crm","settings"]}[PROG];
+DEPTS.sort((a,b)=>PG_ORDER.indexOf(a.id)-PG_ORDER.indexOf(b.id));
 const SUBS={finDash:["finDashGen"],cmsHome:["cmsBlogs","cmsBlogForm","cmsOffers","cmsHero","cmsSections","cmsTestimonials","cmsPartners","cmsFaq"],reqRec:["orderShow"],reqRent:["rentalOrders","rentalOrderShow"],rcExtensions:["rcRenewals","rcReturns","rcReturnShow"],absconding:["abscShow"],rentalSettings:["rentalTerms"],rcFinance:["rcFinanceShow"],inbound:["inboundShow"],finCreditNotes:["finCreditNoteAdd"],setDev:["saSubscription","saModules","saEmployees","saDesigns","saUpdates","saUpdateForm","saBackups","saScheduler","saRecovery","saInvoices","saInvoiceFix","saMcp","saMoyasar","saTestAccounts"],tcMy:["tcPolicy","tcClose"],tcBoard:["tcTask","tcForm","tcList","tcLanes","tcBoardD","tcCard","tcNew","tcCardQA","tcShare"],tcQA:["tcQALib"],tcAdmin:["tcRemind"],hrAttendance:["tcCheckin","tcGeo","hrPunchImport","hrRemote"],hrDocuments:["hrRenewal","hrMuqeem"],hrWorkers:["hrWorkerShow"],hrPerformance:["hrReview","hrSurvey"],hrSettings:["hrEstablishments","hrApprovalFlows","hrCompliance"],myRequests:["myRequestNew","myRequestShow"],tcTeam:["tcMember","tcShots","tcSessions"],tcHours:["tcAttend"],tcSettings:["tcMigrate"],contracts:["contractShow","contractAdd","contractEdit"],cvs:["cvAdd","cvShow","cvEdit","cvReview","cvShares"],rentalCvs:["rentalCvShow","rentalCvAdd"],clients:["clientShow","clientAdd"],
  rental:["rentalShow","rentalAdd"],housing:["housingShow","housingAdd"],transfer:["transferShow","transferAdd","transferOverview"],
  reports:["report","arrivals"],finBonds:["finBondsGen","finComPay","finTransfers"],finSales:["finSaleAdd","finCreditNotes","finCreditNoteAdd"],finBanks:["finBoxes","finChecksIn","finChecksOut"],finClients:["finClientCats"],finSuppliers:["finSupplierTypes","finAgents"],finPurchases:["finPurchaseReq","finReturns"],
@@ -3575,9 +3603,9 @@ const owner=c=>{EXK=null;
 const kHref=k=>{const q=[k.f?"f="+encodeURIComponent(k.f):"",k.via?"via="+k.via:""].filter(Boolean).join("&");return k.page+".html"+(q?"?"+q:"")};
 const kNum=k=>{try{const n=typeof k.n==="function"?k.n():k.n;return n==null?"":`<em class="nk-n num">${n}</em>`}catch(e){return ""}};
 const kidLink=k=>k.sec?`<div class="nav-kid-sec">${k.ar}</div>`:`<a href="${kHref(k)}" class="${EXK===k?"on":""}"${EXK===k?' aria-current="page"':""}><i class="kd"></i><span>${t(k.ar,k.en)}</span>${kNum(k)}</a>`;
-const PK="clickerp-pins";
+const PK="clickerp-pins"+(PROG==="recruitment"?"":"-"+PROG);
 let PINS;try{PINS=JSON.parse(localStorage.getItem(PK))}catch(e){}
-if(!Array.isArray(PINS))PINS=["contracts","inbound","cvs","clients","transfer"];
+if(!Array.isArray(PINS))PINS={recruitment:["contracts","inbound","cvs","clients","transfer"],general:["finDaily","finEntries","finBonds","finSales","clients"],tasks:["tcMy","tcBoard","hrRequests","hrAttendance","clients"]}[PROG];
 PINS=PINS.filter(id=>PG[id]);
 const savePins=()=>{try{localStorage.setItem(PK,JSON.stringify(PINS))}catch(e){}};
 let LAST=null,SEL="all";
@@ -3598,9 +3626,20 @@ function rail(c){
  if(tr&&!tr.querySelector("[data-fav]")){const n=tr.querySelector("[data-notif]");const w=document.createElement("div");w.className="fav-wrap";
   w.innerHTML=`<button class="icon-btn" data-fav="" title="${t("المفضلة","Favorites")}">${I("star")}</button><div class="fav-pop hidden" data-fav-pop=""><div class="fp-h"><b>${t("المفضلة","Favorites")}</b><small>${t("السجلات اللي علّمت عليها بنجمة","Records you starred")}</small></div>${[["file-text","CN-2026-0115","عقد · منيرة الشهري","contractShow"],["user-round","شركة نجد للمقاولات","عميل · 3 عقود","clientShow"],["files","Marites Dela Cruz","سيرة ذاتية · الفلبين","cvShow"],["ticket-percent","RAMADAN26","كوبون · نشط","couponShow"]].map(f=>`<a href="#" data-go="${f[3]}">${I(f[0])}<span><b>${f[1]}</b><small>${f[2]}</small></span>${I("star","on")}</a>`).join("")}<a class="fp-all" href="${RB}favorites.html" target="_blank" rel="noopener">${t("عرض كل المفضلة","All favorites")}</a></div>`;
   if(n)tr.insertBefore(w,n);else tr.prepend(w)}
+ if(tr&&!tr.querySelector("[data-prog]")){const P=PROGS[PROG],w=document.createElement("div");w.className="prog-wrap";
+  w.innerHTML=`<button class="pill prog-pill pg-${P.c}" data-prog="" title="${t("نوع البرنامج — بيتحدد من Super Admin","Program type — set in Super Admin")}">${I(P.i)}<span>${t(P.ar,P.en)}</span>${I("chevron-down","chev")}</button>
+  <div class="prog-pop hidden" data-prog-pop=""><div class="pp-h"><b>${t("البرامج الثلاثة","The three programs")}</b><small>${t("كل نسخة عميل نوعها واحد، والقائمة بتتغير معاه. التبديل هنا للمعاينة بس.","Each client instance has one type; switching here is preview only.")}</small></div>
+  ${Object.keys(PROGS).map(k=>{const x=PROGS[k];return `<a href="${x.home}.html?program=${k}" class="pp-row pg-${x.c}${k===PROG?" on":""}"><span class="pp-ic">${I(x.i)}</span><span class="pp-t"><b>${t(x.ar,x.en)}</b><small>${x.d}</small></span>${k===PROG?I("check","pp-ok"):""}</a>`}).join("")}
+  <a class="pp-sa" href="superadmin/programs.html">${I("shield-check")}<span><b>Super Admin</b><small>${t("خريطة البرامج والموديلات · نوع البرنامج","Programs & modules map")}</small></span>${I("chevron-left")}</a></div>`;
+  const sa=document.createElement("a");sa.className="pill sa-pill";sa.href="superadmin/index.html";sa.title=t("لوحة Super Admin — للمطوّر بس","Super Admin — developers only");sa.innerHTML=`${I("shield-check")}<span>Super Admin</span>`;
+  const ref=tr.querySelector(".sep");if(ref){tr.insertBefore(w,ref);tr.insertBefore(sa,ref)}else{tr.prepend(sa);tr.prepend(w)}}
+ const sbs=document.querySelector("#app .side-head .sb-name small");if(sbs&&!sbs.dataset.pg){sbs.dataset.pg=1;sbs.textContent=t(PROGS[PROG].ar,PROGS[PROG].en);sbs.classList.add("sb-prog","pg-"+PROGS[PROG].c)}
+ const sbl=document.querySelector("#app .side-head .sb-brand");if(sbl)sbl.setAttribute("href",PROGS[PROG].home+".html");
  const mn=document.querySelector("#app .main");if(mn&&!mn.querySelector(".page-foot")){const f=document.createElement("footer");f.className="page-foot";f.innerHTML='<a class="pwb" href="https://clickandmore.sa" title="ClickERP — Click &amp; More"><small>Powered by</small><img src="assets/logo-light-tight.png" alt="Click &amp; More"><span class="sep"></span><b>Click<em>ERP</em></b></a><span>© 2026 · جميع الحقوق محفوظة</span>';mn.appendChild(f)}
  r.innerHTML=DEPTS.map((d,k)=>`<button data-rail="${d.id}" class="${k===0?"rl-first ":""}${d.id===SEL?"on":""}${od&&od.id===d.id?" here":""}" title="${t(d.ar,d.en)}">${I(d.i)}<small>${d.s}</small></button>`).join("");
 }
+window.CERP_PNOTE=()=>{const c=window.CERP_PAGE,[od]=owner(c||"");const pgx=document.querySelector("#app .page");if(pgx&&!pgx.querySelector("[data-prog-note]")&&c&&!od&&!["login","noPerm","myProfile","notifCenter"].includes(c)){const own=window.CERP_PGOF(c);if(own&&!own.includes(PROG)){const nb=document.createElement("div");nb.className="prog-note";nb.dataset.progNote="";
+  nb.innerHTML=`${I("info")}<div><b>${t("الشاشة دي مش ضمن «"+PROGS[PROG].ar+"»","Not part of "+PROGS[PROG].en)}</b><small>${t("تابعة لـ ","Belongs to ")}${own.map(k=>"«"+PROGS[k].ar+"»").join(t(" و"," & "))}. ${t("في النسخة الحقيقية مسارها مقفول للنوع ده.","In a real instance its routes are closed for this type.")}</small></div><a class="btn btn-ghost sm" href="${c}.html?program=${own[0]}">${t("افتحها في ","Open in ")}${PROGS[own[0]].ar}</a><a class="btn btn-primary sm" href="${PROGS[PROG].home}.html">${t("رئيسية البرنامج","Program home")}</a>`;pgx.prepend(nb)}}};
 window.renderNav=function(c){
  const [od,op]=owner(c);
  if(c!==LAST){LAST=c;SEL=od?od.id:"all";OPENK=op&&op.k?op.id:null}
@@ -3624,6 +3663,7 @@ window.renderNav=function(c){
 };
 document.addEventListener("click",e=>{const b=e.target.closest("[data-nvx]");if(!b)return;e.preventDefault();const id=b.dataset.nvx;OPENK=OPENK===id?null:id;document.getElementById("app").classList.remove("collapsed");reNav()});
 const reNav=()=>{const nv=document.querySelector("#app .nav");if(!nv)return;const st=nv.scrollTop;nv.innerHTML=renderNav(cur);lucide.createIcons();nv.scrollTop=st};
+document.addEventListener("click",e=>{const pb=e.target.closest("[data-prog]"),pp=document.querySelector("[data-prog-pop]");if(!pp)return;if(pb){e.preventDefault();pp.classList.toggle("hidden");lucide.createIcons();return}if(!e.target.closest("[data-prog-pop]"))pp.classList.add("hidden")});
 document.addEventListener("click",e=>{const fb=e.target.closest("[data-fav]"),pop=document.querySelector("[data-fav-pop]");if(!pop)return;if(fb){e.preventDefault();pop.classList.toggle("hidden");lucide.createIcons();return}if(!e.target.closest("[data-fav-pop]"))pop.classList.add("hidden")});
 document.addEventListener("click",e=>{const p=e.target.closest("[data-pin]");if(!p)return;e.preventDefault();e.stopImmediatePropagation();const id=p.dataset.pin;PINS=PINS.includes(id)?PINS.filter(x=>x!==id):[...PINS,id];savePins();reNav()},true);
 document.addEventListener("click",e=>{const b=e.target.closest("[data-rail]");if(!b)return;e.preventDefault();SEL=b.dataset.rail;const ap=document.getElementById("app");ap.classList.remove("collapsed");if(innerWidth<=1280&&innerWidth>900){if(ap.classList.contains("peek")&&b.classList.contains("on")){ap.classList.remove("peek");return}ap.classList.add("peek")}const nv=ap.querySelector(".nav");nv.innerHTML=renderNav(cur);lucide.createIcons();nv.scrollTop=0});
@@ -4247,38 +4287,6 @@ S.hrEmployees=()=>`
  <div class="card flush fx-t"><div class="tw"><table><thead><tr><th>الموظف</th><th>القسم والوظيفة</th><th>الفرع</th><th>تاريخ التعيين</th><th>اليوم</th><th>تنبيهات</th><th class="act"></th></tr></thead><tbody>
  ${EMP.map((e,i)=>`<tr><td><div class="hx-emp">${AV(e[0])}<div><a href="#" data-go="hrEmployeeShow"><b>${e[0]}</b></a><small class="num">${e[4]}</small></div></div></td><td><div class="wcell"><div><b>${e[1]}</b><small>${e[2]}</small></div></div></td><td>${e[3]}</td><td class="num">${e[5]}</td><td>${TAG(AT[e[6]][0],AT[e[6]][1])}${e[7]?` <small class="num">${e[7]}</small>`:""}</td><td>${i===4?TAG("r","الهوية بعد 6 أيام"):i===1?TAG("a","العقد بعد 18 يومًا"):i===7?TAG("r","الإقامة بعد 9 أيام")+" "+TAG("r","ملحق غير موثّق"):'<span class="empty">—</span>'}</td><td class="act">${ACTS([["eye","عرض",'data-go="hrEmployeeShow"'],["pencil","تعديل",'data-go="hrEmployeeAdd"']])}</td></tr>`).join("")}
  </tbody></table></div>${PAGER("عرض 7 من 45 موظف")}</div>`;
-
-S.hrEmployeeShow=()=>`
- ${IDEA("الراتب معروض كقسيمة (الأساسي + البدلات − الخصومات = الصافي) بدلًا من جداول الشرائح. أرصدة الإجازات أشرطة واضحة، وكل ما يخص الموظف (سلف، إجازات، أذونات، تقارير، مهام، مكافآت) تبويبات في صفحة واحدة.")}
- <div class="page-head compact"><div><a class="back" href="#" data-go="hrEmployees" style="margin:0 0 8px">${X("arrow-right")}<span>الموظفون</span></a><h1>سارة القحطاني</h1><p>EMP-014 · مسؤولة خدمة عملاء · خدمة العملاء · الفرع الرئيسي</p></div><div class="actions">${B("ghost","printer","طباعة")+B("primary","pencil","تعديل",'data-go="hrEmployeeAdd"')}</div></div>
- <div class="showgrid3 cx-show"><aside class="cvside">
-  <div class="card idcard"><span class="bigph person">${X("user-round")}</span><b>سارة القحطاني</b><small class="num">0551234880</small><span class="st tag g"><i></i>حاضرة · 07:52</span>
-   <div class="idk"><div><small>في الشركة</small><b>4 سنوات و8 أشهر</b></div><div><small>الصافي</small><b class="num">7,480.81</b></div><div><small>رصيد الإجازة</small><b class="num">14 يومًا</b></div><div><small>سلفة متبقية</small><b class="num">1,000</b></div></div></div>
-  <div class="card"><div class="sec-h">${X("receipt")}<b>قسيمة الراتب — نوفمبر</b></div><div class="hx-slip">${[["الأساسي","6,500",""],["بدل سكن","1,625","+"],["بدل مواصلات","650","+"],["التأمينات 9.75% × (6,500 + 1,625)","−792.19","-"],["قسط سلفة","−500","-"],["تأخير 12 دقيقة","−2","-"]].map(l=>`<div class="${l[2]==="-"?"m":l[2]==="+"?"p":""}"><span>${l[0]}</span><b class="num">${l[1]}</b></div>`).join("")}<div class="tot"><span>الصافي</span><b class="num">7,480.81 ر.س</b></div></div>
-   <div class="h8-cost"><b>تكلفتها على الشركة ${NW8}</b>${[["الإجمالي","8,775.00"],["التأمينات — حصة المنشأة 11.75%","954.69"],["مخصص نهاية الخدمة","365.63"],["مخصص الإجازات","511.88"]].map(l=>`<div><span>${l[0]}</span><b class="num">${l[1]}</b></div>`).join("")}<div class="tot"><span>التكلفة الشهرية</span><b class="num">10,607.20 ر.س</b></div></div></div>
-  <div class="card acard"><div class="sec-h">${X("zap")}<b>إجراءات</b></div><div class="acts2">${[["calendar-plus","إجازة"],["clock-4","إذن"],["hand-coins","سلفة"],["gavel","جزاء"],["key-round","عهدة"],["user-x","إيقاف","danger"]].map(a=>`<button class="atile ${a[2]||""}">${X(a[0])}<span>${a[1]}</span></button>`).join("")}</div></div>
- </aside><div class="cvmain">
-  <div class="vtabs">${[["layout-grid","نظرة عامة",1],["folder-check","الوثائق"],["file-signature","العقد والملاحق"],["calendar-days","الإجازات",""],["clock-4","الأذونات"],["hand-coins","السلف"],["notebook-pen","التقارير اليومية"],["list-checks","المهام"],["gift","المكافآت"],["award","التقييم والإنجازات"]].map(x=>`<button class="${x[2]?"on":""}">${X(x[0])}<span>${x[1]}</span></button>`).join("")}</div>
-  <div class="tabbody">
-   ${SEC("calendar-days","أرصدة الإجازات",`<div class="hx-bal">${[["السنوية",21,7,"g","تصبح 30 يومًا اعتبارًا من 1 مارس 2027 (5 سنوات خدمة)"],["المرضية — أجر كامل",30,2,"n","تبدأ السنة المرضية من أول إجازة مرضية: 2026-10-05 · وبعدها 60 يومًا بنسبة 75% و30 يومًا بدون أجر"]].map(b=>`<div><div class="t"><b>${b[0]}</b><span class="num">${b[1]-b[2]} من ${b[1]} يوم متبقي</span></div><span class="track"><i class="${b[3]}" style="width:${(b[1]-b[2])/b[1]*100}%"></i></span><small class="fhint">${b[4]}</small></div>`).join("")}</div><div class="h8-spl">${["زواج 5","مولود 3 خلال 7 أيام","وفاة الزوج أو الأصول أو الفروع 5","وفاة أخ أو أخت 3","وضع 12 أسبوع","حج 10–15 مرة واحدة","عدة"].map(x=>`<span>${x}</span>`).join("")}<small>إجازات خاصة نظامية بمستند</small></div>`,B("ghost sm","","دفتر الحركات",'data-go="hrLeaves"'))}
-   ${SEC("calendar-check","حضور نوفمبر",`<div class="hx-mcal">${Array.from({length:30},(_,i)=>{const d=i+1;const wd=(d+6)%7;const c=d>16?"f":(wd===5||wd===6)?"w":d===4?"a":d===11?"l":d===9?"v":"p";return `<span class="${c}"><b class="num">${d}</b></span>`}).join("")}</div><div class="hx-leg">${[["p","حضور وانصراف"],["a","تأخير"],["v","إجازة"],["l","إذن"],["w","عطلة"]].map(x=>`<span><i class="${x[0]}"></i>${x[1]}</span>`).join("")}</div>`)}
-   ${SEC("user-round","البيانات الأساسية",KV([["نوع الارتباط","سعودية على المنشأة"],["الديانة","مسلمة · تحدد ساعات رمضان وإجازة الحج والعدة"],["المنشأة","الريادة للاستقدام — الرئيسي"],["رقم الهوية",'<span class="num">1029384756</span>'],["انتهاء الهوية",'<span class="num">2028-04-11</span>'],["رقم المشترك في التأمينات",'<span class="num">4410293847</span>'],["نظام التأمينات","القديم · أول اشتراك 2022-03-01"],["تاريخ الميلاد",'<span class="num">1994-08-02</span>'],["البريد","sara@riyada.sa"],["العنوان","الرياض — حي النرجس"]]))}
-   ${SEC("briefcase","بيانات الوظيفة",KV([["القسم","خدمة العملاء"],["المسمى","مسؤولة خدمة عملاء"],["الوردية","صباحي 8:00–16:00"],["تاريخ التعيين",'<span class="num">2022-03-01</span>'],["نوع العقد","غير محدد المدة"],["فترة التجربة","90 يومًا · انتهت 2022-05-29"],["التوثيق في قوى",'<span class="tag g">موثّق · QW-88120</span>'],["نمط العمل","مكتبي"],["متابعة التقرير اليومي","هند العتيبي"]]))}
-   ${SEC("folder","ملفات الموظف",`<div class="cx-files">${[["file-text","صورة الهوية.pdf"],["file-text","عقد العمل.pdf"],["image","الصورة الشخصية.jpg"]].map(f=>`<div class="cx-file">${X(f[0])}<div><b>${f[1]}</b></div>${ACTS([["download","تحميل"]])}</div>`).join("")}</div>`)}
-  </div></div></div>`;
-
-S.hrEmployeeAdd=()=>`
- 
- ${HEAD("إضافة موظف","البيانات الأساسية ← الوظيفة ← الملفات ← الراتب.",B("ghost","","إلغاء",'data-go="hrEmployees"')+B("primary","save","حفظ الموظف"),["hrEmployees","الموظفون"])}
- <div class="grid-2 wide-l"><div>
-  ${FS(1,"البيانات الأساسية",`<div class="fgrid">${FLD("الاسم",INP("الاسم الرباعي"),1)}${FLD("كود الموظف",INP("","EMP-046",1))}${FLD("الجوال",INP("05XXXXXXXX","",1))}${FLD("نوع الارتباط "+NW8,SEL(["سعودي على المنشأة","مقيم على كفالة المنشأة","مقيم على منشأة أخرى في المجموعة","أجير — معار لنا","شركة تشغيل وتوظيف","عمل حر — عقد مستقل","عاملة منزلية تتحول إلى موظفة"]),1,"يحدد ما يلزمنا: التأمينات والإقامة وحماية الأجور والمسير")}${FLD("الجنسية",'<div class="inp">'+X("search")+'<input placeholder="ابحث في كل الجنسيات" value="السعودية"></div>',1)}${FLD("الديانة "+NW8,SEL(["مسلم","غير مسلم"]),1,"تحدد ساعات رمضان وإجازة الحج وإجازة العدة")}${FLD("رقم الهوية أو الإقامة",INP("","",1))}${FLD("انتهاء الهوية أو الإقامة",'<input type="date">')}${FLD("تاريخ الميلاد",'<input type="date">')}${FLD("البريد",INP("name@company.sa","",1))}${FLD("العنوان",INP(""))}</div>
-   <div class="h8-res"><div class="t">${X("credit-card")}<b>بيانات المقيم ${NW8}</b><small>تظهر إذا كانت الفئة «مقيم»</small></div><div class="fgrid">${FLD("رقم الجواز",INP("","",1),1)}${FLD("انتهاء الجواز",'<input type="date">',1)}${FLD("رقم الحدود",INP("","",1))}${FLD("المهنة في الإقامة",INP("كما في مقيم"))}${FLD("انتهاء رخصة العمل",'<input type="date">')}${FLD("التأمين الطبي",INP("رقم الوثيقة والانتهاء"))}</div></div>${ROW("إنشاء حساب للموظف","يمكنه دخول بوابة الموظف وتقديم طلباته",SW(1))}`)}
-  ${FS(2,"بيانات الوظيفة",`<div class="fgrid">${FLD("القسم",SEL(["خدمة العملاء","المبيعات","العمليات","الإيواء","المالية"]),1)}${FLD("المسمى الوظيفي",SEL(["مسؤول خدمة عملاء","مندوب مبيعات","منسق عقود"]))}${FLD("الوردية",SEL(["صباحي 8:00–16:00","مسائي 14:00–22:00"]))}${FLD("المنشأة المسجّل عليها "+NW8,SEL(["الريادة للاستقدام — الرئيسي","الريادة للاستقدام — فرع جدة","الريادة لخدمات الإيواء"]),1,"الكفالة والتأمينات وملف حماية الأجور")}${FLD("مركز التكلفة",SEL(["نفس المنشأة","خدمات مشتركة — توزيع بفاتورة داخلية"]),0,"محاسبي فقط، ومكان العمل = المنشأة المسجّل عليها")}${FLD("تاريخ التعيين",'<input type="date" value="2026-11-16">')}${FLD("متابعة التقرير اليومي",SEL(["هند العتيبي","مدير القسم"]))}${FLD("نوع العقد "+NW8,SEL(["محدد المدة","غير محدد المدة"]),1,"يجب أن يكون عقد غير السعودي محدد المدة")}${FLD("مدة العقد",SEL(["سنة","سنتان","3 سنوات"]),1,"إذا تُركت فارغة = سنة، ويتجدد تلقائيًا لنفس المدة")}${FLD("انتهاء التعاقد",'<input type="date" value="2027-11-15">')}${FLD("فترة التجربة (يوم) "+NW8,INP("","90",1),1,"180 يومًا كحد أقصى · تنتهي مبدئيًا 2027-02-13 وتُؤجل بأيام الأعياد واليوم الوطني ويوم التأسيس والإجازة المرضية")}${FLD("نمط العمل "+NW8,SEL(["مكتبي","عن بعد","هجين"]))}${FLD("التوثيق في قوى "+NW8,SEL(["مسودة","بانتظار موافقة الموظف","موثّق","مرفوض"]))}</div>
-   <div class="hx-vac">${[["السنوية","21","تصبح 30 تلقائيًا بعد 5 سنوات"],["المرضية","120","30 بأجر كامل · 60 بنسبة 75% · 30 بدون أجر"],["الخاصة","نظامية","زواج 5 · مولود 3 · وفاة 5/3 · وضع 12 أسبوع · حج · عدة"]].map(v=>`<div><b>${v[0]}</b><input class="num" value="${v[1]}" readonly><small>${v[2]}</small></div>`).join("")}</div><small class="fhint">أنواع الإجازات النظامية ثابتة بمددها. يمكن لسياسة الشركة الزيادة عليها من إعدادات الموارد البشرية.</small>`)}
-  ${FS(3,"ملفات الموظف",`<div class="dropz">${X("upload-cloud")}<b>الهوية، عقد العمل، الشهادات</b><small>كل ملف باسمه</small></div>`)}
-  ${FS(4,"الراتب",`<div class="fgrid">${FLD("المرتب الأساسي",INP("","6,500",1),1,"ر.س")}${FLD("نظام التأمينات",SEL(["سعودي — القديم (قبل 3 يوليو 2024)","سعودي — الجديد","غير سعودي — 2% على المنشأة"]),0,"يُحدد تلقائيًا من تاريخ أول اشتراك")}${FLD("تاريخ أول اشتراك",'<input type="date" value="2022-03-01">')}${FLD("الآيبان",INP("SA…","",1),1,"مطلوب لملف حماية الأجور")}</div><div class="hx-allow">${[["بدل سكن","25% من الأساسي","1,625"],["بدل مواصلات","10% من الأساسي","650"]].map(a=>`<div><b>${a[0]}</b><small>${a[1]}</small><b class="num">${a[2]}</b>${ACTS([["x","حذف"]])}</div>`).join("")}<button class="cx-file add">${X("plus")}<span>إضافة بدل</span></button></div>`)}
- </div><div><div class="card sec fx-sum"><div class="sec-h">${X("calculator")}<b>الصافي المتوقع</b></div><div class="fx-sum-amt"><small>كل شهر</small><b class="num">7,982.81 <small>ر.س</small></b><span>بعد التأمينات</span></div><div class="hx-slip in">${[["الأساسي","6,500",""],["البدلات","+2,275","p"],["الأجر الخاضع (أساسي + سكن)","8,125",""],["التأمينات 9.75%","−792.19","m"]].map(l=>`<div class="${l[2]}"><span>${l[0]}</span><b class="num">${l[1]}</b></div>`).join("")}</div>
-  <div class="h8-cost"><b>تكلفة المنشأة</b>${[["الإجمالي","8,775.00"],["التأمينات — حصة المنشأة 11.75%","954.69"],["مخصص نهاية الخدمة","365.63"]].map(l=>`<div><span>${l[0]}</span><b class="num">${l[1]}</b></div>`).join("")}<div class="tot"><span>شهرياً</span><b class="num">10,095.32 ر.س</b></div></div><div class="cx-info">${X("info")}<span>لا توجد ضريبة على الرواتب. تُخصم الإجازات والجزاءات والتأخيرات تلقائيًا في المسير كل شهر.</span></div></div></div></div>`;
 
 /* ================= العاملات (hr.maids) ================= */
 S.hrWorkers=()=>`
@@ -10700,6 +10708,7 @@ const bodyH=()=>{const t=tyById(FM.type),fs=FORM[FM.type],a=attNeed(),ck=checks(
   ${B("primary","send","إرسال الطلب",'data-h14-send=""')}
  </div>
  <div class="card cvfields">
+  <div class="h15-chain"><div class="h15-ch-t">${X("git-branch")}<b>مسار الاعتماد</b><small>«${t[2]}» · يتغير حسب النوع والمبلغ والفئة</small></div>${CHAIN(chainL())}</div>
   <div class="fs-h" id="h14-s0"><span class="fs-n num">1</span><b>مقدّم الطلب ونوعه</b></div>
   <div class="fgrid h15-g">${FM.who==="me"?FLD("مقدّم الطلب",`<div class="inp h14-calc"><input readonly value="${ME[0]} · ${ME[1]}"></div>`):FLD("الموظف",`<select data-h14-emp="" class="${FM.err.emp?"h14-bad":""}"><option value="">اختر الموظف…</option>${["عبدالعزيز الشمري — ليس له مستخدم","آمنة نالوجا — عاملة منزلية","نيلانثي سيلفا — عاملة منزلية"].map(o=>`<option${o===FM.emp?" selected":""}>${o}</option>`).join("")}</select>`,1,FM.err.emp?'<span class="h13-err">مطلوب</span>':"يُسجَّل الطلب باسم من أدخله (هند العتيبي)")}${FLD("نوع الطلب",`<div class="inp h14-calc"><input readonly value="${t[2]} · ${t[3]}"></div>`,0,"غيّره من اللوحة الجانبية")}</div>
   <div class="fs-h" id="h14-s1"><span class="fs-n num">2</span><b>تفاصيل الطلب — ${t[2]}</b></div>
@@ -10710,7 +10719,6 @@ const bodyH=()=>{const t=tyById(FM.type),fs=FORM[FM.type],a=attNeed(),ck=checks(
   <div class="fs-h" id="h14-s3"><span class="fs-n num">4</span><b>المراجعة قبل الإرسال</b><span class="empty" style="margin-inline-start:auto">راجع ما سيصل للمعتمد</span></div>
   <div class="h15-rev"><div class="msec"><div class="msec-h">${X("file-text")}<b>ملخص الطلب</b></div>${KV(rev)}</div>
    <div class="msec"><div class="msec-h">${X("scan-search")}<b>الفحص التلقائي</b></div>${CHK(ck)}</div>
-   <div class="msec"><div class="msec-h">${X("git-branch")}<b>سلسلة الاعتماد</b></div>${CHAIN(chainL())}<small class="fhint" style="padding:0 16px 12px;display:block">إذا انتهت المهلة يُصعَّد للمستوى الأعلى، وإذا كان المعتمد في إجازة يذهب لمن فوّضه.</small></div>
    <div class="msec"><div class="msec-h">${X("play")}<b>بعد الاعتماد</b></div><div class="h8-after">${t[7].split(" · ").map(x=>`<span>${X("check")}${x}</span>`).join("")}</div></div></div>
   ${FM.msg?`<div class="cvnote${FM.msg.indexOf("أكمل")===0?" h15-warn":""}">${X(FM.msg.indexOf("أكمل")===0?"alert-triangle":"save")}<span>${FM.msg}</span></div>`:""}
   <div class="cvactions">${B("primary","send","إرسال الطلب",'data-h14-send=""')}${B("ghost","save","حفظ كمسودة",'data-h14-draft=""')}${B("ghost","","إلغاء",'data-go="myRequests"')}<span class="empty">الحقول المعلّمة * إلزامية</span></div>
@@ -11226,6 +11234,131 @@ S.setRoles=()=>{setTimeout(ico,0);return `<div id="prl">
 Object.keys(S).forEach(k=>{screens[k]=S[k]});
 })();
 
+/* ===== v1.57 — إضافة موظف وملف الموظف بنفس منطق «إضافة سيرة ذاتية» و«تفاصيل السيرة» ===== */
+(()=>{
+const {X,KV,TAG,SW,FLD,HEAD,B}=window.CXH;
+const S={};
+const NW='<span class="tag b h8-nw">جديد</span>';
+const sect=(ic,title,inner,act)=>`<div class="card sec"><div class="sec-h">${X(ic)}<b>${title}</b>${act?`<span style="margin-inline-start:auto">${act}</span>`:""}</div>${inner}</div>`;
+const kvs=l=>`<div class="kvgrid">${l.map(x=>`<div class="kv"><span>${x[0]}</span><b>${x[1]}</b></div>`).join("")}</div>`;
+const ico=()=>{if(window.lucide)lucide.createIcons({attrs:{"stroke-width":1.8}})};
+const n2=v=>v.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+const num=v=>+String(v||"").replace(/[^\d.]/g,"")||0;
+
+/* ================= إضافة موظف ================= */
+const LINKS=["سعودي على المنشأة","مقيم على كفالة المنشأة","مقيم على منشأة أخرى في المجموعة","أجير — معار لنا","شركة تشغيل وتوظيف","عمل حر — عقد مستقل","عاملة منزلية تتحول إلى موظفة"];
+const isRes=l=>/مقيم|عاملة/.test(l),onPay=l=>!/أجير|تشغيل|عمل حر/.test(l);
+const EA0={mode:"full",link:LINKS[0],acct:1,wa:1,files:{},v:{},err:{},saved:null};
+const EA=JSON.parse(JSON.stringify(EA0));
+const gv=(k,d)=>EA.v[k]!==undefined?EA.v[k]:(d||"");
+/* حقل: [مفتاح، عنوان، نوع، خيارات/قيمة افتراضية، إلزامي، ملاحظة، مختصر؟] */
+const SEC_A=()=>{const res=isRes(EA.link),pay=onPay(EA.link);return [
+ ["s1","البيانات الأساسية",[["name","الاسم الرباعي","txt","",1,"",1],["code","كود الموظف","ro","EMP-046",0,"يُولَّد تلقائياً",0],["mobile","الجوال","txt","",1,"تصله دعوة الدخول عليه",1],["nat","الجنسية","sel",res?["مصر","الأردن","السودان","الهند","الفلبين","سريلانكا"]:["السعودية"],1,"",1],["rel","الديانة","sel",["مسلم","غير مسلم"],1,"تحدد ساعات رمضان وإجازة الحج والعدة",1],["id",res?"رقم الإقامة":"رقم الهوية","txt","",1,"",1],["idx",res?"انتهاء الإقامة":"انتهاء الهوية","date","",0,"",0],["birth","تاريخ الميلاد","date","",0,"",0],["email","البريد","txt","",0,"",0],["addr","العنوان","txt","",0,"",0]]],
+ ...(res?[["s2","الإقامة والجواز",[["pass","رقم الجواز","txt","",1,"",1],["passx","انتهاء الجواز","date","",1,"يجب أن يغطي مدة الإقامة",1],["border","رقم الحدود","txt","",0,"",0],["prof","المهنة في الإقامة","txt","",0,"كما في مقيم",0],["wp","انتهاء رخصة العمل","date","",0,"",0],["med","التأمين الطبي","txt","",0,"رقم الوثيقة والانتهاء",0]]]]:[]),
+ ["s3","الوظيفة والعقد",[["dept","القسم","sel",["خدمة العملاء","المبيعات","العمليات","الإيواء","المالية"],1,"",1],["title","المسمى الوظيفي","sel",["مسؤول خدمة عملاء","مندوب مبيعات","منسق عقود"],0,"",0],["est","المنشأة المسجّل عليها","sel",["الريادة للاستقدام — الرئيسي","الريادة للاستقدام — فرع جدة","الريادة لخدمات الإيواء"],1,"الكفالة والتأمينات وملف حماية الأجور",1],["cc","مركز التكلفة","sel",["المنشأة نفسها","خدمات مشتركة — توزيع بفاتورة داخلية"],0,"محاسبي فقط",0],["hire","تاريخ التعيين","date","2026-11-16",1,"",1],["shift","الوردية","sel",["صباحي 8:00–16:00","مسائي 14:00–22:00"],0,"",0],["ctype","نوع العقد","sel",res?["محدد المدة"]:["غير محدد المدة","محدد المدة"],1,res?"عقد غير السعودي محدد المدة دائماً":"",0],["dur","مدة العقد","sel",["سنة","سنتان","3 سنوات"],0,"إذا تُركت = سنة، ويتجدد تلقائياً للمدة نفسها",0],["prob","فترة التجربة (يوم)","txt","90",1,"180 يوماً بحد أقصى · تتأجل بالأعياد والمرضية",0],["mode","نمط العمل","sel",["مكتبي","عن بعد","هجين"],0,"",0],["mgr","المدير المباشر","sel",["فيصل الدوسري","هند العتيبي","مدير القسم"],0,"يعتمد طلباته أولاً",0],["qiwa","التوثيق في قوى","sel",["مسودة","بانتظار موافقة الموظف","موثّق"],0,"",0]]],
+ ["s4",pay?"الراتب والتأمينات":"المستحقات",pay?[["basic","الراتب الأساسي (ر.س)","txt","6,500",1,"",1],["gosi","نظام التأمينات","sel",isRes(EA.link)?["غير سعودي — 2% على المنشأة"]:["سعودي — الجديد (أول اشتراك من 3 يوليو 2024)","سعودي — القديم (اشتراك سابق)"],0,"يُحدَّد من تاريخ أول اشتراك",0],["gosid","تاريخ أول اشتراك","date","2026-11-16",0,"",0],["iban","الآيبان","txt","",1,"مطلوب لملف حماية الأجور",1]]:[["party","الجهة","txt","",1,"المعير أو شركة التشغيل أو صاحب وثيقة العمل الحر",1],["rate","المبلغ المتفق عليه","txt","",1,"شهري أو بالساعة · يُصرف بفاتورة أو دفعات عقد",1],["until","حتى","date","",0,"",0]]],
+ ["s5","الملفات",null],
+ ["s6","المراجعة قبل الحفظ",null]]};
+const visF=fs=>EA.mode==="full"?fs:fs.filter(f=>f[6]);
+const calcPay=()=>{const b=num(gv("basic","6,500")),h=b*.25,tr=b*.10,g=b+h+tr,sub=b+h,res=isRes(EA.link),old=/القديم/.test(gv("gosi",""));
+ const ep=res?0:old?.0975:.1075,er=res?.02:old?.1175:.1275,e=sub*ep,c=sub*er,eos=g/2/12;return {b,h,tr,g,sub,e,c,eos,net:g-e,cost:g+c+eos,ep,er}};
+const ctlA=f=>{const v=gv(f[0],f[2]==="sel"?f[3][0]:f[3]),bad=EA.err[f[0]]?" h14-bad":"";
+ if(f[2]==="ro")return `<div class="inp h14-calc"><input readonly value="${f[3]}"></div>`;
+ if(f[2]==="sel")return `<select data-h16-k="${f[0]}" class="${bad}">${f[3].map(o=>`<option${o===v?" selected":""}>${o}</option>`).join("")}</select>`;
+ return `<div class="inp${bad}"><input data-h16-k="${f[0]}" type="${f[2]==="date"?"date":"text"}" class="${/basic|iban|id|mobile|pass|border|prob/.test(f[0])?"num":""}" value="${v}"${f[0]==="iban"?' placeholder="SA…"':""}></div>`};
+const checksA=()=>{const p=num(gv("prob","90")),res=isRes(EA.link),pay=onPay(EA.link),o=[];
+ o.push(p>180?["فترة التجربة تزيد على 180 يوماً","عدّلها إلى 180 بحد أقصى","bad"]:["فترة التجربة ضمن الحد",`${p} يوماً من 180`,"ok"]);
+ if(res)o.push(["عقد المقيم محدد المدة","إذا تُركت المدة = سنة","ok"]);
+ o.push(EA.link===LINKS[0]?["أثر التعيين على نطاقات","الرئيسي يرتفع إلى 71% · أخضر مرتفع","ok"]:res?["أثر التعيين على نطاقات","الرئيسي ينخفض إلى 67% · يبقى أخضر مرتفع","warn"]:["خارج نطاقات المنشأة","على الجهة المعيرة أو المشغّلة","ok"]);
+ if(pay)o.push(gv("iban","").trim()?["الآيبان مُدخل","يدخل ملف حماية الأجور","ok"]:["لا يوجد آيبان","لن يظهر في ملف حماية الأجور حتى يُضاف","warn"]);
+ o.push(EA.files.id?["صورة الهوية مرفوعة","","ok"]:["صورة الهوية غير مرفوعة","مطلوبة قبل توثيق العقد","warn"]);return o};
+const stepsOk=()=>SEC_A().map(s=>s[2]?visF(s[2]).every(f=>!f[4]||String(gv(f[0],f[2]==="sel"?f[3][0]:f[3])).trim()):s[0]==="s5"?!!EA.files.id:false);
+const bodyA=()=>{const secs=SEC_A().filter(s=>EA.mode==="full"||s[0]!=="s5"),ok=stepsOk(),pay=onPay(EA.link),P=calcPay(),ck=checksA();
+ if(EA.saved)return `<div class="card h14-ok">${X("check-circle-2")}<div><h3>تم حفظ الموظف ${gv("name")} · EMP-046</h3><p>${EA.link} · ${gv("dept","خدمة العملاء")} · ${EA.acct?"أُرسلت دعوة الدخول إلى "+gv("mobile"):"بدون حساب في البرنامج"}</p></div></div>
+  <div class="grid-2 wide-l"><div>${sect("list-checks","الخطوات التالية",`<div class="h8-chk">${[["توثيق العقد في قوى","يصل للموظف للموافقة","warn"],[pay?"التسجيل في التأمينات الاجتماعية":"لا يدخل التأمينات","من تاريخ التعيين","warn"],["تسليم العهد","لابتوب أو شريحة إن وجدت","warn"],["تقييم منتصف التجربة",`بعد ${Math.round(num(gv("prob","90"))/2)} يوماً`,"ok"]].map(c=>`<div class="${c[2]}">${X(c[2]==="ok"?"check-circle-2":"alert-circle")}<div><b>${c[0]}</b><small>${c[1]}</small></div></div>`).join("")}</div>`)}</div><div>${sect("arrow-left","التالي",`<div class="h14-next">${B("primary","user-round","ملف الموظف",'data-go="hrEmployeeShow"')}${B("ghost","users","الموظفون",'data-go="hrEmployees"')}${B("ghost","user-plus","إضافة موظف آخر",'data-h16-reset=""')}</div>`)}</div></div>`;
+ const fsec=(i,s)=>`<div class="fs-h" id="h16-${s[0]}"><span class="fs-n num">${i+1}</span><b>${s[1]}</b></div>`;
+ const rev=[["الاسم",gv("name")||'<span class="h13-err">مطلوب</span>'],["نوع الارتباط",EA.link],["المنشأة",gv("est","الريادة للاستقدام — الرئيسي")],["القسم",gv("dept","خدمة العملاء")],["تاريخ التعيين",gv("hire","2026-11-16")],["التجربة",gv("prob","90")+" يوماً"]].concat(pay?[["الصافي الشهري",n2(P.net)+" ر.س"],["تكلفة المنشأة",n2(P.cost)+" ر.س"]]:[["المستحقات",gv("rate")||"—"]]);
+ return `<div class="cvform h15 h16">
+ <div class="card cvopts">
+  <div class="cvbar-g"><span>نوع الارتباط</span><select data-h16-link="">${LINKS.map(l=>`<option${l===EA.link?" selected":""}>${l}</option>`).join("")}</select><small class="fhint">يحدد ما علينا: التأمينات والإقامة وحماية الأجور والمسير</small></div>
+  <div class="cvbar-g"><span>النموذج</span><div class="seg">${[["short","مختصر"],["full","كامل"]].map(x=>`<button data-h16-mode="${x[0]}" class="${EA.mode===x[0]?"on":""}">${x[1]}</button>`).join("")}</div><small class="fhint">${EA.mode==="full"?"كل الأقسام":"الحقول الإلزامية فقط، والباقي يُكمل من ملف الموظف"}</small></div>
+  <div class="steps">${secs.map((s,i)=>`<button class="step${ok[SEC_A().indexOf(s)]?" done":""}" data-h16-step="${s[0]}"><span class="num">${ok[SEC_A().indexOf(s)]?X("check"):i+1}</span><b>${s[1]}</b></button>`).join("")}</div>
+  ${pay?`<div class="cvbar-g col"><span>الصافي المتوقع</span><div class="h16-net"><b class="num">${n2(P.net)}</b><small>ر.س شهرياً · تكلفة المنشأة <b class="num">${n2(P.cost)}</b></small></div></div>`:`<div class="cvbar-g col"><span>المسير</span><small class="fhint">ليس في المسير: مستحقاته فاتورة مورد أو دفعات عقد</small></div>`}
+  <div class="cvbar-g col"><span>إجراءات</span><div class="actrow sm"><div><b>إنشاء حساب للموظف</b><small>يقدّم طلباته من «طلباتي»</small></div><button class="sw${EA.acct?" on":""}" data-h16-acct=""></button></div><div class="actrow sm"><div><b>دعوة على واتساب</b><small>رابط الدخول على الجوال</small></div><button class="sw${EA.wa&&EA.acct?" on":""}" data-h16-wa=""></button></div></div>
+  ${B("primary","save","حفظ الموظف",'data-h16-save=""')}
+ </div>
+ <div class="card cvfields">
+  ${secs.map((s,i)=>{if(s[0]==="s5")return fsec(i,s)+`<div class="msgrid up h16-files">${[["id","id-card","صورة الهوية أو الإقامة",1],["contract","file-signature","عقد العمل الموقّع",0],["cert","graduation-cap","الشهادات",0],["photo","user-round","الصورة الشخصية",0]].map(f=>`<button class="mtile up h15-tile${EA.files[f[0]]?" on":""}" data-h16-file="${f[0]}"><span class="mimg">${X(EA.files[f[0]]?"file-check-2":f[1])}</span><b>${f[2]}${f[3]?'<i class="rq">*</i>':""}</b><small>${EA.files[f[0]]?"مرفوع — اضغط للإزالة":"اسحب الملف أو اضغط للاختيار"}</small></button>`).join("")}</div>`;
+   if(s[0]==="s6")return fsec(i,s)+`<div class="h15-rev"><div class="msec"><div class="msec-h">${X("user-round")}<b>ملخص الموظف</b></div>${kvs(rev)}</div><div class="msec"><div class="msec-h">${X("scan-search")}<b>الفحص قبل الحفظ</b></div><div class="h8-chk">${ck.map(c=>`<div class="${c[2]}">${X(c[2]==="ok"?"check-circle-2":c[2]==="warn"?"alert-circle":"x-circle")}<div><b>${c[0]}</b>${c[1]?`<small>${c[1]}</small>`:""}</div></div>`).join("")}</div></div>
+    ${pay?`<div class="msec"><div class="msec-h">${X("receipt")}<b>القسيمة المتوقعة</b></div><div class="hx-slip in">${[["الأساسي",n2(P.b),""],["بدل سكن 25%","+"+n2(P.h),"p"],["بدل مواصلات 10%","+"+n2(P.tr),"p"],[`التأمينات ${(P.ep*100).toFixed(2)}% × ${n2(P.sub)}`,P.e?"−"+n2(P.e):"لا يُخصم","m"]].map(l=>`<div class="${l[2]}"><span>${l[0]}</span><b class="num">${l[1]}</b></div>`).join("")}<div class="tot"><span>الصافي</span><b class="num">${n2(P.net)}</b></div></div></div><div class="msec"><div class="msec-h">${X("building-2")}<b>تكلفة المنشأة</b></div><div class="h8-cost">${[["الإجمالي",n2(P.g)],[`حصة المنشأة ${(P.er*100).toFixed(2)}%`,n2(P.c)],["مخصص نهاية الخدمة",n2(P.eos)]].map(l=>`<div><span>${l[0]}</span><b class="num">${l[1]}</b></div>`).join("")}<div class="tot"><span>شهرياً</span><b class="num">${n2(P.cost)}</b></div></div></div>`:""}
+    <div class="msec"><div class="msec-h">${X("play")}<b>بعد الحفظ</b></div><div class="h8-after">${["مهمة توثيق العقد في قوى",pay?"يدخل مسير الشهر من تاريخ التعيين":"لا يدخل المسير",EA.acct?"دعوة دخول للبرنامج":"بدون حساب","تذكير بتقييم منتصف التجربة"].map(x=>`<span>${X("check")}${x}</span>`).join("")}</div></div></div>
+    ${EA.msg?`<div class="cvnote h15-warn">${X("alert-triangle")}<span>${EA.msg}</span></div>`:""}`;
+   return fsec(i,s)+`<div class="fgrid h15-g">${visF(s[2]).map(f=>FLD(f[1],ctlA(f),f[4],EA.err[f[0]]?`<span class="h13-err">${f[0]==="prob"?"180 يوماً بحد أقصى":"مطلوب"}</span>`:f[5]||"")).join("")}</div>${s[0]==="s4"&&pay?`<div class="cvnote">${X("info")}<span>البدلات: سكن 25% (${n2(P.h)}) ومواصلات 10% (${n2(P.tr)}) من الأساسي · الأجر الخاضع للتأمينات = الأساسي + السكن · لا توجد ضريبة على الرواتب.</span></div>`:""}`}).join("")}
+  <div class="cvactions">${B("primary","save","حفظ الموظف",'data-h16-save=""')}${B("ghost","","إلغاء",'data-go="hrEmployees"')}<span class="empty">الحقول المعلّمة * إلزامية</span></div>
+ </div></div>`};
+S.hrEmployeeAdd=()=>`<div id="h16a">${HEAD(`إضافة موظف`,"بنفس ترتيب «إضافة سيرة ذاتية»: اختر نوع الارتباط والنموذج من اللوحة الجانبية، ثم املأ الأقسام بالترتيب، وراجع قبل الحفظ.",B("ghost","","إلغاء",'data-go="hrEmployees"'),["hrEmployees","الموظفون"])}<div data-h16a-body="">${bodyA()}</div></div>`;
+const paintA=()=>{const r=document.querySelector("[data-h16a-body]");if(r){r.innerHTML=bodyA();ico()}};
+const saveA=()=>{EA.err={};SEC_A().forEach(s=>{if(s[2])visF(s[2]).forEach(f=>{if(f[4]&&!String(gv(f[0],f[2]==="sel"?f[3][0]:f[3])).trim())EA.err[f[0]]=1})});
+ if(num(gv("prob","90"))>180)EA.err.prob=1;
+ if(Object.keys(EA.err).length){EA.msg="أكمل الحقول المعلَّمة بالأحمر ثم احفظ.";paintA();const el=document.querySelector("#h16a .h14-bad");if(el&&el.scrollIntoView)el.scrollIntoView({block:"center"});return}
+ EA.msg="";EA.saved=1;paintA();window.scrollTo(0,0)};
+
+/* ================= ملف الموظف ================= */
+let TAB="over";
+const TABS16=[["over","نظرة عامة","gauge"],["prof","البيانات الشخصية","user-circle"],["job","الوظيفة والعقد","briefcase"],["pay","الراتب والتكلفة","wallet"],["leave","الإجازات والحضور","calendar-days"],["docs","الوثائق والملفات","folder-check"],["reqs","الطلبات","send"],["log","سجل النشاط","history"]];
+const BODY={
+ over:()=>`${sect("gauge","ملخص الحالة",`<div class="statgrid four">${[["رصيد السنوية","14 يوماً","calendar-days","g"],["حضور نوفمبر","11 من 12","clock","n"],["سلفة متبقية","1,000","hand-coins","a"],["آخر تقييم","82 · جيد جداً","award","g"]].map(x=>`<div class="scard st6"><span class="sci ${x[3]}">${X(x[2])}</span><span class="sct">${x[0]}</span><b class="num">${x[1]}</b></div>`).join("")}</div>`)}
+  ${sect("id-card","البطاقة السريعة",kvs([["الوظيفة","مسؤولة خدمة عملاء"],["القسم","خدمة العملاء"],["المنشأة","الريادة للاستقدام — الرئيسي"],["نوع الارتباط","سعودية على المنشأة"],["تاريخ التعيين",'<span class="num">2022-03-01</span>'],["مدة الخدمة","4 سنوات و8 أشهر"],["العقد","غير محدد المدة · موثّق QW-88120"],["الوردية","صباحي 8:00–16:00"],["المدير المباشر","فيصل الدوسري"],["الصافي",'<span class="num">7,480.81</span>'],["انتهاء الهوية",'<span class="num">2028-04-11</span>'],["نمط العمل","مكتبي"]]))}
+  ${sect("bell","تنبيهات ومتابعة",`<div class="alerts">${[["a","استئذان بانتظار المدير المباشر","RQ-1048 · الخميس 19 نوفمبر 13:00–15:00"],["n","تصبح السنوية 30 يوماً من 1 مارس 2027","بعد 5 سنوات خدمة"],["g","العقد موثّق في قوى والراتب مطابق",""]].map(x=>`<div class="alert ${x[0]}">${X("dot")}<div><b>${x[1]}</b>${x[2]?`<small>${x[2]}</small>`:""}</div></div>`).join("")}</div>`)}`,
+ prof:()=>`${sect("user-circle","البيانات الشخصية",kvs([["الاسم","سارة محمد عبدالله القحطاني"],["تاريخ الميلاد",'<span class="num">1994-08-02</span>'],["الديانة","مسلمة"],["الحالة الاجتماعية","متزوجة"],["الجوال",'<span class="num">0551234880</span>'],["البريد","sara@riyada.sa"],["العنوان","الرياض — حي النرجس"],["المؤهل","بكالوريوس إدارة أعمال"]]))}
+  ${sect("credit-card","الهوية والتأمينات والبنك",kvs([["رقم الهوية",'<span class="num">1029384756</span>'],["انتهاء الهوية",'<span class="num">2028-04-11</span>'],["رقم المشترك في التأمينات",'<span class="num">4410293847</span>'],["نظام التأمينات","القديم · أول اشتراك 2022-03-01"],["الآيبان",'<span class="num">SA•• •••• •••• 4410</span>'],["البنك","البنك الأهلي"]]))}`,
+ job:()=>`${sect("briefcase","الوظيفة",kvs([["المسمى","مسؤولة خدمة عملاء"],["القسم","خدمة العملاء"],["المنشأة","الريادة للاستقدام — الرئيسي"],["مركز التكلفة","خدمة العملاء"],["الوردية","صباحي 8:00–16:00 · راحة 30 د"],["نمط العمل","مكتبي"],["المدير المباشر","فيصل الدوسري"],["متابعة التقرير اليومي","هند العتيبي"]]))}
+  ${sect("file-signature","العقد",kvs([["نوع العقد","غير محدد المدة"],["التوثيق في قوى",TAG("g","موثّق · QW-88120")],["فترة التجربة","90 يوماً · انتهت 2022-05-29"],["مدة الإشعار","30 يوماً منها · 60 يوماً من الشركة"]]))}
+  ${sect("file-diff","الملاحق",`<div class="h8-ver">${[["بدل مواصلات","600 ← 650 · ساري 1 سبتمبر 2026","موثّق","g"],["زيادة سنوية","6,200 ← 6,500 · ساري 1 مارس 2026","موثّق","g"]].map(v=>`<div>${X("file-diff")}<div><b>${v[0]}</b><small class="num">${v[1]}</small></div>${TAG(v[3],v[2])}</div>`).join("")}</div>`,B("ghost sm","file-plus","ملحق عقد",'data-go="hrContracts"'))}`,
+ pay:()=>`${sect("receipt","قسيمة نوفمبر",`<div class="hx-slip">${[["الأساسي","6,500",""],["بدل سكن","1,625","+"],["بدل مواصلات","650","+"],["التأمينات 9.75% × (6,500 + 1,625)","−792.19","-"],["قسط سلفة","−500","-"],["تأخير 12 دقيقة","−2","-"]].map(l=>`<div class="${l[2]==="-"?"m":l[2]==="+"?"p":""}"><span>${l[0]}</span><b class="num">${l[1]}</b></div>`).join("")}<div class="tot"><span>الصافي</span><b class="num">7,480.81 ر.س</b></div></div>`,B("ghost sm","","الرواتب",'data-go="hrPayroll"'))}
+  ${sect("building-2","تكلفتها على المنشأة",`<div class="h8-cost">${[["الإجمالي","8,775.00"],["التأمينات — حصة المنشأة 11.75%","954.69"],["مخصص نهاية الخدمة","365.63"],["مخصص الإجازات","511.88"]].map(l=>`<div><span>${l[0]}</span><b class="num">${l[1]}</b></div>`).join("")}<div class="tot"><span>التكلفة الشهرية</span><b class="num">10,607.20 ر.س</b></div></div>`)}
+  ${sect("hand-coins","السلف",kvs([["آخر سلفة","3,000 ر.س · يوليو 2026"],["المتبقي",'<span class="num">1,000 ر.س · قسطان</span>'],["القسط",'<span class="num">500 ر.س شهرياً</span>']]))}`,
+ leave:()=>`${sect("calendar-days","أرصدة الإجازات",`<div class="hx-bal">${[["السنوية",21,7,"g","تصبح 30 يوماً من 1 مارس 2027"],["المرضية — أجر كامل",30,2,"n","سنة المرضية من 2026-10-05 · ثم 60 يوماً بـ 75% و30 بدون أجر"]].map(b=>`<div><div class="t"><b>${b[0]}</b><span class="num">${b[1]-b[2]} من ${b[1]} يوماً متبقية</span></div><span class="track"><i class="${b[3]}" style="width:${(b[1]-b[2])/b[1]*100}%"></i></span><small class="fhint">${b[4]}</small></div>`).join("")}</div>`,B("ghost sm","","دفتر الإجازات",'data-go="hrLeaves"'))}
+  ${sect("calendar-check","حضور نوفمبر",`<div class="hx-mcal">${Array.from({length:30},(_,i)=>{const d=i+1,wd=(d+6)%7,c=d>16?"f":(wd===5||wd===6)?"w":d===4?"a":d===11?"l":d===9?"v":"p";return `<span class="${c}"><b class="num">${d}</b></span>`}).join("")}</div><div class="hx-leg">${[["p","حضور"],["a","تأخير"],["v","إجازة"],["l","استئذان"],["w","عطلة"]].map(x=>`<span><i class="${x[0]}"></i>${x[1]}</span>`).join("")}</div>`,B("ghost sm","","الحضور",'data-go="hrAttendance"'))}`,
+ docs:()=>`${sect("folder-check","الوثائق",`<div class="hx-exp">${[["id-card","الهوية الوطنية","2028-04-11","n"],["file-signature","عقد العمل · موثّق في قوى","غير محدد المدة","n"],["key-round","شريحة جوال الشركة SIM-014","استلمتها 2022-03-01 · إقرار موقّع","n"]].map(e=>`<div class="${e[3]}">${X(e[0])}<div><b>${e[1]}</b><small class="num">${e[2]}</small></div></div>`).join("")}</div>`)}
+  ${sect("images","الملفات",`<div class="msgrid">${[["id-card","صورة الهوية","PDF"],["file-signature","عقد العمل","PDF · موثّق"],["graduation-cap","الشهادات","PDF"],["user-round","الصورة الشخصية","JPG"]].map(f=>`<button class="mtile"><span class="mimg">${X(f[0])}</span><b>${f[1]}</b><small>${f[2]}</small></button>`).join("")}</div>`)}`,
+ reqs:()=>`${sect("send","طلباتها",`<div class="tw"><table><thead><tr><th>الطلب</th><th>التفاصيل</th><th>الحالة</th></tr></thead><tbody>${[["RQ-1048 · استئذان","الخميس 19 نوفمبر 13:00–15:00",TAG("a","عند المدير المباشر")],["RQ-1046 · خطاب تعريف","موجّه إلى بنك الرياض",TAG("g","جاهز")],["RQ-1039 · تصحيح بصمة","4 نوفمبر · الدخول 07:52",TAG("g","معتمد")],["RQ-1012 · إجازة سنوية","7 أيام · 9–15 أغسطس",TAG("g","معتمد")]].map(r=>`<tr><td><b>${r[0]}</b></td><td><small>${r[1]}</small></td><td>${r[2]}</td></tr>`).join("")}</tbody></table></div>`,B("ghost sm","","طلبات الموظفين",'data-go="hrRequests"'))}`,
+ log:()=>sect("history","سجل النشاط",`<div class="tl">${[["2026-11-04 09:10","اعتُمد تصحيح بصمة","فيصل الدوسري"],["2026-09-01 08:00","وُثّق ملحق بدل المواصلات في قوى","هند العتيبي"],["2022-03-01 09:00","أُضيفت الموظفة","هند العتيبي"]].map(x=>`<div class="tli"><span class="dot"></span><div><b>${x[1]}</b><small>${x[2]}</small><small class="num">${x[0]}</small></div></div>`).join("")}</div>`)};
+S.hrEmployeeShow=()=>`<div id="h16s">
+ <div class="page-head compact"><div><a class="back" href="#" data-go="hrEmployees" style="margin:0 0 8px">${X("arrow-right")}<span>الموظفون</span></a><h1>سارة القحطاني</h1><p>EMP-014 · مسؤولة خدمة عملاء · خدمة العملاء · الريادة للاستقدام — الرئيسي</p></div><div class="actions">${B("primary","pencil","تعديل البيانات",'data-go="hrEmployeeAdd"')+B("ghost","printer","طباعة الملف")}</div></div>
+ <div class="showgrid3">
+  <aside class="cvside">
+   <div class="card idcard"><span class="bigph person">${X("user-round")}</span><b>سارة القحطاني</b><small class="num">EMP-014 · 0551234880</small><span class="st tag g"><i></i>حاضرة · 07:52</span>
+    <div class="idk">${[["الوظيفة","خدمة عملاء"],["في الشركة","4 سنوات و8 أشهر"],["الصافي","7,480.81"],["رصيد الإجازة","14 يوماً"]].map(x=>`<div><small>${x[0]}</small><b>${x[1]}</b></div>`).join("")}</div></div>
+   <div class="card acard"><div class="sec-h">${X("settings-2")}<b>إجراءات الموظف</b></div>
+    <div class="actrow"><div><b>حساب في البرنامج</b><small>تقدّم طلباتها من «طلباتي»</small></div><button class="sw on" data-h16-sw=""></button></div>
+    <div class="actrow col"><label>حالة الموظف</label><select class="statsel">${["نشطة","تحت التجربة","في إجازة","موقوفة","منتهية الخدمة"].map(x=>`<option>${x}</option>`).join("")}</select></div>
+    <div class="acts2">${[["calendar-plus","إجازة",'data-go="myRequestNew" data-h14-pre="behalf:leave"'],["clock-4","استئذان",'data-go="myRequestNew" data-h14-pre="behalf:perm"'],["hand-coins","سلفة",'data-go="myRequestNew" data-h14-pre="behalf:adv"'],["gavel","جزاء",'data-go="hrSanctions"'],["key-round","عهدة",'data-go="hrCustody"'],["file-badge","خطاب",'data-go="myRequestNew" data-h14-pre="behalf:letter"'],["door-open","مخالصة",'data-go="hrEos"'],["user-x","إيقاف","",1]].map(a=>`<button class="atile${a[3]?" danger":""}" ${a[2]}>${X(a[0])}<span>${a[1]}</span></button>`).join("")}</div></div>
+  </aside>
+  <div class="cvmain">
+   <div class="vtabs">${TABS16.map(x=>`<button class="${x[0]===TAB?"on":""}" data-h16-tab="${x[0]}">${X(x[2])}<span>${x[1]}</span></button>`).join("")}</div>
+   <div class="tabbody">${BODY[TAB]()}</div>
+  </div></div></div>`;
+
+if(!window.__h16){window.__h16=1;
+ document.addEventListener("click",e=>{const c=s=>e.target.closest&&e.target.closest(s);
+  if(c("#h16s [data-h16-tab]")){TAB=c("[data-h16-tab]").dataset.h16Tab;const r=document.getElementById("h16s");r.outerHTML=S.hrEmployeeShow();ico();return}
+  if(c("#h16s [data-h16-sw]")){c("[data-h16-sw]").classList.toggle("on");return}
+  if(!c("#h16a"))return;
+  if(c("[data-h16-mode]")){EA.mode=c("[data-h16-mode]").dataset.h16Mode;EA.err={};paintA()}
+  else if(c("[data-h16-step]")){const el=document.getElementById("h16-"+c("[data-h16-step]").dataset.h16Step);if(el)el.scrollIntoView({behavior:"smooth",block:"start"})}
+  else if(c("[data-h16-acct]")){EA.acct=EA.acct?0:1;paintA()}
+  else if(c("[data-h16-wa]")){EA.wa=EA.wa?0:1;paintA()}
+  else if(c("[data-h16-file]")){const k=c("[data-h16-file]").dataset.h16File;EA.files[k]=EA.files[k]?0:1;paintA()}
+  else if(c("[data-h16-save]")){e.preventDefault();saveA()}
+  else if(c("[data-h16-reset]")){Object.assign(EA,JSON.parse(JSON.stringify(EA0)));paintA()}});
+ const keep=e=>{const t=e.target;if(!t.closest||!t.closest("#h16a"))return;
+  if(t.dataset.h16Link!==undefined){if(e.type!=="change")return;EA.link=t.value;["nat","gosi","ctype"].forEach(k=>delete EA.v[k]);EA.err={};paintA();return}
+  if(t.dataset.h16K!==undefined){EA.v[t.dataset.h16K]=t.value;delete EA.err[t.dataset.h16K];if(e.type==="change")paintA()}};
+ document.addEventListener("input",keep);document.addEventListener("change",keep)}
+Object.keys(S).forEach(k=>{screens[k]=S[k]});
+})();
+
 (function(){var P=window.CERP_PAGE;if(!P)return;var PAGES=window.CERP_PAGES||[];
 if(P==="login"){renderLogin();return}
 var lg=document.getElementById("login");if(lg)lg.classList.add("hidden");
@@ -11272,3 +11405,6 @@ const pg=document.querySelector("#app .page");if(pg){new MutationObserver(put).o
 if(window.CERP_PAGE==="inbound"&&window.NAVF){const b=document.querySelector(`[data-rrtab="${window.NAVF}"]`);if(b)b.click()}
 const nv=document.querySelector("#app .nav"),on=nv&&nv.querySelector("a.on");if(on){const a=nv.getBoundingClientRect(),b=on.getBoundingClientRect();nv.scrollTop+=b.top-a.top-a.height/2+b.height/2}
 })();
+
+/* v1.58 — تنبيه «الشاشة دي مش ضمن البرنامج» فوق محتوى الصفحة */
+(()=>{const pg=document.querySelector("#app .page");if(!pg||!window.CERP_PNOTE)return;const go=()=>{try{window.CERP_PNOTE();if(window.lucide)lucide.createIcons({attrs:{"stroke-width":1.8}})}catch(e){}};new MutationObserver(go).observe(pg,{childList:true});go()})();
