@@ -19,7 +19,13 @@ CM.on=k=>{const c=CM.cfg();return c.acct==="commercial"&&c.f[k]!==false&&!!c.f[k
 
 /* ---------- معاينة: رؤية التكلفة (FINANCE_COMMERCE_VIEW_COST) والفرع وحالة الشاشة ---------- */
 const PV="cerp.commerce.pv";
-CM.pv=()=>{let p=null;try{p=JSON.parse(sessionStorage.getItem(PV))}catch(e){}return Object.assign({cost:1,br:"all",st:"normal"},p||{})};
+CM.pv=()=>{let p=null;try{p=JSON.parse(sessionStorage.getItem(PV))}catch(e){}
+ /* روابط المطورين: ?state=empty|loading|noresults ، ?cost=0 ، ?branch=1 تفتح الحالة مباشرة */
+ const u=new URLSearchParams(location.search),o={},st=u.get("state");
+ if(st)o.st=({noresults:"nores",nores:"nores",empty:"empty",loading:"loading",normal:"normal"})[st]||"normal";
+ if(u.get("cost")!==null)o.cost=u.get("cost")==="0"?0:1;
+ if(u.get("branch")!==null)o.br=u.get("branch")==="1"?"main":"all";
+ return Object.assign({cost:1,br:"all",st:"normal"},p||{},o)};
 CM.setPv=(k,v)=>{const p=CM.pv();p[k]=v;try{sessionStorage.setItem(PV,JSON.stringify(p))}catch(e){}};
 CM.cost=()=>!!CM.pv().cost;
 CM.allBr=()=>CM.pv().br==="all";
@@ -200,7 +206,7 @@ CM.re=()=>{const pg=document.querySelector("#app .page"),id=window.CERP_PAGE;if(
 CM.toast=(m,ic)=>{let el=document.querySelector(".cm-toast");if(!el){el=document.createElement("div");el.className="cm-toast";document.body.appendChild(el)}el.innerHTML=`${X(ic||"check-circle-2")}<span>${m}</span>`;if(window.lucide)lucide.createIcons({attrs:{"stroke-width":1.8}});el.classList.add("on");clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove("on"),2600)};
 if(!window.__cmCore){window.__cmCore=1;
  document.addEventListener("click",e=>{
-  const pv=e.target.closest("[data-cm-pv]");if(pv){e.preventDefault();const[k,v]=pv.dataset.cmPv.split(":");CM.setPv(k,k==="cost"?+v:v);CM.re();return}
+  const pv=e.target.closest("[data-cm-pv]");if(pv){e.preventDefault();const[k,v]=pv.dataset.cmPv.split(":");CM.setPv(k,k==="cost"?+v:v);try{const u=new URL(location.href);u.searchParams.delete({st:"state",cost:"cost",br:"branch"}[k]);history.replaceState(null,"",u)}catch(_){}CM.re();return}
   const ts=e.target.closest("[data-cm-toast]");if(ts){e.preventDefault();CM.toast(ts.dataset.cmToast,ts.dataset.cmIc);return}
  });
 }
