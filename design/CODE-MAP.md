@@ -146,9 +146,10 @@
 
 | شاشتنا | الكود |
 |---|---|
-| العامة | `settings/sections/dashboard` · `company-settings` · `settings/index` (التشغيل) · `form-settings` · التخزين R2 · الترجمات |
-| موقع المكتب | `settings.section/{general,social,branding,content,policies,authentication,ordering,seo}` · الإعلانات · كاش المواقع · محتوى الصفحة الرئيسية |
-| الاستقدام والسير | `cv-options-settings` (حقول النموذج: كالمعتاد/اختياري/مخفي/إلزامي) · قالب السيرة · الجنسيات · مراحل العقود · مراحل التفويض |
+| بيانات الشركة واللغة (`setGeneral`) | `company-settings` · بيانات الشركة من `settings.section/general` · `translation-terms` |
+| لوحة التحكم والأمان (`setPanel`) v1.65 | `settings.section/dashboard` (admin_logo · admin_login_background · dashboard_footer_url · import_tutorial_video_*) · `authentication.admin_login_otp` |
+| إعدادات الموقع (`setSite`) | `settings.section/{general (الظهور والصيانة),social,branding (صور الموقع),content,policies,authentication (app/external_auth_mode),ordering,seo}` · `settings/index` (bank_transfer_data · sadad_transfer_data) · الإعلانات · كاش المواقع |
+| الاستقدام والسير (`setRecruit` — في العمليات من v1.65) | `settings/index` (warranty_* · order_* deadlines) · `cv-options-settings` (حقول النموذج: كالمعتاد/اختياري/مخفي/إلزامي) · قالب السيرة · الجنسيات · مراحل العقود · مراحل التفويض |
 | التأجير | `RentContract/settings` · بنود العقد · الباقات · `hourly_rental_settings` |
 | المستخدمون والصلاحيات | `admin/auth/admin/*` · الأدوار · مصفوفة الصلاحيات (عرض/إضافة/تعديل/حذف لكل شاشة وفرع) |
 | الفروع | `admin/branches/*` (فورم وساعات عمل) · إعدادات الفروع (مشاركة البيانات + مصفوفة نقل العاملات بين الفروع) |

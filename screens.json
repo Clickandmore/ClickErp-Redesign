@@ -766,27 +766,32 @@
     {
       "id": "setGeneral",
       "file": "setGeneral.html",
-      "title": "الإعدادات العامة"
+      "title": "بيانات الشركة واللغة"
     },
     {
       "id": "setSite",
       "file": "setSite.html",
-      "title": "موقع المكتب"
+      "title": "إعدادات الموقع"
     },
     {
       "id": "setRecruit",
       "file": "setRecruit.html",
-      "title": "الاستقدام والسير"
+      "title": "إعدادات الاستقدام والسير"
     },
     {
       "id": "setRental",
       "file": "setRental.html",
-      "title": "إعدادات التأجير"
+      "title": "قواعد عقد التأجير"
     },
     {
       "id": "setUsers",
       "file": "setUsers.html",
       "title": "المستخدمون"
+    },
+    {
+      "id": "setPanel",
+      "file": "setPanel.html",
+      "title": "لوحة التحكم والأمان"
     },
     {
       "id": "setRoles",
@@ -811,7 +816,7 @@
     {
       "id": "setMessages",
       "file": "setMessages.html",
-      "title": "الرسائل والإشعارات"
+      "title": "الرسائل والتنبيهات"
     },
     {
       "id": "setPrint",
