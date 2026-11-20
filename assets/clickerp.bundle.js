@@ -12579,6 +12579,11 @@ const build=()=>{const z=day0(),out=[];
  ((sx&&sx.log)||[]).forEach(l=>{let g=sg.find(y=>y.t===l.t&&y.page===l.page);if(!g){g={t:l.t,page:l.page,by:l.by,kind:l.kind,sec:l.sec,reason:l.reason,ch:[]};sg.push(g)}
   g.ch.push(l.kind==="set"?[l.label,l.from,l.to]:[l.label,"",l.kind==="add"?"أُضيف"+(l.to?" — "+l.to:""):l.kind==="del"?"اتمسح":l.to||"تم"])});
  sg.forEach((g,i)=>out.push({id:186000+i,t:g.t,actor:g.by||"مشرف النظام",role:"مدير النظام",cid:1,ck:"m",ev:SXEV[g.kind]||"updated",type:(typeof T!=="undefined"&&T[g.page]&&T[g.page].ar)||g.page,sid:null,desc:g.sec+(g.reason?" — السبب: "+g.reason:""),log:"settings",ch:g.ch,go:g.page,px:null,raw:SXEV[g.kind]||"updated"}));
+ /* v1.71 — المشاركات نفسها حركات في السجل (cerp.shares.v1) */
+ let shs;try{shs=JSON.parse(localStorage.getItem("cerp.shares.v1")||"[]")}catch(_){shs=[]}
+ (shs||[]).forEach((d,i)=>{const how={link:"رابط للقراءة",wa:"واتساب",mail:"إيميل",pdf:"PDF",csv:"CSV"}[d.how]||d.how;
+  out.push({id:187000+i,t:d.t,actor:d.by||"مشرف النظام",role:"مدير النظام",cid:1,ck:"m",ev:"shared",type:"سجل النشاط",sid:null,desc:`${d.ref} — ${d.title}`,log:"default",ch:[["اللي اتشارك","",`${d.rows.length} حركة`],["الطريقة","",how+(d.to?" — "+d.to:"")],["السبب","",d.why||""],["البيانات الحساسة","",d.opts&&d.opts.mask?"مخفية":"ظاهرة"]].concat(d.revoked?[["الحالة","شغال","ملغي"]]:[]).concat(d.views&&d.views.length?[["اتفتح","",d.views.length+" مرة"]]:[]),go:null,px:{share_ref:d.ref,expires_at:d.exp?new Date(d.exp).toISOString():null},raw:"shared"})});
+ (shs||[]).forEach((d,i)=>(d.views||[]).forEach((v,j)=>out.push({id:188000+i*50+j,t:v,actor:"زائر الرابط",role:"من خارج النظام",cid:null,ck:null,ev:"share_viewed",type:"",sid:null,desc:`${d.ref} — ${d.title}`,log:"default",ch:[],go:null,px:{share_ref:d.ref},raw:"share_viewed"})));
  return out.sort((a,b)=>b.t-a.t||b.id-a.id)};
 let ALL=build();
 const byId=id=>ALL.find(e=>e.id===id);
@@ -12738,11 +12743,11 @@ const popD=e=>{const ev=evOf(e),rec=sameRec(e),burst=e.ev==="login_failed"?ALL.f
  <div class="al-pacts">${e.go&&!/deleted/.test(e.ev)?`<a class="btn btn-primary sm" href="${e.go}.html">${X("external-link")}${esc(TGT[e.go]||"فتح السجل")}</a>`:""}
   ${rec.length>1?`<button class="btn btn-ghost sm" data-al-act="rec">${X("filter")}اعرض حركات السجل ده بس</button>`:""}
   ${e.ev==="deleted"?`<button class="btn btn-ghost sm" data-al-act="restore">${X("rotate-ccw")}استرجاع</button>`:""}
-  <button class="btn btn-ghost sm" data-al-act="link">${X("link")}نسخ رابط الحركة</button></div>`};
+  <button class="btn btn-ghost sm" data-al-share="one">${X("share-2")}مشاركة الحركة</button><button class="btn btn-ghost sm" data-al-act="link">${X("link")}نسخ رابط الحركة</button></div>`};
 const popHist=e=>{const rec=sameRec(e);
  if(rec.length<2)return `<div class="al-empty in">${X("history")}<b>${e.type?"مفيش حركات تانية على السجل ده":"الحركة دي مش مرتبطة بسجل"}</b><small>${e.ev==="login_failed"?"محاولة الدخول الفاشلة بتتسجّل من غير الحساب، فمش ممكن نربطها بسجل.":"أي تعديل جاي على نفس السجل هيظهر هنا."}</small></div>`;
  const first=rec[rec.length-1];
- return `<p class="al-desc">كل اللي حصل على <b>${esc(e.type)}${e.sid?` <span class="num">#${e.sid}</span>`:""}</b> — ${esc(e.desc)}: <span class="num">${rec.length}</span> حركة من ${fullDate(first.t)}، الأحدث فوق.</p>
+ return `<p class="al-desc">كل اللي حصل على <b>${esc(e.type)}${e.sid?` <span class="num">#${e.sid}</span>`:""}</b> — ${esc(e.desc)}: <span class="num">${rec.length}</span> حركة من ${fullDate(first.t)}، الأحدث فوق.</p><div class="sh-hbar"><button class="btn btn-ghost sm" data-al-share="rec">${X("share-2")}مشاركة تاريخ السجل كله</button></div>
  <div class="al-htl">${rec.map(x=>{const v=evOf(x);return `<button class="al-hi${x.id===e.id?" on":""}" data-al-go="${x.id}"><span class="al-ic ${v[2]}">${X(v[1])}</span><span><b>${v[0]}${x.id===e.id?' <em class="tag n">المفتوحة</em>':""}</b>
   <small>${esc(x.actor)} · <span class="num">${ymd(x.t)}</span> · <span class="num">${hm(x.t)}</span></small>${x.ch.length?`<span class="al-hch">${x.ch.filter(c=>c[0]!=="مفتاح الإعداد").slice(0,3).map(c=>`${esc(c[0])}: ${hasOld(c)&&x.ev==="updated"?`<del>${esc(c[1])}</del> ← `:""}<ins>${esc(c[2]||c[1])}</ins>`).join(" · ")}</span>`:""}</span></button>`}).join("")}</div>`};
 const copyBtn=k=>`<button class="al-copy" data-al-copy="${k}">${X("copy")}نسخ</button>`;
@@ -12822,9 +12827,87 @@ if(!window.__alBound){window.__alBound=1;
  const onF=ev=>{const el=ev.target;if(!el.matches||!el.matches("#alog [data-al-f]"))return;U.f[el.dataset.alF]=el.value;U.page=1;U.flash="";paint()};
  document.addEventListener("input",onF);document.addEventListener("change",onF);
  window.addEventListener("storage",e=>{if(e.key==="cerp.roles.v1"){ALL=build();paint()}})}
+/* ===== v1.71 — مشاركة الحركة («جديد» — مش في ClickERP): حركة واحدة، أو تاريخ سجل كامل، أو النتائج المفلترة.
+   رابط للقراءة بس بمدة وPIN وسبب وإلغاء، أو واتساب/إيميل/PDF/CSV. البيانات الحساسة بتتخفى افتراضياً.
+   كل مشاركة بتتسجّل هي نفسها حركة في السجل (مين شارك إيه ومع مين وليه)، والروابط ليها شاشة متابعة وإلغاء. ===== */
+const SHK="cerp.shares.v1";
+const shLoad=()=>{try{return JSON.parse(localStorage.getItem(SHK)||"[]")}catch(_){return []}};
+const shSave=L=>{try{localStorage.setItem(SHK,JSON.stringify(L))}catch(_){}};
+EV.shared=["مشاركة","share-2","b"];EV.share_viewed=["فتح رابط مشاركة","eye","n"];
+const MASKF=/جوال|هاتف|الهوية|الإقامة|الجواز|IBAN|الآيبان|حساب|كلمة المرور|IP|العنوان \(IP\)/;
+const MONF=/مبلغ|المبلغ|قيمة|القيمة|الراتب|السعر|المدفوع|الرصيد|ر\.س/;
+const maskV=(f,v)=>{v=String(v==null?"":v);if(!v)return v;if(MONF.test(f)||/ر\.س/.test(v))return "•••• (مخفي)";if(MASKF.test(f)||/\d{9,}/.test(v.replace(/\s/g,"")))return v.replace(/\d(?=[\d\s-]{2,}\d{2}(\D|$))/g,"•");return v};
+const SH={scope:"one",vals:1,names:1,mask:1,tech:0,how:"link",exp:"7",pin:"",aud:"link",why:"",to:"",done:null};
+const scopeRows=sc=>{const e=byId(U.pop);return sc==="one"?(e?[e]:[]):sc==="rec"?(e?sameRec(e):[]):rows().slice(0,500)};
+const scopeLabel=sc=>{const e=byId(U.pop);return sc==="one"?(e?`${title(e)}${e.desc?" — "+e.desc:""}`:""):sc==="rec"?(e?`تاريخ ${subj(e)||e.type}${e.desc?" — "+e.desc:""}`:""):"نتائج سجل النشاط بالفلاتر الحالية"};
+const snap=()=>{const R=scopeRows(SH.scope);return R.map(e=>({t:e.t,ev:evOf(e)[0],evc:evOf(e)[2],ttl:title(e),desc:e.desc||"",actor:SH.names?e.actor:"موظف في المكتب",role:SH.names?e.role:"",src:SRC[e.log]||e.log,up:e.ev==="updated",
+ ch:SH.vals?e.ch.filter(c=>c[0]!=="مفتاح الإعداد").map(c=>[c[0],SH.mask?maskV(c[0],c[1]):c[1],SH.mask?maskV(c[0],c[2]):c[2]]):e.ch.map(c=>[c[0],"",""]),id:SH.tech?e.id:null}))};
+const shW=()=>{let w=document.getElementById("alShare");if(!w){w=document.createElement("div");w.id="alShare";document.body.appendChild(w)}return w};
+const shOpen=sc=>{Object.assign(SH,{scope:sc,done:null,why:"",to:"",pin:""});shPaint()};
+const shClose=()=>{shW().innerHTML="";};
+const shCounts=()=>({one:U.pop?1:0,rec:U.pop?sameRec(byId(U.pop)).length:0,list:Math.min(rows().length,500)});
+const shPaint=()=>{const n=shCounts(),R=scopeRows(SH.scope),sens=R.some(e=>e.ch.some(c=>MASKF.test(c[0])||MONF.test(c[0])||/\d{9,}/.test(String(c[2]||c[1]).replace(/\s/g,""))));
+ const opt=(k,t,s)=>`<label class="sh-opt"><span class="sw ${SH[k]?"on":""}" data-sh-tog="${k}"></span><span><b>${t}</b>${s?`<small>${s}</small>`:""}</span></label>`;
+ const how=[["link","link","رابط للقراءة بس","بمدة صلاحية وتقدر تلغيه"],["wa","message-circle","واتساب","رسالة فيها الرابط"],["mail","mail","إيميل","رسالة فيها الرابط"],["pdf","printer","PDF / طباعة","تقرير جاهز للطباعة"],["csv","file-spreadsheet","Excel (CSV)","للتحليل"]];
+ const ext=["link","wa","mail"].includes(SH.how);
+ if(SH.done){const d=SH.done,url=shUrl(d);shW().innerHTML=`<div class="al-ov sh-ov" data-sh-x=""></div><div class="al-dlg sh-dlg" role="dialog" aria-modal="true"><div class="al-dh2"><span class="al-ic lg g">${X("check")}</span><div class="al-dtt"><h3>اتجهّز رابط المشاركة</h3><p>${esc(d.title)} · <span class="num">${d.rows.length}</span> ${d.rows.length===1?"حركة":"حركات"}</p></div><button class="al-x2" data-sh-x="" aria-label="إغلاق">${X("x")}</button></div>
+  <div class="al-bd"><div class="sh-link"><input readonly dir="ltr" value="${esc(url)}"><button class="btn btn-primary sm" data-sh-act="copy">${X("copy")}نسخ</button><a class="btn btn-ghost sm" href="${esc(url)}" target="_blank">${X("external-link")}معاينة</a></div>
+  <div class="al-kv2">${[["رقم المرجع",`<span class="num">${d.ref}</span>`],["صالح لحد",`<span class="num">${d.exp?ymd(d.exp)+" "+hm(d.exp):"من غير انتهاء"}</span>`],["مين يفتحه",d.aud==="login"?"موظفين المكتب بعد الدخول":"أي حد معاه الرابط"],["رمز PIN",d.pin?`<span class="num">${esc(d.pin)}</span> — ابعته منفصل`:"مفيش"],["البيانات الحساسة",d.opts.mask?"مخفية":"ظاهرة"],["السبب",esc(d.why)]].map(x=>`<div><span>${x[0]}</span><b>${x[1]}</b></div>`).join("")}</div>
+  <div class="sh-send">${B("ghost","message-circle","ابعته واتساب",'data-sh-act="wa"')}${B("ghost","mail","ابعته إيميل",'data-sh-act="mail"')}${B("ghost","list","كل الروابط المشاركة",'data-sh-act="list"')}</div>
+  <div class="al-note2">${X("shield-check")}<span>المشاركة اتسجّلت في سجل النشاط باسمك. تقدر تلغي الرابط في أي وقت من «الروابط المشاركة»، وأي فتح ليه بيتسجّل.</span></div></div></div>`;ico();return}
+ shW().innerHTML=`<div class="al-ov sh-ov" data-sh-x=""></div><div class="al-dlg sh-dlg" role="dialog" aria-modal="true" aria-labelledby="shT"><div class="al-dh2"><span class="al-ic lg b">${X("share-2")}</span><div class="al-dtt"><h3 id="shT">مشاركة الحركة</h3><p>اختار إيه اللي يتشارك، وإزاي، ومع مين</p></div><button class="al-x2" data-sh-x="" aria-label="إغلاق">${X("x")}</button></div>
+ <div class="al-bd">
+  <div class="sh-h">1. إيه اللي يتشارك</div><div class="sh-scope">${[["one","file-text","الحركة دي بس",n.one],["rec","history","تاريخ السجل كله",n.rec],["list","filter","النتائج المفلترة",n.list]].filter(s=>s[3]).map(s=>`<button class="${SH.scope===s[0]?"on":""}" data-sh-scope="${s[0]}">${X(s[1])}<b>${s[2]}</b><small class="num">${s[3]} ${s[3]===1?"حركة":"حركة"}${s[0]==="list"&&rows().length>500?" (أحدث 500)":""}</small></button>`).join("")}</div>
+  <p class="sh-what">${esc(scopeLabel(SH.scope))}</p>
+  <div class="sh-h">2. اللي يظهر فيها</div><div class="sh-opts">${opt("vals","القيم قبل وبعد","من غيرها بيظهر اسم الحقل اللي اتغيّر بس")}${opt("names","أسماء الموظفين","من غيرها بيظهر «موظف في المكتب»")}${opt("mask","إخفاء البيانات الحساسة",sens?'<span class="sh-warn">فيها جوالات أو أرقام هوية أو مبالغ</span>':"الجوال والهوية والإقامة والآيبان والمبالغ")}${opt("tech","أرقام الحركات (للمراجعة الداخلية)","")}</div>
+  <div class="sh-h">3. إزاي</div><div class="sh-how">${how.map(h=>`<button class="${SH.how===h[0]?"on":""}" data-sh-how="${h[0]}">${X(h[1])}<b>${h[2]}</b><small>${h[3]}</small></button>`).join("")}</div>
+  ${ext?`<div class="sh-grid">
+   <label><span>صالح لمدة</span><select data-sh-f="exp">${[["1","24 ساعة"],["7","7 أيام"],["30","30 يوم"],["0","من غير انتهاء"]].map(o=>`<option value="${o[0]}"${SH.exp===o[0]?" selected":""}>${o[1]}</option>`).join("")}</select></label>
+   <label><span>مين يفتحه</span><select data-sh-f="aud"><option value="link"${SH.aud==="link"?" selected":""}>أي حد معاه الرابط</option><option value="login"${SH.aud==="login"?" selected":""}>موظفين المكتب بعد الدخول</option></select></label>
+   <label><span>رمز PIN <small>اختياري، 4 أرقام</small></span><input data-sh-f="pin" class="num" maxlength="4" value="${esc(SH.pin)}" placeholder="مثلاً 4821"></label>
+   ${SH.how!=="link"?`<label><span>${SH.how==="wa"?"رقم الواتساب":"البريد"}</span><input data-sh-f="to" dir="ltr" value="${esc(SH.to)}" placeholder="${SH.how==="wa"?"9665xxxxxxxx":"name@company.com"}"></label>`:""}</div>`:""}
+  <label class="sh-why"><span>سبب المشاركة <i class="rq">*</i> <small>بيتسجّل مع المشاركة</small></span><div class="sh-chips">${["طلب العميل","جهة رسمية","مراجعة داخلية","المحاسب القانوني","شكوى"].map(c=>`<button class="${SH.why===c?"on":""}" data-sh-why="${c}">${c}</button>`).join("")}</div><input data-sh-f="why" value="${esc(SH.why)}" placeholder="أو اكتب السبب"></label>
+  <div data-sh-err></div></div>
+ <div class="al-ft sh-ft"><small>${X("shield-check")} المشاركة بتتسجّل في سجل النشاط</small><span style="flex:1"></span>${B("ghost","","إلغاء",'data-sh-x=""')}${B("primary",SH.how==="pdf"?"printer":SH.how==="csv"?"download":"share-2",SH.how==="link"?"إنشاء الرابط":SH.how==="wa"?"إنشاء وإرسال واتساب":SH.how==="mail"?"إنشاء وإرسال إيميل":SH.how==="pdf"?"فتح للطباعة":"تنزيل",'data-sh-act="go"')}</div></div>`;ico()};
+const shUrl=d=>location.href.replace(/[^/]*$/,"")+"activityShare.html#t="+d.tok;
+const shMake=()=>{const R=snap();const days=+SH.exp;const t=Date.now();const L=shLoad();
+ const d={tok:Math.random().toString(36).slice(2,10)+Math.random().toString(36).slice(2,8),ref:"SH-"+(1040+L.length+1),t,by:"مشرف النظام",scope:SH.scope,title:scopeLabel(SH.scope),rows:R,opts:{vals:SH.vals,names:SH.names,mask:SH.mask,tech:SH.tech},exp:SH.how==="pdf"||SH.how==="csv"?null:(days?t+days*864e5:null),pin:SH.pin,aud:SH.aud,why:SH.why,how:SH.how,to:SH.to,views:[],revoked:0,office:"مكتب الريادة للاستقدام"};
+ L.unshift(d);shSave(L);ALL=build();return d};
+const shCsv=d=>{const q=v=>`"${String(v==null?"":v).replace(/"/g,'""')}"`;const L=[["التاريخ","الوقت","العملية","السجل","المنفذ","الحقل","قبل","بعد"].map(q).join(",")];d.rows.forEach(r=>{const base=[ymd(r.t),hm(r.t),r.ev,r.ttl+(r.desc?" — "+r.desc:""),r.actor];if(!r.ch.length)L.push(base.concat(["","",""]).map(q).join(","));r.ch.forEach(c=>L.push(base.concat(c).map(q).join(",")))});
+ const a=document.createElement("a");a.href=URL.createObjectURL(new Blob(["﻿"+L.join("\r\n")],{type:"text/csv;charset=utf-8"}));a.download=`activity-${d.ref}.csv`;document.body.appendChild(a);a.click();a.remove()};
+const shList=()=>{const L=shLoad(),nw=Date.now();const st=d=>d.revoked?["r","ملغي"]:d.exp&&d.exp<nw?["n","منتهي"]:["g","شغال"];
+ shW().innerHTML=`<div class="al-ov sh-ov" data-sh-x=""></div><div class="al-dlg sh-dlg wide" role="dialog" aria-modal="true"><div class="al-dh2"><span class="al-ic lg b">${X("link")}</span><div class="al-dtt"><h3>الروابط المشاركة</h3><p><span class="num">${L.filter(d=>st(d)[1]==="شغال").length}</span> شغال من <span class="num">${L.length}</span> · كل فتح بيتسجّل</p></div><button class="al-x2" data-sh-x="" aria-label="إغلاق">${X("x")}</button></div>
+ <div class="al-bd">${L.length?`<table class="al-tb sh-tb"><thead><tr><th>المرجع</th><th>اللي اتشارك</th><th>مع</th><th>السبب</th><th>الحالة</th><th>اتفتح</th><th></th></tr></thead><tbody>${L.map(d=>{const s=st(d);return `<tr><td><b class="num">${d.ref}</b><small class="num">${ymd(d.t)} ${hm(d.t)}</small></td><td>${esc(d.title)}<small><span class="num">${d.rows.length}</span> حركة · ${d.how==="pdf"?"PDF":d.how==="csv"?"CSV":d.how==="wa"?"واتساب":d.how==="mail"?"إيميل":"رابط"}${d.pin?" · PIN":""}${d.opts.mask?" · مخفي الحساس":""}</small></td><td>${esc(d.to||(d.aud==="login"?"موظفين المكتب":"أي حد معاه الرابط"))}</td><td>${esc(d.why)}</td><td><span class="al-badge ${s[0]==="g"?"g":s[0]==="r"?"r":"n"}">${s[1]}</span>${d.exp&&!d.revoked?`<small class="num">لحد ${ymd(d.exp)}</small>`:""}</td><td class="num">${d.views.length}${d.views.length?`<small>آخر مرة ${rel(d.views[d.views.length-1])}</small>`:""}</td><td class="sh-acts">${["pdf","csv"].includes(d.how)?"":`<button class="al-lnk" data-sh-copy="${d.tok}">نسخ</button>${s[1]==="شغال"?`<button class="al-lnk r" data-sh-rev="${d.tok}">إلغاء</button>`:""}`}</td></tr>`}).join("")}</tbody></table>`:`<div class="al-empty in">${X("link")}<b>مفيش روابط مشاركة لسه</b><small>افتح أي حركة واضغط «مشاركة».</small></div>`}</div></div>`;ico()};
+document.addEventListener("click",ev=>{const t=ev.target;if(!t.closest)return;let el;
+ if((el=t.closest("[data-al-share]"))&&document.getElementById("alog")){ev.stopPropagation();if(el.dataset.alShare==="links")shList();else shOpen(el.dataset.alShare);return}
+ if(!t.closest("#alShare"))return;
+ if(t.closest("[data-sh-x]")){shClose();return}
+ if((el=t.closest("[data-sh-scope]"))){SH.scope=el.dataset.shScope;shPaint();return}
+ if((el=t.closest("[data-sh-tog]"))){SH[el.dataset.shTog]=SH[el.dataset.shTog]?0:1;shPaint();return}
+ if((el=t.closest("[data-sh-how]"))){SH.how=el.dataset.shHow;shPaint();return}
+ if((el=t.closest("[data-sh-why]"))){SH.why=el.dataset.shWhy;shPaint();return}
+ if((el=t.closest("[data-sh-copy]"))){const d=shLoad().find(x=>x.tok===el.dataset.shCopy);if(d)copy(shUrl(d),"اتنسخ الرابط");el.textContent="اتنسخ";return}
+ if((el=t.closest("[data-sh-rev]"))){const L=shLoad(),d=L.find(x=>x.tok===el.dataset.shRev);if(d){d.revoked=Date.now();shSave(L);ALL=build();paint();shList()}return}
+ if((el=t.closest("[data-sh-act]"))){const a=el.dataset.shAct,d=SH.done;
+  if(a==="copy"){const i=shW().querySelector(".sh-link input");try{navigator.clipboard.writeText(i.value)}catch(_){}i.select();el.innerHTML=`${X("check")}اتنسخ`;ico();return}
+  if(a==="list"){shList();return}
+  if(a==="wa"&&d){window.open("https://wa.me/"+(d.to||"").replace(/\D/g,"")+"?text="+encodeURIComponent(`${d.office}\n${d.title}\nسجل الحركة (للقراءة بس): ${shUrl(d)}${d.exp?"\nصالح لحد "+ymd(d.exp):""}${d.pin?"\nهيوصلك رمز الدخول في رسالة منفصلة":""}`),"_blank");return}
+  if(a==="mail"&&d){location.href="mailto:"+(d.to||"")+"?subject="+encodeURIComponent(`سجل حركة — ${d.title} (${d.ref})`)+"&body="+encodeURIComponent(`مرفق رابط سجل الحركة للقراءة بس:\n${shUrl(d)}\n${d.exp?"صالح لحد "+ymd(d.exp):""}\n\n${d.office}`);return}
+  if(a==="go"){const why=(shW().querySelector('[data-sh-f="why"]')||{}).value||"";SH.why=why.trim();const er=shW().querySelector("[data-sh-err]");
+   const bad=!SH.why?"اكتب سبب المشاركة — بيتسجّل للمراجعة":SH.pin&&!/^\d{4}$/.test(SH.pin)?"الـ PIN لازم 4 أرقام":SH.how==="wa"&&SH.to&&!/^\+?\d{9,15}$/.test(SH.to.replace(/\s/g,""))?"رقم الواتساب مش صحيح":SH.how==="mail"&&SH.to&&!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(SH.to)?"البريد مش صحيح":!scopeRows(SH.scope).length?"مفيش حركات تتشارك":"";
+   if(bad){er.innerHTML=`<div class="al-note2 r">${X("alert-circle")}<span>${bad}</span></div>`;ico();return}
+   const dd=shMake();paint();
+   if(SH.how==="csv"){shCsv(dd);shClose();flash(`نزل ملف ${dd.ref} — والمشاركة اتسجّلت`);return}
+   if(SH.how==="pdf"){window.open(shUrl(dd)+"&print=1","_blank");shClose();flash(`اتفتح التقرير ${dd.ref} للطباعة — والمشاركة اتسجّلت`);return}
+   SH.done=dd;shPaint();if(SH.how==="wa"||SH.how==="mail")shW().querySelector(`[data-sh-act="${SH.how}"]`).click();return}}});
+document.addEventListener("input",ev=>{const el=ev.target;if(el.matches&&el.matches("#alShare [data-sh-f]")){SH[el.dataset.shF]=el.value;if(el.dataset.shF==="why")shW().querySelectorAll("[data-sh-why]").forEach(b=>b.classList.toggle("on",b.dataset.shWhy===el.value))}});
+document.addEventListener("change",ev=>{const el=ev.target;if(el.matches&&el.matches("#alShare select[data-sh-f]")){SH[el.dataset.shF]=el.value;shPaint()}});
+document.addEventListener("keydown",ev=>{if(ev.key==="Escape"&&document.querySelector("#alShare .sh-dlg")){ev.stopImmediatePropagation();shClose()}},true);
+window.addEventListener("storage",e=>{if(e.key===SHK&&document.getElementById("alog")){ALL=build();paint()}});
+
 const S={};
 S.setActivity=()=>{setTimeout(()=>{paint();const m=location.hash.match(/^#a(\d+)(?:-([dht]))?$/);if(m&&byId(+m[1])){openP(+m[1]);if(m[2]){U.ptab=m[2];paintPop()}}},0);const list=rows();return `<div id="alog">
- ${HEAD("سجل النشاط","كل حركة في النظام: مين عمل إيه، على أي سجل، وإمتى. اضغط أي حركة لتفاصيلها وتاريخ السجل ومرجعها التقني في ClickERP.",B("ghost","file-spreadsheet","CSV",'data-al-csv=""')+B("ghost","printer","PDF",'data-al-pdf="" title="طباعة أو حفظ PDF — أحدث 500 حركة بنفس الفلاتر"'),["setHome","الإعدادات"])}
+ ${HEAD("سجل النشاط","كل حركة في النظام: مين عمل إيه، على أي سجل، وإمتى. اضغط أي حركة لتفاصيلها وتاريخ السجل ومرجعها التقني في ClickERP.",B("ghost","link","الروابط المشاركة",'data-al-share="links"')+B("ghost","share-2","مشاركة النتائج",'data-al-share="list"')+B("ghost","file-spreadsheet","CSV",'data-al-csv=""')+B("ghost","printer","PDF",'data-al-pdf="" title="طباعة أو حفظ PDF — أحدث 500 حركة بنفس الفلاتر"'),["setHome","الإعدادات"])}
  ${TABS([["setUsers","users","المستخدمون",46],["setRoles","shield-check","الأدوار والصلاحيات",6],["#trash","trash-2","المحذوفون",3],["setActivity","history","سجل النشاط"]],"setActivity")}
  <div data-al-flash=""></div>${alertH()}
  ${fbarH()}

@@ -8188,3 +8188,24 @@ td.sxe-dirty{box-shadow:inset 0 -2px 0 var(--green)}
 .sxe-atpl{display:block;margin-top:6px}.sxe-atpl select{max-width:220px;font-size:12.5px;height:32px}
 .sxe-alt .sxe-tu input.num{width:46px}.sxe-alt .sxe-tu select{min-width:0;width:74px}.sxe-alt td>select{width:120px}
 .sxe-alt th,.sxe-alt td{padding-inline:8px}
+/* v1.71 — مشاركة الحركة */
+.sh-dlg{width:min(720px,calc(100vw - 32px))}.sh-dlg.wide{width:min(980px,calc(100vw - 32px))}
+.sh-h{font-size:12.5px;font-weight:700;color:var(--muted);margin:14px 0 8px}.sh-h:first-child{margin-top:0}
+.sh-scope,.sh-how{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.sh-how{grid-template-columns:repeat(5,1fr)}
+.sh-scope button,.sh-how button{display:flex;flex-direction:column;align-items:flex-start;gap:3px;border:1px solid var(--line);background:#fff;border-radius:12px;padding:10px 12px;font:inherit;cursor:pointer;text-align:start}
+.sh-scope button svg,.sh-how button svg{width:18px;height:18px;color:var(--navy)}.sh-scope b,.sh-how b{font-size:13.5px}.sh-scope small,.sh-how small{font-size:11.5px;color:var(--muted)}
+.sh-scope button.on,.sh-how button.on{border-color:var(--navy);background:var(--navy-soft);box-shadow:0 0 0 1px var(--navy)}
+.sh-what{font-size:12.5px;color:var(--muted);margin:8px 2px 0}
+.sh-opts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.sh-opt{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);border-radius:10px;padding:9px 11px;cursor:pointer}.sh-opt .sw{margin-top:2px}
+.sh-opt b{display:block;font-size:13px}.sh-opt small{display:block;font-size:11.5px;color:var(--muted)}.sh-warn{color:#a86b12!important;font-weight:700}
+.sh-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px}
+.sh-grid label,.sh-why{display:flex;flex-direction:column;gap:5px;font-size:12.5px;font-weight:600}.sh-grid small,.sh-why small{color:var(--muted);font-weight:500}
+.sh-why{margin-top:14px}.sh-chips{display:flex;flex-wrap:wrap;gap:6px}
+.sh-chips button{border:1px solid var(--line);background:#fff;border-radius:20px;padding:4px 11px;font:inherit;font-size:12.5px;cursor:pointer}.sh-chips button.on{border-color:var(--navy);background:var(--navy-soft);color:var(--navy);font-weight:700}
+.sh-ft{display:flex;align-items:center;gap:8px}.sh-ft small{display:flex;align-items:center;gap:5px}.sh-ft small svg{width:14px;height:14px}
+.sh-link{display:flex;gap:8px;margin-bottom:14px}.sh-link input{flex:1;font-size:12.5px}
+.sh-send{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}
+.sh-tb td small{display:block;color:var(--muted);font-size:11.5px}.sh-acts{white-space:nowrap}.al-lnk.r{color:#b23b3b}
+.sh-hbar{display:flex;justify-content:flex-end;margin:-4px 0 10px}
+@media (max-width:760px){.sh-scope,.sh-how,.sh-opts,.sh-grid{grid-template-columns:1fr 1fr}}

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<meta name="design-version" content="v1.71">
+<title>سجل حركة — مشاركة للقراءة</title>
+<link rel="stylesheet" href="assets/clickerp.bundle.css">
+<style>
+body{background:#f3f5f9;margin:0}
+.shv{max-width:900px;margin:28px auto;padding:0 16px}
+.shv-top{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.shv-top .lg{width:44px;height:44px;border-radius:12px;background:#16233f;display:flex;align-items:center;justify-content:center;flex:none}
+.shv-top b{font-size:17px;display:block}.shv-top small{color:var(--muted);font-size:12.5px}
+.shv-top .sp{flex:1}
+.shv-card{background:#fff;border-radius:16px;box-shadow:0 1px 0 rgba(16,24,40,.04),0 0 0 1px var(--line);padding:22px 24px}
+.shv-h{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:14px;margin-bottom:14px}
+.shv-h h1{font-size:20px;margin:0 0 4px}.shv-h p{margin:0;color:var(--muted);font-size:13px}
+.shv-meta{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.shv-meta div{background:#f7f9fc;border-radius:10px;padding:8px 10px}.shv-meta span{display:block;font-size:11.5px;color:var(--muted)}.shv-meta b{font-size:13px}
+.shv-row{border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px;break-inside:avoid}
+.shv-rh{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.shv-rh b{font-size:14.5px}.shv-rh small{color:var(--muted);font-size:12.5px}
+.shv-rh .when{margin-inline-start:auto;color:var(--muted);font-size:12.5px}
+.shv-ev{font-size:11.5px;font-weight:700;border-radius:20px;padding:2px 9px;background:#eef2f8;color:#2f5fa8}
+.shv-ev.g{background:#eaf6e2;color:#2f7a1f}.shv-ev.r{background:#fdecec;color:#b23b3b}.shv-ev.a{background:#fff4e0;color:#a86b12}
+.shv-ch{width:100%;border-collapse:collapse;margin-top:8px;font-size:13px}
+.shv-ch td,.shv-ch th{padding:6px 8px;border-top:1px solid var(--line);text-align:start}.shv-ch th{font-size:11.5px;color:var(--muted);font-weight:600}
+.shv-ch del{color:#b23b3b}.shv-ch ins{color:#2f7a1f;text-decoration:none;font-weight:700}
+.shv-foot{display:flex;gap:10px;justify-content:space-between;flex-wrap:wrap;color:var(--muted);font-size:12px;margin-top:16px;border-top:1px solid var(--line);padding-top:12px}
+.shv-gate{max-width:420px;margin:12vh auto;text-align:center}
+.shv-gate .shv-card{padding:30px}.shv-gate svg{width:40px;height:40px;color:#2f5fa8}
+.shv-gate h2{font-size:19px;margin:12px 0 6px}.shv-gate p{color:var(--muted);font-size:13.5px;line-height:1.8}
+.shv-pin{display:flex;gap:8px;justify-content:center;margin-top:14px}.shv-pin input{width:140px;text-align:center;font-size:20px;letter-spacing:8px}
+.shv-err{color:#b23b3b;font-size:13px;margin-top:8px;min-height:18px}
+.shv-wm{position:fixed;inset:0;pointer-events:none;display:flex;align-items:center;justify-content:center;font-size:64px;font-weight:800;color:rgba(22,35,63,.035);transform:rotate(-24deg);z-index:0}
+@media print{body{background:#fff}.shv{margin:0;max-width:none}.shv-noprint{display:none!important}.shv-card{box-shadow:none;padding:0}.shv-wm{color:rgba(22,35,63,.06)}}
+@media (max-width:640px){.shv-meta{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<div id="shv"></div>
+<script src="https://unpkg.com/lucide@0.451.0/dist/umd/lucide.min.js"></script>
+<script>
+/* v1.71 — صفحة فتح رابط «مشاركة الحركة» (جديد — مش في ClickERP).
+   للقراءة بس: بتتأكد إن الرابط مش ملغي ولا منتهي، وبتطلب الـ PIN لو موجود، وكل فتح بيتسجّل في سجل النشاط.
+   في التصميم الرابط محفوظ في المتصفح (cerp.shares.v1)، فبيتفتح على نفس الجهاز اللي اتعمل منه. */
+(function(){
+var root=document.getElementById("shv");
+var esc=function(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})};
+var I=function(n){return '<i data-lucide="'+n+'"></i>'};
+var p2=function(n){return String(n).padStart(2,"0")};
+var dt=function(t){var d=new Date(t);return d.getFullYear()+"-"+p2(d.getMonth()+1)+"-"+p2(d.getDate())+" "+p2(d.getHours())+":"+p2(d.getMinutes())};
+var q=new URLSearchParams(location.hash.slice(1));var tok=q.get("t"),pr=q.get("print")==="1";
+var L=[];try{L=JSON.parse(localStorage.getItem("cerp.shares.v1")||"[]")}catch(e){}
+var d=L.filter(function(x){return x.tok===tok})[0];
+var ico=function(){if(window.lucide)lucide.createIcons({attrs:{"stroke-width":1.8}})};
+var gate=function(ic,h,p,extra){root.innerHTML='<div class="shv-gate"><div class="shv-card">'+I(ic)+'<h2>'+h+'</h2><p>'+p+'</p>'+(extra||"")+'</div></div>';ico()};
+if(!d){gate("link-2-off","الرابط ده مش موجود","ممكن يكون اتكتب غلط، أو اتعمل من جهاز تاني. اطلب من المكتب يبعتلك رابط جديد.");return}
+if(d.revoked){gate("ban","الرابط ده اتلغى","المكتب لغى المشاركة دي يوم <span class=\"num\">"+dt(d.revoked)+"</span>. لو محتاجها كلّم المكتب.");return}
+if(d.exp&&d.exp<Date.now()){gate("clock-alert","الرابط ده انتهت صلاحيته","كان صالح لحد <span class=\"num\">"+dt(d.exp)+"</span>. اطلب من المكتب رابط جديد.");return}
+var seen=function(){var all=[];try{all=JSON.parse(localStorage.getItem("cerp.shares.v1")||"[]")}catch(e){}var x=all.filter(function(y){return y.tok===tok})[0];if(x&&!pr){x.views=x.views||[];x.views.push(Date.now());localStorage.setItem("cerp.shares.v1",JSON.stringify(all))}};
+var show=function(){seen();
+ var R=d.rows||[];
+ var rowH=function(r){return '<div class="shv-row"><div class="shv-rh"><span class="shv-ev '+(r.evc||"")+'">'+esc(r.ev)+'</span><b>'+esc(r.ttl)+'</b>'+(r.desc?'<small>'+esc(r.desc)+'</small>':"")+'<span class="when num">'+dt(r.t)+'</span></div>'+
+  '<div style="font-size:12.5px;color:var(--muted);margin-top:4px">'+I("user")+' '+esc(r.actor)+(r.role?' · '+esc(r.role):"")+' · '+esc(r.src)+(r.id?' · <span class="num">#'+r.id+'</span>':"")+'</div>'+
+  (r.ch&&r.ch.length?'<table class="shv-ch"><thead><tr><th>الحقل</th>'+(d.opts.vals?(r.up?'<th>قبل</th><th>بعد</th>':'<th>القيمة</th>'):"")+'</tr></thead><tbody>'+r.ch.map(function(c){return '<tr><td>'+esc(c[0])+'</td>'+(d.opts.vals?(r.up?'<td>'+(c[1]?'<del>'+esc(c[1])+'</del>':'<i>فاضي</i>')+'</td><td>'+(c[2]?'<ins>'+esc(c[2])+'</ins>':'<i>فاضي</i>')+'</td>':'<td>'+esc(c[2]||c[1])+'</td>'):"")+'</tr>'}).join("")+'</tbody></table>':"")+'</div>'};
+ root.innerHTML='<div class="shv-wm">للقراءة فقط · '+esc(d.ref)+'</div><div class="shv" style="position:relative;z-index:1">'+
+ '<div class="shv-top"><span class="lg"><svg viewBox="0 0 64 64" width="30" height="30"><path d="M40 14c-9 2-15 9-15 18v18" stroke="#7ab648" stroke-width="5" stroke-linecap="round" fill="none"/><path d="M25 32c0-7 6-12 13-12" stroke="#fff" stroke-width="5" stroke-linecap="round" fill="none"/><circle cx="44" cy="46" r="5" fill="#7ab648"/></svg></span><div><b>'+esc(d.office)+'</b><small>سجل حركة — مشاركة للقراءة فقط</small></div><span class="sp"></span>'+
+ '<button class="btn btn-ghost shv-noprint" onclick="window.print()">'+I("printer")+'طباعة / PDF</button></div>'+
+ '<div class="shv-card"><div class="shv-h"><div><h1>'+esc(d.title)+'</h1><p><span class="num">'+R.length+'</span> '+(R.length===1?"حركة":"حركات")+' · الأحدث فوق</p></div><div style="text-align:end"><b class="num">'+esc(d.ref)+'</b><p>رقم المرجع</p></div></div>'+
+ '<div class="shv-meta"><div><span>اتشارك في</span><b class="num">'+dt(d.t)+'</b></div><div><span>بواسطة</span><b>'+esc(d.by)+'</b></div><div><span>صالح لحد</span><b class="num">'+(d.exp?dt(d.exp):"من غير انتهاء")+'</b></div><div><span>البيانات الحساسة</span><b>'+(d.opts.mask?"مخفية":"ظاهرة")+'</b></div></div>'+
+ R.map(rowH).join("")+
+ '<div class="shv-foot"><span>'+I("shield-check")+' مستند للقراءة فقط من نظام كليك ERP. أي فتح للرابط بيتسجّل عند المكتب.</span><span class="num">طُبع '+dt(Date.now())+'</span></div></div></div>';
+ ico();if(pr)setTimeout(function(){window.print()},400)};
+if(d.pin&&!pr){gate("lock-keyhole","الرابط ده محمي برمز","اكتب الرمز المكوّن من 4 أرقام اللي وصلك من المكتب في رسالة منفصلة.",'<div class="shv-pin"><input id="pin" class="num" inputmode="numeric" maxlength="4" autofocus><button class="btn btn-primary" id="go">فتح</button></div><div class="shv-err" id="err"></div>');
+ var tries=0;var go=function(){var v=document.getElementById("pin").value.trim();if(v===d.pin){show()}else{tries++;document.getElementById("err").textContent=tries>=5?"محاولات كتير — جرّب بعد شوية":"الرمز غلط";if(tries>=5)document.getElementById("go").disabled=true}};
+ document.getElementById("go").onclick=go;document.getElementById("pin").onkeydown=function(e){if(e.key==="Enter")go()};return}
+if(d.aud==="login"){var ok=false;try{ok=!!localStorage.getItem("clickerp-program")}catch(e){}if(!ok){gate("log-in","الرابط ده لموظفين المكتب بس","سجّل دخولك في كليك ERP الأول، وبعدين افتح الرابط تاني.",'<a class="btn btn-primary" href="login.html" style="margin-top:12px">تسجيل الدخول</a>');return}}
+show();
+})();
+</script>
+</body>
+</html>
