@@ -784,6 +784,11 @@
       "title": "الأدوار والصلاحيات"
     },
     {
+      "id": "setActivity",
+      "file": "setActivity.html",
+      "title": "سجل النشاط"
+    },
+    {
       "id": "setBranches",
       "file": "setBranches.html",
       "title": "الفروع"

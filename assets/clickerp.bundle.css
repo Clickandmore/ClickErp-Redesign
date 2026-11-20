@@ -7916,3 +7916,74 @@ button.pr-pin{cursor:pointer;color:var(--navy);font-weight:600;background:var(--
 .h19-ex a>svg:last-child{width:16px;height:16px;color:var(--muted);margin-inline-start:auto}
 .h19-ex div{display:flex;flex-direction:column}
 .h19-ex small{color:var(--muted);font-size:12px}
+/* v1.62 سجل النشاط */
+.al-fbar{flex-wrap:wrap}
+.al-fbar .al-sid{max-width:130px}
+.al-warn{display:flex;align-items:center;gap:12px;padding:12px 16px;margin:0 0 14px;border:1px solid #f3c7c7;background:var(--red-soft);border-radius:var(--r)}
+.al-warn>svg{width:22px;height:22px;color:var(--red);flex:none}
+.al-warn>div{flex:1;min-width:0}
+.al-warn b{display:block;color:var(--ink);font-size:14px}
+.al-warn small{display:block;color:var(--body);font-size:12.5px;margin-top:2px}
+.al-flash{display:flex;align-items:center;gap:8px;padding:10px 14px;margin:0 0 12px;background:var(--green-soft);color:var(--green-d);border-radius:var(--r);font-size:13.5px}
+.al-flash svg{width:18px;height:18px;flex:none}
+.al-rec{display:flex;align-items:center;gap:8px;padding:10px 14px;margin:0 0 10px;background:var(--navy-soft);color:var(--navy);border-radius:var(--r);font-size:13.5px}
+.al-rec svg{width:18px;height:18px;flex:none}
+.al-sum{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 12px;font-size:13.5px;color:var(--muted)}
+.al-sum>span b{color:var(--ink)}
+.al-pill{display:inline-flex;align-items:center;gap:6px;padding:4px 8px 4px 10px;border:1px solid var(--line);background:#fff;border-radius:16px;font:inherit;font-size:12.5px;color:var(--ink);cursor:pointer}
+.al-pill svg{width:13px;height:13px;color:var(--muted)}
+.al-pill:hover{border-color:var(--red);color:var(--red)}
+.al-clear{border:0;background:none;font:inherit;font-size:12.5px;color:var(--navy);cursor:pointer;text-decoration:underline}
+.al-day{padding:0;margin:0 0 14px;overflow:hidden}
+.al-dh{display:flex;align-items:center;gap:8px;padding:11px 18px;background:#fafbfc;border-bottom:1px solid var(--line);font-size:13.5px;position:sticky;top:0;z-index:2}
+.al-dh svg{width:16px;height:16px;color:var(--muted)}
+.al-dh>span{color:var(--muted);font-size:12px}
+.al-dh em{margin-inline-start:auto;font-style:normal;font-size:12px;color:var(--muted);background:#fff;border:1px solid var(--line);border-radius:10px;padding:1px 8px}
+.al-i{display:flex;gap:12px;padding:11px 18px;border-bottom:1px solid var(--line-2,#f0f2f5)}
+.al-i:last-child{border-bottom:0}
+.al-i:hover{background:#fcfcfd}
+.al-ic{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;flex:none;background:var(--navy-soft);color:var(--navy)}
+.al-ic svg{width:16px;height:16px}
+.al-ic.g{background:var(--green-soft);color:var(--green-d)}
+.al-ic.r{background:var(--red-soft);color:var(--red)}
+.al-ic.a{background:var(--amber-soft);color:var(--amber)}
+.al-ic.b{background:var(--blue-soft);color:var(--blue)}
+.al-m{flex:1;min-width:0}
+.al-t{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px}
+.al-t b{font-size:14px;color:var(--ink)}
+.al-t>span{color:var(--body);font-size:13.5px}
+.al-t>span:before{content:"— ";color:var(--muted)}
+.al-id{border:0;background:none;padding:0;font:inherit;font-weight:700;color:var(--navy);cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px}
+.al-meta{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;margin-top:3px;font-size:12.5px;color:var(--muted)}
+.al-meta button{border:0;background:none;padding:0;font:inherit;font-weight:600;color:var(--body);cursor:pointer}
+.al-meta button:hover{color:var(--navy);text-decoration:underline}
+.al-src{padding:1px 8px;border-radius:10px;background:#f2f4f7;color:var(--body);font-size:11.5px}
+.al-src.finance{background:var(--green-soft);color:var(--green-d)}
+.al-src.authentication,.al-src.permissions{background:var(--amber-soft);color:var(--amber)}
+.al-src.settings,.al-src.hr{background:var(--blue-soft);color:var(--blue)}
+.al-src.crm{background:var(--navy-soft);color:var(--navy)}
+.al-kv{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:5px;font-size:13px;color:var(--ink)}
+.al-kv small{color:var(--muted);font-size:12px;margin-inline-end:5px}
+.al-ch{margin-top:6px;display:flex;flex-direction:column;gap:3px;padding:6px 10px;background:#fafbfc;border:1px solid var(--line);border-radius:var(--r-s,8px);max-width:640px}
+.al-c{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:13px}
+.al-c>span{color:var(--muted);min-width:120px}
+.al-c del{color:var(--red);background:var(--red-soft);text-decoration:line-through;padding:0 5px;border-radius:4px}
+.al-c ins{color:var(--green-d);background:var(--green-soft);text-decoration:none;padding:0 5px;border-radius:4px;font-weight:600}
+.al-c i{color:var(--muted-2,#9aa3af);font-style:normal;font-size:12px}
+.al-c svg{width:13px;height:13px;color:var(--muted)}
+.al-more{align-self:flex-start;display:inline-flex;align-items:center;gap:4px;border:0;background:none;padding:2px 0 0;font:inherit;font-size:12.5px;color:var(--navy);cursor:pointer}
+.al-more svg{width:14px;height:14px}
+.al-note{display:block;margin-top:6px;color:var(--muted);font-size:12.5px}
+.al-go{display:inline-flex;align-items:center;gap:3px;margin-inline-start:auto;font-size:12.5px;font-weight:600;color:var(--navy);text-decoration:none}
+.al-go svg{width:14px;height:14px}
+.al-go:hover{text-decoration:underline}
+.al-when{flex:none;text-align:end;min-width:76px}
+.al-when b{display:block;font-size:13px;color:var(--ink)}
+.al-when small{display:block;font-size:11.5px;color:var(--muted)}
+.al-empty{display:flex;flex-direction:column;align-items:center;gap:6px;padding:40px 20px;text-align:center}
+.al-empty svg{width:30px;height:30px;color:var(--muted)}
+.al-empty small{color:var(--muted)}
+.al-foot{background:#fff;border:1px solid var(--line);border-radius:var(--r)}
+.al-foot .pager button[disabled]{opacity:.4;cursor:default}
+@media (max-width:720px){.al-i{flex-wrap:wrap}.al-when{order:-1;min-width:0;margin-inline-start:auto;text-align:start}.al-c>span{min-width:0}}
+@media print{.al-warn,.cx-chips,.vtabs,.al-foot,.al-go,.al-more,.al-clear,.al-pill svg{display:none!important}.al-day{break-inside:auto}.al-i{break-inside:avoid}.al-dh{position:static}}

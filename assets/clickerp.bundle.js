@@ -3586,7 +3586,7 @@ DEPTS.sort((a,b)=>PG_ORDER.indexOf(a.id)-PG_ORDER.indexOf(b.id));
 const SUBS={finDash:["finDashGen"],cmsHome:["cmsBlogs","cmsBlogForm","cmsOffers","cmsHero","cmsSections","cmsTestimonials","cmsPartners","cmsFaq"],reqRec:["orderShow"],reqRent:["rentalOrders","rentalOrderShow"],rcExtensions:["rcRenewals","rcReturns","rcReturnShow"],absconding:["abscShow"],rentalSettings:["rentalTerms"],rcFinance:["rcFinanceShow"],inbound:["inboundShow"],finCreditNotes:["finCreditNoteAdd"],setDev:["saSubscription","saModules","saEmployees","saDesigns","saUpdates","saUpdateForm","saBackups","saScheduler","saRecovery","saInvoices","saInvoiceFix","saMcp","saMoyasar","saTestAccounts"],tcMy:["tcPolicy","tcClose"],tcBoard:["tcTask","tcForm","tcList","tcLanes","tcBoardD","tcCard","tcNew","tcCardQA","tcShare"],tcQA:["tcQALib"],tcAdmin:["tcRemind"],hrAttendance:["tcCheckin","tcGeo","hrPunchImport","hrRemote"],hrDocuments:["hrRenewal","hrMuqeem"],hrWorkers:["hrWorkerShow"],hrPerformance:["hrReview","hrSurvey"],hrSettings:["hrEstablishments","hrApprovalFlows","hrCompliance"],myRequests:["myRequestNew","myRequestShow"],tcTeam:["tcMember","tcShots","tcSessions"],tcHours:["tcAttend"],tcSettings:["tcMigrate"],contracts:["contractShow","contractAdd","contractEdit"],cvs:["cvAdd","cvShow","cvEdit","cvReview","cvShares"],rentalCvs:["rentalCvShow","rentalCvAdd"],clients:["clientShow","clientAdd"],
  rental:["rentalShow","rentalAdd"],housing:["housingShow","housingAdd"],transfer:["transferShow","transferAdd","transferOverview"],
  reports:["report","arrivals"],finBonds:["finBondsGen","finComPay","finTransfers"],finSales:["finSaleAdd","finCreditNotes","finCreditNoteAdd"],finBanks:["finBoxes","finChecksIn","finChecksOut"],finClients:["finClientCats"],finSuppliers:["finSupplierTypes","finAgents"],finPurchases:["finPurchaseReq","finReturns"],
- finCenters:["finCentersTree"],finReports:["finReport"],finEntries:["finEntriesPending","finAdd","finShow"],finAccounts:["finGuide"],clArchive:[],delegations:["delAdd","delShow"],trips:["tripShow"],agents:["agentShow"],"hb-board":["hbNew","hbRenewals"],"hb-visits":["hbVisit","hb-schedule","hb-tracking","hbExceptions"],"hb-alerts":["hbSos"],"hb-clients":["hbMerge"],"hb-services":["hb-zones","hbDrivers"],coupons:["couponsHourly","couponForm","couponShow","couponBulk","couponReport","couponSettings"],claims:["claimAdd","claimShow","claimTypes"],campaigns:["campaignNew"],finRequests:["finRequestAdd","finRequestShow"],musanedTransfers:["finNetSales"],finDaily:["finDailyLines"],finStatements:[],finBalances:[],finAssets:["finAssetShow"],finCommissions:["finCommissionShow","finCommissionRules"],finTax:["finTaxReports","finZatca"],hrEmployees:["hrEmployeeShow","hrEmployeeAdd"],hrPayroll:["hrPayrollRun","hrGosi","hrEntries"],setUsers:["setRoles"],visaDash:["visaRequests","visaAdd","visaShow","visaBalance","visaReports","visaPrebook","visaSettings"]};
+ finCenters:["finCentersTree"],finReports:["finReport"],finEntries:["finEntriesPending","finAdd","finShow"],finAccounts:["finGuide"],clArchive:[],delegations:["delAdd","delShow"],trips:["tripShow"],agents:["agentShow"],"hb-board":["hbNew","hbRenewals"],"hb-visits":["hbVisit","hb-schedule","hb-tracking","hbExceptions"],"hb-alerts":["hbSos"],"hb-clients":["hbMerge"],"hb-services":["hb-zones","hbDrivers"],coupons:["couponsHourly","couponForm","couponShow","couponBulk","couponReport","couponSettings"],claims:["claimAdd","claimShow","claimTypes"],campaigns:["campaignNew"],finRequests:["finRequestAdd","finRequestShow"],musanedTransfers:["finNetSales"],finDaily:["finDailyLines"],finStatements:[],finBalances:[],finAssets:["finAssetShow"],finCommissions:["finCommissionShow","finCommissionRules"],finTax:["finTaxReports","finZatca"],hrEmployees:["hrEmployeeShow","hrEmployeeAdd"],hrPayroll:["hrPayrollRun","hrGosi","hrEntries"],setUsers:["setRoles","setActivity"],visaDash:["visaRequests","visaAdd","visaShow","visaBalance","visaReports","visaPrebook","visaSettings"]};
 /* v1.8.1: sidebar badges = only things that need action (no totals). r=urgent/late, a=waiting for you, n=unread */
 const ALERTS={tcAdmin:[2,"r","مهمتين إدارة متأخرين"],tcVault:[1,"r","حساب باسورده عدّى 90 يوم"],tcQA:[4,"a","4 مهام مستنية اختبارك"],tcInbox:[7,"a","7 حاجات واردة لسه متفرزتش"],tcHandoff:[3,"a","3 مهام مستنياك تستلمها"],tcApprovals:[3,"a","3 تسجيلات وقت بانتظار اعتمادك"],reqRec:[6,"a","6 طلبات جديدة لسه محدش ردّ عليها"],cvs:[8,"a","8 بانتظار المراجعة: 4 سير مرفوعة و4 طلبات تغيير حالة"],contracts:[18,"r","18 عقد تجاوز 45 يوم بدون تذاكر"],invoices:[7,"r","7 فواتير متأخرة السداد"],transfer:[4,"a","4 طلبات نقل بانتظار موافقتك"],housing:[2,"a","2 عاملة محتاجين فحص طبي"],followups:[5,"a","5 متابعات مطلوبة النهارده"],chats:[3,"n","3 محادثات غير مقروءة"],claims:[2,"r","شكوتين عاجلتين"],absconding:[2,"r","2 بلاغ هروب مفتوح"],"hb-alerts":[1,"r","بلاغ مفتوح من الطاقم"],visaDash:[2,"a","2 طلب تأشيرة بانتظار الموافقة"],finRequests:[5,"a","5 طلبات مالية بانتظار اعتمادك"],finTax:[4,"r","4 فواتير مرفوضة من ZATCA"],hrRequests:[7,"a","7 طلبات موظفين مستنية قرارك"],hrAttendance:[1,"r","موظف برّه النطاق مستني اعتمادك"],hrDocuments:[2,"r","إقامتين بيخلصوا خلال 30 يوم"],hrTravel:[1,"r","أحمد يوسف خلصت إجازته ولسه مرجعش"],hrContracts:[1,"r","ملحق راتب مش موثّق في قوى"],hrWps:[2,"a","ملاحظتين قبل تجهيز ملف نوفمبر"],hrPerformance:[1,"r","تقييم نهاية تجربة متأخر"],myRequests:[1,"a","المالية مستنية ردك على مطالبة مصروفات"],hrTeam:[3,"a","3 طلبات من فريقك مستنية قرارك"],setMessages:[0,"r","مزود الرسائل النصية متوقف"]};
 DEPTS.forEach(d=>d.items.forEach(p=>{if(p.sec)return;delete p.b;if(ALERTS[p.id])p.al=ALERTS[p.id]}));
@@ -4404,7 +4404,7 @@ S.setHome=()=>`
   <div class="sx-hits">${[["مدة الضمان (بالأيام)","العامة ← قواعد التشغيل","setGeneral"],["لوجو هيئة الزكاة على الفاتورة","العامة ← النماذج ← الفاتورة","setGeneral"],["مدة الاختبار الافتراضية لعقد التأجير","التأجير ← إعدادات العقد","setRental"]].map(h=>`<a href="#" data-go="${h[2]}">${X("corner-down-left")}<b>${h[0]}</b><small>${h[1]}</small></a>`).join("")}</div></div>
  <div class="grid-2 wide-l"><div class="sx-areas">${AREAS.map(a=>`<a href="#" data-go="${a[0]}" class="card sx-area">${X(a[1])}<div><b>${a[2]}</b><small>${a[3]}</small></div>${a[4]?`<em class="${a[4]}">${a[5]}</em>`:X("chevron-left")}</a>`).join("")}</div>
   <div><div class="card sec"><div class="sec-h">${X("list-checks")}<b>جهّز مكتبك</b><em class="sx-prog">7 من 9</em></div><div class="sx-check">${[["بيانات الشركة والرقم الضريبي",1],["الشعار وهوية النماذج",1],["الفروع وساعات العمل",1],["الموظفين والأدوار",1],["الجنسيات والأسعار",1],["قوالب الرسائل ومزود واتساب",1],["الربط مع مساند",1],["ربط ZATCA (الوضع الفعلي)",0,"setIntegrations"],["استيراد العملاء والعقود القديمة",0,"setImport"]].map(c=>`<div class="${c[1]?"ok":""}">${X(c[1]?"check-circle-2":"circle")}<span>${c[0]}</span>${c[2]?B("ghost sm","","كمّل",`data-go="${c[2]}"`):""}</div>`).join("")}</div></div>
-  <div class="card sec"><div class="sec-h">${X("history")}<b>آخر تغييرات في الإعدادات</b></div><div class="tl">${[["اليوم 09:12","غيّر مدة الضمان من 60 إلى 90 يوم","مشرف النظام"],["أمس","أضاف قالب واتساب: payment_reminder","سارة القحطاني"],["14 نوفمبر","فعّل الوضع المبسط للطلب في الموقع","مشرف النظام"]].map(x=>`<div class="tli"><span class="dot"></span><div><b>${x[1]}</b><small>${x[2]}</small><small class="num">${x[0]}</small></div></div>`).join("")}</div></div></div></div>`;
+  <div class="card sec"><div class="sec-h">${X("history")}<b>آخر تغييرات في الإعدادات</b><a href="setActivity.html?log_name=settings" style="margin-inline-start:auto;font-size:13px;font-weight:600;color:var(--navy)">سجل النشاط</a></div><div class="tl">${[["اليوم 09:12","غيّر مدة الضمان من 60 إلى 90 يوم","مشرف النظام"],["أمس","أضاف قالب واتساب: payment_reminder","سارة القحطاني"],["14 نوفمبر","فعّل الوضع المبسط للطلب في الموقع","مشرف النظام"]].map(x=>`<div class="tli"><span class="dot"></span><div><b>${x[1]}</b><small>${x[2]}</small><small class="num">${x[0]}</small></div></div>`).join("")}</div></div></div></div>`;
 
 /* ================= العامة ================= */
 S.setGeneral=()=>`
@@ -4451,7 +4451,7 @@ S.setRental=()=>`
   ${SAVEBAR()}`)}`;
 
 /* ================= المستخدمون والصلاحيات ================= */
-const uTabs=on=>TABS([["setUsers","users","المستخدمون",46],["setRoles","shield-check","الأدوار والصلاحيات",6],["#trash","trash-2","المحذوفون",3]],on);
+const uTabs=on=>TABS([["setUsers","users","المستخدمون",46],["setRoles","shield-check","الأدوار والصلاحيات",6],["#trash","trash-2","المحذوفون",3],["setActivity","history","سجل النشاط"]],on);
 S.setUsers=()=>`
  ${IDEA("كل مستخدم ظاهر دوره وفروعه وآخر نشاط، والإجراءات الحساسة (تعليق، إنهاء الجلسة، الدخول كموظف) في قائمة واحدة. التعليق بيطلب «مين يستلم شغله» عشان مفيش عميل يتنسي.")}
  ${HEAD("المستخدمون والصلاحيات","46 مستخدم · 6 أدوار · 3 فروع",B("ghost","file-spreadsheet","Excel")+B("primary","user-plus","مستخدم جديد"),["setHome","الإعدادات"])}
@@ -11067,7 +11067,7 @@ const logH=()=>`<div class="pr-st">${X("history")}<b>سجل التغييرات</
   return `<details class="pr-lgi"><summary><span class="pr-lk ${k[1]}">${X(k[0])}</span><span><b>${k[2]} «${esc(l.role)}»${l.to?` ← «${esc(l.to)}»`:""}${l.add?` <span class="pr-plus num">+${l.add.length}</span> <span class="pr-minus num">−${l.rem.length}</span>`:l.n!=null?` <span class="num">${fmt(l.n)}</span>`:""}</b><small><span class="num">${tFmt(l.t)}</span> · ${esc(l.by)}${l.br&&l.br!==G?" · "+esc(l.br):""}</small></span></summary>
   ${l.add&&l.add.length?`<div class="pr-lgd"><small>أُضيف</small>${l.add.slice(0,25).map(p=>`<span class="pr-mi l2">${lab(p)}</span>`).join("")}${l.add.length>25?`<small>و${l.add.length-25} أخرى</small>`:""}</div>`:""}
   ${l.rem&&l.rem.length?`<div class="pr-lgd"><small>أُزيل</small>${l.rem.slice(0,25).map(p=>`<span class="pr-mi lx">${lab(p)}</span>`).join("")}${l.rem.length>25?`<small>و${l.rem.length-25} أخرى</small>`:""}</div>`:""}</details>`}).join(""):`<small class="pr-none">لا تغييرات بعد. كل حفظ وإنشاء وحذف يُسجَّل هنا بالوقت ومن قام به.</small>`}
- <button class="pr-more" data-pr-reset="">${X("rotate-ccw")} إعادة البيانات الأصلية من ClickERP</button>`;
+ <a class="pr-more" href="setActivity.html?log_name=permissions">${X("history")} كل تغييرات الصلاحيات في سجل النشاط</a><button class="pr-more" data-pr-reset="">${X("rotate-ccw")} إعادة البيانات الأصلية من ClickERP</button>`;
 const askH=()=>U.ask?`<div class="pr-ov" data-pr-ov=""><div class="card pr-ask" role="dialog" aria-modal="true"><h4>${U.ask.t}</h4><div class="pr-am">${U.ask.m}</div><div class="b">${U.ask.b.map((x,i)=>B(x[1],x[2],x[0],`data-pr-ask="${i}"`)).join("")}</div></div></div>`:"";
 /* ---------- وصف الدور بالكلام ← صلاحيات — جديد ---------- */
 const TOP=[
@@ -11335,7 +11335,7 @@ if(!window.__prl){window.__prl=1;
  window.addEventListener("beforeunload",e=>{if(window.__prlNoWarn||!document.getElementById("prl"))return;if(ROLES.some(r=>!r.del&&dirty(r))){e.preventDefault();e.returnValue=""}})}
 S.setRoles=()=>{setTimeout(ico,0);return `<div id="prl">
  ${HEAD("الأدوار والصلاحيات",`كل صلاحيات ClickERP (<span class="num">${fmt(TOTAL)}</span>) في جدول واحد: لكل شاشة عرض وإضافة وتعديل وحذف. قف على أي مربع لترى اسم الصلاحية ووصفها، أو ابدأ من دور جاهز أو من وصف الدور بكلامك.`,B("ghost","history","سجل التغييرات",'data-pr-tab="log"')+B("primary","plus","دور جديد",'data-pr-new=""'),["setHome","الإعدادات"])}
- ${window.CXH.TABS([["setUsers","users","المستخدمون",46],["setRoles","shield-check","الأدوار والصلاحيات",ROLES.length],["#trash","trash-2","المحذوفون",3]],"setRoles")}
+ ${window.CXH.TABS([["setUsers","users","المستخدمون",46],["setRoles","shield-check","الأدوار والصلاحيات",ROLES.length],["#trash","trash-2","المحذوفون",3],["setActivity","history","سجل النشاط"]],"setRoles")}
  <div class="pr-rstrip" data-pr-roles="">${rolesH()}</div>
  <div data-pr-askw="">${askH()}</div>
  <div class="pr-lay"><div class="pr-main" data-pr-main="">${U.mode==="new"?newH():editH()}</div><aside class="pr-side" data-pr-side="">${U.mode==="new"?newSideH():sideH()}</aside></div></div>`};
@@ -11927,6 +11927,183 @@ try{Object.assign(T,{guideTable:{ar:"مثال: جدول",en:"Example: table"},gu
 Object.keys(S).forEach(k=>{screens[k]=S[k]});
 })();
 
+/* ===== v1.62 — سجل النشاط (dash.activity.log): التبويب الرابع في المستخدمين، من ActivityLogController الحقيقي.
+   نفس الفلاتر (الموظف، العملية، نوع السجل، رقم السجل، المصدر، من/إلى)، نفس أسماء العمليات والمصادر، تصدير CSV بنفس الأعمدة، و20 سجل في الصفحة.
+   الجديد: شرائح سريعة، تنبيه محاولات الدخول الفاشلة، الضغط على الموظف أو رقم السجل بيفلتر عليه («تاريخ السجل كامل»)،
+   وتغييرات شاشة الأدوار (cerp.roles.v1) بتظهر هنا تحت مصدر «الصلاحيات». ===== */
+(()=>{
+const {X,HEAD,B,TABS}=window.CXH;
+window.CERP_PAGES=(window.CERP_PAGES||[]).concat(["setActivity"]);
+const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmt=n=>Number(n).toLocaleString("en-US");
+/* resolveActivityActionLabel + resolveActionClass */
+const EV={created:["إضافة","plus","g"],updated:["تحديث","pencil","b"],deleted:["حذف","trash","r"],force_deleted:["حذف نهائي","trash-2","r"],restored:["استرجاع","rotate-ccw","g"],
+ login:["تسجيل الدخول","log-in","n"],logout:["تسجيل الخروج","log-out","n"],login_failed:["محاولة دخول فاشلة","shield-alert","r"],impersonated:["الدخول بحساب آخر","user-check","a"],
+ role_attached:["إسناد دور","shield-check","a"],role_detached:["إلغاء دور","shield-off","a"],permission_attached:["منح صلاحية","key-round","a"],permission_detached:["إلغاء صلاحية","key-round","a"],
+ export:["تصدير","download","n"],import:["استيراد","upload","a"],legacy:["نشاط سابق","archive","n"]};
+/* resolveLogNameLabel */
+const SRC={default:"سجل النظام الحالي",finance:"المالية",hr:"الموارد البشرية",crm:"علاقات العملاء",authentication:"الدخول والحسابات",permissions:"الصلاحيات",settings:"إعدادات النظام",legacy:"سجل النظام السابق"};
+/* resolveTargetLabel */
+const TGT={contractShow:"تفاصيل العقد",rentalShow:"تفاصيل العقد",orderShow:"تفاصيل الطلب",invoices:"تفاصيل الفاتورة",cvShow:"تفاصيل السيرة",clientShow:"تفاصيل العميل",finShow:"تفاصيل السجل",setUsers:"فتح المستخدم",setRoles:"فتح الدور",hrLeaves:"تفاصيل الطلب",setGeneral:"فتح الإعداد",setSite:"فتح الإعداد",waTemplates:"فتح القالب"};
+const PPL={m:["محمد العتيبي","مدير النظام"],s:["سارة القحطاني","خدمة العملاء"],k:["خالد المطيري","المبيعات"],r:["ريم الدوسري","المحاسب"],n:["نورة الحربي","خدمة العملاء"],
+ sys:["النظام","تنفيذ آلي للنظام"],x:["غير معروف","لم تُحفظ هوية المنفذ عند تسجيل العملية"],c:["عبدالله الشمري","عميل"],old:["أحمد (النظام السابق)","مستخدم النظام السابق"]};
+/* [يوم قبل, الوقت, المنفذ, العملية, نوع السجل, الرقم, وصف السجل, المصدر, التغييرات [الحقل, قبل, بعد], الشاشة, عنوان خاص] */
+const RAW=[
+ [0,"10:41","s","updated","عقد الاستقدام",2203,"منيرة الشهري","default",[["المرحلة","تفويض","التفييز"],["رقم التأشيرة","","1308845521"]],"contractShow"],
+ [0,"10:36","r","created","السند المالي",4471,"سند قبض — منيرة الشهري","finance",[["المبلغ","","6,500 ر.س"],["طريقة الدفع","","تحويل بنكي"],["الحساب","","البنك الأهلي — 1102"],["العقد","","#2203"]],"finShow"],
+ [0,"10:18","k","created","السيرة الذاتية",1880,"جوسلين ريس — الفلبين","default",[["الجنسية","","الفلبين"],["المهنة","","عاملة منزلية"],["الراتب","","1,500 ر.س"],["الخبرة","","4 سنوات"],["المكتب الخارجي","","Manila Star Agency"],["الحالة","","متاحة"]],"cvShow"],
+ [0,"09:58","x","login_failed","مستخدم النظام",14,"ماجد السهلي (majed.s)","authentication",[["عنوان IP","","188.54.12.9"],["السبب","","الحساب معلّق"]],"setUsers"],
+ [0,"09:54","x","login_failed","مستخدم النظام",14,"ماجد السهلي (majed.s)","authentication",[["عنوان IP","","188.54.12.9"],["السبب","","الحساب معلّق"]],"setUsers"],
+ [0,"09:52","x","login_failed","مستخدم النظام",14,"ماجد السهلي (majed.s)","authentication",[["عنوان IP","","188.54.12.9"],["السبب","","كلمة مرور خاطئة"]],"setUsers"],
+ [0,"09:40","s","updated","عقد الاستقدام",2203,"منيرة الشهري","default",[["المرحلة","مساند","تفويض"],["رقم التفويض","","T-778120"]],"contractShow"],
+ [0,"09:30","m","updated","مستخدم النظام",14,"ماجد السهلي (majed.s)","default",[["الحالة","نشط","معلّق"],["سبب التعليق","","إجازة طويلة"],["مستلم الشغل","","خالد المطيري"]],"setUsers"],
+ [0,"09:20","m","role_attached","مستخدم النظام",22,"نورة الحربي","permissions",[["الدور","","خدمة العملاء"],["الفروع","","الفرع الرئيسي"]],"setUsers"],
+ [0,"09:12","m","updated","الإعدادات العامة",null,"قواعد التشغيل","settings",[["مدة الضمان (يوم)","60","90"]],"setGeneral"],
+ [0,"08:47","s","login","مستخدم النظام",9,"سارة القحطاني","authentication",[["عنوان IP","","51.36.20.144"],["الجهاز","","Chrome على Windows"]],null],
+ [0,"08:31","n","login","مستخدم النظام",22,"نورة الحربي","authentication",[["عنوان IP","","51.36.20.150"],["الجهاز","","Safari على iPhone"]],null],
+ [0,"02:00","sys","updated","عقد الاستقدام",null,"تحديث حالات الضمان اليومي — 14 عقداً","default",[["حالة الضمان","ساري","منتهي"]],null],
+ [1,"17:22","s","updated","العميل",5512,"فهد العتيبي","crm",[["الجوال","0501122330","0501122334"],["المدينة","الرياض","الخرج"]],"clientShow"],
+ [1,"16:05","r","created","الفاتورة",918,"عقد إيجار — شركة نجد للمقاولات","finance",[["الإجمالي","","4,600 ر.س"],["الضريبة","","600 ر.س"],["تاريخ الاستحقاق","","2026-11-30"]],"invoices"],
+ [1,"15:40","k","deleted","السيرة الذاتية",1712,"ماريا سانتوس — الفلبين","default",[["سبب الحذف","","مكررة مع #1709"]],null],
+ [1,"14:10","n","created","عقد الإيجار",330,"أمل الزهراني","default",[["العاملة","","سيتي نورهاليزا"],["المدة","","3 شهور"],["الإيجار الشهري","","3,200 ر.س"]],"rentalShow"],
+ [1,"13:02","s","created","قالب رسالة",41,"payment_reminder","settings",[["اسم القالب","","payment_reminder"],["القناة","","واتساب"],["اللغة","","العربية"]],"waTemplates"],
+ [1,"12:15","m","impersonated","مستخدم النظام",9,"سارة القحطاني","authentication",[["السبب","","مراجعة مشكلة في شاشة العقود"],["المدة","","6 دقائق"]],"setUsers"],
+ [1,"11:48","r","updated","القيد المحاسبي",2291,"قيد إثبات إيراد عقود أكتوبر","finance",[["الحالة","مسودة","معتمد"]],"finShow"],
+ [1,"10:30","s","updated","عقد الاستقدام",2188,"هيا الدوسري","default",[["المرحلة","مساند","تفويض"],["الموظف المسؤول","خالد المطيري","سارة القحطاني"]],"contractShow"],
+ [1,"09:05","k","login","مستخدم النظام",11,"خالد المطيري","authentication",[["عنوان IP","","51.36.20.161"],["الجهاز","","Chrome على Mac"]],null],
+ [2,"18:40","m","permission_detached","الدور",4,"المحاسب","permissions",[["الصلاحية","حذف السندات (finance_bonds_delete)",""]],"setRoles"],
+ [2,"16:12","r","created","السند المالي",4460,"سند صرف — رواتب نوفمبر","finance",[["المبلغ","","84,300 ر.س"],["الحساب","","مصرف الراجحي — 2040"]],"finShow"],
+ [2,"14:55","s","updated","طلب الاستقدام",771,"نوال القرني","crm",[["الحالة","جديد","تم التواصل"],["ملاحظة","","هتأكد الجنسية بكرة"]],"orderShow"],
+ [2,"13:00","m","updated","طلب الإجازة",58,"خالد المطيري — سنوية","hr",[["الحالة","بانتظار الاعتماد","معتمد"]],"hrLeaves"],
+ [2,"11:20","k","created","طلب الإجازة",58,"خالد المطيري — سنوية","hr",[["النوع","","سنوية"],["من","","2026-11-23"],["المدة","","5 أيام"]],"hrLeaves"],
+ [2,"08:58","c","created","طلب الاستقدام",772,"من موقع المكتب","crm",[["الجنسية","","كينيا"],["المهنة","","عاملة منزلية"],["الجوال","","0559087412"]],"orderShow"],
+ [3,"17:00","m","force_deleted","العميل",5390,"عميل تجريبي","crm",[],null],
+ [3,"15:33","k","updated","السيرة الذاتية",1855,"ديوي لستاري — إندونيسيا","default",[["الحالة","متاحة","محجوزة"],["العميل","","هيا الدوسري"]],"cvShow"],
+ [3,"12:10","r","updated","إعدادات الضريبة",1,"الفاتورة الضريبية","finance",[["إظهار رمز QR","لا","نعم"]],null],
+ [3,"11:00","s","updated","عقد الاستقدام",2203,"منيرة الشهري","default",[["المرحلة","عقود جديدة","مساند"],["رقم عقد مساند","","MS-2026-551203"]],"contractShow"],
+ [3,"10:02","s","created","عقد الاستقدام",2203,"منيرة الشهري","default",[["الجنسية","","الفلبين"],["قيمة العقد","","18,500 ر.س"],["الفرع","","الفرع الرئيسي"],["السيرة","","#1802"]],"contractShow"],
+ [4,"16:45","m","restored","السيرة الذاتية",1690,"ليزا كروز — الفلبين","default",[],"cvShow"],
+ [5,"13:20","m","created","مستخدم النظام",22,"نورة الحربي","default",[["اسم المستخدم","","noura.h"],["الفرع","","الفرع الرئيسي"]],"setUsers"],
+ [6,"11:30","m","updated","موقع المكتب",null,"الدخول والطلب","settings",[["طريقة حجز السيرة","تسجيل الدخول أولاً","الوضع المبسط"]],"setSite"],
+ [6,"09:00","old","legacy","سجل النظام السابق",4410,"تعديل بيانات العميل","legacy",[],null]];
+const now=()=>Date.now();
+const day0=()=>{const d=new Date();d.setHours(0,0,0,0);return d.getTime()};
+const ROLEMAP={save:"updated",create:"created",copy:"created",del:"deleted",restore:"restored",rename:"updated",export:"export",import:"import",brreset:"updated"};
+const build=()=>{const z=day0(),out=[];
+ RAW.forEach((r,i)=>{const [h,m]=r[1].split(":").map(Number);const p=PPL[r[2]];
+  out.push({id:90400-i,t:z-r[0]*864e5+(h*60+m)*6e4,actor:p[0],role:p[1],ev:r[3],type:r[4],sid:r[5],desc:r[6],log:r[7],ch:r[8],go:r[9]})});
+ /* تغييرات شاشة الأدوار الفعلية */
+ let d;try{d=JSON.parse(localStorage.getItem("cerp.roles.v1")||"null")}catch(_){}
+ ((d&&d.log)||[]).forEach((l,i)=>{const ch=[];
+  if(l.k==="save"){ch.push(["صلاحيات أُضيفت","",String((l.add||[]).length)],["صلاحيات أُزيلت","",String((l.rem||[]).length)]);
+   (l.add||[]).slice(0,3).forEach(k=>ch.push(["أُضيفت","",k]));(l.rem||[]).slice(0,3).forEach(k=>ch.push(["أُزيلت",k,""]))}
+  else if(l.k==="rename")ch.push(["اسم الدور",l.role,l.to||""]);
+  else if(l.k==="brreset")ch.push(["صلاحيات الفرع","خاصة","العامة"]);
+  else if(l.n!=null)ch.push(["عدد الصلاحيات","",fmt(l.n)]);
+  if(l.br&&l.br!=="كل الفروع")ch.push(["الفرع","",l.br]);
+  out.push({id:91000+i,t:l.t,actor:l.by||"مشرف النظام",role:"مدير النظام",ev:ROLEMAP[l.k]||"updated",type:"الدور",sid:null,desc:l.role,log:"permissions",ch,go:"setRoles",fromRoles:1})});
+ return out.sort((a,b)=>b.t-a.t)};
+let ALL=build();
+const QP=new URLSearchParams(location.search);
+const U={q:"all",page:1,open:new Set(),flash:"",
+ f:{s:"",emp:QP.get("employee")||"",ev:QP.get("action")||"",type:QP.get("subject_type")||"",sid:QP.get("subject_id")||"",log:QP.get("log_name")||"",from:QP.get("date_from")||"",to:QP.get("date_to")||""}};
+const PER=20,SHOW=4;
+const QUICK=[["all","الكل","",()=>1],["today","اليوم","",e=>e.t>=day0()],["changes","إضافة وتعديل وحذف","",e=>/^(created|updated|deleted|force_deleted|restored)$/.test(e.ev)],
+ ["auth","الدخول والحسابات","",e=>e.log==="authentication"],["perm","الصلاحيات","a",e=>e.log==="permissions"],["del","المحذوف","r",e=>/deleted/.test(e.ev)],["failed","محاولات فاشلة","r",e=>e.ev==="login_failed"]];
+const D_=["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"],M_=["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
+const p2=n=>String(n).padStart(2,"0");
+const ymd=t=>{const d=new Date(t);return `${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}`};
+const hm=t=>{const d=new Date(t),h=d.getHours();return `${p2(h%12||12)}:${p2(d.getMinutes())} ${h<12?"ص":"م"}`};
+const dayLab=t=>{const z=day0();if(t>=z)return "اليوم";if(t>=z-864e5)return "أمس";const d=new Date(t);return `${D_[d.getDay()]} ${d.getDate()} ${M_[d.getMonth()]} ${d.getFullYear()}`};
+const ar=(n,one,two,few,many)=>n===1?one:n===2?two:n<=10?`${n} ${few}`:`${n} ${many}`;
+const rel=t=>{const s=(now()-t)/1e3;if(s<0)return "";if(s<60)return "الآن";if(s<3600)return "منذ "+ar(Math.floor(s/60),"دقيقة","دقيقتين","دقائق","دقيقة");if(s<86400)return "منذ "+ar(Math.floor(s/3600),"ساعة","ساعتين","ساعات","ساعة");return ""};
+const AUTH=/^(login|logout|login_failed|impersonated)$/;
+const subj=e=>e.type+(e.sid?` #${e.sid}`:"");
+const title=e=>AUTH.test(e.ev)?(EV[e.ev]||EV.updated)[0]:`${(EV[e.ev]||EV.updated)[0]} ${subj(e)}`;
+const matchF=e=>{const f=U.f;
+ if(f.emp&&e.actor!==f.emp)return false;if(f.ev&&e.ev!==f.ev)return false;if(f.type&&e.type!==f.type)return false;
+ if(f.sid&&String(e.sid)!==f.sid.trim())return false;if(f.log&&e.log!==f.log)return false;
+ if(f.from&&ymd(e.t)<f.from)return false;if(f.to&&ymd(e.t)>f.to)return false;
+ if(f.s){const q=f.s.trim().toLowerCase();const hay=[title(e),e.desc,e.actor,e.role,SRC[e.log],...e.ch.flat()].join(" ").toLowerCase();if(!hay.includes(q))return false}
+ return true};
+const qFn=()=>(QUICK.find(x=>x[0]===U.q)||QUICK[0])[3];
+const rows=()=>ALL.filter(e=>matchF(e)&&qFn()(e));
+const nF=()=>Object.values(U.f).filter(v=>v&&String(v).trim()).length;
+const uniq=fn=>[...new Set(ALL.map(fn).filter(Boolean))];
+const opt=(lab,key,vals,labf)=>`<div class="fb"><label>${lab}</label><select data-al-f="${key}"><option value="">الكل</option>${vals.map(v=>`<option value="${esc(v)}"${U.f[key]===v?" selected":""}>${esc(labf?labf(v):v)}</option>`).join("")}</select></div>`;
+const fbarH=()=>`<div class="fbar al-fbar">
+ <div class="fb grow"><label>بحث</label><div class="inp">${X("search")}<input data-al-f="s" value="${esc(U.f.s)}" placeholder="اسم عميل، عاملة، حقل، قيمة…"></div></div>
+ ${opt("الموظف","emp",uniq(e=>e.actor).sort((a,b)=>a.localeCompare(b,"ar")))}
+ ${opt("العملية","ev",Object.keys(EV).filter(k=>ALL.some(e=>e.ev===k)),k=>EV[k][0])}
+ ${opt("نوع السجل","type",uniq(e=>e.type).sort((a,b)=>a.localeCompare(b,"ar")))}
+ <div class="fb al-sid"><label>رقم السجل</label><div class="inp"><input class="num" data-al-f="sid" inputmode="numeric" value="${esc(U.f.sid)}" placeholder="مثال: 2203"></div></div>
+ ${opt("المصدر","log",Object.keys(SRC).filter(k=>ALL.some(e=>e.log===k)),k=>SRC[k])}
+ <div class="fb"><label>من تاريخ</label><div class="inp"><input type="date" data-al-f="from" value="${esc(U.f.from)}"></div></div>
+ <div class="fb"><label>إلى تاريخ</label><div class="inp"><input type="date" data-al-f="to" value="${esc(U.f.to)}"></div></div></div>`;
+const chipsH=()=>`<div class="cx-chips">${QUICK.map(c=>`<button data-al-q="${c[0]}" class="${U.q===c[0]?"on":""}">${c[2]?`<i class="d ${c[2]}"></i>`:""}${c[1]}<b class="num">${fmt(ALL.filter(e=>matchF(e)&&c[3](e)).length)}</b></button>`).join("")}</div>`;
+const alertH=()=>{const z=day0(),by={};ALL.filter(e=>e.ev==="login_failed"&&e.t>=z).forEach(e=>{const k=e.desc;(by[k]=by[k]||[]).push(e)});
+ return Object.keys(by).filter(k=>by[k].length>=3).map(k=>{const l=by[k],ip=(l[0].ch.find(c=>c[0]==="عنوان IP")||[])[2],susp=l.some(e=>e.ch.some(c=>c[2]==="الحساب معلّق"));
+  return `<div class="al-warn">${X("shield-alert")}<div><b><span class="num">${l.length}</span> محاولات دخول فاشلة اليوم على حساب ${esc(k)}</b><small>آخرها ${hm(l[0].t)}${ip?` · من نفس العنوان <span class="num">${esc(ip)}</span>`:""}${susp?" · الحساب معلّق، فالمحاولات اتمنعت":""}. لو مش من الموظف نفسه، غيّر كلمة المرور أو علّق الحساب.</small></div>
+  <button class="btn btn-ghost sm" data-al-q="failed">عرض المحاولات</button><a class="btn btn-ghost sm" href="setUsers.html">فتح المستخدم</a></div>`}).join("")};
+const pillsH=list=>{const f=U.f,L=[];
+ if(f.s)L.push(["s",`بحث: «${esc(f.s)}»`]);if(f.emp)L.push(["emp",`الموظف: ${esc(f.emp)}`]);if(f.ev)L.push(["ev",`العملية: ${esc((EV[f.ev]||[f.ev])[0])}`]);
+ if(f.type)L.push(["type",`نوع السجل: ${esc(f.type)}`]);if(f.sid)L.push(["sid",`الرقم: <span class="num">#${esc(f.sid)}</span>`]);if(f.log)L.push(["log",`المصدر: ${esc(SRC[f.log]||f.log)}`]);
+ if(f.from)L.push(["from",`من <span class="num">${esc(f.from)}</span>`]);if(f.to)L.push(["to",`إلى <span class="num">${esc(f.to)}</span>`]);
+ const rec=f.sid&&f.type?`<div class="al-rec">${X("history")}<span>تاريخ <b>${esc(f.type)} <span class="num">#${esc(f.sid)}</span></b> كامل: <span class="num">${list.length}</span> عملية من ${list.length?`<span class="num">${ymd(list[list.length-1].t)}</span>`:"—"} للنهارده</span></div>`:"";
+ return `${rec}<div class="al-sum"><span><b class="num">${fmt(list.length)}</b> سجل مطابق من <span class="num">${fmt(ALL.length)}</span></span>
+ ${L.map(x=>`<button class="al-pill" data-al-clr="${x[0]}" title="إزالة الفلتر">${x[1]}${X("x")}</button>`).join("")}
+ ${L.length?`<button class="al-clear" data-al-clr="*">مسح الكل</button>`:""}</div>`};
+const chH=(e,c)=>{const o=c[1]!=null&&String(c[1])!=="",n=c[2]!=null&&String(c[2])!=="";
+ return `<div class="al-c"><span>${esc(c[0])}</span>${e.ev==="updated"||(o&&n)?`${o?`<del>${esc(c[1])}</del>`:`<i>فاضي</i>`}${X("arrow-left")}${n?`<ins>${esc(c[2])}</ins>`:`<i>فاضي</i>`}`:o&&!n?`<del>${esc(c[1])}</del>`:`<ins>${esc(c[2])}</ins>`}</div>`};
+const itemH=e=>{const ev=EV[e.ev]||EV.updated,open=U.open.has(e.id),vis=open?e.ch:e.ch.slice(0,SHOW),more=e.ch.length-vis.length;
+ return `<div class="al-i"><span class="al-ic ${ev[2]}">${X(ev[1])}</span><div class="al-m">
+ <div class="al-t"><b>${esc(ev[0])}${AUTH.test(e.ev)?"":" "+esc(e.type)}${e.sid&&!AUTH.test(e.ev)?` <button class="al-id num" data-al-rec="${e.sid}" data-al-type="${esc(e.type)}" title="كل عمليات هذا السجل">#${e.sid}</button>`:""}</b>${e.desc?`<span>${esc(e.desc)}</span>`:""}</div>
+ <div class="al-meta"><button data-al-emp="${esc(e.actor)}" title="كل نشاط ${esc(e.actor)}">${esc(e.actor)}</button><span>${esc(e.role)}</span><span class="al-src ${e.log}">${esc(SRC[e.log]||e.log)}</span>${e.fromRoles?`<span class="tag n">من شاشة الأدوار</span>`:""}${e.go&&!/deleted/.test(e.ev)?`<a class="al-go" href="${e.go}.html">${esc(TGT[e.go]||"فتح السجل")}${X("arrow-left")}</a>`:""}</div>
+ ${e.ch.length&&!e.ch.some(c=>c[1]!=null&&String(c[1])!=="")&&e.ev!=="updated"?`<div class="al-kv">${e.ch.map(c=>`<span><small>${esc(c[0])}</small><bdi>${esc(c[2])}</bdi></span>`).join("")}</div>`:e.ch.length?`<div class="al-ch">${vis.map(c=>chH(e,c)).join("")}${more>0?`<button class="al-more" data-al-open="${e.id}">${X("chevron-down")}عرض كل التغييرات (<span class="num">${e.ch.length}</span>)</button>`:open&&e.ch.length>SHOW?`<button class="al-more" data-al-open="${e.id}">${X("chevron-up")}أقل</button>`:""}</div>`:e.ev==="deleted"||e.ev==="force_deleted"?`<small class="al-note">${e.ev==="force_deleted"?"حُذف هذا السجل نهائياً ولا يمكن استرجاعه.":"حُذف هذا السجل ويمكن استرجاعه من «المحذوفات»."}</small>`:e.ev==="restored"?`<small class="al-note">أُعيد هذا السجل بعد حذفه.</small>`:e.ev==="legacy"?`<small class="al-note">سجل مستورد من نظام الرافدين السابق.</small>`:""}
+ </div><div class="al-when"><b class="num" title="${ymd(e.t)} ${hm(e.t)}">${hm(e.t)}</b><small>${rel(e.t)}</small></div></div>`};
+const listH=list=>{const pages=Math.max(1,Math.ceil(list.length/PER));if(U.page>pages)U.page=pages;const a=(U.page-1)*PER,cur=list.slice(a,a+PER);
+ if(!list.length)return `<div class="card al-empty">${X("search-x")}<b>لا توجد سجلات مطابقة</b><small>جرّب تشيل فلتر أو توسّع الفترة.</small>${nF()||U.q!=="all"?`<button class="btn btn-ghost sm" data-al-clr="*">مسح الفلاتر</button>`:""}</div>`;
+ const g=[];cur.forEach(e=>{const k=ymd(e.t);let x=g.find(y=>y.k===k);if(!x){x={k,t:e.t,l:[]};g.push(x)}x.l.push(e)});
+ return g.map(x=>`<div class="card al-day"><div class="al-dh">${X("calendar")}<b>${dayLab(x.t)}</b><span class="num">${x.k}</span><em class="num">${x.l.length}</em></div>${x.l.map(itemH).join("")}</div>`).join("")+
+ `<div class="tfoot al-foot"><span>عرض <span class="num">${a+1}–${a+cur.length}</span> من <span class="num">${fmt(list.length)}</span> · ${PER} في الصفحة</span><div class="pager">
+ <button data-al-pg="${U.page-1}"${U.page<=1?" disabled":""} aria-label="السابق">${X("chevron-right")}</button>${Array.from({length:pages},(_,i)=>`<button class="${i+1===U.page?"on":""}" data-al-pg="${i+1}">${i+1}</button>`).join("")}<button data-al-pg="${U.page+1}"${U.page>=pages?" disabled":""} aria-label="التالي">${X("chevron-left")}</button></div></div>`};
+const ico=()=>{if(window.lucide)lucide.createIcons({attrs:{"stroke-width":1.8}})};
+const paint=()=>{const r=document.getElementById("alog");if(!r)return;const list=rows();
+ r.querySelector("[data-al-chips]").innerHTML=chipsH();r.querySelector("[data-al-res]").innerHTML=pillsH(list)+listH(list);
+ const fl=r.querySelector("[data-al-flash]");fl.innerHTML=U.flash?`<div class="al-flash">${X("check-circle-2")}<span>${U.flash}</span></div>`:"";ico()};
+const syncF=()=>{document.querySelectorAll("#alog [data-al-f]").forEach(el=>{const v=U.f[el.dataset.alF]||"";if(el.value!==v)el.value=v})};
+const setF=(k,v)=>{U.f[k]=v;U.page=1;U.flash="";syncF();paint()};
+/* export(): نفس أعمدة ActivityLogController::export */
+const csv=()=>{const H=["رقم السجل","التاريخ","الوقت","منفذ العملية","الصفة","نوع العملية","مصدر السجل","نوع الكيان","المعرف","مرجع إضافي","الملخص","الوصف","عدد التغييرات","التغييرات"];
+ const q=v=>`"${String(v==null?"":v).replace(/"/g,'""')}"`;const list=rows().slice(0,50000);
+ const L=[H.map(q).join(",")].concat(list.map(e=>[e.id,ymd(e.t),hm(e.t),e.actor,e.role,(EV[e.ev]||EV.updated)[0],SRC[e.log]||e.log,e.type,e.sid||"-",e.desc||"-",`${title(e)}${e.desc?" - "+e.desc:""}`,"",e.ch.length,e.ch.map(c=>e.ev==="updated"?`${c[0]}: ${c[1]||"غير محدد"} ← ${c[2]||"غير محدد"}`:`${c[0]}: ${c[2]||c[1]}`).join("\n")||"-"].map(q).join(",")));
+ const a=document.createElement("a");a.href=URL.createObjectURL(new Blob(["﻿"+L.join("\r\n")],{type:"text/csv;charset=utf-8"}));
+ const d=new Date();a.download=`activity-log-${ymd(d)}_${p2(d.getHours())}${p2(d.getMinutes())}${p2(d.getSeconds())}.csv`;document.body.appendChild(a);a.click();a.remove();
+ U.flash=`نزل ملف CSV فيه <span class="num">${fmt(list.length)}</span> سجل بنفس الفلاتر. يفتح مباشرة في Excel.`;paint()};
+if(!window.__alBound){window.__alBound=1;
+ document.addEventListener("click",ev=>{const t=ev.target;if(!t.closest||!t.closest("#alog"))return;let el;
+  if((el=t.closest("[data-al-q]"))){U.q=el.dataset.alQ;U.page=1;U.flash="";paint();return}
+  if((el=t.closest("[data-al-emp]"))){setF("emp",U.f.emp===el.dataset.alEmp?"":el.dataset.alEmp);return}
+  if((el=t.closest("[data-al-rec]"))){U.f.type=el.dataset.alType;setF("sid",el.dataset.alRec);U.q="all";paint();window.scrollTo({top:0,behavior:"smooth"});return}
+  if((el=t.closest("[data-al-clr]"))){const k=el.dataset.alClr;if(k==="*"){Object.keys(U.f).forEach(x=>U.f[x]="");U.q="all"}else{U.f[k]="";if(k==="sid")U.f.type=""}setF("s",U.f.s);return}
+  if((el=t.closest("[data-al-open]"))){const id=+el.dataset.alOpen;U.open.has(id)?U.open.delete(id):U.open.add(id);paint();return}
+  if((el=t.closest("[data-al-pg]"))){if(el.disabled)return;U.page=+el.dataset.alPg;paint();document.getElementById("alog").querySelector("[data-al-res]").scrollIntoView({behavior:"smooth",block:"start"});return}
+  if(t.closest("[data-al-csv]")){csv();return}
+  if(t.closest("[data-al-pdf]")){window.print();return}});
+ const onF=ev=>{const el=ev.target;if(!el.matches||!el.matches("#alog [data-al-f]"))return;U.f[el.dataset.alF]=el.value;U.page=1;U.flash="";paint()};
+ document.addEventListener("input",onF);document.addEventListener("change",onF);
+ window.addEventListener("storage",e=>{if(e.key==="cerp.roles.v1"){ALL=build();paint()}})}
+const S={};
+S.setActivity=()=>{setTimeout(paint,0);const list=rows();return `<div id="alog">
+ ${HEAD("سجل النشاط","كل ما يفعله الموظفون في النظام: مين عمل إيه، على أي سجل، وإمتى. اضغط اسم موظف أو رقم سجل عشان تشوف كل نشاطه.",B("ghost","file-spreadsheet","CSV",'data-al-csv=""')+B("ghost","printer","PDF",'data-al-pdf="" title="طباعة أو حفظ PDF — أحدث 500 سجل بنفس الفلاتر"'),["setHome","الإعدادات"])}
+ ${TABS([["setUsers","users","المستخدمون",46],["setRoles","shield-check","الأدوار والصلاحيات",6],["#trash","trash-2","المحذوفون",3],["setActivity","history","سجل النشاط"]],"setActivity")}
+ <div data-al-flash=""></div>${alertH()}
+ <div data-al-chips="">${chipsH()}</div>
+ ${fbarH()}
+ <div data-al-res="">${pillsH(list)+listH(list)}</div></div>`};
+Object.assign(T,{setActivity:{ar:"سجل النشاط",en:"Activity log"}});
+Object.keys(S).forEach(k=>{screens[k]=S[k]});
+})();
 (function(){var P=window.CERP_PAGE;if(!P)return;var PAGES=window.CERP_PAGES||[];
 if(P==="login"){renderLogin();return}
 var lg=document.getElementById("login");if(lg)lg.classList.add("hidden");
