@@ -11990,178 +11990,346 @@ Object.keys(S).forEach(k=>{screens[k]=S[k]});
 })();
 
 /* ===== v1.62 — سجل النشاط (dash.activity.log): التبويب الرابع في المستخدمين، من ActivityLogController الحقيقي.
-   نفس الفلاتر (الموظف، العملية، نوع السجل، رقم السجل، المصدر، من/إلى)، نفس أسماء العمليات والمصادر، تصدير CSV بنفس الأعمدة، و20 سجل في الصفحة.
-   الجديد: شرائح سريعة، تنبيه محاولات الدخول الفاشلة، الضغط على الموظف أو رقم السجل بيفلتر عليه («تاريخ السجل كامل»)،
-   وتغييرات شاشة الأدوار (cerp.roles.v1) بتظهر هنا تحت مصدر «الصلاحيات». ===== */
+   v1.63: قائمة مضغوطة (سطر لكل حركة) + نافذة منبثقة لكل حركة فيها 3 تبويبات: التفاصيل · تاريخ السجل · مرجع تقني
+   (أعمدة activity_log، مفاتيح الحقول، properties الخام، الملف اللي بيسجّل الحركة في ClickERP، استعلام SQL، وملاحظات للمطور).
+   البيانات التقنية مطابقة للكود: AuditActivity يضيف actor_name، RecordAuthenticationActivity بيحفظ guard بس،
+   login_failed من غير subject ولا causer، وAdminLoginThrottle::logLock بيسجّل login_locked تحت log_name = auth. ===== */
 (()=>{
 const {X,HEAD,B,TABS}=window.CXH;
 window.CERP_PAGES=(window.CERP_PAGES||[]).concat(["setActivity"]);
 const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt=n=>Number(n).toLocaleString("en-US");
-/* resolveActivityActionLabel + resolveActionClass */
+/* resolveActivityActionLabel + resolveActionClass (+ login_locked اللي مالهوش تسمية في الكود) */
 const EV={created:["إضافة","plus","g"],updated:["تحديث","pencil","b"],deleted:["حذف","trash","r"],force_deleted:["حذف نهائي","trash-2","r"],restored:["استرجاع","rotate-ccw","g"],
- login:["تسجيل الدخول","log-in","n"],logout:["تسجيل الخروج","log-out","n"],login_failed:["محاولة دخول فاشلة","shield-alert","r"],impersonated:["الدخول بحساب آخر","user-check","a"],
+ login:["تسجيل الدخول","log-in","n"],logout:["تسجيل الخروج","log-out","n"],login_failed:["محاولة دخول فاشلة","shield-alert","r"],login_locked:["قفل الدخول مؤقتاً","lock","r"],impersonated:["الدخول بحساب آخر","user-check","a"],
  role_attached:["إسناد دور","shield-check","a"],role_detached:["إلغاء دور","shield-off","a"],permission_attached:["منح صلاحية","key-round","a"],permission_detached:["إلغاء صلاحية","key-round","a"],
  export:["تصدير","download","n"],import:["استيراد","upload","a"],legacy:["نشاط سابق","archive","n"]};
-/* resolveLogNameLabel */
-const SRC={default:"سجل النظام الحالي",finance:"المالية",hr:"الموارد البشرية",crm:"علاقات العملاء",authentication:"الدخول والحسابات",permissions:"الصلاحيات",settings:"إعدادات النظام",legacy:"سجل النظام السابق"};
-/* resolveTargetLabel */
+/* resolveLogNameLabel — auth مش متعرّف في الكود (بيظهر «Auth») */
+const SRC={default:"سجل النظام الحالي",finance:"المالية",hr:"الموارد البشرية",crm:"علاقات العملاء",authentication:"الدخول والحسابات",auth:"الدخول والحسابات",permissions:"الصلاحيات",settings:"إعدادات النظام",legacy_activity:"سجل النظام السابق"};
 const TGT={contractShow:"تفاصيل العقد",rentalShow:"تفاصيل العقد",orderShow:"تفاصيل الطلب",invoices:"تفاصيل الفاتورة",cvShow:"تفاصيل السيرة",clientShow:"تفاصيل العميل",finShow:"تفاصيل السجل",setUsers:"فتح المستخدم",setRoles:"فتح الدور",hrLeaves:"تفاصيل الطلب",setGeneral:"فتح الإعداد",setSite:"فتح الإعداد",waTemplates:"فتح القالب"};
-const PPL={m:["محمد العتيبي","مدير النظام"],s:["سارة القحطاني","خدمة العملاء"],k:["خالد المطيري","المبيعات"],r:["ريم الدوسري","المحاسب"],n:["نورة الحربي","خدمة العملاء"],
- sys:["النظام","تنفيذ آلي للنظام"],x:["غير معروف","لم تُحفظ هوية المنفذ عند تسجيل العملية"],c:["عبدالله الشمري","عميل"],old:["أحمد (النظام السابق)","مستخدم النظام السابق"]};
-/* [يوم قبل, الوقت, المنفذ, العملية, نوع السجل, الرقم, وصف السجل, المصدر, التغييرات [الحقل, قبل, بعد], الشاشة, عنوان خاص] */
+/* config/audit.php subject_labels + resolveSubjectTypeLabel */
+const CLS={"عقد الاستقدام":"App\\Models\\Contract","السند المالي":"Nami\\Finance\\Models\\Bond","السيرة الذاتية":"App\\Models\\ingaz\\Maid","مستخدم النظام":"App\\Models\\auth\\Admin","الإعداد":"App\\Models\\Setting",
+ "العميل":"App\\Models\\ingaz\\User","الفاتورة":"App\\Models\\ingaz\\Invoice","عقد الإيجار":"App\\Models\\RentalContract","قالب رسالة":"App\\Models\\SmsTemplate","القيد المحاسبي":"Nami\\Finance\\Models\\Constraint",
+ "الدور":"App\\Models\\Role","طلب الاستقدام":"App\\Models\\ingaz\\RecruitmentRequest","طلب الإجازة":"Nami\\Hr\\Models\\EmployeeVacation","إعدادات الضريبة":"Nami\\Finance\\Models\\TaxSetting"};
+/* resolveFieldLabel بالعكس: التسمية ← اسم العمود */
+const FK={"المرحلة":"status","الحالة":"status","رقم التأشيرة":"visa_number","المبلغ":"amount","طريقة الدفع":"payment_method","الحساب":"account_id","العقد":"contract_id","الجنسية":"nationality_id","المهنة":"job_type_id",
+ "الراتب":"salary","الخبرة":"experience_years","المكتب الخارجي":"office_id","رقم التفويض":"delegation_number","سبب التعليق":"suspension_reason","مستلم الشغل":"handover_admin_id","الدور":"role_id","الفروع":"branch_id",
+ "الجوال":"phone","المدينة":"city_id","الإجمالي":"total_due","الضريبة":"vat_amount","تاريخ الاستحقاق":"due_date","العاملة":"maid_id","المدة":"duration","الإيجار الشهري":"price","اسم القالب":"name","القناة":"channel",
+ "اللغة":"lang","الموظف المسؤول":"admin_id","ملاحظة":"notes","النوع":"vacation_type","من":"from_date","رقم عقد مساند":"musaned_contract_number","قيمة العقد":"contract_value","الفرع":"branch_id","السيرة":"maid_id",
+ "اسم المستخدم":"username","إظهار رمز QR":"show_qr","حالة الضمان":"warranty_status","الصلاحية":"permission_ids","العميل":"user_id","الاسم":"name","مفتاح الإعداد":"key","القيمة":"value"};
+const PPL={m:["محمد العتيبي","مدير النظام",1],s:["سارة القحطاني","خدمة العملاء",9],k:["خالد المطيري","المبيعات",11],r:["ريم الدوسري","المحاسب",12],n:["نورة الحربي","خدمة العملاء",22],
+ sys:["النظام","تنفيذ آلي للنظام",0],x:["غير معروف","لم تُحفظ هوية المنفذ عند تسجيل العملية",0],c:["عبدالله الشمري","عميل",5530],old:["أحمد (النظام السابق)","مستخدم النظام السابق",0]};
+/* [يوم قبل, الوقت, المنفذ, event, نوع السجل, subject_id, وصف السجل, log_name, التغييرات [الحقل, قبل, بعد], الشاشة, خصائص إضافية في properties, عمود description, batch] */
 const RAW=[
  [0,"10:41","s","updated","عقد الاستقدام",2203,"منيرة الشهري","default",[["المرحلة","تفويض","التفييز"],["رقم التأشيرة","","1308845521"]],"contractShow"],
  [0,"10:36","r","created","السند المالي",4471,"سند قبض — منيرة الشهري","finance",[["المبلغ","","6,500 ر.س"],["طريقة الدفع","","تحويل بنكي"],["الحساب","","البنك الأهلي — 1102"],["العقد","","#2203"]],"finShow"],
  [0,"10:18","k","created","السيرة الذاتية",1880,"جوسلين ريس — الفلبين","default",[["الجنسية","","الفلبين"],["المهنة","","عاملة منزلية"],["الراتب","","1,500 ر.س"],["الخبرة","","4 سنوات"],["المكتب الخارجي","","Manila Star Agency"],["الحالة","","متاحة"]],"cvShow"],
- [0,"09:58","x","login_failed","مستخدم النظام",14,"ماجد السهلي (majed.s)","authentication",[["عنوان IP","","188.54.12.9"],["السبب","","الحساب معلّق"]],"setUsers"],
- [0,"09:54","x","login_failed","مستخدم النظام",14,"ماجد السهلي (majed.s)","authentication",[["عنوان IP","","188.54.12.9"],["السبب","","الحساب معلّق"]],"setUsers"],
- [0,"09:52","x","login_failed","مستخدم النظام",14,"ماجد السهلي (majed.s)","authentication",[["عنوان IP","","188.54.12.9"],["السبب","","كلمة مرور خاطئة"]],"setUsers"],
  [0,"09:40","s","updated","عقد الاستقدام",2203,"منيرة الشهري","default",[["المرحلة","مساند","تفويض"],["رقم التفويض","","T-778120"]],"contractShow"],
- [0,"09:30","m","updated","مستخدم النظام",14,"ماجد السهلي (majed.s)","default",[["الحالة","نشط","معلّق"],["سبب التعليق","","إجازة طويلة"],["مستلم الشغل","","خالد المطيري"]],"setUsers"],
- [0,"09:20","m","role_attached","مستخدم النظام",22,"نورة الحربي","permissions",[["الدور","","خدمة العملاء"],["الفروع","","الفرع الرئيسي"]],"setUsers"],
- [0,"09:12","m","updated","الإعدادات العامة",null,"قواعد التشغيل","settings",[["مدة الضمان (يوم)","60","90"]],"setGeneral"],
- [0,"08:47","s","login","مستخدم النظام",9,"سارة القحطاني","authentication",[["عنوان IP","","51.36.20.144"],["الجهاز","","Chrome على Windows"]],null],
- [0,"08:31","n","login","مستخدم النظام",22,"نورة الحربي","authentication",[["عنوان IP","","51.36.20.150"],["الجهاز","","Safari على iPhone"]],null],
- [0,"02:00","sys","updated","عقد الاستقدام",null,"تحديث حالات الضمان اليومي — 14 عقداً","default",[["حالة الضمان","ساري","منتهي"]],null],
+ [0,"09:30","m","updated","مستخدم النظام",14,"ماجد السهلي (majed.s)","default",[["الحالة","نشط","معلّق"],["سبب التعليق","","محاولات دخول مشبوهة"],["مستلم الشغل","","خالد المطيري"]],"setUsers"],
+ [0,"09:21","x","login_locked","مستخدم النظام",14,"ماجد السهلي (majed.s)","auth",[],"setUsers",{login:"majed.s",ip:"188.54.12.9",attempts:5,locked_seconds:900,locked_until:"@+15",user_agent:"Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/131.0"},"قفل الدخول مؤقتاً بعد 5 محاولات خاطئة"],
+ [0,"09:21","x","login_failed",null,null,"","authentication",[],null,{guard:"admin"},"محاولة دخول غير ناجحة"],
+ [0,"09:20","x","login_failed",null,null,"","authentication",[],null,{guard:"admin"},"محاولة دخول غير ناجحة"],
+ [0,"09:19","x","login_failed",null,null,"","authentication",[],null,{guard:"admin"},"محاولة دخول غير ناجحة"],
+ [0,"09:17","x","login_failed",null,null,"","authentication",[],null,{guard:"admin"},"محاولة دخول غير ناجحة"],
+ [0,"09:16","x","login_failed",null,null,"","authentication",[],null,{guard:"admin"},"محاولة دخول غير ناجحة"],
+ [0,"09:14","m","role_attached","مستخدم النظام",22,"نورة الحربي","permissions",[["الدور","","خدمة العملاء"],["الفروع","","الفرع الرئيسي"]],"setUsers",null,"إسناد دور"],
+ [0,"09:12","m","updated","الإعداد",31,"warranty_days — قواعد التشغيل","settings",[["مفتاح الإعداد","warranty_days","warranty_days"],["القيمة","60","90"]],"setGeneral",{table:"settings"}],
+ [0,"08:47","s","login","مستخدم النظام",9,"سارة القحطاني","authentication",[],null,{guard:"admin"},"تسجيل الدخول"],
+ [0,"08:31","n","login","مستخدم النظام",22,"نورة الحربي","authentication",[],null,{guard:"admin"},"تسجيل الدخول"],
+ [0,"02:00","sys","updated","عقد الاستقدام",2140,"هند القرشي","default",[["حالة الضمان","ساري","منتهي"]],"contractShow",{execution_source:"console",execution_command:"contracts:update-warranty-status"},null,"b2140"],
+ [0,"02:00","sys","updated","عقد الاستقدام",2152,"لطيفة العنزي","default",[["حالة الضمان","ساري","منتهي"]],"contractShow",{execution_source:"console",execution_command:"contracts:update-warranty-status"},null,"b2140"],
  [1,"17:22","s","updated","العميل",5512,"فهد العتيبي","crm",[["الجوال","0501122330","0501122334"],["المدينة","الرياض","الخرج"]],"clientShow"],
+ [1,"17:05","s","logout","مستخدم النظام",9,"سارة القحطاني","authentication",[],null,{guard:"admin"},"تسجيل الخروج"],
  [1,"16:05","r","created","الفاتورة",918,"عقد إيجار — شركة نجد للمقاولات","finance",[["الإجمالي","","4,600 ر.س"],["الضريبة","","600 ر.س"],["تاريخ الاستحقاق","","2026-11-30"]],"invoices"],
- [1,"15:40","k","deleted","السيرة الذاتية",1712,"ماريا سانتوس — الفلبين","default",[["سبب الحذف","","مكررة مع #1709"]],null],
+ [1,"15:40","k","deleted","السيرة الذاتية",1712,"ماريا سانتوس — الفلبين","default",[["الجنسية","","الفلبين"],["الحالة","","متاحة"]],null],
  [1,"14:10","n","created","عقد الإيجار",330,"أمل الزهراني","default",[["العاملة","","سيتي نورهاليزا"],["المدة","","3 شهور"],["الإيجار الشهري","","3,200 ر.س"]],"rentalShow"],
  [1,"13:02","s","created","قالب رسالة",41,"payment_reminder","settings",[["اسم القالب","","payment_reminder"],["القناة","","واتساب"],["اللغة","","العربية"]],"waTemplates"],
- [1,"12:15","m","impersonated","مستخدم النظام",9,"سارة القحطاني","authentication",[["السبب","","مراجعة مشكلة في شاشة العقود"],["المدة","","6 دقائق"]],"setUsers"],
+ [1,"12:15","m","impersonated","مستخدم النظام",9,"سارة القحطاني","authentication",[],"setUsers",{impersonator_admin_id:1,target_admin_id:9},"الدخول بحساب مستخدم آخر"],
  [1,"11:48","r","updated","القيد المحاسبي",2291,"قيد إثبات إيراد عقود أكتوبر","finance",[["الحالة","مسودة","معتمد"]],"finShow"],
  [1,"10:30","s","updated","عقد الاستقدام",2188,"هيا الدوسري","default",[["المرحلة","مساند","تفويض"],["الموظف المسؤول","خالد المطيري","سارة القحطاني"]],"contractShow"],
- [1,"09:05","k","login","مستخدم النظام",11,"خالد المطيري","authentication",[["عنوان IP","","51.36.20.161"],["الجهاز","","Chrome على Mac"]],null],
- [2,"18:40","m","permission_detached","الدور",4,"المحاسب","permissions",[["الصلاحية","حذف السندات (finance_bonds_delete)",""]],"setRoles"],
+ [1,"09:05","k","login","مستخدم النظام",11,"خالد المطيري","authentication",[],null,{guard:"admin"},"تسجيل الدخول"],
+ [2,"18:40","m","permission_detached","الدور",4,"المحاسب","permissions",[["الصلاحية","finance_bonds_delete",""]],"setRoles",{assignment_ids:[8812]},"إلغاء صلاحيات"],
  [2,"16:12","r","created","السند المالي",4460,"سند صرف — رواتب نوفمبر","finance",[["المبلغ","","84,300 ر.س"],["الحساب","","مصرف الراجحي — 2040"]],"finShow"],
  [2,"14:55","s","updated","طلب الاستقدام",771,"نوال القرني","crm",[["الحالة","جديد","تم التواصل"],["ملاحظة","","هتأكد الجنسية بكرة"]],"orderShow"],
  [2,"13:00","m","updated","طلب الإجازة",58,"خالد المطيري — سنوية","hr",[["الحالة","بانتظار الاعتماد","معتمد"]],"hrLeaves"],
  [2,"11:20","k","created","طلب الإجازة",58,"خالد المطيري — سنوية","hr",[["النوع","","سنوية"],["من","","2026-11-23"],["المدة","","5 أيام"]],"hrLeaves"],
  [2,"08:58","c","created","طلب الاستقدام",772,"من موقع المكتب","crm",[["الجنسية","","كينيا"],["المهنة","","عاملة منزلية"],["الجوال","","0559087412"]],"orderShow"],
- [3,"17:00","m","force_deleted","العميل",5390,"عميل تجريبي","crm",[],null],
+ [3,"17:00","m","force_deleted","العميل",5390,"عميل تجريبي","crm",[["الاسم","","عميل تجريبي"],["الجوال","","0500000000"]],null],
  [3,"15:33","k","updated","السيرة الذاتية",1855,"ديوي لستاري — إندونيسيا","default",[["الحالة","متاحة","محجوزة"],["العميل","","هيا الدوسري"]],"cvShow"],
  [3,"12:10","r","updated","إعدادات الضريبة",1,"الفاتورة الضريبية","finance",[["إظهار رمز QR","لا","نعم"]],null],
  [3,"11:00","s","updated","عقد الاستقدام",2203,"منيرة الشهري","default",[["المرحلة","عقود جديدة","مساند"],["رقم عقد مساند","","MS-2026-551203"]],"contractShow"],
  [3,"10:02","s","created","عقد الاستقدام",2203,"منيرة الشهري","default",[["الجنسية","","الفلبين"],["قيمة العقد","","18,500 ر.س"],["الفرع","","الفرع الرئيسي"],["السيرة","","#1802"]],"contractShow"],
  [4,"16:45","m","restored","السيرة الذاتية",1690,"ليزا كروز — الفلبين","default",[],"cvShow"],
  [5,"13:20","m","created","مستخدم النظام",22,"نورة الحربي","default",[["اسم المستخدم","","noura.h"],["الفرع","","الفرع الرئيسي"]],"setUsers"],
- [6,"11:30","m","updated","موقع المكتب",null,"الدخول والطلب","settings",[["طريقة حجز السيرة","تسجيل الدخول أولاً","الوضع المبسط"]],"setSite"],
- [6,"09:00","old","legacy","سجل النظام السابق",4410,"تعديل بيانات العميل","legacy",[],null]];
+ [6,"11:30","m","updated","الإعداد",44,"booking_mode — موقع المكتب","settings",[["مفتاح الإعداد","booking_mode","booking_mode"],["القيمة","login_first","simple"]],"setSite",{table:"settings"}],
+ [6,"09:00","old","legacy","سجل النظام السابق",4410,"تعديل بيانات العميل 4410","legacy_activity",[],null,null,"عدّل بيانات العميل رقم 4410 (من نظام الرافدين)"]];
 const now=()=>Date.now();
 const day0=()=>{const d=new Date();d.setHours(0,0,0,0);return d.getTime()};
 const ROLEMAP={save:"updated",create:"created",copy:"created",del:"deleted",restore:"restored",rename:"updated",export:"export",import:"import",brreset:"updated"};
 const build=()=>{const z=day0(),out=[];
  RAW.forEach((r,i)=>{const [h,m]=r[1].split(":").map(Number);const p=PPL[r[2]];
-  out.push({id:90400-i,t:z-r[0]*864e5+(h*60+m)*6e4,actor:p[0],role:p[1],ev:r[3],type:r[4],sid:r[5],desc:r[6],log:r[7],ch:r[8],go:r[9]})});
- /* تغييرات شاشة الأدوار الفعلية */
+  out.push({id:184260-i,t:z-r[0]*864e5+(h*60+m)*6e4+(r[3]==="login_failed"?(9-i)*1e3:r[3]==="login_locked"?50e3:0),actor:p[0],role:p[1],cid:p[2],ck:r[2],ev:r[3],type:r[4],sid:r[5],desc:r[6],log:r[7],ch:r[8],go:r[9],px:r[10]||null,raw:r[11]||r[3],batch:r[12]||null})});
+ /* تغييرات شاشة الأدوار الفعلية (cerp.roles.v1) */
  let d;try{d=JSON.parse(localStorage.getItem("cerp.roles.v1")||"null")}catch(_){}
  ((d&&d.log)||[]).forEach((l,i)=>{const ch=[];
   if(l.k==="save"){ch.push(["صلاحيات أُضيفت","",String((l.add||[]).length)],["صلاحيات أُزيلت","",String((l.rem||[]).length)]);
-   (l.add||[]).slice(0,3).forEach(k=>ch.push(["أُضيفت","",k]));(l.rem||[]).slice(0,3).forEach(k=>ch.push(["أُزيلت",k,""]))}
-  else if(l.k==="rename")ch.push(["اسم الدور",l.role,l.to||""]);
+   (l.add||[]).slice(0,6).forEach(k=>ch.push(["أُضيفت","",k]));(l.rem||[]).slice(0,6).forEach(k=>ch.push(["أُزيلت",k,""]))}
+  else if(l.k==="rename")ch.push(["الاسم",l.role,l.to||""]);
   else if(l.k==="brreset")ch.push(["صلاحيات الفرع","خاصة","العامة"]);
   else if(l.n!=null)ch.push(["عدد الصلاحيات","",fmt(l.n)]);
   if(l.br&&l.br!=="كل الفروع")ch.push(["الفرع","",l.br]);
-  out.push({id:91000+i,t:l.t,actor:l.by||"مشرف النظام",role:"مدير النظام",ev:ROLEMAP[l.k]||"updated",type:"الدور",sid:null,desc:l.role,log:"permissions",ch,go:"setRoles",fromRoles:1})});
- return out.sort((a,b)=>b.t-a.t)};
+  out.push({id:185000+i,t:l.t,actor:l.by||"مشرف النظام",role:"مدير النظام",cid:1,ck:"m",ev:ROLEMAP[l.k]||"updated",type:"الدور",sid:null,desc:l.role,log:"permissions",ch,go:"setRoles",
+   px:l.k==="save"?{permissions_added:l.add||[],permissions_removed:l.rem||[]}:null,raw:ROLEMAP[l.k]||"updated",fromRoles:1})});
+ return out.sort((a,b)=>b.t-a.t||b.id-a.id)};
 let ALL=build();
+const byId=id=>ALL.find(e=>e.id===id);
 const QP=new URLSearchParams(location.search);
-const U={q:"all",page:1,open:new Set(),flash:"",
+const U={q:"all",per:"all",page:1,more:false,pop:null,ptab:"d",flash:"",
  f:{s:"",emp:QP.get("employee")||"",ev:QP.get("action")||"",type:QP.get("subject_type")||"",sid:QP.get("subject_id")||"",log:QP.get("log_name")||"",from:QP.get("date_from")||"",to:QP.get("date_to")||""}};
-const PER=20,SHOW=4;
-const QUICK=[["all","الكل","",()=>1],["today","اليوم","",e=>e.t>=day0()],["changes","إضافة وتعديل وحذف","",e=>/^(created|updated|deleted|force_deleted|restored)$/.test(e.ev)],
- ["auth","الدخول والحسابات","",e=>e.log==="authentication"],["perm","الصلاحيات","a",e=>e.log==="permissions"],["del","المحذوف","r",e=>/deleted/.test(e.ev)],["failed","محاولات فاشلة","r",e=>e.ev==="login_failed"]];
+if(U.f.ev||U.f.type||U.f.sid||U.f.log||U.f.from||U.f.to)U.more=true;
+const PER=20;
+const ATT=e=>/^(login_failed|login_locked|impersonated|force_deleted)$/.test(e.ev);
+const QUICK=[["all","الكل","",()=>1],["changes","تعديلات البيانات","",e=>/^(created|updated|deleted|force_deleted|restored)$/.test(e.ev)&&e.log!=="permissions"],
+ ["auth","الدخول والحسابات","",e=>e.log==="authentication"||e.log==="auth"],["perm","الصلاحيات","a",e=>e.log==="permissions"],["del","المحذوف","r",e=>/deleted/.test(e.ev)],["att","تحتاج انتباه","r",ATT]];
+const PERS=[["today","اليوم",()=>day0()],["7","7 أيام",()=>day0()-6*864e5],["30","30 يوم",()=>day0()-29*864e5],["all","الكل",()=>0]];
 const D_=["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"],M_=["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
 const p2=n=>String(n).padStart(2,"0");
 const ymd=t=>{const d=new Date(t);return `${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}`};
 const hm=t=>{const d=new Date(t),h=d.getHours();return `${p2(h%12||12)}:${p2(d.getMinutes())} ${h<12?"ص":"م"}`};
-const dayLab=t=>{const z=day0();if(t>=z)return "اليوم";if(t>=z-864e5)return "أمس";const d=new Date(t);return `${D_[d.getDay()]} ${d.getDate()} ${M_[d.getMonth()]} ${d.getFullYear()}`};
+const iso=t=>{const d=new Date(t);return `${ymd(t)} ${p2(d.getHours())}:${p2(d.getMinutes())}:${p2(d.getSeconds())}`};
+const dayLab=t=>{const z=day0();if(t>=z)return "اليوم";if(t>=z-864e5)return "أمس";const d=new Date(t);return `${D_[d.getDay()]} ${d.getDate()} ${M_[d.getMonth()]}`};
+const fullDate=t=>{const d=new Date(t);return `${D_[d.getDay()]} ${d.getDate()} ${M_[d.getMonth()]} ${d.getFullYear()}`};
 const ar=(n,one,two,few,many)=>n===1?one:n===2?two:n<=10?`${n} ${few}`:`${n} ${many}`;
-const rel=t=>{const s=(now()-t)/1e3;if(s<0)return "";if(s<60)return "الآن";if(s<3600)return "منذ "+ar(Math.floor(s/60),"دقيقة","دقيقتين","دقائق","دقيقة");if(s<86400)return "منذ "+ar(Math.floor(s/3600),"ساعة","ساعتين","ساعات","ساعة");return ""};
-const AUTH=/^(login|logout|login_failed|impersonated)$/;
-const subj=e=>e.type+(e.sid?` #${e.sid}`:"");
-const title=e=>AUTH.test(e.ev)?(EV[e.ev]||EV.updated)[0]:`${(EV[e.ev]||EV.updated)[0]} ${subj(e)}`;
+const rel=t=>{const s=(now()-t)/1e3;if(s<0)return "";if(s<60)return "الآن";if(s<3600)return "منذ "+ar(Math.floor(s/60),"دقيقة","دقيقتين","دقائق","دقيقة");if(s<86400)return "منذ "+ar(Math.floor(s/3600),"ساعة","ساعتين","ساعات","ساعة");
+ return "منذ "+ar(Math.floor(s/86400),"يوم","يومين","أيام","يوم")};
+const AUTH=/^(login|logout|login_failed|login_locked|impersonated)$/;
+const evOf=e=>EV[e.ev]||EV.updated;
+const subj=e=>e.type?e.type+(e.sid?` #${e.sid}`:""):"";
+const title=e=>AUTH.test(e.ev)?evOf(e)[0]:`${evOf(e)[0]} ${subj(e)}`;
+const hasOld=c=>c[1]!=null&&String(c[1])!=="";
+const anon=e=>/^(x|sys|old)$/.test(e.ck);
+/* buildDescription */
+const describe=e=>{const n=e.ch.length;
+ if(e.ev==="updated"&&n)return `تم تعديل ${n===1?"حقل واحد":n===2?"حقلين":n+" حقول"}، ${n>1?"أهمها":"وهو"}: ${e.ch.filter(c=>c[0]!=="مفتاح الإعداد").slice(0,4).map(c=>c[0]).join("، ")}${n>4?" وغير ذلك":""}.`;
+ return ({created:"تم إنشاء هذا السجل وإضافة بياناته الأساسية.",deleted:"تم حذف هذا السجل أو إزالته من سياق العمل، ويمكن استرجاعه من المحذوفات.",force_deleted:"تم حذف هذا السجل نهائياً ولا يمكن استرجاعه.",
+  restored:"تمت إعادة هذا السجل بعد حذفه.",login:"دخل إلى لوحة التحكم.",logout:"خرج من لوحة التحكم.",
+  login_failed:"محاولة دخول بكلمة مرور خاطئة. الحساب المستهدف مش محفوظ في الحركة دي.",
+  login_locked:"اتقفل الدخول مؤقتاً على الحساب بعد 5 محاولات خاطئة متتالية من نفس العنوان. الدخول بيرجع تلقائياً بعد 15 دقيقة.",
+  impersonated:"مدير النظام دخل بحساب الموظف ده. كل اللي اتعمل بعدها في نفس الجلسة بيتسجّل باسم الموظف.",
+  legacy:"سجل مستورد من نظام الرافدين السابق.",role_attached:"تم إسناد دور للمستخدم.",permission_detached:"تم إلغاء صلاحية من الدور.",export:"تم تصدير صلاحيات الدور.",import:"تم استيراد صلاحيات للدور."})[e.ev]||"تم تنفيذ هذا الإجراء على السجل المحدد."};
 const matchF=e=>{const f=U.f;
  if(f.emp&&e.actor!==f.emp)return false;if(f.ev&&e.ev!==f.ev)return false;if(f.type&&e.type!==f.type)return false;
  if(f.sid&&String(e.sid)!==f.sid.trim())return false;if(f.log&&e.log!==f.log)return false;
  if(f.from&&ymd(e.t)<f.from)return false;if(f.to&&ymd(e.t)>f.to)return false;
- if(f.s){const q=f.s.trim().toLowerCase();const hay=[title(e),e.desc,e.actor,e.role,SRC[e.log],...e.ch.flat()].join(" ").toLowerCase();if(!hay.includes(q))return false}
+ const pf=(PERS.find(p=>p[0]===U.per)||PERS[3])[2]();if(pf&&e.t<pf)return false;
+ if(f.s){const q=f.s.trim().toLowerCase();if(/^#?\d+$/.test(q)){const n=q.replace("#","");if(String(e.sid)!==n&&String(e.id)!==n)return false}
+  else{const hay=[title(e),e.desc,e.actor,e.role,SRC[e.log],...e.ch.flat(),...Object.values(e.px||{}).map(String)].join(" ").toLowerCase();if(!hay.includes(q))return false}}
  return true};
 const qFn=()=>(QUICK.find(x=>x[0]===U.q)||QUICK[0])[3];
 const rows=()=>ALL.filter(e=>matchF(e)&&qFn()(e));
-const nF=()=>Object.values(U.f).filter(v=>v&&String(v).trim()).length;
+const nF=()=>Object.values(U.f).filter(v=>v&&String(v).trim()).length+(U.per!=="all"?1:0);
 const uniq=fn=>[...new Set(ALL.map(fn).filter(Boolean))];
-const opt=(lab,key,vals,labf)=>`<div class="fb"><label>${lab}</label><select data-al-f="${key}"><option value="">الكل</option>${vals.map(v=>`<option value="${esc(v)}"${U.f[key]===v?" selected":""}>${esc(labf?labf(v):v)}</option>`).join("")}</select></div>`;
-const fbarH=()=>`<div class="fbar al-fbar">
- <div class="fb grow"><label>بحث</label><div class="inp">${X("search")}<input data-al-f="s" value="${esc(U.f.s)}" placeholder="اسم عميل، عاملة، حقل، قيمة…"></div></div>
- ${opt("الموظف","emp",uniq(e=>e.actor).sort((a,b)=>a.localeCompare(b,"ar")))}
- ${opt("العملية","ev",Object.keys(EV).filter(k=>ALL.some(e=>e.ev===k)),k=>EV[k][0])}
- ${opt("نوع السجل","type",uniq(e=>e.type).sort((a,b)=>a.localeCompare(b,"ar")))}
- <div class="fb al-sid"><label>رقم السجل</label><div class="inp"><input class="num" data-al-f="sid" inputmode="numeric" value="${esc(U.f.sid)}" placeholder="مثال: 2203"></div></div>
- ${opt("المصدر","log",Object.keys(SRC).filter(k=>ALL.some(e=>e.log===k)),k=>SRC[k])}
- <div class="fb"><label>من تاريخ</label><div class="inp"><input type="date" data-al-f="from" value="${esc(U.f.from)}"></div></div>
- <div class="fb"><label>إلى تاريخ</label><div class="inp"><input type="date" data-al-f="to" value="${esc(U.f.to)}"></div></div></div>`;
-const chipsH=()=>`<div class="cx-chips">${QUICK.map(c=>`<button data-al-q="${c[0]}" class="${U.q===c[0]?"on":""}">${c[2]?`<i class="d ${c[2]}"></i>`:""}${c[1]}<b class="num">${fmt(ALL.filter(e=>matchF(e)&&c[3](e)).length)}</b></button>`).join("")}</div>`;
-const alertH=()=>{const z=day0(),by={};ALL.filter(e=>e.ev==="login_failed"&&e.t>=z).forEach(e=>{const k=e.desc;(by[k]=by[k]||[]).push(e)});
- return Object.keys(by).filter(k=>by[k].length>=3).map(k=>{const l=by[k],ip=(l[0].ch.find(c=>c[0]==="عنوان IP")||[])[2],susp=l.some(e=>e.ch.some(c=>c[2]==="الحساب معلّق"));
-  return `<div class="al-warn">${X("shield-alert")}<div><b><span class="num">${l.length}</span> محاولات دخول فاشلة اليوم على حساب ${esc(k)}</b><small>آخرها ${hm(l[0].t)}${ip?` · من نفس العنوان <span class="num">${esc(ip)}</span>`:""}${susp?" · الحساب معلّق، فالمحاولات اتمنعت":""}. لو مش من الموظف نفسه، غيّر كلمة المرور أو علّق الحساب.</small></div>
-  <button class="btn btn-ghost sm" data-al-q="failed">عرض المحاولات</button><a class="btn btn-ghost sm" href="setUsers.html">فتح المستخدم</a></div>`}).join("")};
+const opt=(lab,key,vals,labf,all)=>`<div class="fb"><label>${lab}</label><select data-al-f="${key}"><option value="">${all||"الكل"}</option>${vals.map(v=>`<option value="${esc(v)}"${U.f[key]===v?" selected":""}>${esc(labf?labf(v):v)}</option>`).join("")}</select></div>`;
+const advN=()=>["ev","type","sid","log","from","to"].filter(k=>U.f[k]).length;
+const fbarH=()=>`<div class="card al-find">
+ <div class="al-find-r">
+  <div class="inp al-q">${X("search")}<input data-al-f="s" value="${esc(U.f.s)}" placeholder="رقم السجل (2203) أو رقم الحركة، اسم عميل أو عاملة أو موظف، حقل أو قيمة…" aria-label="بحث في سجل النشاط"></div>
+  <div class="al-per" role="group" aria-label="الفترة">${PERS.map(p=>`<button data-al-per="${p[0]}" class="${U.per===p[0]?"on":""}">${p[1]}</button>`).join("")}</div>
+  <select class="al-emp" data-al-f="emp" aria-label="الموظف"><option value="">كل الموظفين</option>${uniq(e=>e.actor).sort((a,b)=>a.localeCompare(b,"ar")).map(v=>`<option value="${esc(v)}"${U.f.emp===v?" selected":""}>${esc(v)}</option>`).join("")}</select>
+  <button class="btn btn-ghost al-morebtn${U.more?" on":""}" data-al-more="" aria-expanded="${U.more}">${X("sliders-horizontal")}فلاتر أكثر<em class="num" data-al-advn>${advN()||""}</em></button></div>
+ <div class="al-adv"${U.more?"":" hidden"}>
+  ${opt("العملية","ev",Object.keys(EV).filter(k=>ALL.some(e=>e.ev===k)),k=>EV[k][0],"كل العمليات")}
+  ${opt("نوع السجل","type",uniq(e=>e.type).sort((a,b)=>a.localeCompare(b,"ar")),null,"كل الأنواع")}
+  <div class="fb al-sid"><label>رقم السجل</label><div class="inp"><input class="num" data-al-f="sid" inputmode="numeric" value="${esc(U.f.sid)}" placeholder="مثال: 2203"></div></div>
+  ${opt("المصدر","log",Object.keys(SRC).filter(k=>ALL.some(e=>e.log===k)),k=>SRC[k]+(k==="auth"?" (auth)":""),"كل المصادر")}
+  <div class="fb"><label>من تاريخ</label><div class="inp"><input type="date" data-al-f="from" value="${esc(U.f.from)}"></div></div>
+  <div class="fb"><label>إلى تاريخ</label><div class="inp"><input type="date" data-al-f="to" value="${esc(U.f.to)}"></div></div></div></div>`;
+const chipsH=()=>`<div class="cx-chips al-chips">${QUICK.map(c=>`<button data-al-q="${c[0]}" class="${U.q===c[0]?"on":""}">${c[2]?`<i class="d ${c[2]}"></i>`:""}${c[1]}<b class="num">${fmt(ALL.filter(e=>matchF(e)&&c[3](e)).length)}</b></button>`).join("")}</div>`;
+/* تنبيه مبني على login_locked الحقيقي */
+const alertH=()=>ALL.filter(e=>e.ev==="login_locked"&&e.t>=day0()).map(e=>{const f=ALL.filter(x=>x.ev==="login_failed"&&x.t<=e.t&&e.t-x.t<15*6e4).length;
+ return `<div class="al-warn">${X("lock")}<div><b>اتقفل الدخول مؤقتاً على <bdi>${esc(e.px.login)}</bdi> (${esc(e.desc.split(" (")[0])}) بعد ${e.px.attempts} محاولات خاطئة</b>
+ <small><span class="num">${hm(e.t)}</span> · من العنوان <span class="num">${esc(e.px.ip)}</span> · قبلها <span class="num">${f}</span> محاولات فاشلة في السجل خلال ربع ساعة. لو مش الموظف نفسه، غيّر كلمة المرور أو علّق الحساب.</small></div>
+ <button class="btn btn-ghost sm" data-al-pop="${e.id}">التفاصيل</button><a class="btn btn-ghost sm" href="setUsers.html">فتح المستخدم</a></div>`}).join("");
 const pillsH=list=>{const f=U.f,L=[];
+ if(U.per!=="all")L.push(["per",`الفترة: ${PERS.find(p=>p[0]===U.per)[1]}`]);
  if(f.s)L.push(["s",`بحث: «${esc(f.s)}»`]);if(f.emp)L.push(["emp",`الموظف: ${esc(f.emp)}`]);if(f.ev)L.push(["ev",`العملية: ${esc((EV[f.ev]||[f.ev])[0])}`]);
  if(f.type)L.push(["type",`نوع السجل: ${esc(f.type)}`]);if(f.sid)L.push(["sid",`الرقم: <span class="num">#${esc(f.sid)}</span>`]);if(f.log)L.push(["log",`المصدر: ${esc(SRC[f.log]||f.log)}`]);
  if(f.from)L.push(["from",`من <span class="num">${esc(f.from)}</span>`]);if(f.to)L.push(["to",`إلى <span class="num">${esc(f.to)}</span>`]);
- const rec=f.sid&&f.type?`<div class="al-rec">${X("history")}<span>تاريخ <b>${esc(f.type)} <span class="num">#${esc(f.sid)}</span></b> كامل: <span class="num">${list.length}</span> عملية من ${list.length?`<span class="num">${ymd(list[list.length-1].t)}</span>`:"—"} للنهارده</span></div>`:"";
- return `${rec}<div class="al-sum"><span><b class="num">${fmt(list.length)}</b> سجل مطابق من <span class="num">${fmt(ALL.length)}</span></span>
+ const rec=f.sid&&f.type?`<div class="al-rec">${X("history")}<span>تاريخ <b>${esc(f.type)} <span class="num">#${esc(f.sid)}</span></b> كامل: <span class="num">${list.length}</span> حركة${list.length?` من <span class="num">${ymd(list[list.length-1].t)}</span> لحد <span class="num">${ymd(list[0].t)}</span>`:""}</span></div>`:"";
+ return `${rec}<div class="al-sum"><span><b class="num">${fmt(list.length)}</b> حركة${list.length!==ALL.length?` من <span class="num">${fmt(ALL.length)}</span>`:""}</span>
  ${L.map(x=>`<button class="al-pill" data-al-clr="${x[0]}" title="إزالة الفلتر">${x[1]}${X("x")}</button>`).join("")}
- ${L.length?`<button class="al-clear" data-al-clr="*">مسح الكل</button>`:""}</div>`};
-const chH=(e,c)=>{const o=c[1]!=null&&String(c[1])!=="",n=c[2]!=null&&String(c[2])!=="";
- return `<div class="al-c"><span>${esc(c[0])}</span>${e.ev==="updated"||(o&&n)?`${o?`<del>${esc(c[1])}</del>`:`<i>فاضي</i>`}${X("arrow-left")}${n?`<ins>${esc(c[2])}</ins>`:`<i>فاضي</i>`}`:o&&!n?`<del>${esc(c[1])}</del>`:`<ins>${esc(c[2])}</ins>`}</div>`};
-const itemH=e=>{const ev=EV[e.ev]||EV.updated,open=U.open.has(e.id),vis=open?e.ch:e.ch.slice(0,SHOW),more=e.ch.length-vis.length;
- return `<div class="al-i"><span class="al-ic ${ev[2]}">${X(ev[1])}</span><div class="al-m">
- <div class="al-t"><b>${esc(ev[0])}${AUTH.test(e.ev)?"":" "+esc(e.type)}${e.sid&&!AUTH.test(e.ev)?` <button class="al-id num" data-al-rec="${e.sid}" data-al-type="${esc(e.type)}" title="كل عمليات هذا السجل">#${e.sid}</button>`:""}</b>${e.desc?`<span>${esc(e.desc)}</span>`:""}</div>
- <div class="al-meta"><button data-al-emp="${esc(e.actor)}" title="كل نشاط ${esc(e.actor)}">${esc(e.actor)}</button><span>${esc(e.role)}</span><span class="al-src ${e.log}">${esc(SRC[e.log]||e.log)}</span>${e.fromRoles?`<span class="tag n">من شاشة الأدوار</span>`:""}${e.go&&!/deleted/.test(e.ev)?`<a class="al-go" href="${e.go}.html">${esc(TGT[e.go]||"فتح السجل")}${X("arrow-left")}</a>`:""}</div>
- ${e.ch.length&&!e.ch.some(c=>c[1]!=null&&String(c[1])!=="")&&e.ev!=="updated"?`<div class="al-kv">${e.ch.map(c=>`<span><small>${esc(c[0])}</small><bdi>${esc(c[2])}</bdi></span>`).join("")}</div>`:e.ch.length?`<div class="al-ch">${vis.map(c=>chH(e,c)).join("")}${more>0?`<button class="al-more" data-al-open="${e.id}">${X("chevron-down")}عرض كل التغييرات (<span class="num">${e.ch.length}</span>)</button>`:open&&e.ch.length>SHOW?`<button class="al-more" data-al-open="${e.id}">${X("chevron-up")}أقل</button>`:""}</div>`:e.ev==="deleted"||e.ev==="force_deleted"?`<small class="al-note">${e.ev==="force_deleted"?"حُذف هذا السجل نهائياً ولا يمكن استرجاعه.":"حُذف هذا السجل ويمكن استرجاعه من «المحذوفات»."}</small>`:e.ev==="restored"?`<small class="al-note">أُعيد هذا السجل بعد حذفه.</small>`:e.ev==="legacy"?`<small class="al-note">سجل مستورد من نظام الرافدين السابق.</small>`:""}
- </div><div class="al-when"><b class="num" title="${ymd(e.t)} ${hm(e.t)}">${hm(e.t)}</b><small>${rel(e.t)}</small></div></div>`};
+ ${L.length?`<button class="al-clear" data-al-clr="*">مسح الكل</button>`:""}<span class="al-hint">${X("mouse-pointer-click")}اضغط أي حركة لتفاصيلها الكاملة ومرجعها التقني</span></div>`};
+/* ملخص التغيير في سطر القائمة */
+const difH=(e,n)=>{if(n>1)return `<span class="al-dn"><b class="num">${n}</b> محاولات متتالية</span>`;
+ if(e.ev==="login_locked")return `<span class="al-dn">IP <span class="num">${esc(e.px.ip)}</span> · ${e.px.attempts} محاولات</span>`;
+ if(AUTH.test(e.ev))return `<span class="al-dn">${e.ev==="impersonated"?"بواسطة مدير النظام":"guard: admin"}</span>`;
+ if(!e.ch.length)return `<span class="al-dn">—</span>`;
+ const c=e.ch.find(x=>x[0]!=="مفتاح الإعداد")||e.ch[0],more=e.ch.length-1-(e.ch.some(x=>x[0]==="مفتاح الإعداد")?1:0);
+ return `<span class="al-dv"><small>${esc(c[0])}</small>${hasOld(c)&&e.ev==="updated"?`<del>${esc(c[1])}</del>${X("arrow-left")}`:""}${c[2]!==""?`<ins>${esc(c[2])}</ins>`:`<del>${esc(c[1])}</del>`}${more>0?`<em class="num">+${more}</em>`:""}</span>`};
+const rowH=(e,n)=>{const ev=evOf(e);
+ return `<div class="al-r${ATT(e)?" att":""}" role="button" tabindex="0" data-al-pop="${e.id}" aria-label="${esc(title(e))} — ${hm(e.t)}">
+ <span class="al-tm num">${hm(e.t)}</span>
+ <span class="al-ic ${ev[2]}">${X(ev[1])}</span>
+ <span class="al-x"><b>${esc(ev[0])}${AUTH.test(e.ev)?"":" "+esc(e.type||"")}${e.sid&&!AUTH.test(e.ev)?` <span class="num">#${e.sid}</span>`:""}</b><small>${esc(e.desc||(e.ev==="login_failed"?"الحساب غير محفوظ في الحركة":""))}</small></span>
+ <span class="al-who"><b>${esc(e.actor)}</b><small>${esc(e.ck==="x"?"بدون هوية":e.role)}</small></span>
+ <span class="al-dif">${difH(e,n)}</span>
+ <span class="al-src ${e.log}">${esc(SRC[e.log]||e.log)}</span>
+ ${X("chevron-left")}</div>`};
+/* دمج محاولات الدخول الفاشلة المتتالية في سطر واحد */
+const collapse=l=>{const o=[];l.forEach(e=>{const p=o[o.length-1];if(p&&e.ev==="login_failed"&&p.e.ev==="login_failed"&&p.e.t-e.t<15*6e4&&ymd(p.e.t)===ymd(e.t)){p.n++;return}o.push({e,n:1})});return o};
+const pagesH=pages=>{const c=U.page,s=Math.max(1,c-2),en=Math.min(pages,c+2),L=[];if(s>1){L.push(1);if(s>2)L.push("…")}for(let i=s;i<=en;i++)L.push(i);if(en<pages){if(en<pages-1)L.push("…");L.push(pages)}
+ return L.map(p=>p==="…"?`<span class="al-ell">…</span>`:`<button class="${p===c?"on":""}" data-al-pg="${p}">${p}</button>`).join("")};
 const listH=list=>{const pages=Math.max(1,Math.ceil(list.length/PER));if(U.page>pages)U.page=pages;const a=(U.page-1)*PER,cur=list.slice(a,a+PER);
- if(!list.length)return `<div class="card al-empty">${X("search-x")}<b>لا توجد سجلات مطابقة</b><small>جرّب تشيل فلتر أو توسّع الفترة.</small>${nF()||U.q!=="all"?`<button class="btn btn-ghost sm" data-al-clr="*">مسح الفلاتر</button>`:""}</div>`;
- const g=[];cur.forEach(e=>{const k=ymd(e.t);let x=g.find(y=>y.k===k);if(!x){x={k,t:e.t,l:[]};g.push(x)}x.l.push(e)});
- return g.map(x=>`<div class="card al-day"><div class="al-dh">${X("calendar")}<b>${dayLab(x.t)}</b><span class="num">${x.k}</span><em class="num">${x.l.length}</em></div>${x.l.map(itemH).join("")}</div>`).join("")+
+ if(!list.length)return `<div class="card al-empty">${X("search-x")}<b>لا توجد حركات مطابقة</b><small>جرّب تشيل فلتر أو توسّع الفترة.</small>${nF()||U.q!=="all"?`<button class="btn btn-ghost sm" data-al-clr="*">مسح الفلاتر</button>`:""}</div>`;
+ const g=[];collapse(cur).forEach(x=>{const k=ymd(x.e.t);let d=g.find(y=>y.k===k);if(!d){d={k,t:x.e.t,l:[],c:0};g.push(d)}d.l.push(x);d.c+=x.n});
+ return `<div class="card al-list"><div class="al-hd"><span>الوقت</span><span></span><span>الحركة والسجل</span><span>المنفذ</span><span>اللي اتغيّر</span><span>المصدر</span><span></span></div>`+
+ g.map(x=>`<div class="al-dh">${X("calendar")}<b>${dayLab(x.t)}</b><span class="num">${x.k}</span><em class="num">${x.c} حركة</em></div>${x.l.map(y=>rowH(y.e,y.n)).join("")}`).join("")+`</div>`+
  `<div class="tfoot al-foot"><span>عرض <span class="num">${a+1}–${a+cur.length}</span> من <span class="num">${fmt(list.length)}</span> · ${PER} في الصفحة</span><div class="pager">
- <button data-al-pg="${U.page-1}"${U.page<=1?" disabled":""} aria-label="السابق">${X("chevron-right")}</button>${Array.from({length:pages},(_,i)=>`<button class="${i+1===U.page?"on":""}" data-al-pg="${i+1}">${i+1}</button>`).join("")}<button data-al-pg="${U.page+1}"${U.page>=pages?" disabled":""} aria-label="التالي">${X("chevron-left")}</button></div></div>`};
+ <button data-al-pg="${U.page-1}"${U.page<=1?" disabled":""} aria-label="السابق">${X("chevron-right")}</button>${pagesH(pages)}<button data-al-pg="${U.page+1}"${U.page>=pages?" disabled":""} aria-label="التالي">${X("chevron-left")}</button></div></div>`};
+
+/* ================= النافذة المنبثقة ================= */
+const sameRec=e=>e.type?(e.sid!=null?ALL.filter(x=>x.type===e.type&&x.sid===e.sid):ALL.filter(x=>x.type===e.type&&x.desc===e.desc)).sort((a,b)=>b.t-a.t):[];
+const causerCls=e=>e.ck==="c"?"App\\Models\\ingaz\\User":anon(e)?null:"App\\Models\\auth\\Admin";
+const lockedUntil=e=>{const d=new Date(e.t+15*6e4);return `${ymd(d)}T${p2(d.getHours())}:${p2(d.getMinutes())}:00+03:00`};
+const props=e=>{const o={},px=Object.assign({},e.px||{});if(px.locked_until==="@+15")px.locked_until=lockedUntil(e);
+ if(e.ch.length&&!AUTH.test(e.ev)&&!e.fromRoles&&e.ev!=="permission_detached"&&e.ev!=="role_attached"){
+  const at={},od={};e.ch.forEach(c=>{const k=FK[c[0]]||c[0];if(c[2]!==""&&c[2]!=null)at[k]=c[2];if(hasOld(c))od[k]=c[1]});
+  if(/deleted/.test(e.ev))o.old=Object.assign({},at,od);else{o.attributes=at;if(Object.keys(od).length)o.old=od}}
+ if(e.ev==="role_attached")o.attributes={role_id:4,branch_id:1};
+ Object.keys(px).forEach(k=>{o[k]=px[k]});
+ if(!anon(e))o.actor_name=e.actor;
+ if(e.ck==="sys")o.actor_name="النظام";
+ return o};
+const SQ=s=>s.replace(/\\/g,"\\\\");
+const refList=e=>{const L=[["database","الجدول","<code>activity_log</code> — حزمة spatie/laravel-activitylog، والموديل <code>App\\Models\\AuditActivity</code> (<code>config/activitylog.php</code>) بيضيف <code>actor_name</code> لكل حركة"]];
+ if(e.ev==="login_locked")L.push(["file-code","مين بيسجّلها","<code>app/Services/Auth/AdminLoginThrottle.php</code> ← <code>logLock()</code>: بعد <code>MAX_ATTEMPTS = 5</code> بيقفل <code>DECAY_SECONDS = 900</code>، والعدّ لكل اسم دخول + IP"]);
+ else if(/^(login|logout|login_failed)$/.test(e.ev))L.push(["file-code","مين بيسجّلها","<code>app/Listeners/RecordAuthenticationActivity.php</code> — أحداث Laravel: <code>Login</code> · <code>Logout</code> · <code>Failed</code>، وبيحفظ <code>guard</code> بس"]);
+ else if(e.ev==="impersonated")L.push(["file-code","مين بيسجّلها","<code>AdminController@impersonate</code> — ومن لوحة المطور <code>DevSuperAdminController@impersonate</code> بـ <code>dev_superadmin_impersonating</code>"]);
+ else if(e.log==="settings"&&e.type==="الإعداد")L.push(["file-code","مين بيسجّلها","<code>App\\Support\\Audit\\AuditedSettings::updateOrInsert()</code> — بيحفظ <code>table</code> والمفتاح والقيمة قبل وبعد"]);
+ else if(e.ev==="permission_detached"||e.ev==="role_attached")L.push(["file-code","مين بيسجّلها","<code>App\\Support\\Audit\\PermissionSync::run()</code> — <code>assignment_ids</code> للصلاحيات اللي اتشالت"]);
+ else if(e.fromRoles)L.push(["file-code","مين بيسجّلها","شاشة الأدوار في التصميم (<code>cerp.roles.v1</code>). في الكود: حفظ الدور ← <code>PermissionSync::run()</code>"]);
+ else if(e.log==="legacy_activity")L.push(["file-code","مين بيسجّلها","<code>App\\Services\\ingaz\\LegacyActivityLogImportService</code> — <code>LOG_NAME = 'legacy_activity'</code>"]);
+ else if(e.px&&e.px.execution_source==="console")L.push(["file-code","مين بيسجّلها",`أمر مجدول <code>${esc(e.px.execution_command)}</code> — <code>ExecutionContext</code> بيضيف <code>execution_source = console</code>، وكل العقود في نفس التشغيل ليها نفس <code>batch_uuid</code>`]);
+ else L.push(["file-code","مين بيسجّلها",`<code>LogsActivity</code> في <code>${esc(CLS[e.type]||"")}</code> — <code>logOnlyDirty()</code>: بيتسجّل اللي اتغيّر بس`]);
+ L.push(["eye","العرض والتسميات","<code>ActivityLogController::describeActivity()</code> ← <code>resolveActivityActionLabel</code> · <code>resolveSubjectTypeLabel</code> · <code>resolveFieldLabel</code> · <code>buildChangeSet</code> (بيتجاهل created_at وupdated_at وpassword وtoken)"]);
+ L.push(["shield","الحقول الحساسة","<code>AuditProperties::sanitize()</code> — أي مفتاح فيه password · token · secret · api_key · cookie · verification_code بيتحفظ <code>[محجوب]</code>"]);
+ return L};
+const notes=e=>{const N=[];
+ if(e.log==="auth")N.push("الحركة متسجّلة تحت <code>log_name = auth</code>، والشاشة الحالية بتعرف <code>authentication</code> بس، فبتظهر في ClickERP «Auth». ومفيش تسمية لـ <code>login_locked</code> في <code>resolveActivityActionLabel</code>، فبتظهر «تنفيذ إجراء». الحل: إضافتهم للدالتين، أو استخدام <code>activity('authentication')</code> في <code>logLock()</code>.");
+ if(e.ev==="login_failed")N.push("<code>Failed</code> بيتسجّل بـ <code>causedByAnonymous()</code> ومن غير <code>performedOn</code>، فمش ممكن تعرف الحساب المستهدف ولا العنوان من السطر ده. الاسم والعنوان بيظهروا بس في <code>login_locked</code> بعد المحاولة الخامسة. اقتراح: حفظ <code>login</code> و<code>ip</code> في الحركة (من غير كلمة المرور).");
+ if(/^(login|logout)$/.test(e.ev))N.push("<code>RecordAuthenticationActivity</code> مابيحفظش IP ولا المتصفح، فمش ممكن تعرف الموظف دخل منين. اقتراح: إضافة <code>request()->ip()</code> و<code>userAgent()</code> زي <code>logLock()</code>.");
+ return N};
+const kvH=L=>`<div class="al-kv2">${L.map(x=>`<div><span>${x[0]}</span><b>${x[1]}</b></div>`).join("")}</div>`;
+const chTable=e=>{if(!e.ch.length)return "";const up=e.ev==="updated";
+ return `<div class="al-sec"><h4>${X("list")}${up?"اللي اتغيّر":/deleted/.test(e.ev)?"البيانات وقت الحذف":"البيانات المحفوظة"} <em class="num">${e.ch.length}</em></h4><table class="al-tb"><thead><tr><th>الحقل</th>${up?"<th>قبل</th><th>بعد</th>":"<th>القيمة</th>"}</tr></thead><tbody>
+ ${e.ch.map(c=>`<tr><td>${esc(c[0])}</td>${up?`<td>${hasOld(c)?`<del>${esc(c[1])}</del>`:`<i>فاضي</i>`}</td><td>${c[2]!==""?`<ins>${esc(c[2])}</ins>`:`<i>فاضي</i>`}</td>`:`<td>${c[2]!==""?esc(c[2]):`<del>${esc(c[1])}</del>`}</td>`}</tr>`).join("")}</tbody></table></div>`};
+const popD=e=>{const ev=evOf(e),rec=sameRec(e),burst=e.ev==="login_failed"?ALL.filter(x=>x.ev==="login_failed"&&Math.abs(x.t-e.t)<15*6e4).sort((a,b)=>a.t-b.t):[];
+ const lk=e.ev==="login_failed"?ALL.find(x=>x.ev==="login_locked"&&x.t>=e.t&&x.t-e.t<15*6e4):null;
+ return `<p class="al-desc">${describe(e)}</p>
+ <div class="al-cards">
+  <div><small>${X("user")}المنفذ</small><b>${esc(e.actor)}</b><span>${esc(e.role)}</span>${!anon(e)?`<button class="al-lnk" data-al-act="emp">كل نشاطه</button>`:""}</div>
+  <div><small>${X("clock")}الوقت</small><b class="num">${hm(e.t)}</b><span>${fullDate(e.t)}</span><span>${rel(e.t)}</span></div>
+  <div><small>${X("folder")}السجل</small><b>${e.type?esc(e.type)+(e.sid?` <span class="num">#${e.sid}</span>`:""):"غير مرتبط بسجل"}</b><span>${esc(e.desc)}</span>${rec.length>1?`<button class="al-lnk" data-al-ptab="h">تاريخه: ${rec.length} حركة</button>`:""}</div>
+  <div><small>${X("layers")}المصدر</small><b>${esc(SRC[e.log]||e.log)}</b><span class="al-badge ${ev[2]}">${ev[0]}</span></div></div>
+ ${e.px&&e.px.impersonator_admin_id?`<div class="al-note2 a">${X("user-check")}<span>الدخول تم بواسطة <b>محمد العتيبي</b>. أي حركة بعدها في نفس الجلسة باسم ${esc(e.desc)} بتحمل <code>impersonator_admin_id = ${e.px.impersonator_admin_id}</code> في properties.</span></div>`:""}
+ ${e.px&&e.px.execution_source==="console"?`<div class="al-note2">${X("bot")}<span>اتعملت تلقائياً من أمر مجدول، مش من موظف. كل العقود اللي اتحدّثت في نفس التشغيل ليها نفس رقم الدفعة.</span></div>`:""}
+ ${e.ev==="login_locked"?kvH([["اسم الدخول",`<bdi>${esc(e.px.login)}</bdi>`],["العنوان (IP)",`<span class="num">${esc(e.px.ip)}</span>`],["عدد المحاولات",`<span class="num">${e.px.attempts}</span>`],["مدة القفل","15 دقيقة"],["مقفول لحد",`<span class="num">${hm(e.t+15*6e4)}</span>`],["المتصفح",`<bdi class="al-ua">${esc(e.px.user_agent)}</bdi>`]]):""}
+ ${burst.length>1?`<div class="al-sec"><h4>${X("shield-alert")}محاولات فاشلة متتالية <em class="num">${burst.length}</em></h4><div class="al-burst">${burst.map(x=>`<button class="${x.id===e.id?"on":""}" data-al-go="${x.id}"><span class="num">${iso(x.t).slice(11)}</span></button>`).join("")}</div>${lk?`<p class="al-small">وبعدها <button class="al-lnk" data-al-go="${lk.id}">اتقفل الدخول على <bdi>${esc(lk.px.login)}</bdi></button> — غالباً نفس المحاولات.</p>`:""}</div>`:""}
+ ${chTable(e)}
+ <div class="al-pacts">${e.go&&!/deleted/.test(e.ev)?`<a class="btn btn-primary sm" href="${e.go}.html">${X("external-link")}${esc(TGT[e.go]||"فتح السجل")}</a>`:""}
+  ${rec.length>1?`<button class="btn btn-ghost sm" data-al-act="rec">${X("filter")}اعرض حركات السجل ده بس</button>`:""}
+  ${e.ev==="deleted"?`<button class="btn btn-ghost sm" data-al-act="restore">${X("rotate-ccw")}استرجاع</button>`:""}
+  <button class="btn btn-ghost sm" data-al-act="link">${X("link")}نسخ رابط الحركة</button></div>`};
+const popHist=e=>{const rec=sameRec(e);
+ if(rec.length<2)return `<div class="al-empty in">${X("history")}<b>${e.type?"مفيش حركات تانية على السجل ده":"الحركة دي مش مرتبطة بسجل"}</b><small>${e.ev==="login_failed"?"محاولة الدخول الفاشلة بتتسجّل من غير الحساب، فمش ممكن نربطها بسجل.":"أي تعديل جاي على نفس السجل هيظهر هنا."}</small></div>`;
+ const first=rec[rec.length-1];
+ return `<p class="al-desc">كل اللي حصل على <b>${esc(e.type)}${e.sid?` <span class="num">#${e.sid}</span>`:""}</b> — ${esc(e.desc)}: <span class="num">${rec.length}</span> حركة من ${fullDate(first.t)}، الأحدث فوق.</p>
+ <div class="al-htl">${rec.map(x=>{const v=evOf(x);return `<button class="al-hi${x.id===e.id?" on":""}" data-al-go="${x.id}"><span class="al-ic ${v[2]}">${X(v[1])}</span><span><b>${v[0]}${x.id===e.id?' <em class="tag n">المفتوحة</em>':""}</b>
+  <small>${esc(x.actor)} · <span class="num">${ymd(x.t)}</span> · <span class="num">${hm(x.t)}</span></small>${x.ch.length?`<span class="al-hch">${x.ch.filter(c=>c[0]!=="مفتاح الإعداد").slice(0,3).map(c=>`${esc(c[0])}: ${hasOld(c)&&x.ev==="updated"?`<del>${esc(c[1])}</del> ← `:""}<ins>${esc(c[2]||c[1])}</ins>`).join(" · ")}</span>`:""}</span></button>`}).join("")}</div>`};
+const copyBtn=k=>`<button class="al-copy" data-al-copy="${k}">${X("copy")}نسخ</button>`;
+const sqlOf=e=>{const cls=CLS[e.type];return `SELECT * FROM activity_log WHERE id = ${e.id};`+(cls&&e.sid!=null?`\n\n-- كل تاريخ السجل\nSELECT id, event, causer_id, created_at, properties\nFROM activity_log\nWHERE subject_type = '${SQ(cls)}' AND subject_id = ${e.sid}\nORDER BY created_at DESC, id DESC;`:"")};
+const routeOf=e=>{const cls=CLS[e.type],q=[];if(cls&&e.sid!=null)q.push(`'subject_type' => '${SQ(cls)}'`,`'subject_id' => ${e.sid}`);else q.push(`'log_name' => '${e.log}'`,`'date_from' => '${ymd(e.t)}'`,`'date_to' => '${ymd(e.t)}'`);
+ return `route('dash.activity.log', [${q.join(", ")}])`};
+const popTech=e=>{const pr=props(e),cc=causerCls(e),cls=CLS[e.type]||null,N=notes(e),fields=e.ch.filter(c=>FK[c[0]]);
+ const NUL="<i>NULL</i>";
+ const cols=[["id",`<span class="num">${e.id}</span>`],["log_name",`<code>${esc(e.log)}</code> <small>${esc(SRC[e.log]||"")}</small>`],["event",`<code>${esc(e.ev)}</code>`],["description",esc(e.raw)],
+  ["subject_type",cls?`<bdi class="al-mono">${esc(cls)}</bdi>`:NUL],["subject_id",e.sid!=null?`<span class="num">${e.sid}</span>`:NUL],["causer_type",cc?`<bdi class="al-mono">${esc(cc)}</bdi>`:NUL],["causer_id",cc?`<span class="num">${e.cid}</span>`:NUL],
+  ["batch_uuid",e.batch?`<bdi class="al-mono">9c1f2e7a-41d0-4b6e-a3c2-${esc(e.batch)}</bdi>`:NUL],["created_at",`<span class="num">${iso(e.t)}</span>`]];
+ return `${N.length?`<div class="al-sec"><h4>${X("triangle-alert")}ملاحظات للمطور</h4>${N.map(n=>`<div class="al-note2 r">${X("bug")}<span>${n}</span></div>`).join("")}</div>`:""}
+ <div class="al-sec"><h4>${X("table-2")}سطر الحركة في activity_log</h4><table class="al-tb tech"><tbody>${cols.map(c=>`<tr><th><code>${c[0]}</code></th><td>${c[1]}</td></tr>`).join("")}</tbody></table></div>
+ ${fields.length?`<div class="al-sec"><h4>${X("key-round")}الحقول ومفاتيحها في الجدول</h4><table class="al-tb tech"><thead><tr><th>الحقل</th><th>المفتاح</th></tr></thead><tbody>${fields.map(c=>`<tr><td>${esc(c[0])}</td><td><code>${esc(FK[c[0]])}</code></td></tr>`).join("")}</tbody></table></div>`:""}
+ <div class="al-sec"><h4>${X("braces")}properties (الخام)${copyBtn("json")}</h4><pre class="al-pre" dir="ltr">${esc(JSON.stringify(pr,null,2))}</pre></div>
+ <div class="al-sec"><h4>${X("book-open")}المرجع في ClickERP</h4><div class="al-ref">${refList(e).map(r=>`<div>${X(r[0])}<span><b>${r[1]}</b><small>${r[2]}</small></span></div>`).join("")}</div></div>
+ <div class="al-sec"><h4>${X("terminal")}الاستعلام${copyBtn("sql")}</h4><pre class="al-pre" dir="ltr">${esc(sqlOf(e))}</pre></div>
+ <div class="al-sec"><h4>${X("link")}الرابط في ClickERP${copyBtn("route")}</h4><pre class="al-pre" dir="ltr">${esc(routeOf(e))}</pre></div>`};
+const popH=()=>{const e=byId(U.pop);if(!e)return "";const ev=evOf(e),list=rows(),i=list.findIndex(x=>x.id===e.id),rec=sameRec(e),tab=U.ptab;
+ return `<div class="al-ov" data-al-close=""></div><div class="al-dlg" role="dialog" aria-modal="true" aria-labelledby="alT" tabindex="-1">
+ <div class="al-dh2"><span class="al-ic lg ${ev[2]}">${X(ev[1])}</span><div class="al-dtt"><h3 id="alT">${esc(title(e))}</h3><p>${e.desc?esc(e.desc)+" · ":""}${esc(e.actor)} · <span class="num">${hm(e.t)}</span> ${dayLab(e.t)} · <span class="al-mono">#${e.id}</span></p></div>
+  <div class="al-nav">${i>-1?`<button data-al-go="${i>0?list[i-1].id:""}"${i>0?"":" disabled"} title="الأحدث (→)" aria-label="الحركة الأحدث">${X("chevron-right")}</button><span class="num">${i+1} / ${list.length}</span><button data-al-go="${i<list.length-1?list[i+1].id:""}"${i<list.length-1?"":" disabled"} title="الأقدم (←)" aria-label="الحركة الأقدم">${X("chevron-left")}</button>`:""}
+  <button class="al-x2" data-al-close="" aria-label="إغلاق">${X("x")}</button></div></div>
+ <div class="al-tabs" role="tablist">${[["d","file-text","التفاصيل"],["h","history","تاريخ السجل",rec.length>1?rec.length:null],["t","code-2","مرجع تقني",notes(e).length?"!":null]].map(t=>`<button role="tab" aria-selected="${tab===t[0]}" class="${tab===t[0]?"on":""}" data-al-ptab="${t[0]}">${X(t[1])}${t[2]}${t[3]?`<em class="num${t[3]==="!"?" r":""}">${t[3]}</em>`:""}</button>`).join("")}</div>
+ <div class="al-bd">${tab==="h"?popHist(e):tab==="t"?popTech(e):popD(e)}</div>
+ <div class="al-ft"><small><kbd>Esc</kbd> إغلاق · <kbd>→</kbd> <kbd>←</kbd> الحركة الأحدث والأقدم</small></div></div>`};
+
 const ico=()=>{if(window.lucide)lucide.createIcons({attrs:{"stroke-width":1.8}})};
+const popW=()=>{let w=document.getElementById("alogPop");if(!w){w=document.createElement("div");w.id="alogPop";document.body.appendChild(w)}return w};
+const paintPop=()=>{if(!document.getElementById("alog"))return;const w=popW();const had=!!w.firstChild;w.innerHTML=U.pop?popH():"";document.body.classList.toggle("al-lock",!!U.pop);
+ try{history.replaceState(null,"",location.pathname+location.search+(U.pop?"#a"+U.pop+(U.ptab!=="d"?"-"+U.ptab:""):""))}catch(_){}ico();
+ if(U.pop){const d=w.querySelector(".al-dlg");if(d){if(!had)d.querySelector(".al-x2").focus();else (w.querySelector(".al-tabs .on")||d).focus({preventScroll:true});const b=d.querySelector(".al-bd");if(b)b.scrollTop=0}}};
 const paint=()=>{const r=document.getElementById("alog");if(!r)return;const list=rows();
  r.querySelector("[data-al-chips]").innerHTML=chipsH();r.querySelector("[data-al-res]").innerHTML=pillsH(list)+listH(list);
+ const n=r.querySelector("[data-al-advn]");if(n)n.textContent=advN()||"";
+ r.querySelectorAll("[data-al-per]").forEach(b=>b.classList.toggle("on",b.dataset.alPer===U.per));
  const fl=r.querySelector("[data-al-flash]");fl.innerHTML=U.flash?`<div class="al-flash">${X("check-circle-2")}<span>${U.flash}</span></div>`:"";ico()};
 const syncF=()=>{document.querySelectorAll("#alog [data-al-f]").forEach(el=>{const v=U.f[el.dataset.alF]||"";if(el.value!==v)el.value=v})};
 const setF=(k,v)=>{U.f[k]=v;U.page=1;U.flash="";syncF();paint()};
+const openP=id=>{U.pop=id;U.ptab="d";paintPop()};
+const closeP=()=>{const id=U.pop;U.pop=null;U.ptab="d";paintPop();const r=document.querySelector(`#alog .al-r[data-al-pop="${id}"]`);if(r)r.focus()};
+const flash=msg=>{const w=document.querySelector("#alogPop .al-dlg");if(w){let t=w.querySelector(".al-toast");if(!t){t=document.createElement("div");t.className="al-toast";w.appendChild(t)}t.textContent=msg;clearTimeout(t._h);t._h=setTimeout(()=>t.remove(),2200)}else{U.flash=msg;paint()}};
+const copy=(txt,msg)=>{try{navigator.clipboard.writeText(txt).then(()=>flash(msg),()=>flash(msg))}catch(_){flash(msg)}};
 /* export(): نفس أعمدة ActivityLogController::export */
 const csv=()=>{const H=["رقم السجل","التاريخ","الوقت","منفذ العملية","الصفة","نوع العملية","مصدر السجل","نوع الكيان","المعرف","مرجع إضافي","الملخص","الوصف","عدد التغييرات","التغييرات"];
  const q=v=>`"${String(v==null?"":v).replace(/"/g,'""')}"`;const list=rows().slice(0,50000);
- const L=[H.map(q).join(",")].concat(list.map(e=>[e.id,ymd(e.t),hm(e.t),e.actor,e.role,(EV[e.ev]||EV.updated)[0],SRC[e.log]||e.log,e.type,e.sid||"-",e.desc||"-",`${title(e)}${e.desc?" - "+e.desc:""}`,"",e.ch.length,e.ch.map(c=>e.ev==="updated"?`${c[0]}: ${c[1]||"غير محدد"} ← ${c[2]||"غير محدد"}`:`${c[0]}: ${c[2]||c[1]}`).join("\n")||"-"].map(q).join(",")));
+ const L=[H.map(q).join(",")].concat(list.map(e=>[e.id,ymd(e.t),hm(e.t),e.actor,e.role,evOf(e)[0],SRC[e.log]||e.log,e.type||"-",e.sid||"-",e.desc||"-",`${title(e)}${e.desc?" - "+e.desc:""}`,describe(e),e.ch.length,e.ch.map(c=>e.ev==="updated"?`${c[0]}: ${c[1]||"غير محدد"} ← ${c[2]||"غير محدد"}`:`${c[0]}: ${c[2]||c[1]}`).join("\n")||"-"].map(q).join(",")));
  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob(["﻿"+L.join("\r\n")],{type:"text/csv;charset=utf-8"}));
  const d=new Date();a.download=`activity-log-${ymd(d)}_${p2(d.getHours())}${p2(d.getMinutes())}${p2(d.getSeconds())}.csv`;document.body.appendChild(a);a.click();a.remove();
- U.flash=`نزل ملف CSV فيه <span class="num">${fmt(list.length)}</span> سجل بنفس الفلاتر. يفتح مباشرة في Excel.`;paint()};
+ U.flash=`نزل ملف CSV فيه <span class="num">${fmt(list.length)}</span> حركة بنفس الفلاتر. يفتح مباشرة في Excel.`;paint()};
 if(!window.__alBound){window.__alBound=1;
- document.addEventListener("click",ev=>{const t=ev.target;if(!t.closest||!t.closest("#alog"))return;let el;
+ document.addEventListener("click",ev=>{const t=ev.target;if(!t.closest||!t.closest("#alog,#alogPop"))return;let el;
+  if(t.closest("[data-al-close]")){closeP();return}
+  if((el=t.closest("[data-al-go]"))){if(el.disabled||!el.dataset.alGo)return;U.pop=+el.dataset.alGo;if(t.closest(".al-htl,.al-burst,.al-small"))U.ptab="d";paintPop();return}
+  if((el=t.closest("[data-al-ptab]"))){U.ptab=el.dataset.alPtab;paintPop();return}
+  if((el=t.closest("[data-al-copy]"))){const e=byId(U.pop),k=el.dataset.alCopy;copy(k==="json"?JSON.stringify(props(e),null,2):k==="sql"?sqlOf(e):routeOf(e),k==="json"?"اتنسخت properties":k==="sql"?"اتنسخ الاستعلام":"اتنسخ الرابط");return}
+  if((el=t.closest("[data-al-act]"))){const e=byId(U.pop),a=el.dataset.alAct;
+   if(a==="emp"){U.pop=null;paintPop();setF("emp",e.actor);return}
+   if(a==="rec"){U.pop=null;paintPop();U.q="all";U.per="all";U.f.s="";U.f.type=e.type;U.more=true;const adv=document.querySelector("#alog .al-adv"),b=document.querySelector("#alog [data-al-more]");if(adv)adv.hidden=false;if(b)b.classList.add("on");setF("sid",e.sid!=null?String(e.sid):"");window.scrollTo({top:0,behavior:"smooth"});return}
+   if(a==="link"){copy(location.href.split("#")[0]+"#a"+e.id,"اتنسخ رابط الحركة — اللي يفتحه هيشوف نفس النافذة");return}
+   if(a==="restore"){flash(`في ClickERP الاسترجاع بيسجّل حركة «استرجاع» جديدة على ${subj(e)}`);return}}
+  if((el=t.closest("[data-al-pop]"))){openP(+el.dataset.alPop);return}
   if((el=t.closest("[data-al-q]"))){U.q=el.dataset.alQ;U.page=1;U.flash="";paint();return}
-  if((el=t.closest("[data-al-emp]"))){setF("emp",U.f.emp===el.dataset.alEmp?"":el.dataset.alEmp);return}
-  if((el=t.closest("[data-al-rec]"))){U.f.type=el.dataset.alType;setF("sid",el.dataset.alRec);U.q="all";paint();window.scrollTo({top:0,behavior:"smooth"});return}
-  if((el=t.closest("[data-al-clr]"))){const k=el.dataset.alClr;if(k==="*"){Object.keys(U.f).forEach(x=>U.f[x]="");U.q="all"}else{U.f[k]="";if(k==="sid")U.f.type=""}setF("s",U.f.s);return}
-  if((el=t.closest("[data-al-open]"))){const id=+el.dataset.alOpen;U.open.has(id)?U.open.delete(id):U.open.add(id);paint();return}
-  if((el=t.closest("[data-al-pg]"))){if(el.disabled)return;U.page=+el.dataset.alPg;paint();document.getElementById("alog").querySelector("[data-al-res]").scrollIntoView({behavior:"smooth",block:"start"});return}
+  if((el=t.closest("[data-al-per]"))){U.per=el.dataset.alPer;U.page=1;U.flash="";paint();return}
+  if(t.closest("[data-al-more]")){U.more=!U.more;const a=document.querySelector("#alog .al-adv"),b=document.querySelector("#alog [data-al-more]");a.hidden=!U.more;b.classList.toggle("on",U.more);b.setAttribute("aria-expanded",U.more);return}
+  if((el=t.closest("[data-al-clr]"))){const k=el.dataset.alClr;if(k==="*"){Object.keys(U.f).forEach(x=>U.f[x]="");U.q="all";U.per="all"}else if(k==="per")U.per="all";else{U.f[k]="";if(k==="sid")U.f.type=""}setF("s",U.f.s);return}
+  if((el=t.closest("[data-al-pg]"))){if(el.disabled)return;U.page=+el.dataset.alPg;paint();document.querySelector("#alog [data-al-res]").scrollIntoView({behavior:"smooth",block:"start"});return}
   if(t.closest("[data-al-csv]")){csv();return}
   if(t.closest("[data-al-pdf]")){window.print();return}});
+ document.addEventListener("keydown",ev=>{if(!document.getElementById("alog"))return;const inTabs=!!(ev.target.closest&&ev.target.closest(".al-tabs"));
+  if(U.pop){if(ev.key==="Escape"){ev.preventDefault();closeP();return}
+   if((ev.key==="ArrowRight"||ev.key==="ArrowLeft")&&!/INPUT|TEXTAREA|SELECT/.test(ev.target.tagName||"")&&!inTabs){const l=rows(),i=l.findIndex(x=>x.id===U.pop),j=i+(ev.key==="ArrowLeft"?1:-1);if(i>-1&&l[j]){ev.preventDefault();U.pop=l[j].id;paintPop()}return}
+   if((ev.key==="ArrowRight"||ev.key==="ArrowLeft")&&inTabs){const T3=["d","h","t"],i=T3.indexOf(U.ptab),j=(i+(ev.key==="ArrowLeft"?1:2))%3;ev.preventDefault();U.ptab=T3[j];paintPop();return}
+   if(ev.key==="Tab"){const d=document.querySelector("#alogPop .al-dlg");if(!d)return;const f=[...d.querySelectorAll("button:not([disabled]),a[href]")];if(!f.length)return;
+    if(ev.shiftKey&&document.activeElement===f[0]){ev.preventDefault();f[f.length-1].focus()}else if(!ev.shiftKey&&document.activeElement===f[f.length-1]){ev.preventDefault();f[0].focus()}}return}
+  const r=ev.target.closest&&ev.target.closest("#alog .al-r");if(r&&(ev.key==="Enter"||ev.key===" ")){ev.preventDefault();openP(+r.dataset.alPop)}});
  const onF=ev=>{const el=ev.target;if(!el.matches||!el.matches("#alog [data-al-f]"))return;U.f[el.dataset.alF]=el.value;U.page=1;U.flash="";paint()};
  document.addEventListener("input",onF);document.addEventListener("change",onF);
  window.addEventListener("storage",e=>{if(e.key==="cerp.roles.v1"){ALL=build();paint()}})}
 const S={};
-S.setActivity=()=>{setTimeout(paint,0);const list=rows();return `<div id="alog">
- ${HEAD("سجل النشاط","كل ما يفعله الموظفون في النظام: مين عمل إيه، على أي سجل، وإمتى. اضغط اسم موظف أو رقم سجل عشان تشوف كل نشاطه.",B("ghost","file-spreadsheet","CSV",'data-al-csv=""')+B("ghost","printer","PDF",'data-al-pdf="" title="طباعة أو حفظ PDF — أحدث 500 سجل بنفس الفلاتر"'),["setHome","الإعدادات"])}
+S.setActivity=()=>{setTimeout(()=>{paint();const m=location.hash.match(/^#a(\d+)(?:-([dht]))?$/);if(m&&byId(+m[1])){openP(+m[1]);if(m[2]){U.ptab=m[2];paintPop()}}},0);const list=rows();return `<div id="alog">
+ ${HEAD("سجل النشاط","كل حركة في النظام: مين عمل إيه، على أي سجل، وإمتى. اضغط أي حركة لتفاصيلها وتاريخ السجل ومرجعها التقني في ClickERP.",B("ghost","file-spreadsheet","CSV",'data-al-csv=""')+B("ghost","printer","PDF",'data-al-pdf="" title="طباعة أو حفظ PDF — أحدث 500 حركة بنفس الفلاتر"'),["setHome","الإعدادات"])}
  ${TABS([["setUsers","users","المستخدمون",46],["setRoles","shield-check","الأدوار والصلاحيات",6],["#trash","trash-2","المحذوفون",3],["setActivity","history","سجل النشاط"]],"setActivity")}
  <div data-al-flash=""></div>${alertH()}
- <div data-al-chips="">${chipsH()}</div>
  ${fbarH()}
+ <div data-al-chips="">${chipsH()}</div>
  <div data-al-res="">${pillsH(list)+listH(list)}</div></div>`};
 Object.assign(T,{setActivity:{ar:"سجل النشاط",en:"Activity log"}});
 Object.keys(S).forEach(k=>{screens[k]=S[k]});
