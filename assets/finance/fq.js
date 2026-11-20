@@ -13,7 +13,7 @@ const qst=s=>{const k={draft:"draft",sent:"approved",accepted:"accepted",rejecte
 const SET={title:"عرض الأسعار",valid:15,terms:"الدفعات المالية:\n- 50٪ عند التعميد، و50٪ عند التسليم.\n- التحويل على مصرف الراجحي — شركة الريادة للخدمات.\nالتعميد:\nيُعد عرض السعر ملزماً عند الموافقة عليه، ويتم التعميد كتابياً.\nالأسعار:\nالأسعار شاملة ضريبة القيمة المضافة 15٪ ووفق الكميات المذكورة.",closing:"وتفضلوا بقبول فائق الاحترام والتقدير،\nونسعد بخدمتكم ونتطلع لاعتمادكم الكريم."};
 const CLIENTS=[["c1","شركة نجد للمقاولات","300145521900003","الرياض"],["c2","مجمع عيادات الشفاء","310998765400003","الرياض"],["c3","فندق الياسمين","302211445500003","جدة"],["c4","مؤسسة الوفاء التجارية","","الدمام"],["c5","شركة المدار للتجارة","300778899100003","الرياض"]];
 const SVC=["عقد صيانة","خدمة لمرة واحدة","اشتراك شهري","توريد وتركيب"];
-/* البنود: [الوصف, نوع التعاقد, المدة, الكمية, سعر الوحدة, الخصم, صنف (للتجاري)] */
+/* البنود: [الوصف, نوع التعاقد, المدة, الكمية, سعر الوحدة, الخصم, منتج (للتجاري)] */
 const L=(d,t,du,q,p,dc,it)=>({d,t,du,q,p,dc:dc||0,it:it||0});
 const QS=[
  {id:110,no:"QT-00110",c:"c1",sub:"صيانة وقائية سنوية لأنظمة التكييف — 3 مواقع",date:"2026-11-18",vd:15,st:"sent",cc:"CC-02 مشاريع الصيانة",fmt:"proposal",by:"ريم الدوسري",sent:"2026-11-18 11:20",opened:"2026-11-19 09:05",lines:[L("صيانة وقائية ربع سنوية لوحدات التكييف المركزي","عقد صيانة","12 شهراً",3,14500,1500),L("زيارات طوارئ غير محدودة خلال ساعات العمل","عقد صيانة","12 شهراً",3,3200),L("تقرير فني ربع سنوي بحالة الأجهزة","خدمة لمرة واحدة","",4,450)],secs:[["نطاق العمل","فحص وتنظيف وحدات التكييف المركزي والمنفصل في المواقع الثلاثة، واستبدال الفلاتر، وقياس ضغط الغاز، ورفع تقرير بالحالة."],["الجدول الزمني","أربع زيارات وقائية في السنة، أولها خلال 7 أيام من التعميد."]]},
@@ -95,14 +95,14 @@ S.finQuoteAdd=()=>{if(!A){let e=0;try{e=sessionStorage.getItem("fqEdit")==="1";s
   <div class="fs-h" id="fq-s2"><span class="fs-n num">2</span><b>البنود</b></div>
   <div class="fq-lines">
   ${A.lines.map((l,i)=>`<div class="fq-line"><span class="fq-ln num">${i+1}</span><div class="fq-lb">
-   <div class="fq-l1">${l.it?`<span class="fq-it">${X("package")}صنف</span>`:""}<div class="inp"><input data-fq-l="${i}:d" value="${esc(l.d)}" placeholder="وصف الخدمة أو البند"></div>${A.lines.length>1?`<button class="icon-btn" title="حذف البند" data-fq-lrm="${i}">${X("trash-2")}</button>`:""}</div>
+   <div class="fq-l1">${l.it?`<span class="fq-it">${X("package")}منتج</span>`:""}<div class="inp"><input data-fq-l="${i}:d" value="${esc(l.d)}" placeholder="وصف الخدمة أو البند"></div>${A.lines.length>1?`<button class="icon-btn" title="حذف البند" data-fq-lrm="${i}">${X("trash-2")}</button>`:""}</div>
    <div class="fq-l2"><label><small>نوع التعاقد</small><select data-fq-l="${i}:t">${SVC.map(s=>`<option${s===l.t?" selected":""}>${s}</option>`).join("")}</select></label>
     <label><small>المدة</small><div class="inp"><input data-fq-l="${i}:du" value="${esc(l.du)}" placeholder="—"></div></label>
     <label><small>الكمية</small><div class="inp"><input class="num" dir="ltr" data-fq-l="${i}:q" value="${l.q}"></div></label>
     <label><small>السعر</small><div class="inp${A.err["p"+i]?" cmi-bad":""}"><input class="num" dir="ltr" data-fq-l="${i}:p" value="${l.p||""}" placeholder="0.00"></div></label>
     <label><small>الخصم</small><div class="inp"><input class="num" dir="ltr" data-fq-l="${i}:dc" value="${l.dc||""}" placeholder="0"></div></label>
     <div class="fq-lt"><small>الإجمالي</small><b class="num">${CM.n(ln(l).g)}</b></div></div></div></div>`).join("")}
-  <div class="fq-ladd"><button class="cmi-addrow" data-fq-ladd="svc">${X("plus")}بند خدمة</button>${COM()?`<button class="cmi-addrow" data-fq-ladd="item">${X("package")}صنف من المخزون</button>`:""}</div></div>${er("lines")}
+  <div class="fq-ladd"><button class="cmi-addrow" data-fq-ladd="svc">${X("plus")}بند خدمة</button>${COM()?`<button class="cmi-addrow" data-fq-ladd="item">${X("package")}منتج من المخزون</button>`:""}</div></div>${er("lines")}
   <div class="fq-tot">${[["المجموع",t.sub],["الخصم",-t.dc],["قبل الضريبة",t.sub-t.dc],["القيمة المضافة 15%",t.tax]].map(x=>`<div><span>${x[0]}</span><b>${CM.n(x[1])}</b></div>`).join("")}<div class="big"><span>الإجمالي</span><b>${CM.m(t.t)}</b></div></div>
   ${A.fmt!=="document"?`<div class="fs-h" id="fq-s3"><span class="fs-n num">3</span><b>العرض الفني</b><small class="cmi-muted">اختياري؛ يُطبع كاملاً في «عرض فني ومالي» والشرائح</small></div>
   ${A.secs.map((s,i)=>`<div class="fq-sec"><div class="inp"><input data-fq-s="${i}:0" value="${esc(s[0])}" placeholder="عنوان القسم"></div><textarea rows="3" data-fq-s="${i}:1" placeholder="نص القسم">${esc(s[1])}</textarea><button class="icon-btn" data-fq-srm="${i}">${X("trash-2")}</button></div>`).join("")}

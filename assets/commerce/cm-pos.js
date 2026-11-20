@@ -100,7 +100,7 @@ const shJournal=s=>{const reg=getReg(s.reg),cc=ccOf(s.reg),L=[];
  return {main:L,cogs:C}};
 
 /* ---------- الفواتير ---------- */
-/* [الرقم, الجهاز, الكاشير, الوردية, قبل (د), البنود [صنف, وحدة, كمية], طرق الدفع, ZATCA, الاستلام, إضافات] */
+/* [الرقم, الجهاز, الكاشير, الوردية, قبل (د), البنود [منتج, وحدة, كمية], طرق الدفع, ZATCA, الاستلام, إضافات] */
 const INVS=[
  ["A1-000933","d1","c1","SH-A1-0098",3,[[106,0,0.375],[105,0,2]],["cash"],"reported","accepted",{ret:1,orig:"A1-000921"}],
  ["A1-000932","d1","c1","SH-A1-0098",6,[[101,0,1],[102,0,2],[104,0,6]],["mada"],"reported","accepted"],
@@ -195,7 +195,7 @@ S.cmDash=()=>{
  if(rev.length)todo.push(["alert-triangle","a",`<b class="num">${rev.length}</b> فاتورة مرفوضة للمراجعة (فرق إجمالي) بانتظار قرار`,"cmPosInvoices","f:review"]);
  longOpen.forEach(s=>todo.push(["unlock","a",`وردية <b class="num">${s.id}</b> مفتوحة منذ ${dur(s.open)} — تحقق من الكاشير`,"cmShiftShow","shift:"+s.id]));
  if(waiting.length)todo.push(["book-check","a",`<b class="num">${waiting.length}</b> ورديات مقفلة بانتظار الاعتماد والترحيل`,"cmShifts","sc:closed"]);
- if(ss.below.length)todo.push(["package-x","n",`<b class="num">${ss.below.length}</b> أصناف تحت حد إعادة الطلب`,"cmStock",""]);
+ if(ss.below.length)todo.push(["package-x","n",`<b class="num">${ss.below.length}</b> منتجات تحت حد إعادة الطلب`,"cmStock",""]);
  const rank=a=>a[1]==="r"?0:a[1]==="a"?1:2;todo.sort((a,b)=>rank(a)-rank(b));
  const critical=todo.filter(t=>t[1]==="r").length;
  const gp=r2(total/1.15*0.29);
@@ -410,7 +410,7 @@ S.cmPosInvoiceShow=()=>{
  const ztone=i.zs==="reported"?"":`<div class="cmp-padbtn">${cmpB("primary","send",retry?"جاري التبليغ…":"إعادة محاولة التبليغ","retry:"+i.no,retry?"disabled":"")}</div>`;
  return `${HEAD(`فاتورة ${i.no}`,`${i.ret?"مرتجع":"فاتورة ضريبية مبسّطة"} · ${d.n} · ${cashName(i.cash)} · ${stamp(i.ago)}`,cmpB("ghost","printer","إعادة طباعة","reprint:"+i.no)+B("ghost","share-2","مشاركة"),["cmPosInvoices","فواتير الكاشير"])}${CM.pvbar({br:0,st:0})}${flow}${late}${rej}${rv}${dup}
  <div class="cm-split"><div>
-  <div class="card flush"><div class="card-h pad"><div><h3>بنود الفاتورة</h3><p>الأسعار شاملة ضريبة 15%${i.neg?` · <span class="cm-flag">${X("package-x")}بيع بدون رصيد</span>`:""}</p></div></div><div class="tw"><table><thead><tr><th>الصنف</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th></tr></thead><tbody>
+  <div class="card flush"><div class="card-h pad"><div><h3>بنود الفاتورة</h3><p>الأسعار شاملة ضريبة 15%${i.neg?` · <span class="cm-flag">${X("package-x")}بيع بدون رصيد</span>`:""}</p></div></div><div class="tw"><table><thead><tr><th>المنتج</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th></tr></thead><tbody>
   ${i.rows.map(r=>`<tr><td><b>${r.it.n}</b><span class="cm-sub num">${r.it.code}</span></td><td>${CM.q(r.q,r.u)}</td><td>${CM.m(r.p)}</td><td>${CM.m(i.ret?-r.t:r.t)}</td></tr>`).join("")}
   <tr class="tot"><td colspan="3"><span class="cm-sub" style="display:inline">الإجمالي قبل الضريبة ${nf2(i.ret?-i.net:i.net)} · الضريبة ${nf2(i.ret?-i.vat:i.vat)}</span></td><td><b>${CM.m(i.total)}</b></td></tr></tbody></table></div></div>
   <div class="card flush cmp-mt"><div class="card-h pad"><div><h3>الدفع</h3></div></div><div class="tw"><table><thead><tr><th>الطريقة</th><th>المبلغ</th></tr></thead><tbody>${i.pays.map(p=>`<tr><td>${PMN[p[0]]}</td><td>${CM.m(p[1])}</td></tr>`).join("")}</tbody></table></div></div>
@@ -444,13 +444,13 @@ S.cmPayMethods=()=>{
 /* ====================================================================================== */
 /* ======================================== العروض ========================================= */
 /* ====================================================================================== */
-const itn=id=>{const it=id?D.item(id):null;return it?it.n:"كل الأصناف"};
+const itn=id=>{const it=id?D.item(id):null;return it?it.n:"كل المنتجات"};
 const itu=(id,cap)=>{const it=D.item(id);return it?it.units[0][0]:"حبة"};
 const sentence=p=>{if(!p)return "";const b=(p.br||[]).length===2||!(p.br||[]).length?"في كل الفروع":"في "+p.br.map(brName).join(" و");const w=`${p.from?` من ${p.from}`:""}${p.to?` إلى ${p.to}`:""}`;
- const scope=p.scope==="all"?"على كل الأصناف":p.scope==="cat"?`على «${(D.item(p.it).cat||"").split(" ← ").pop()}»`:`على «${itn(p.it)}»`;
+ const scope=p.scope==="all"?"على كل المنتجات":p.scope==="cat"?`على «${(D.item(p.it).cat||"").split(" ← ").pop()}»`:`على «${itn(p.it)}»`;
  let s="";
  if(p.t==="percent")s=`خصم ${num(+p.v||0)}% ${scope}`;
- else if(p.t==="amount")s=`خصم ${num(nf2(+p.v||0))} ر.س ${scope==="على كل الأصناف"?"على كل فاتورة":`على «${itn(p.it)}»`}`;
+ else if(p.t==="amount")s=`خصم ${num(nf2(+p.v||0))} ر.س ${scope==="على كل المنتجات"?"على كل فاتورة":`على «${itn(p.it)}»`}`;
  else s=`اشترِ ${num(+p.x||0)} ${itu(p.it)} ${itn(p.it)} واحصل على ${num(+p.y||0)} ${itu(p.it)} ${p.free===0?"بخصم 50%":"مجاناً"}`;
  return `${s}${b?" — ":""}${b}${w?"،"+w:""}.`};
 const PRT={percent:["نسبة خصم","percent"],amount:["مبلغ خصم","banknote"],bxgy:["اشترِ X واحصل على Y","gift"]};
@@ -460,10 +460,10 @@ S.cmPromos=()=>{
  const form=dr?`<div class="card sec"><div class="sec-h">${X("wand-sparkles")}<b>${edit?"تعديل العرض":"عرض جديد"}</b></div><div class="cmp-col two">
   ${FLD("اسم العرض",`<input data-cmp-in="pr.draft.n" value="${dr.n}" placeholder="مثال: خصم نهاية الأسبوع">`,1)}
   <div class="fld"><label>نوع القاعدة</label><div class="cmp-seg">${Object.keys(PRT).map(k=>`<button class="${dr.t===k?"on":""}" data-cmp="prt:${k}">${X(PRT[k][1])}${PRT[k][0]}</button>`).join("")}</div></div>
-  ${dr.t==="percent"?FLD("نسبة الخصم %",`<input type="number" min="1" max="100" data-cmp-in="pr.draft.v" data-num value="${dr.v}">`,1)+FLD("يُطبّق على",`<select data-cmp-in="pr.draft.scope" data-cmp-re><option value="all"${dr.scope==="all"?" selected":""}>كل الأصناف</option><option value="cat"${dr.scope==="cat"?" selected":""}>قسم الصنف المختار</option><option value="item"${dr.scope==="item"?" selected":""}>صنف محدد</option></select>`):""}
-  ${dr.t==="percent"&&dr.scope!=="all"?FLD(dr.scope==="cat"?"صنف من القسم":"الصنف",`<select data-cmp-in="pr.draft.it" data-num>${D.items.filter(i=>i.kind==="stock").map(i=>`<option value="${i.id}"${+dr.it===i.id?" selected":""}>${i.n}</option>`).join("")}</select>`):""}
-  ${dr.t==="amount"?FLD("مبلغ الخصم (ر.س)",`<input type="number" min="0" step="0.5" data-cmp-in="pr.draft.v" data-num value="${dr.v}">`,1)+FLD("على الصنف",`<select data-cmp-in="pr.draft.it" data-num>${D.items.filter(i=>i.kind==="stock").map(i=>`<option value="${i.id}"${+dr.it===i.id?" selected":""}>${i.n}</option>`).join("")}</select>`):""}
-  ${dr.t==="bxgy"?`<div class="fgrid two" style="padding:0">${FLD("اشترِ (كمية)",`<input type="number" min="1" data-cmp-in="pr.draft.x" data-num value="${dr.x}">`,1)}${FLD("واحصل على (كمية)",`<input type="number" min="1" data-cmp-in="pr.draft.y" data-num value="${dr.y}">`,1)}</div>${FLD("الصنف",`<select data-cmp-in="pr.draft.it" data-num>${D.items.filter(i=>i.kind==="stock").map(i=>`<option value="${i.id}"${+dr.it===i.id?" selected":""}>${i.n}</option>`).join("")}</select>`,1,"الصنف المشترى هو نفسه المجاني")}`:""}
+  ${dr.t==="percent"?FLD("نسبة الخصم %",`<input type="number" min="1" max="100" data-cmp-in="pr.draft.v" data-num value="${dr.v}">`,1)+FLD("يُطبّق على",`<select data-cmp-in="pr.draft.scope" data-cmp-re><option value="all"${dr.scope==="all"?" selected":""}>كل المنتجات</option><option value="cat"${dr.scope==="cat"?" selected":""}>قسم المنتج المختار</option><option value="item"${dr.scope==="item"?" selected":""}>منتج محدد</option></select>`):""}
+  ${dr.t==="percent"&&dr.scope!=="all"?FLD(dr.scope==="cat"?"منتج من القسم":"المنتج",`<select data-cmp-in="pr.draft.it" data-num>${D.items.filter(i=>i.kind==="stock").map(i=>`<option value="${i.id}"${+dr.it===i.id?" selected":""}>${i.n}</option>`).join("")}</select>`):""}
+  ${dr.t==="amount"?FLD("مبلغ الخصم (ر.س)",`<input type="number" min="0" step="0.5" data-cmp-in="pr.draft.v" data-num value="${dr.v}">`,1)+FLD("على المنتج",`<select data-cmp-in="pr.draft.it" data-num>${D.items.filter(i=>i.kind==="stock").map(i=>`<option value="${i.id}"${+dr.it===i.id?" selected":""}>${i.n}</option>`).join("")}</select>`):""}
+  ${dr.t==="bxgy"?`<div class="fgrid two" style="padding:0">${FLD("اشترِ (كمية)",`<input type="number" min="1" data-cmp-in="pr.draft.x" data-num value="${dr.x}">`,1)}${FLD("واحصل على (كمية)",`<input type="number" min="1" data-cmp-in="pr.draft.y" data-num value="${dr.y}">`,1)}</div>${FLD("المنتج",`<select data-cmp-in="pr.draft.it" data-num>${D.items.filter(i=>i.kind==="stock").map(i=>`<option value="${i.id}"${+dr.it===i.id?" selected":""}>${i.n}</option>`).join("")}</select>`,1,"المنتج المشترى هو نفسه المجاني")}`:""}
   <div class="fld"><label>الفروع</label><div class="cmp-pmchips">${D.branches.map(b=>`<button class="${dr.br.includes(b[0])?"on":""}" data-cmp="prb:${b[0]}">${X(dr.br.includes(b[0])?"check":"plus")}${b[1]}</button>`).join("")}</div></div>
   <div class="fgrid two" style="padding:0">${FLD("من تاريخ",`<input type="date" data-cmp-in="pr.draft.from" value="${dr.from}">`,1)}${FLD("إلى تاريخ",`<input type="date" data-cmp-in="pr.draft.to" value="${dr.to}">`,1)}</div>
   <div class="cmp-sent">${X("quote")}<div><small>ما سيراه الكاشير والعميل</small><b id="cmp-sent">${sentence(dr)}</b></div></div>
@@ -471,7 +471,7 @@ S.cmPromos=()=>{
   <div class="cmp-padbtn">${cmpB("primary","check","حفظ العرض","prsave")}${cmpB("ghost","","إلغاء","prcancel")}</div></div></div>`
   :`<div class="card sec cm-empty sm"><span class="cm-empty-i">${X("badge-percent")}</span><h3>منشئ العروض</h3><p>اختر عرضاً من القائمة لتعديله، أو أنشئ عرضاً جديداً. تصل العروض للأجهزة مع أول مزامنة.</p><div class="cm-empty-a">${cmpB("primary","plus","عرض جديد","prnew")}</div></div>`;
  const normal=`
-  ${CM.note("<b>ماذا أفعل الآن؟</b> العروض تُطبَّق تلقائياً في الكاشير حسب الفرع والتاريخ، ولا تتعارض مع أقصى خصم للكاشير. جمع عرضين على الصنف نفسه لا يتم: يُطبَّق الأعلى خصماً.","")}
+  ${CM.note("<b>ماذا أفعل الآن؟</b> العروض تُطبَّق تلقائياً في الكاشير حسب الفرع والتاريخ، ولا تتعارض مع أقصى خصم للكاشير. جمع عرضين على المنتج نفسه لا يتم: يُطبَّق الأعلى خصماً.","")}
   <div class="cmp-stack"><div class="card flush"><div class="tw"><table><thead><tr><th>العرض</th><th>القاعدة</th><th>الفروع</th><th>الفترة</th><th>الحالة</th><th class="act"></th></tr></thead><tbody>
   ${P.pr.list.map(p=>`<tr class="${p.id===(dr&&dr.id)?"cmp-sel":""}"><td><b>${p.n}</b></td><td>${sentence(p).split(" — ")[0]}</td><td>${p.br.map(brName).map(b=>b.split(" — ")[0]).join("، ")}</td><td class="num">${p.from} ← ${p.to}</td><td>${CM.st(pst(p))}</td><td class="act">${ACTS([["pencil","تعديل",`data-cmp="predit:${p.id}"`],["copy","نسخ",`data-cmp="prdup:${p.id}"`]])}</td></tr>`).join("")}</tbody></table></div>${PAGER(`${P.pr.list.length} عروض`)}</div>
   ${form}</div>`;

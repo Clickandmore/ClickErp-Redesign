@@ -107,3 +107,60 @@ td .cm-sub,.cm-sub{display:block;color:var(--muted);font-size:12px;font-weight:5
 .cm-side{position:sticky;top:84px;display:flex;flex-direction:column;gap:14px}
 .cm-sec-h{display:flex;align-items:center;gap:8px;margin:0 0 12px}.cm-sec-h svg{width:17px;height:17px;color:var(--navy)}.cm-sec-h b{font-size:15px}.cm-sec-h small{color:var(--muted);font-size:12px}
 .cm-sec-h .cm-acts{margin-inline-start:auto}
+
+/* ---------- الطباعة (v1.79) ---------- */
+.cmp-ov .ps-party b{display:block}.cmp-ov .ps-party small{display:block;color:#5f6c80;font-size:9pt}
+.cmp-logo{width:46px;height:46px;border-radius:10px;background:var(--navy);color:var(--green);display:grid;place-items:center}.cmp-logo svg{width:24px;height:24px}
+.ps-brand b{display:block;font-size:13pt}.ps-brand small{display:block;color:#5f6c80;font-size:8.5pt}
+.ps-t th{background:#16233f;color:#fff;font-weight:600;padding:6px 8px;text-align:start}.ps-t td{padding:6px 8px;border-bottom:1px solid #e3e8f0}.ps-t td small{display:block;color:#828d9e}
+.cmp-tot th{text-align:start;font-weight:500;color:#5f6c80;padding:4px 0}.cmp-tot td{text-align:end;padding:4px 0}.cmp-tot tr.big th,.cmp-tot tr.big td{font-weight:800;color:#0d1626;border-top:1px solid #16233f;padding-top:7px}
+.cmp-qr{width:110px;height:110px}
+.ps-foot{display:flex;justify-content:space-between;margin-top:22px;padding-top:8px;border-top:1px solid #dfe5ee;font-size:8.5pt;color:#828d9e}
+.printsheet.thermal{width:80mm;min-height:0;padding:5mm 4mm;font-size:9pt;line-height:1.5}
+.cmp-th .c{text-align:center;display:flex;flex-direction:column;align-items:center;gap:1px}
+.cmp-th .c b{font-size:11pt}.cmp-th .tt{margin-top:6px;font-size:10pt!important}.cmp-th small{font-size:8.5pt;color:#333}
+.cmp-th table{width:100%;border-collapse:collapse;margin:8px 0;border-top:1px dashed #000;border-bottom:1px dashed #000}
+.cmp-th td{padding:2px 0;font-size:8.8pt}.cmp-th tr.q td{color:#333}.cmp-th td:last-child{text-align:end}
+.cmp-th .sum div{display:flex;justify-content:space-between;font-size:9pt}.cmp-th .sum div:first-child{font-size:11pt;font-weight:800}
+.cmp-th .cmp-qr{width:30mm;height:30mm;margin:8px 0 4px}.cmp-bar{width:52mm;height:10mm}
+.cmp-labels{display:grid;grid-template-columns:repeat(3,1fr);gap:4mm}
+.cmp-lb{border:1px dashed #b9c3d6;border-radius:2mm;padding:3mm;text-align:center;display:flex;flex-direction:column;gap:1mm;align-items:center}
+.cmp-lb b{font-size:9pt}.cmp-lb .cmp-bar{width:40mm;height:9mm}.cmp-lb small{font-size:8pt}
+.cmp-fq .fq-paper{box-shadow:none;border:0;padding:0}
+@media screen and (max-width:760px){.printscroll{padding:10px}.printsheet:not(.thermal){width:100%;min-height:0;padding:14px}.printbar{padding:10px}.printbar .pb-a{width:100%;display:flex;gap:8px}.printbar .pb-a .btn{flex:1}.ps-two{grid-template-columns:1fr}.ps-sum{flex-direction:column}.ps-head{flex-direction:column}.ps-meta{text-align:start}.cmp-labels{grid-template-columns:repeat(2,1fr)}}
+@media print{
+ body.printing #app,body.printing .cm-toast{display:none!important}
+ body.printing .cmp-ov{position:static;background:#fff;overflow:visible}
+ body.printing .cmp-ov .printbar{display:none!important}
+ body.printing .cmp-ov .printscroll{padding:0;overflow:visible;display:block}
+ body.printing .cmp-ov .printsheet{box-shadow:none;width:auto;min-height:0;padding:0}
+ body.printing .cmp-ov .printsheet.thermal{width:auto!important;max-width:none;padding:0 1mm!important;margin:0;page:thermal}
+ body.printing,body.printing .cmp-ov,body.printing .printwrap{margin:0!important;padding:0!important;min-width:0!important;width:auto!important}
+ .ps-sign,.ps-sum{break-inside:avoid}
+ .ps-t thead{display:table-header-group}.ps-t tr{break-inside:avoid}
+ *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+ html,body.printing{background:#fff!important}
+ body.printing .cmp-ov .printsheet:not(.thermal){width:auto!important;padding:0!important}
+}
+@page thermal{size:80mm 220mm;margin:2mm 3mm}
+
+.ps-qr .cmp-qr{width:110px!important;height:110px!important;border:0;padding:0}
+.cmp-th .cmp-qr{width:30mm!important;height:30mm!important}
+.cmp-th td,.cmp-th tr{border:0!important;background:none!important;padding:1px 0}
+.cmp-ov .ps-two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+
+/* ---------- الشاشات الصغيرة (v1.79): جوال 390 وتابلت 768 ---------- */
+.cm-split>*{min-width:0}
+.cm-mono{overflow-wrap:anywhere}
+@media (max-width:1100px){.cm-split{grid-template-columns:minmax(0,1fr)}.cm-side{position:static}}
+@media (max-width:760px){
+ .cm-pv{gap:6px}.cm-pv label{display:none}.cm-pv-sa{margin-inline-start:0}
+ .cm-kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.cm-kpi{padding:12px}.cm-kpi b{font-size:19px}
+ .cm-ro{flex-wrap:wrap}.cm-ro-a{margin-inline-start:0}
+ .page-head{flex-wrap:wrap;gap:10px}.page-head .actions{flex-wrap:wrap;width:100%}
+ .seg{flex-wrap:wrap}.seg button{flex:1 1 auto}
+ .fq-l2{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ .fq-strip{grid-template-columns:1fr!important}.fq-kv{grid-template-columns:repeat(2,1fr)}
+ .cvform{grid-template-columns:1fr!important}.cvopts{position:static!important}
+}
+.cm-st{max-width:100%}.cm-st span{white-space:normal}@media (max-width:760px){.cm-st{height:auto;min-height:24px;padding:3px 9px;line-height:1.4}}

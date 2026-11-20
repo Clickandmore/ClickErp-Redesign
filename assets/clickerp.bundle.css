@@ -8298,3 +8298,7 @@ td.sxe-dirty{box-shadow:inset 0 -2px 0 var(--green)}
 .pp-acct{display:flex;align-items:center;gap:6px;margin:-4px 12px 8px;padding:6px 10px;border-radius:10px;background:#f6f8fb;font-size:12px}
 .pp-acct small{color:var(--muted);margin-inline-end:auto}.pp-acct em{font-style:normal;color:var(--amber);font-weight:700;font-size:11.5px}
 .pp-acct button{border:1px solid var(--line);background:#fff;border-radius:7px;padding:3px 10px;font:inherit;font-size:12px;cursor:pointer}.pp-acct button.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+.acct-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:-4px 0 16px}
+.acct-kpis .ak{display:flex;flex-direction:column;gap:2px;padding:12px 14px;text-decoration:none;color:inherit;transition:.15s}.acct-kpis .ak:hover{box-shadow:var(--shadow);border-color:#c9d1df}
+.acct-kpis .ak svg{width:17px;height:17px;color:var(--navy)}.acct-kpis .ak span{font-size:12.5px;color:var(--muted);font-weight:600}.acct-kpis .ak b{font-size:20px;color:var(--ink)}.acct-kpis .ak small{font-size:11.5px;color:var(--muted)}
+.acct-kpis .ak.ok b{color:var(--green-d)}.acct-kpis .ak.warn b{color:var(--amber)}.acct-kpis .ak.bad b{color:var(--red)}

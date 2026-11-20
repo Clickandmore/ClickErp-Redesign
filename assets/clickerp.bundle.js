@@ -3550,8 +3550,8 @@ const DEPTS=[
   H("الأسعار والعروض"),A("cmPrices","tags","الأسعار","Prices"),A("cmPromos","badge-percent","العروض والخصومات","Promotions"),
   H("الكاشير"),A("cmRegisters","monitor-smartphone","أجهزة الكاشير","Cashier devices"),A("cmCashiers","user-round-check","الكاشيرية","Cashiers"),A("cmPayMethods","credit-card","طرق الدفع","Payment methods"),
   H("الحسابات والضريبة"),A("cmSettle","landmark","تسوية مدى والبطاقات","Card settlements"),A("cmZatca","shield-check","ربط الأجهزة بالزكاة","ZATCA devices"),A("cmReports","bar-chart-3","التقارير","Reports")]},
- {id:"stock",i:"boxes",ar:"المخزون والمشتريات",en:"Stock & buying",s:"المخزون",d:"الأصناف والكميات في المخزن والجرد وشراء البضاعة",items:[
-  H("الأصناف"),A("cmItems","package","الأصناف","Items"),A("cmCats","folder-tree","أقسام الأصناف والوحدات","Item groups & units"),
+ {id:"stock",i:"boxes",ar:"المنتجات",en:"Products",s:"المنتجات",d:"المنتجات وكمياتها في المخزن والجرد وشراء البضاعة",items:[
+  H("المنتجات"),A("cmItems","package","كل المنتجات","All products"),A("cmCats","folder-tree","أقسام المنتجات والوحدات","Product groups & units"),
   H("المخزن"),A("cmStock","layers","الكميات في المخزن","Stock on hand"),A("cmDocs","file-stack","إدخال وإخراج بضاعة","Stock in & out"),A("cmCount","scan-barcode","الجرد","Stock count"),A("cmStores","warehouse","المخازن","Warehouses"),
   H("الشراء"),A("cmPurchases","shopping-bag","شراء بضاعة","Buying goods"),
   H("الإعدادات"),A("cmSettings","settings-2","إعدادات المخزون والحسابات","Stock settings")]},
@@ -3580,7 +3580,7 @@ const DEPTS=[
    الإدارة = موديول ممكن يتنقل لبرنامج تاني بتعديل PG_DEPT/PG_ITEM بس. */
 const PROGS={
  recruitment:{ar:"نظام الاستقدام",en:"Recruitment",i:"briefcase",c:"rec",home:"dashboard",d:"أساس البرنامج: الاستقدام والتأجير ونقل الخدمات والإيواء، ومعاهم العملاء والمالية والموارد البشرية"},
- general:{ar:"النظام العام — المالية",en:"General — Finance",i:"wallet",c:"gen",home:"finDashGen",d:"محاسبة عامة لأي شركة: القيود والسندات والفواتير والتقارير، والتأجير بالساعة ومركز المهام اختياري"},
+ general:{ar:"النظام العام — المالية",en:"General — Finance",i:"wallet",c:"gen",home:"finDashGen",d:"محاسبة عامة لأي شركة خدمية أو تجارية: عروض الأسعار والفواتير والقيود والتقارير، ومع التجاري البيع والكاشير والمنتجات"},
  tasks:{ar:"نظام المهام والموارد البشرية",en:"Tasks & HR",i:"list-checks",c:"tsk",home:"tcMy",d:"شركة خدمات شغلها مهام وفريق: مركز المهام والحضور والطلبات والرواتب، من غير استقدام ولا مالية"}};
 const PG_DEPT={all:["recruitment","general","tasks"],ops:["recruitment"],crm:["recruitment","general","tasks"],finance:["recruitment","general"],pos:["general"],stock:["general"],hr:["recruitment","general","tasks"],tasks:["general","tasks"],settings:["recruitment","general","tasks"]};
 const PG_RG=["recruitment","general"],PG_R=["recruitment"];
@@ -11545,9 +11545,28 @@ const PDS=["فتح لوحة التحكم الجديدة والهبوط عليه�
    ["tc_approvals","موافقات الوقت",[["الوقت اليدوي",[i("time_entries_view"),-1,-1,-1],[o("اعتماد الوقت اليدوي","time_entries_approve")]]]],
    ["tc_hours","الساعات والتكلفة",[["التقارير",[i("reports_view"),-1,-1,-1],[]]]]]],
   ["الإعدادات",[["tc_settings","إعدادات مركز المهام",[["الإعدادات",N,[o("تعديل الإعدادات","settings_edit")]]]]]]]]);
+ /* v1.79 — صلاحيات الأقسام التجارية (الخطة §9): finance_commerce_{resource}_{view|create|edit|delete} + الصلاحيات الخاصة في App\NewPermKeys.
+    بتظهر في نسخ «عام» بنوع محاسبة «تجاري» بس (ModulePermissionVisibility: finance_commerce_* ← commerce_inventory / commerce_pos). */
+ {const C=[];const add=(k,d)=>{const n=PK.length;PK.push(k);PDS[n]=d;return n};
+  const crud=(r,l)=>["view","create","edit","delete"].map(op=>add(`finance_commerce_${r}_${op}`,`${{view:"عرض",create:"إضافة",edit:"تعديل",delete:"حذف"}[op]} ${l}`));
+  const sp=(k,l,d)=>[l,add(k,d)];const R=(l,c,x)=>[l,c,x||[]];const NN=[-1,-1,-1,-1];
+  PD.push(["البيع والكاشير","shopping-cart",[
+   ["البيع",[["cm_sales","فواتير البيع",[R("فواتير البيع",crud("sales","فواتير البيع"),[sp("finance_commerce_sales_confirm","تأكيد الفاتورة","تأكيد فاتورة البيع: تُرحّل وتخصم المخزون ولا تُعدّل بعدها.")])]],
+    ["cm_returns","المرتجعات",[R("المرتجعات",crud("returns","المرتجعات"))]],
+    ["cm_prices","الأسعار والعروض",[R("قوائم الأسعار",crud("price_lists","قوائم الأسعار")),R("العروض والخصومات",crud("promotions","العروض والخصومات"))]]]],
+   ["الكاشير",[["cm_pos","الكاشير والورديات",[R("فواتير الكاشير",[crud("pos_orders","فواتير الكاشير")[0],-1,-1,-1],[sp("FINANCE_COMMERCE_POS_CASHIER","البيع على الكاشير","الدخول على تطبيق الكاشير والبيع (مع ربط الموظف كاشير).")]),
+     R("ورديات الكاشير",NN,[sp("FINANCE_COMMERCE_POS_SUPERVISOR","مشرف وردية","الموافقة برقم المشرف على الخصم فوق الحد والإلغاء والمرتجع."),sp("FINANCE_COMMERCE_POST_SESSIONS","اعتماد وترحيل الورديات","اعتماد إقفال الوردية وترحيل قيدها الملخّص وقيد التكلفة.")])]],
+    ["cm_devices","أجهزة الكاشير وطرق الدفع",[R("أجهزة الكاشير",crud("registers","أجهزة الكاشير")),R("الكاشيرية",crud("cashiers","الكاشيرية")),R("طرق الدفع",crud("payment_methods","طرق الدفع"))]]]],
+   ["الحسابات والضريبة",[["cm_zatca","تسوية البطاقات والزكاة",[R("تسوية مدى والبطاقات",crud("card_settlements","تسويات البطاقات")),R("ربط الأجهزة بالزكاة",[crud("zatca","وحدات الزكاة")[0],-1,-1,-1],[sp("finance_commerce_zatca_onboard","ربط جهاز بالهيئة","تشغيل معالج ربط جهاز بهيئة الزكاة وإعادة محاولة التبليغ.")])]]]]]]);
+  PD.push(["المنتجات","boxes",[
+   ["المنتجات",[["cm_items","المنتجات والأقسام",[R("المنتجات",crud("items","المنتجات")),R("أقسام المنتجات والوحدات",crud("categories","أقسام المنتجات"))]]]],
+   ["المخزن",[["cm_stock","الكميات والحركات والجرد",[R("الكميات في المخزن",[crud("stock_balances","الكميات في المخزن")[0],-1,-1,-1],[sp("FINANCE_COMMERCE_VIEW_COST","رؤية التكلفة","رؤية التكلفة والربح وقيمة المخزون في كل الشاشات. بدونها تختفي الأعمدة والبطاقات.")]),
+     R("إدخال وإخراج بضاعة والجرد",crud("stock_documents","مستندات المخزون"),[sp("FINANCE_COMMERCE_APPROVE_STOCK_DOCS","اعتماد المستندات والجرد","اعتماد الاستلام والتحويل والتسوية والإتلاف والجرد قبل الترحيل.")]),R("المخازن",crud("stores","المخازن"))]],
+    ["cm_purchases","شراء بضاعة",[R("فواتير الشراء",crud("purchases","فواتير شراء البضاعة"))]]]],
+   ["الإعدادات",[["cm_settings","إعدادات المخزون والحسابات",[R("الإعدادات",NN,[sp("finance_commerce_settings_edit","تعديل ربط الحسابات","ربط حسابات المخزون والتكلفة والمرتجعات والصناديق."),sp("FINANCE_COMMERCE_COSTING_SETTINGS","طريقة التكلفة","تغيير طريقة التكلفة قبل أول حركة مخزون.")])]]]]]]);}
  /* الصلاحيات المعروضة = صلاحيات برنامج النسخة بس (نفس PG_DEPT/PG_ITEM في القائمة) */
- const G=window.CERP_PROG||"recruitment",RG=["recruitment","general"],RO=["recruitment"];
- const PDEP={"العمليات":RG,"المالية":RG,"مركز المهام":["general","tasks"]};
+ const G=window.CERP_PROG||"recruitment",RG=["recruitment","general"],RO=["recruitment"],GC=window.CERP_ACCT==="commercial"?["general"]:[];
+ const PDEP={"العمليات":RO,"المالية":RG,"مركز المهام":["general","tasks"],"البيع والكاشير":GC,"المنتجات":GC};
  const PSCR={complaints:RO,settings_country:RO,settings_recruitment:RO,settings_rental:RO,settings_coupons:RG,settings_site:RG,settings_content:RG,reports:RG,finance_inventory:[]}; /* v1.72: المالية من غير مخزون ولا أصناف */
  for(let d=PD.length-1;d>=0;d--){const dp=PD[d];if(PDEP[dp[0]]&&!PDEP[dp[0]].includes(G)){PD.splice(d,1);continue}
   if(dp[0]==="العمليات"&&G==="general")dp[2]=dp[2].filter(g=>g[0]==="التأجير بالساعة");
@@ -11555,7 +11574,7 @@ const PDS=["فتح لوحة التحكم الجديدة والهبوط عليه�
    /* v1.72: بطاقات لوحة التحكم الخاصة بالاستقدام (الإيواء والجنسيات والسير والعقود والطلبات…) مالهاش مكان في العام والمهام */
    if(G!=="recruitment")g[1].forEach(sc=>{if(sc[0]==="dashboard")sc[2]=sc[2].filter(r=>!/الإيواء|الجنسيات|المكاتب الخارجية|الإيجار|الاستقدام|نقل الخدمات|السير|عقود|التشغيل|الطلبات|أفضل خدمة عملاء/.test(r[0]))})});dp[2]=dp[2].filter(g=>g[1].length);if(!dp[2].length)PD.splice(d,1)}
  /* ترتيب الأقسام زي القائمة في كل برنامج */
- const ORD={recruitment:["الرئيسية","العمليات","العملاء","المالية","الموارد البشرية","الإعدادات"],general:["الرئيسية","المالية","العمليات","العملاء","الموارد البشرية","مركز المهام","الإعدادات"],tasks:["الرئيسية","مركز المهام","الموارد البشرية","العملاء","الإعدادات"]}[G];
+ const ORD={recruitment:["الرئيسية","العمليات","العملاء","المالية","الموارد البشرية","الإعدادات"],general:["الرئيسية","البيع والكاشير","المنتجات","المالية","العملاء","الموارد البشرية","مركز المهام","الإعدادات"],tasks:["الرئيسية","مركز المهام","الموارد البشرية","العملاء","الإعدادات"]}[G];
  PD.sort((a,b)=>ORD.indexOf(a[0])-ORD.indexOf(b[0]));
 })();
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -11609,13 +11628,18 @@ const TPL=[
  ["hr","الموارد البشرية","user-cog","يدير الموظفين والحضور والطلبات والرواتب وإعدادات الموارد البشرية.",{"@الموارد البشرية":"2a",employee_portal:3,dashboard:1},"all"],
  ["hourly","التأجير بالساعة","clock","يشغّل لوحة طلبات الساعات والزيارات والبلاغات، ويرى الخدمات والباقات.",{hourly_board:2,hourly_visits:2,hourly_alerts:2,hourly_clients:2,hourly_services:1,employee_portal:2},"own"]];
 TPL.push(["tc","فريق مركز المهام","list-checks","يشتغل على مهامه: يومي والمؤقت واللوحة والملفات، ويضيف الوقت اليدوي. لا يرى الفريق ولا الخزنة ولا الإعدادات.",{tc_my:3,tc_board:2,tc_files:2,dashboard:1,employee_portal:2},"own"],["tclead","قائد فريق المهام","users-round","كل مركز المهام ما عدا الإعدادات: متابعة الفريق واللقطات واعتماد الوقت ومهام الإدارة.",{"@مركز المهام":"3a",tc_settings:0,tc_vault:2,dashboard:1,employee_portal:2},"own"]);
+/* v1.79 — أدوار التجاري (الخطة §9): الكاشير، مشرف الوردية، أمين المخزن (بلا رؤية التكلفة)، المشتريات */
+TPL.push(["cashier","الكاشير","shopping-cart","يبيع على الكاشير ويشوف فواتيره وورديته بس. لا يرى التكلفة ولا ورديات غيره.",{cm_pos:1,cm_sales:1,employee_portal:2},"own"],
+ ["shiftsup","مشرف الوردية","user-round-check","يوافق على الخصم والمرتجع برقمه، ويتابع الورديات والكاشيرية وطرق الدفع.",{"@البيع والكاشير":2,cm_zatca:1,employee_portal:2},"own"],
+ ["storekeeper","أمين المخزن","boxes","يستلم ويحوّل ويجرد ويُتلف، ويضيف المنتجات. بلا رؤية التكلفة وقيمة المخزون.",{"@المنتجات":2,cm_settings:0,employee_portal:2},"own"],
+ ["buyer","المشتريات","shopping-bag","يسجّل فواتير شراء البضاعة والاستلام الجزئي ويتابع الموردين.",{cm_purchases:2,cm_items:1,cm_stock:1,employee_portal:2},"all"]);
 /* v1.72 — الأدوار الجاهزة والأدوار الحالية لكل برنامج: العام والمهام مالهمش أدوار الاستقدام (خدمة العملاء، الخارجية، الإيواء…) */
 const RPROG=window.CERP_PROG||"recruitment";
-{const keep={recruitment:["admin","branch","cs","sales","ext","after","shelter","mkt","acc","hr","hourly"],general:["admin","branch","acc","hourly","hr","mkt","tc","tclead"],tasks:["admin","tclead","tc","hr","mkt"]}[RPROG];
+{const keep={recruitment:["admin","branch","cs","sales","ext","after","shelter","mkt","acc","hr","hourly"],general:(window.CERP_ACCT==="commercial"?["admin","branch","acc","cashier","shiftsup","storekeeper","buyer"]:["admin","branch","acc"]).concat(["hr","mkt","tc","tclead"]),tasks:["admin","tclead","tc","hr","mkt"]}[RPROG];
  for(let i=TPL.length-1;i>=0;i--)if(!keep.includes(TPL[i][0]))TPL.splice(i,1);
  TPL.sort((a,b)=>keep.indexOf(a[0])-keep.indexOf(b[0]));
  if(RPROG==="tasks"){const m=TPL.find(t=>t[0]==="mkt");if(m){m[1]="خدمة العملاء والتواصل";m[3]="يتابع العملاء والحملات والرسائل وقوالب واتساب ومحتوى الموقع."}}}
-const PR_PROG={general:[["مدير النظام",3,"all"],["المحاسب",4,"tpl:acc"],["التأجير بالساعة",6,"tpl:hourly"],["الموارد البشرية",1,"tpl:hr"],["فريق مركز المهام",5,"tpl:tc"]],tasks:[["مدير النظام",2,"all"],["قائد فريق المهام",3,"tpl:tclead"],["فريق مركز المهام",18,"tpl:tc"],["الموارد البشرية",1,"tpl:hr"],["خدمة العملاء والتواصل",2,"tpl:mkt"]]}[RPROG];
+const PR_PROG={general:[["مدير النظام",3,"all"],["المحاسب",4,"tpl:acc"]].concat(window.CERP_ACCT==="commercial"?[["الكاشير",6,"tpl:cashier"],["مشرف الوردية",2,"tpl:shiftsup"],["أمين المخزن",2,"tpl:storekeeper"]]:[]).concat([["الموارد البشرية",1,"tpl:hr"],["فريق مركز المهام",5,"tpl:tc"]]),tasks:[["مدير النظام",2,"all"],["قائد فريق المهام",3,"tpl:tclead"],["فريق مركز المهام",18,"tpl:tc"],["الموارد البشرية",1,"tpl:hr"],["خدمة العملاء والتواصل",2,"tpl:mkt"]]}[RPROG];
 const tplSet=t=>{const set=new Set(),m=t[4];
  const ap=(o,v)=>{const s=String(v);setLevel(set,o,+s[0],s[1]==="a")};
  if(m["*"]!=null)SCR.forEach(o=>ap(o,m["*"]));
@@ -13268,9 +13292,9 @@ const nv=document.querySelector("#app .nav"),on=nv&&nv.querySelector("a.on");if(
   ["الوكلاء الخارجيون — الفلبين","موردو البضاعة"],["الوكلاء الخارجيون","موردو البضاعة"],["أرصدة الوكلاء الخارجيين","أرصدة الموردين الرئيسيين"],["Manila Prime Agency","مؤسسة التوريدات الحديثة"],
   ["مكاتب استقدام خارجية","موردو بضاعة"],["مكتب استقدام","مورد بضاعة"],["مكاتب خارجية","موردو بضاعة"],
   ["فاتورة استقدام","فاتورة مبيعات"],["فاتورة تأجير","فاتورة خدمات"],["تأشيرات ورسوم","رسوم حكومية"],
-  ["CC-01 الاستقدام","CC-01 المبيعات"],["CC-03 الإيواء","CC-03 المستودعات"]];
+  ["CC-01 الاستقدام","CC-01 المبيعات"],["أصناف تحت الحد الأدنى في المخزن","منتجات تحت حد الطلب"],["CC-03 الإيواء","CC-03 المستودعات"]];
  /* بعد التبديل: أي نص لسه فيه حاجة خاصة بالاستقدام بيستخبى عنصره المتكرر. «تأشيرة» و«تفويض» و«الكفالة» كلمات عادية في الموارد البشرية فمش هنا */
- const RX=/مساند|استقدام|السير الذاتية|السيرة|الإيواء|إيواء|نقل الخدمات|التأجير الشهري|الجنسيات|التفاويض|التفييز|المكتب الخارجي|مكاتب الاستقدام|الوكيل الخارجي|وكلاء الاستقدام|وصول العاملة|استلام العاملة|تسليم عاملة|بلاغ هروب|عمالة منزلية|عاملات منزلية|عقود الوصول|نظام الاستقدام|عقود التأجير|نقل الخدمات/;
+ const RX=new RegExp("مساند|استقدام|السير الذاتية|السيرة|الإيواء|إيواء|نقل الخدمات|التأجير الشهري|الجنسيات|التفاويض|التفييز|المكتب الخارجي|مكاتب الاستقدام|الوكيل الخارجي|وكلاء الاستقدام|وصول العاملة|استلام العاملة|تسليم عاملة|بلاغ هروب|عمالة منزلية|عاملات منزلية|عقود الوصول|نظام الاستقدام|عقود التأجير"+(window.CERP_ACCT==="commercial"?"":"|في المخزن")); /* الخدمي مالوش مخزن */
  const key=e=>e.tagName+"."+((typeof e.className==="string"?e.className:"").split(/\s+/)[0]||"");
  const rep=el=>{const p=el.parentElement;if(!p)return false;if(/^(TR|LI|OPTION)$/.test(el.tagName))return true;
   if(el.matches("[class*='info'],[class*='note'],[class*='alert'],[class*='warn']"))return true;
@@ -13297,13 +13321,19 @@ const nv=document.querySelector("#app .nav"),on=nv&&nv.querySelector("a.on");if(
   location.href=(v==="commercial"?(/^cm[A-Z]/.test(P)?P:"cmDash"):(/^cm[A-Z]/.test(P)?"finDashGen":P))+".html?program=general"};
  const lbl=A==="commercial"?"تجاري":A==="services"?"خدمي":"لم يُحدد";
  const card=()=>{const d=document.createElement("div");d.className="acct-pick"+(A?" set":"");d.dataset.acctPick="";
-  d.innerHTML=A?`<span class="ap-i">${I(A==="commercial"?"store":"hand-helping")}</span><div><b>نوع المحاسبة: ${lbl}</b><small>${A==="commercial"?"الخدمات + الأصناف والمخازن والتكلفة ونقاط البيع — «البيع والكاشير» و«المخزون والمشتريات» ظاهرين.":"محاسبة الخدمات: عروض أسعار وفواتير بنوع خدمة من غير أصناف ولا مخازن — المالية تكفي، ومعها عروض الأسعار."}</small></div><div class="ap-b"><button data-acct-set="${A==="commercial"?"services":"commercial"}" class="btn btn-ghost sm">${I("repeat")}تحويل إلى ${A==="commercial"?"خدمي":"تجاري"} (معاينة)</button><a class="btn btn-ghost sm" href="superadmin/commerce.html">${I("shield-check")}Super Admin</a></div>`
-  :`<span class="ap-i warn">${I("calculator")}</span><div><b>اختر نوع المحاسبة للنسخة</b><small>النظام العام يعمل خدمياً أو تجارياً. التجاري يضيف ولا يلغي: كل شاشات المالية تبقى، وتُضاف «البيع والكاشير» و«المخزون والمشتريات».</small></div><div class="ap-b"><button class="ap-c" data-acct-set="services">${I("hand-helping")}<b>خدمي</b><small>فواتير بنوع خدمة</small></button><button class="ap-c" data-acct-set="commercial">${I("store")}<b>تجاري</b><small>أصناف ومخازن ونقاط بيع</small></button></div>`;
+  d.innerHTML=A?`<span class="ap-i">${I(A==="commercial"?"store":"hand-helping")}</span><div><b>نوع المحاسبة: ${lbl}</b><small>${A==="commercial"?"الخدمات + المنتجات والمخزن والكاشير — «البيع والكاشير» و«المنتجات» ظاهرين.":"محاسبة الخدمات: عروض أسعار وفواتير بنوع خدمة من غير أصناف ولا مخازن — المالية تكفي، ومعها عروض الأسعار."}</small></div><div class="ap-b"><button data-acct-set="${A==="commercial"?"services":"commercial"}" class="btn btn-ghost sm">${I("repeat")}تحويل إلى ${A==="commercial"?"خدمي":"تجاري"} (معاينة)</button><a class="btn btn-ghost sm" href="superadmin/commerce.html">${I("shield-check")}Super Admin</a></div>`
+  :`<span class="ap-i warn">${I("calculator")}</span><div><b>اختر نوع المحاسبة للنسخة</b><small>النظام العام يعمل خدمياً أو تجارياً. التجاري يضيف ولا يلغي: كل شاشات المالية تبقى، وتُضاف «البيع والكاشير» و«المنتجات».</small></div><div class="ap-b"><button class="ap-c" data-acct-set="services">${I("hand-helping")}<b>خدمي</b><small>فواتير بنوع خدمة</small></button><button class="ap-c" data-acct-set="commercial">${I("store")}<b>تجاري</b><small>أصناف ومخازن ونقاط بيع</small></button></div>`;
   return d};
  const put=()=>{const pg=document.querySelector("#app .page");if(!pg||pg.querySelector("[data-acct-pick]"))return;
   const home=P==="finDashGen"||P==="finSettings",cm=/^cm[A-Z]/.test(P);
   if(!home&&!(cm&&A!=="commercial"))return;
-  const c=card();const h=pg.querySelector(".page-head");if(h)h.after(c);else pg.prepend(c);if(window.lucide)lucide.createIcons({attrs:{"stroke-width":1.8}})};
+  const c=card();const h=pg.querySelector(".page-head");if(h)h.after(c);else pg.prepend(c);
+  /* v1.79 — الموجز §12.2: لوحة المالية في التجاري تضيف مبيعات اليوم ومجمل الربح وقيمة المخزون والتحت حد الطلب وفروقات الصناديق. الربح والقيمة لمن يملك رؤية التكلفة */
+  if(P==="finDashGen"&&A==="commercial"){let cost=1;try{cost=(JSON.parse(sessionStorage.getItem("cerp.commerce.pv"))||{cost:1}).cost}catch(_){}
+   const k=document.createElement("div");k.className="acct-kpis";
+   k.innerHTML=[["shopping-cart","مبيعات اليوم","19,231.00","64 فاتورة · الرياض 13,620 · جدة 5,611","cmDash",""]].concat(cost?[["trending-up","مجمل ربح اليوم","4,849.56","المبيعات − تكلفة البضاعة المباعة","cmReports","ok"],["boxes","قيمة المخزون","112,750.73","= رصيد حسابات المخزون في الدليل","cmStock",""]]:[]).concat([["arrow-down-to-line","منتجات تحت حد الطلب","3","اطلب شراءً قبل نفادها","cmStock","warn"],["scale","فروقات الصناديق","−15.00","وردية SH-A1-0097 · كاشير 1","cmShifts","bad"]])
+    .map(x=>`<a href="${x[4]}.html?program=general" class="card ak ${x[5]}">${I(x[0])}<span>${x[1]}</span><b class="num">${x[2]}</b><small>${x[3]}</small></a>`).join("");c.after(k)}
+  if(window.lucide)lucide.createIcons({attrs:{"stroke-width":1.8}})};
  const pg=document.querySelector("#app .page");if(pg){new MutationObserver(put).observe(pg,{childList:true});put()}
  /* نفس الاختيار في قائمة البرامج أعلى الشاشة */
  const pop=()=>{const r=document.querySelector("[data-prog-pop] .pp-row.pg-gen");if(!r||r.nextElementSibling&&r.nextElementSibling.matches(".pp-acct"))return;

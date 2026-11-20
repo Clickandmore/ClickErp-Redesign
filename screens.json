@@ -1531,27 +1531,27 @@
     {
       "id": "cmItems",
       "file": "cmItems.html",
-      "title": "الأصناف"
+      "title": "كل المنتجات"
     },
     {
       "id": "cmItemAdd",
       "file": "cmItemAdd.html",
-      "title": "صنف جديد"
+      "title": "منتج جديد"
     },
     {
       "id": "cmItemCard",
       "file": "cmItemCard.html",
-      "title": "كارت الصنف"
+      "title": "كارت المنتج"
     },
     {
       "id": "cmImport",
       "file": "cmImport.html",
-      "title": "استيراد الأصناف من Excel"
+      "title": "استيراد المنتجات من Excel"
     },
     {
       "id": "cmCats",
       "file": "cmCats.html",
-      "title": "أقسام الأصناف"
+      "title": "أقسام المنتجات"
     },
     {
       "id": "cmUnits",

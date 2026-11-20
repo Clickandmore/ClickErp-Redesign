@@ -6,8 +6,8 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 CSS = ["cm.css", "cm-items.css", "cm-stock.css", "cm-trade.css", "cm-pos.css"]
 SCRIPTS = ["cm-features.js", "cm-core.js", "cm-items.js", "cm-stock.js", "cm-trade.js", "cm-pos.js"]
 PAGES = {
- "cmDash": "مبيعات اليوم", "cmItems": "الأصناف", "cmItemAdd": "صنف جديد", "cmItemCard": "كارت الصنف", "cmImport": "استيراد الأصناف من Excel",
- "cmCats": "أقسام الأصناف", "cmUnits": "الوحدات", "cmPrices": "الأسعار", "cmPriceEdit": "محرر الأسعار",
+ "cmDash": "مبيعات اليوم", "cmItems": "المنتجات", "cmItemAdd": "منتج جديد", "cmItemCard": "كارت المنتج", "cmImport": "استيراد المنتجات من Excel",
+ "cmCats": "أقسام المنتجات", "cmUnits": "الوحدات", "cmPrices": "الأسعار", "cmPriceEdit": "محرر الأسعار",
  "cmStock": "الكميات في المخزن", "cmDocs": "إدخال وإخراج بضاعة", "cmDocShow": "إدخال أو إخراج بضاعة", "cmCount": "الجرد", "cmCountRun": "شاشة العدّ", "cmStores": "المخازن",
  "cmSales": "فواتير البيع", "cmSaleAdd": "فاتورة بيع", "cmSaleShow": "فاتورة بيع", "cmPurchases": "شراء بضاعة", "cmPurchaseAdd": "فاتورة شراء",
  "cmReturns": "المرتجعات", "cmReturnAdd": "مرتجع جديد",
