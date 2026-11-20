@@ -7916,6 +7916,8 @@ button.pr-pin{cursor:pointer;color:var(--navy);font-weight:600;background:var(--
 .h19-ex a>svg:last-child{width:16px;height:16px;color:var(--muted);margin-inline-start:auto}
 .h19-ex div{display:flex;flex-direction:column}
 .h19-ex small{color:var(--muted);font-size:12px}
+/* v1.61 رابط لشاشة مش ضمن البرنامج */
+.pg-off{opacity:.42!important;cursor:not-allowed!important;filter:grayscale(1)}
 /* v1.62 سجل النشاط */
 .al-fbar{flex-wrap:wrap}
 .al-fbar .al-sid{max-width:130px}

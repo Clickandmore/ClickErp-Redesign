@@ -3567,7 +3567,7 @@ const PROGS={
  tasks:{ar:"نظام المهام والموارد البشرية",en:"Tasks & HR",i:"list-checks",c:"tsk",home:"tcMy",d:"شركة خدمات شغلها مهام وفريق: مركز المهام والحضور والطلبات والرواتب، من غير استقدام ولا مالية"}};
 const PG_DEPT={all:["recruitment","general","tasks"],ops:["recruitment","general"],crm:["recruitment","general","tasks"],finance:["recruitment","general"],hr:["recruitment","general","tasks"],tasks:["general","tasks"],settings:["recruitment","general","tasks"]};
 const PG_RG=["recruitment","general"],PG_R=["recruitment"];
-const PG_ITEM={dashboard:PG_R,reports:PG_RG,recDash:PG_RG,"hb-board":PG_RG,"hb-visits":PG_RG,"hb-alerts":PG_RG,"hb-clients":PG_RG,hbCollect:PG_RG,"hb-services":PG_RG,claims:PG_R,hrWorkers:PG_RG,coupons:PG_RG,selectWorkers:PG_R,setCountry:PG_R,setRecruit:PG_R,setRental:PG_R};
+const PG_ITEM={dashboard:PG_R,reports:PG_RG,recDash:PG_RG,"hb-board":PG_RG,"hb-visits":PG_RG,"hb-alerts":PG_RG,"hb-clients":PG_RG,hbCollect:PG_RG,"hb-services":PG_RG,claims:PG_R,hrWorkers:PG_R,coupons:PG_RG,selectWorkers:PG_R,setCountry:PG_R,setRecruit:PG_R,setRental:PG_R};
 const PG_OPS_DEF=PG_R; /* أي سطر في العمليات من غير تحديد = استقدام بس */
 const PG_KEY="clickerp-program";
 let PROG=(QP.get("program")||"").trim();
@@ -3581,6 +3581,9 @@ for(let k=DEPTS.length-1;k>=0;k--){const d=DEPTS[k];
  if(!PG_DEPT[d.id].includes(PROG)){DEPTS.splice(k,1);continue}
  const keep=d.items.filter(p=>p.sec||pgOf(d,p).includes(PROG));
  d.items=keep.filter((p,j)=>!p.sec||(keep[j+1]&&!keep[j+1].sec));}
+/* نصوص الإدارات لكل برنامج = v2.nav.depts_profiles في الكود */
+const PG_DTXT={general:{ops:"التأجير بالساعة والعمليات"},tasks:{all:"الشركة اليوم والتقارير والمفضلة",crm:"العملاء والمتابعة والتواصل"}}[PROG]||{};
+DEPTS.forEach(d=>{if(PG_DTXT[d.id])d.d=PG_DTXT[d.id]});
 const PG_ORDER={recruitment:["all","ops","crm","finance","hr","settings"],general:["all","finance","ops","crm","hr","tasks","settings"],tasks:["all","tasks","hr","crm","settings"]}[PROG];
 DEPTS.sort((a,b)=>PG_ORDER.indexOf(a.id)-PG_ORDER.indexOf(b.id));
 const SUBS={finDash:["finDashGen"],cmsHome:["cmsBlogs","cmsBlogForm","cmsOffers","cmsHero","cmsSections","cmsTestimonials","cmsPartners","cmsFaq"],reqRec:["orderShow"],reqRent:["rentalOrders","rentalOrderShow"],rcExtensions:["rcRenewals","rcReturns","rcReturnShow"],absconding:["abscShow"],rentalSettings:["rentalTerms"],rcFinance:["rcFinanceShow"],inbound:["inboundShow"],finCreditNotes:["finCreditNoteAdd"],setDev:["saSubscription","saModules","saEmployees","saDesigns","saUpdates","saUpdateForm","saBackups","saScheduler","saRecovery","saInvoices","saInvoiceFix","saMcp","saMoyasar","saTestAccounts"],tcMy:["tcPolicy","tcClose"],tcBoard:["tcTask","tcForm","tcList","tcLanes","tcBoardD","tcCard","tcNew","tcCardQA","tcShare"],tcQA:["tcQALib"],tcAdmin:["tcRemind"],hrAttendance:["tcCheckin","tcGeo","hrPunchImport","hrRemote"],hrDocuments:["hrRenewal","hrMuqeem"],hrWorkers:["hrWorkerShow"],hrPerformance:["hrReview","hrSurvey"],hrSettings:["hrEstablishments","hrApprovalFlows","hrCompliance"],myRequests:["myRequestNew","myRequestShow"],tcTeam:["tcMember","tcShots","tcSessions"],tcHours:["tcAttend"],tcSettings:["tcMigrate"],contracts:["contractShow","contractAdd","contractEdit"],cvs:["cvAdd","cvShow","cvEdit","cvReview","cvShares"],rentalCvs:["rentalCvShow","rentalCvAdd"],clients:["clientShow","clientAdd"],
@@ -5848,7 +5851,7 @@ const TCNAV=[["شغلي",[["tcMy","sun","يومي"],["tcInbox","inbox","الوا
  ["مراحل الشغل",[["tcSpecs","file-text","التحليل والمواصفات"],["tcQA","flask-conical","الاختبار",4],["tcAdmin","briefcase","الإدارة",2]]],
  ["الفريق والوقت",[["hrAttendance","map-pin","الحضور"],["tcTeam","users","متابعة الفريق"],["tcApprovals","hourglass","موافقات الوقت",3,"a"],["tcHours","bar-chart-3","التقارير"],["tcSettings","settings","الإعدادات"]]]];
 window.TCNAV_IDS=TCNAV.flatMap(g=>g[1].map(x=>x[0]));
-const tcTabs=on=>{on=TCP[on]||on;return `<nav class="tcnav" aria-label="مركز المهام">${TCNAV.map(g=>`<div class="tcnav-g"><small>${g[0]}</small><div>${g[1].map(x=>`<a href="${x[0]}.html" data-go="${x[0]}" class="${x[0]===on?"on":""}"${x[0]===on?' aria-current="page"':""}>${X(x[1])}<span>${x[2]}</span>${x[3]!=null?`<em class="num${x[4]?" "+x[4]:""}">${x[3]}</em>`:""}</a>`).join("")}</div></div>`).join("")}</nav>`};
+const tcTabs=on=>{on=TCP[on]||on;if(window.CERP_PGOF&&!(window.CERP_PGOF("tcMy")||[]).includes(window.CERP_PROG))return "";return `<nav class="tcnav" aria-label="مركز المهام">${TCNAV.map(g=>`<div class="tcnav-g"><small>${g[0]}</small><div>${g[1].map(x=>`<a href="${x[0]}.html" data-go="${x[0]}" class="${x[0]===on?"on":""}"${x[0]===on?' aria-current="page"':""}>${X(x[1])}<span>${x[2]}</span>${x[3]!=null?`<em class="num${x[4]?" "+x[4]:""}">${x[3]}</em>`:""}</a>`).join("")}</div></div>`).join("")}</nav>`};
 const TIMER=(num,title,el)=>`<div class="tc-timer"><span class="tc-pulse"></span>${X("timer")}<span>المؤقت شغال على <a href="#" data-go="tcTask"><b class="num">${num}</b> — ${title}</a></span><b class="num tc-clock">${el}</b><span class="tc-mon">${X("monitor-check")}مشاركة الشاشة شغالة · <span class="num">7</span> لقطات</span>${B("ghost sm","app-window","نافذة المراقبة")}${B("red sm","square","إيقاف")}</div>`;
 
 /* ---- tasks ---- */
@@ -9644,11 +9647,13 @@ const pCrm=()=>`
 
 /* ================= page ================= */
 const TABS_=[["all","layout-dashboard","نظرة عامة",null,pOverview],["rec","file-text","الاستقدام",38,pRec],["ext","globe","المكاتب والسير",235,pExt],["rent","key-round","التأجير",13,pRent],["visa","stamp","التأشيرات",18,pVisa],["trans","arrow-left-right","نقل الخدمات",17,pTrans],["housing","home","الإيواء",64,pHousing],["trips","plane","الرحلات",6,pTrips],["crm","users","العملاء والخدمة",241,pCrm],["hourly","clock","التأجير بالساعة",342,pHourly]];
+/* v1.61: زي InfoDashboard::TABS في الكود — كل تبويب مربوط بموديول؛ النظام العام مفيهوش operations فبيفضل «نظرة عامة» و«التأجير بالساعة» بس */
+if(window.CERP_PROG&&window.CERP_PROG!=="recruitment"){const h=TABS_.find(t=>t[0]==="hourly");TABS_.length=0;TABS_.push(["all","layout-dashboard","نظرة عامة",null,h[4]])} /* OverviewTab بيجمع التبويبات المسموحة بس = التأجير بالساعة */
 let LDT="all";try{const h=location.hash.slice(1);if(TABS_.some(t=>t[0]===h))LDT=h}catch(_){}
 window.__LDT=k=>{LDT=k};
 const S={};
 S.recDash=()=>`<div class="ld-root">
- ${HEAD("لوحة المعلومات","إحصائيات كل العمليات مرتبة بالأولوية: الاستقدام، المكاتب، التأجير، التأشيرات، نقل الخدمات، الإيواء، الرحلات، العملاء، والتأجير بالساعة · محدّث 10:24",
+ ${HEAD("لوحة المعلومات",(window.CERP_PROG==="general"?"إحصائيات العمليات المفعّلة في النسخة: التأجير بالساعة · محدّث 10:24":"إحصائيات كل العمليات مرتبة بالأولوية: الاستقدام، المكاتب، التأجير، التأشيرات، نقل الخدمات، الإيواء، الرحلات، العملاء، والتأجير بالساعة · محدّث 10:24"),
   `<button class="pill">${X("building-2")}<span>كل الفروع</span>${X("chevron-down")}</button><div class="cx-seg2 o2-seg ld-per"><button>الأسبوع</button><button class="on">الشهر</button><button>الربع</button><button>السنة</button></div>`+B("ghost","file-spreadsheet","تصدير")+B("ghost","bar-chart-3","مركز التقارير",'data-go="reports"'))}
  <nav class="ld-tabs" role="tablist">${TABS_.map(t=>`<button role="tab" class="${t[0]===LDT?"on":""}" data-ldt="${t[0]}" ${t[0]!=="all"?`style="--c:${{rec:M.rec[1],ext:M.rec[1],rent:M.rent[1],visa:M.visa[1],trans:M.trans[1],housing:"var(--navy)",trips:"#2a78d6",crm:"var(--navy)",hourly:M.hr[1]}[t[0]]}"`:""}>${X(t[1])}<span>${t[2]}</span>${t[3]!=null?`<em class="num">${t[3]}</em>`:""}</button>`).join("")}</nav>
  ${TABS_.map(t=>`<div class="ld-pane" data-ldp="${t[0]}"${t[0]===LDT?"":" hidden"}>${t[4]()}</div>`).join("")}
@@ -12156,3 +12161,19 @@ const nv=document.querySelector("#app .nav"),on=nv&&nv.querySelector("a.on");if(
 
 /* v1.58 — تنبيه «الشاشة دي مش ضمن البرنامج» فوق محتوى الصفحة */
 (()=>{const pg=document.querySelector("#app .page");if(!pg||!window.CERP_PNOTE)return;const go=()=>{try{window.CERP_PNOTE();if(window.lucide)lucide.createIcons({attrs:{"stroke-width":1.8}})}catch(e){}};new MutationObserver(go).observe(pg,{childList:true});go()})();
+
+/* v1.61 — زي Design::can / RouteAccess::canOpen في الكود: أي رابط لشاشة مش ضمن برنامج النسخة بيتقفل بدل ما يفتح شاشة مقفولة.
+   «لوحة التحكم» بتتحوّل لرئيسية البرنامج. */
+(()=>{const G=window.CERP_PROG,PS=window.CERP_PROGS,OF=window.CERP_PGOF;if(!G||!PS||!OF)return;
+ if(window.CERP_PAGE==="finDash"&&G==="general"){location.replace("finDashGen.html"+location.search);return}
+ const tgt=el=>{if(el.dataset.go)return el.dataset.go;const h=el.getAttribute("href")||"";const m=h.match(/^([A-Za-z0-9_-]+)\.html/);return m?m[1]:null};
+ const seen=new WeakSet();let q=0;
+ /* من غير ما نكتب attribute على كل رابط: صفحات زي المحادثات عندها observer بيعيد الرسم، والكتابة كانت بتعمل حلقة */
+ const scan=()=>{q=0;document.querySelectorAll("#app [data-go],#app a[href$='.html'],#app a[href*='.html?']").forEach(el=>{if(seen.has(el))return;seen.add(el);if(el.closest(".nav,.prog-wrap,.prog-note"))return;
+  const t=tgt(el);if(!t)return;const own=OF(t);if(!own||own.includes(G))return;
+  if(t==="dashboard"){if(el.dataset.go)el.dataset.go=PS[G].home;else el.setAttribute("href",PS[G].home+".html");return}
+  el.classList.add("pg-off");el.setAttribute("aria-disabled","true");el.title=t2("مش ضمن «"+PS[G].ar+"» — تابعة لـ ")+own.map(k=>"«"+PS[k].ar+"»").join(" و")})};
+ const t2=x=>x;
+ document.addEventListener("click",e=>{const o=e.target.closest(".pg-off");if(o){e.preventDefault();e.stopImmediatePropagation()}},true);
+ const app=document.getElementById("app");if(app){new MutationObserver(()=>{if(!q)q=setTimeout(scan,60)}).observe(app,{childList:true,subtree:true});scan()}
+})();
