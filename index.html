@@ -117,12 +117,21 @@ footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
 .progs .pg em{margin-top:auto;font-style:normal;font-weight:700;color:var(--pc);font-size:14px}
 .progs .pg:hover{box-shadow:0 12px 28px -18px rgba(16,26,46,.5)}
 @media (max-width:900px){.progs .pg-grid{grid-template-columns:1fr 1fr}}@media (max-width:560px){.progs .pg-grid{grid-template-columns:1fr}}
+.guide .gcards{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:14px;margin-top:18px}
+.gcard{display:flex;flex-direction:column;gap:6px;padding:18px;border:1px solid var(--line);border-radius:14px;background:var(--card);text-decoration:none;transition:.15s}
+.gcard:hover{border-color:var(--navy);transform:translateY(-2px)}
+.gcard b{font-family:var(--display);font-size:18px;color:var(--ink)}
+.gcard span{font-size:14px;color:var(--muted);line-height:1.7}
+.gcard em{font-style:normal;font-weight:700;color:var(--green-d);margin-top:auto}
+.gcard.main{background:var(--navy);border-color:var(--navy)}
+.gcard.main b{color:#fff}.gcard.main span{color:#c9d3e3}.gcard.main em{color:var(--green)}
+@media(max-width:900px){.guide .gcards{grid-template-columns:1fr 1fr}}
 </style>
 </head>
 <body>
 <div class="top"><div class="wrap">
   <div class="brand"><img src="assets/logo-light-tight.png" alt="Click &amp; More"><span>Click ERP <small>· إعادة التصميم v1.3.1</small></span></div>
-  <nav><a class="btn gh" href="superadmin/programs.html">Super Admin</a><a class="btn gh" href="screens.html">فهرس الشاشات</a><a class="btn pri" href="login.html">افتح النموذج الحي</a></nav>
+  <nav><a class="btn gh" href="superadmin/programs.html">Super Admin</a><a class="btn gh" href="designGuide.html">دليل التصميم</a><a class="btn gh" href="screens.html">فهرس الشاشات</a><a class="btn pri" href="login.html">افتح النموذج الحي</a></nav>
 </div></div>
 
 <section class="cover">
@@ -148,6 +157,15 @@ footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
 
 <main class="wrap">
   <!-- v1.58: البرامج الثلاثة + Super Admin — ادخل على أي واحد مباشرة -->
+  <section class="guide" id="guide">
+    <header class="sec-h"><span class="idx">★</span><div><h2>دليل التصميم</h2><p>المرجع الذي تُبنى عليه كل شاشات النظام وتُراجع به: متى نستخدم كل نمط، وكيف تُبنى الإضافة والتعديل والعرض والجداول، مع أمثلة حية تعمل بالكامل.</p></div></header>
+    <div class="gcards">
+      <a class="gcard main" href="designGuide.html"><b>الدليل</b><span>15 قسماً: المبادئ، اختيار النمط، الإضافة، المختصر والكامل، التعديل، العرض، الجداول، صندوق القرارات، الحالات، المكوّنات، الألوان، الكتابة، وقائمة المراجعة.</span><em>افتح الدليل ←</em></a>
+      <a class="gcard" href="guideTable.html"><b>مثال: جدول</b><span>شرائح الحالة، البحث، الفرز، التحديد، الترقيم، والحالة الفارغة.</span><em>جرّب ←</em></a>
+      <a class="gcard" href="guideShow.html"><b>مثال: عرض</b><span>البطاقة، الإجراءات، المراحل، التبويبات، و«أكمل البيانات».</span><em>جرّب ←</em></a>
+      <a class="gcard" href="guideAdd.html"><b>مثال: إضافة وتعديل</b><span>مختصر وكامل، التحقق، مسار الاعتماد، والمراجعة قبل الحفظ.</span><em>جرّب ←</em></a>
+    </div>
+  </section>
   <section class="progs">
     <header class="sec-h"><span class="idx">00</span><div><h2>البرامج الثلاثة و Super Admin</h2><p>نفس الكود بيطلع 3 برامج منفصلة. كل واحد بقائمته ورئيسيته، وSuper Admin بيحدد نوع كل نسخة.</p></div></header>
     <div class="pg-grid">

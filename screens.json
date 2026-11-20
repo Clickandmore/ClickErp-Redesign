@@ -14,6 +14,21 @@
       "title": "دليل التصميم"
     },
     {
+      "id": "guideTable",
+      "file": "guideTable.html",
+      "title": "مثال الدليل: جدول"
+    },
+    {
+      "id": "guideShow",
+      "file": "guideShow.html",
+      "title": "مثال الدليل: عرض"
+    },
+    {
+      "id": "guideAdd",
+      "file": "guideAdd.html",
+      "title": "مثال الدليل: إضافة وتعديل"
+    },
+    {
       "id": "dashboard",
       "file": "dashboard.html",
       "title": "لوحة التحكم"

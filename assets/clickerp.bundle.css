@@ -7887,3 +7887,32 @@ button.pr-pin{cursor:pointer;color:var(--navy);font-weight:600;background:var(--
 #prl .pr-q{padding:5px 9px}
 #prl .pr-qr{gap:6px}
 #prl .pr-qc select{max-width:118px}
+/* v1.60 — live guide examples */
+.h19-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:10px 14px;margin-bottom:14px;border-radius:var(--r);background:var(--navy);color:#dfe6f2;font-size:13px}
+.h19-bar>svg{width:17px;height:17px;color:var(--green)}
+.h19-bar span{flex:1;min-width:240px}
+.h19-bar b{color:#fff}
+.h19-bar a{padding:4px 10px;border-radius:999px;background:rgba(255,255,255,.1);color:#fff;text-decoration:none;font-weight:600;font-size:12.5px}
+.h19-bar a:hover{background:rgba(255,255,255,.2)}
+.h19-row{cursor:pointer}
+.h19-row:hover td{background:var(--bg)}
+.h19-al{display:block;font-size:11.5px;color:var(--red);margin-top:3px}
+.h19-sort{display:inline-flex;align-items:center;gap:4px;border:0;background:none;font:inherit;font-weight:inherit;color:inherit;cursor:pointer;padding:0}
+.h19-sort svg{width:13px;height:13px}
+.h19-sel{margin-bottom:10px}
+.h19-inc{display:flex;align-items:center;gap:12px;padding:14px 16px;margin-bottom:14px;border-color:var(--amber);background:var(--amber-soft)}
+.h19-inc>svg{width:22px;height:22px;color:var(--amber);flex:none}
+.h19-inc div{flex:1;display:flex;flex-direction:column}
+.h19-inc small{color:var(--body)}
+.h19-confirm{display:flex;flex-direction:column;gap:8px;margin-top:12px;padding:12px;border-radius:var(--r-s);background:var(--red-soft)}
+.h19-confirm b{font-size:13px;color:var(--red)}
+.h19-confirm>div{display:flex;gap:8px}
+.h19-chg{border-color:#3b82f6!important;box-shadow:0 0 0 3px rgba(59,130,246,.12)}
+.h19-old{color:var(--muted);text-decoration:line-through}
+.h19-ex{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:16px}
+.h19-ex a{display:flex;align-items:center;gap:12px;padding:14px 16px;text-decoration:none;color:inherit;border:1px solid var(--line)}
+.h19-ex a:hover{border-color:var(--navy)}
+.h19-ex a>svg:first-child{width:22px;height:22px;color:var(--green-d);flex:none}
+.h19-ex a>svg:last-child{width:16px;height:16px;color:var(--muted);margin-inline-start:auto}
+.h19-ex div{display:flex;flex-direction:column}
+.h19-ex small{color:var(--muted);font-size:12px}

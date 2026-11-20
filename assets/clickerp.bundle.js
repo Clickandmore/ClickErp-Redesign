@@ -11730,6 +11730,7 @@ const demoTable=()=>`<div class="h18-demo"><div class="page-head"><div><h1 style
 
 S.designGuide=()=>`
  ${HEAD("دليل التصميم","المرجع المعتمد لكل شاشات Click ERP: متى نستخدم كل نمط، وكيف تُبنى الإضافة والتعديل والعرض والجداول، وقائمة مراجعة لأي شاشة جديدة أو حالية. الأمثلة هنا مبنية بالمكوّنات الحقيقية نفسها.",B("ghost","list","فهرس الشاشات",'onclick="location.href=\'screens.html\'"'))}
+ <div class="h19-ex">${[["guideTable","table","مثال: جدول","فلاتر وبحث وترتيب وتحديد وترقيم — يعمل بالكامل"],["guideShow","layout-panel-left","مثال: عرض","بطاقة وإجراءات ومراحل وتبويبات وبطاقة «أكمل البيانات»"],["guideAdd","file-plus","مثال: إضافة وتعديل","مختصر وكامل، تحقق، مسار اعتماد، ومراجعة «قبل ← بعد» في التعديل"]].map(x=>`<a href="#" data-go="${x[0]}" class="card">${X(x[1])}<div><b>${x[2]}</b><small>${x[3]}</small></div>${X("arrow-left")}</a>`).join("")}</div>
  <div class="h18-lay"><aside class="card h18-toc"><b>المحتويات</b>${TOC.map((t,i)=>`<a href="#g-${t[0]}" data-h18-toc="${t[0]}"><span class="num">${i+1}</span>${t[1]}</a>`).join("")}<small class="fhint">الإصدار v1.59 · 2026-11-20</small></aside><div class="h18-main">
 
  ${SEC("principles",1,"المبادئ","سبع قواعد تحكم كل قرار تصميم. عند التعارض، القاعدة الأعلى تغلب.",`<div class="h18-grid3">${[["target","الأهم أولاً","كل شاشة تجيب أولاً عن «ماذا أفعل الآن؟»: المتأخر، والبانتظار، والناقص، قبل التفاصيل."],["list-ordered","نمط واحد لكل نوع شاشة","الإضافة كلها بنمط واحد، والعرض كله بنمط واحد، والجداول كلها بنمط واحد. المستخدم يتعلم مرة واحدة."],["zap","المختصر أولاً","ابدأ بالحقول الإلزامية فقط، والباقي يُكمل لاحقاً. الكامل متاح بضغطة."],["eye","المراجعة قبل الحفظ","قبل أي حفظ أو إرسال يرى المستخدم ملخصاً وفحصاً تلقائياً وأثر العملية."],["shield-check","النظام يمنع ولا ينصح","القاعدة النظامية قيد في الشاشة: يمنع أو يطلب سبباً، مع جملة تشرح لماذا."],["link","كل رقم له مصدر","الأرقام متطابقة بين الشاشات، وكل رقم محسوب يظهر بمعادلته أو بمصدره."],["type","عربية فصحى مبسطة","جمل قصيرة، بلا عامية ولا أسماء تقنية، وأزرار بأفعال واضحة."]].map(p=>`<div class="h18-pr">${X(p[0])}<b>${p[1]}</b><small>${p[2]}</small></div>`).join("")}</div>`)}
@@ -11781,6 +11782,148 @@ if(!window.__h18){window.__h18=1;
  document.addEventListener("click",e=>{const t=e.target.closest&&e.target.closest("[data-h18-toc]");if(t){e.preventDefault();const el=document.getElementById("g-"+t.dataset.h18Toc);if(el)el.scrollIntoView({behavior:"smooth",block:"start"});return}
   const c=e.target.closest&&e.target.closest("[data-h18-ci]");if(c){c.classList.toggle("on");const n=document.querySelectorAll("[data-h18-ci].on").length,s=document.querySelector("[data-h18-score]");if(s)s.textContent=n+" من 15"}});}
 Object.assign(T,{designGuide:{ar:"دليل التصميم",en:"Design guide"}});
+Object.keys(S).forEach(k=>{screens[k]=S[k]});
+})();
+
+/* ===== v1.60 — أمثلة الدليل الحية: جدول · عرض · إضافة وتعديل (عقد استقدام) ===== */
+(()=>{
+const {X,KV,TAG,FLD,HEAD,B,STAT}=window.CXH;
+const {CHK,TL}=window.HRX;const CHAIN=window.HRX2.CHAIN;
+window.CERP_PAGES=(window.CERP_PAGES||[]).concat(["guideTable","guideShow","guideAdd"]);
+const S={};
+const ico=()=>{if(window.lucide)lucide.createIcons({attrs:{"stroke-width":1.8}})};
+const n2=v=>v.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+const num=v=>+String(v||"").replace(/[^\d.]/g,"")||0;
+const kvs=l=>`<div class="kvgrid">${l.map(x=>`<div class="kv"><span>${x[0]}</span><b>${x[1]}</b></div>`).join("")}</div>`;
+const sect=(ic,t,inner,act)=>`<div class="card sec"><div class="sec-h">${X(ic)}<b>${t}</b>${act?`<span style="margin-inline-start:auto">${act}</span>`:""}</div>${inner}</div>`;
+const BAR=(on)=>`<div class="h19-bar">${X("book-open")}<span><b>مثال من دليل التصميم</b> — نمط ${on}. انسخ البنية والسلوك كما هما لأي شاشة من النوع نفسه.</span>${[["designGuide","الدليل"],["guideTable","مثال الجدول"],["guideShow","مثال العرض"],["guideAdd","مثال الإضافة والتعديل"]].map(x=>`<a href="#" data-go="${x[0]}">${x[1]}</a>`).join("")}</div>`;
+
+/* ---------- بيانات المثال ---------- */
+const ST={new:["n","جديد"],run:["a","جارٍ"],late:["r","متأخر"],done:["g","مكتمل"]};
+const ROWS=[["CN-2026-0142","منيرة الشهري","الفلبين · عاملة منزلية","الفرع الرئيسي","2026-11-18",18500,"late","التفييز متأخر 4 أيام"],["CN-2026-0141","فهد العنزي","كينيا · عاملة منزلية","فرع جدة","2026-11-17",16900,"run",""],["CN-2026-0140","شركة نجد","الهند · سائق خاص","الفرع الرئيسي","2026-11-15",21000,"run",""],["CN-2026-0139","سلمى الحربي","أوغندا · عاملة منزلية","الفرع الرئيسي","2026-11-14",15800,"new","بانتظار عربون"],["CN-2026-0138","ماجد القحطاني","سريلانكا · طباخة","فرع جدة","2026-11-12",17500,"done",""],["CN-2026-0137","نورة الدوسري","الفلبين · عاملة منزلية","الفرع الرئيسي","2026-11-11",18500,"run",""],["CN-2026-0136","عبدالله المطيري","بنغلاديش · سائق خاص","الفرع الرئيسي","2026-11-10",19900,"late","الوصول متأخر"],["CN-2026-0135","هيا الشمري","إندونيسيا · عاملة منزلية","فرع جدة","2026-11-08",16200,"done",""],["CN-2026-0134","خالد الزهراني","كينيا · عاملة منزلية","الفرع الرئيسي","2026-11-06",16900,"new",""],["CN-2026-0133","ريم العتيبي","الفلبين · عاملة منزلية","الفرع الرئيسي","2026-11-05",18500,"done",""],["CN-2026-0132","تركي السبيعي","الهند · سائق خاص","فرع جدة","2026-11-03",21000,"run",""],["CN-2026-0131","لطيفة القرني","أوغندا · عاملة منزلية","الفرع الرئيسي","2026-11-01",15800,"done",""]];
+const TB={st:"",q:"",br:"",sort:"date",dir:-1,page:1,sel:{}};
+const PER=5;
+const fl=()=>{let r=ROWS.filter(x=>(!TB.st||x[6]===TB.st)&&(!TB.br||x[3]===TB.br)&&(!TB.q||(x[0]+x[1]).indexOf(TB.q)>-1));r.sort((a,b)=>TB.sort==="amt"?(a[5]-b[5])*TB.dir:TB.sort==="date"?(a[4]<b[4]?-1:1)*TB.dir:0);if(TB.sort==="pri"){const o={late:0,new:1,run:2,done:3};r.sort((a,b)=>o[a[6]]-o[b[6]])}return r};
+const tableBody=()=>{const r=fl(),pages=Math.max(1,Math.ceil(r.length/PER));if(TB.page>pages)TB.page=pages;const pg=r.slice((TB.page-1)*PER,TB.page*PER),nsel=Object.values(TB.sel).filter(Boolean).length,sum=r.reduce((a,x)=>a+x[5],0);
+ const cnt=k=>ROWS.filter(x=>!k||x[6]===k).length;
+ return `<div class="cx-chips">${[["","الكل",""],["late","متأخر","r"],["new","جديد","n"],["run","جارٍ","a"],["done","مكتمل","g"]].map(c=>`<button data-gt="st:${c[0]}" class="${TB.st===c[0]?"on":""}">${c[2]?`<i class="d ${c[2]}"></i>`:""}${c[1]}<b class="num">${cnt(c[0])}</b></button>`).join("")}</div>
+ <div class="fbar"><div class="fb grow"><label>بحث</label><div class="inp">${X("search")}<input data-gt-q="" value="${TB.q}" placeholder="اسم العميل أو رقم العقد"></div></div><div class="fb"><label>الفرع</label><select data-gt-br=""><option value="">كل الفروع</option>${["الفرع الرئيسي","فرع جدة"].map(b=>`<option${b===TB.br?" selected":""}>${b}</option>`).join("")}</select></div><div class="fb"><label>الترتيب</label><select data-gt-sort=""><option value="date"${TB.sort==="date"?" selected":""}>الأحدث</option><option value="pri"${TB.sort==="pri"?" selected":""}>ما يحتاج تصرفاً أولاً</option><option value="amt"${TB.sort==="amt"?" selected":""}>المبلغ</option></select></div></div>
+ ${nsel?`<div class="fx-selbar h19-sel"><span><b class="num">${nsel}</b> محدد</span>${B("ghost sm","printer","طباعة")}${B("ghost sm","file-spreadsheet","Excel")}${B("ghost sm","x","إلغاء التحديد",'data-gt="clear:1"')}</div>`:""}
+ <div class="card flush fx-t">${r.length?`<div class="tw"><table><thead><tr><th style="width:34px"><input type="checkbox" data-gt-all=""${pg.every(x=>TB.sel[x[0]])?" checked":""}></th><th>العقد والعميل</th><th>العاملة</th><th>الفرع</th><th><button class="h19-sort" data-gt="sort:date">التاريخ ${X(TB.sort==="date"?(TB.dir<0?"arrow-down":"arrow-up"):"arrow-up-down")}</button></th><th><button class="h19-sort" data-gt="sort:amt">المبلغ (ر.س) ${X(TB.sort==="amt"?(TB.dir<0?"arrow-down":"arrow-up"):"arrow-up-down")}</button></th><th>الحالة</th><th class="act"></th></tr></thead><tbody>
+ ${pg.map(x=>`<tr class="h19-row${x[6]==="late"?" fx-late":""}" data-gt-open="${x[0]}"><td><input type="checkbox" data-gt-chk="${x[0]}"${TB.sel[x[0]]?" checked":""}></td><td><div class="hx-emp"><span class="hx-av">${x[1][0]}</span><div><b>${x[1]}</b><small class="num">${x[0]}</small></div></div></td><td><small>${x[2]}</small></td><td>${x[3]}</td><td class="num">${x[4]}</td><td class="num">${x[5].toLocaleString("en-US")}</td><td>${TAG(ST[x[6]][0],ST[x[6]][1])}${x[7]?`<small class="h19-al">${x[7]}</small>`:""}</td><td class="act"><button class="icon-btn" data-go="guideShow" title="عرض">${X("eye")}</button><button class="icon-btn" data-go="guideAdd" data-g-edit="1" title="تعديل">${X("pencil")}</button></td></tr>`).join("")}
+ </tbody><tfoot><tr><td></td><td colspan="4"><b>الإجمالي · ${r.length} عقود</b></td><td class="num"><b>${sum.toLocaleString("en-US")}</b></td><td colspan="2"></td></tr></tfoot></table></div>
+ <div class="tfoot"><span>عرض ${(TB.page-1)*PER+1}–${Math.min(TB.page*PER,r.length)} من ${r.length}</span><div class="pager"><button data-gt="pg:${TB.page-1}"${TB.page<=1?" disabled":""}>${X("chevron-right")}</button>${Array.from({length:pages},(_,i)=>`<button data-gt="pg:${i+1}" class="${i+1===TB.page?"on":""}">${i+1}</button>`).join("")}<button data-gt="pg:${TB.page+1}"${TB.page>=pages?" disabled":""}>${X("chevron-left")}</button></div></div>`
+ :`<div class="h13-empty">${X("search-x")}<b>لا توجد عقود بهذه الفلاتر</b><button class="btn btn-ghost sm" data-gt="reset:1">مسح الفلاتر</button></div>`}</div>`};
+S.guideTable=()=>`<div id="g-tbl">${BAR("الجداول والقوائم")}
+ ${HEAD("عقود الاستقدام","12 عقداً في نوفمبر · 2 متأخران · الإجمالي 216,500 ر.س",B("ghost","file-spreadsheet","Excel")+B("primary","plus","عقد جديد",'data-go="guideAdd"'))}
+ <div data-gt-body="">${tableBody()}</div></div>`;
+
+/* ---------- العرض ---------- */
+const W={tab:"over",status:"run",short:0,cancel:0};
+
+const SHT={over:["نظرة عامة","gauge"],client:["العميل","user-round"],worker:["العاملة","id-card"],fin:["المالية","wallet"],files:["المرفقات","paperclip"],log:["سجل النشاط","history"]};
+const SB={
+ over:()=>`${W.short?`<div class="card h19-inc">${X("alert-circle")}<div><b>البيانات غير مكتملة — حُفظ بالنموذج المختصر</b><small>ناقص: مدة العقد · مدينة الوصول · صورة هوية العميل</small></div>${B("primary sm","pencil","أكمل البيانات",'data-go="guideAdd" data-g-edit="1"')}</div>`:""}
+  ${sect("gauge","ملخص الحالة",`<div class="statgrid four">${[["المرحلة","التفييز","git-branch","a"],["المدفوع","5,000","wallet","g"],["المتبقي","13,500","clock","a"],["أيام منذ العقد","2","calendar","n"]].map(x=>`<div class="scard st6"><span class="sci ${x[3]}">${X(x[2])}</span><span class="sct">${x[0]}</span><b class="num">${x[1]}</b></div>`).join("")}</div>`)}
+  ${sect("id-card","البطاقة السريعة",kvs([["العميل","منيرة الشهري"],["الجوال",'<span class="num">0551112233</span>'],["العاملة","MARY GRACE SANTOS"],["الجنسية والمهنة","الفلبين · عاملة منزلية"],["الفرع","الفرع الرئيسي"],["مدة العقد",W.short?'<span class="h13-err">ناقص</span>':"24 شهراً"],["مدينة الوصول",W.short?'<span class="h13-err">ناقص</span>':"الرياض"],["الإجمالي",'<span class="num">18,500.00</span>']]))}
+  ${sect("bell","تنبيهات ومتابعة",`<div class="alerts"><div class="alert r">${X("dot")}<div><b>التفييز متأخر 4 أيام</b><small>المكتب الخارجي لم يرفع التأشيرة</small></div></div><div class="alert a">${X("dot")}<div><b>دفعة 13,500 مستحقة عند الوصول</b><small>بعد التذكرة</small></div></div></div>`)}`,
+ client:()=>sect("user-round","العميل",kvs([["الاسم","منيرة الشهري"],["الهوية",'<span class="num">1088223344</span>'],["الجوال",'<span class="num">0551112233</span>'],["المدينة","الرياض"],["عقود سابقة","1"]])),
+ worker:()=>sect("id-card","العاملة",kvs([["الاسم","MARY GRACE SANTOS"],["الجنسية","الفلبين"],["المهنة","عاملة منزلية"],["الجواز",'<span class="num">P1234567</span>'],["المكتب الخارجي","PLATINUM BROTHERS"]]),B("ghost sm","","السيرة الذاتية",'data-go="cvShow"')),
+ fin:()=>sect("wallet","المالية",`<div class="hx-slip">${[["سعر العقد","16,086.96",""],["ضريبة القيمة المضافة 15%","+2,413.04","p"],["المدفوع (عربون)","−5,000.00","m"]].map(l=>`<div class="${l[2]}"><span>${l[0]}</span><b class="num">${l[1]}</b></div>`).join("")}<div class="tot"><span>المتبقي</span><b class="num">13,500.00 ر.س</b></div></div>`),
+ files:()=>sect("paperclip","المرفقات",`<div class="msgrid">${[["file-signature","العقد الموقّع","PDF"],["id-card","هوية العميل",W.short?"غير مرفوعة":"PDF"],["receipt","سند العربون","PDF"]].map(f=>`<button class="mtile${f[2]==="غير مرفوعة"?" empty":""}"><span class="mimg">${X(f[0])}</span><b>${f[1]}</b><small>${f[2]}</small></button>`).join("")}</div>`),
+ log:()=>sect("history","سجل النشاط",`<div class="tl">${[["2026-11-18 10:12","أُنشئ العقد"+(W.short?" (مختصر)":""),"سارة القحطاني"],["2026-11-18 10:30","سُدد العربون 5,000","المحاسب"],["2026-11-19 09:00","انتقل إلى مرحلة التفييز","النظام"]].concat(W.cancel?[["اليوم","طُلب إلغاء العقد — بانتظار المدير","أنت"]]:[]).map(x=>`<div class="tli"><span class="dot"></span><div><b>${x[1]}</b><small>${x[2]}</small><small class="num">${x[0]}</small></div></div>`).join("")}</div>`)};
+S.guideShow=()=>{try{if(!W.read){W.read=1;W.short=sessionStorage.getItem("gShort")?1:0}}catch(_){}const st=ST[W.status];return `<div id="g-show">${BAR("العرض والتفاصيل")}
+ <div class="page-head compact"><div><a class="back" href="#" data-go="guideTable" style="margin:0 0 8px">${X("arrow-right")}<span>عقود الاستقدام</span></a><h1>CN-2026-0142 · منيرة الشهري</h1><p>عقد استقدام · الفلبين · عاملة منزلية · الفرع الرئيسي</p></div><div class="actions">${B("primary","pencil","تعديل العقد",'data-go="guideAdd" data-g-edit="1"')}${B("ghost","printer","طباعة")}</div></div>
+ <div class="showgrid3"><aside class="cvside">
+  <div class="card idcard"><span class="bigph">${X("file-signature")}</span><b>منيرة الشهري</b><small class="num">CN-2026-0142</small><span class="st tag ${st[0]}"><i></i>${W.cancel?"طلب إلغاء":st[1]}</span>${W.short?`<span class="tag a" style="margin-top:6px">غير مكتمل</span>`:""}<div class="idk">${[["الإجمالي","18,500"],["المدفوع","5,000"],["المرحلة","التفييز"],["المدة","24 شهراً"]].map(x=>`<div><small>${x[0]}</small><b>${x[1]}</b></div>`).join("")}</div></div>
+  <div class="card acard"><div class="sec-h">${X("settings-2")}<b>إجراءات العقد</b></div>
+   <div class="actrow col"><label>الحالة</label><select class="statsel" data-gs-status="">${Object.entries(ST).map(([k,v])=>`<option value="${k}"${k===W.status?" selected":""}>${v[1]}</option>`).join("")}</select></div>
+   <div class="actrow"><div><b>إشعارات العميل</b><small>واتساب عند كل مرحلة</small></div><button class="sw on" data-gs="sw:1"></button></div>
+   <div class="acts2">${[["wallet","سند قبض",""],["share-2","مشاركة",""],["printer","طباعة",""],["file-text","السيرة",'data-go="cvShow"'],["x-circle","إلغاء العقد",'data-gs="cancel:1"',1]].map(a=>`<button class="atile${a[3]?" danger":""}" ${a[2]}>${X(a[0])}<span>${a[1]}</span></button>`).join("")}</div>
+   ${W.cancel===1?`<div class="h19-confirm"><b>إلغاء العقد يحتاج سبباً واعتماد المدير</b><select data-gs-why=""><option value="">السبب…</option><option>طلب العميل</option><option>رفض التأشيرة</option></select><div>${B("primary sm","check","إرسال للاعتماد",'data-gs="cancel:2"')}${B("ghost sm","","تراجع",'data-gs="cancel:0"')}</div></div>`:""}
+  </div>
+ </aside><div class="cvmain">
+  <div class="card h17-path">${`<div class="h15-chain"><div class="h15-ch-t">${X("git-branch")}<b>مراحل العقد</b><small>المرحلة الحالية بالبرتقالي</small></div>${CHAIN([["العقد","موقّع",2,"18 نوفمبر"],["مساند","مسجّل",2,"18 نوفمبر"],["التفويض","تم",2,"19 نوفمبر"],["التفييز","متأخر 4 أيام",1,""],["التذكرة","",0,""],["الوصول","",0,""]])}</div>`}</div>
+  <div class="vtabs">${Object.entries(SHT).map(([k,v])=>`<button class="${k===W.tab?"on":""}" data-gs="tab:${k}">${X(v[1])}<span>${v[0]}</span></button>`).join("")}</div>
+  <div class="tabbody">${SB[W.tab]()}</div>
+ </div></div></div>`};
+
+/* ---------- الإضافة والتعديل ---------- */
+const ORIG={client:"منيرة الشهري",phone:"0551112233",cv:"MARY GRACE SANTOS — الفلبين",price:"18,500",disc:"0",pay:"تحويل بنكي",dur:"24 شهراً",city:"الرياض",note:""};
+const A0={mode:"short",type:"استقدام",edit:0,v:{client:"",phone:"",cv:"",price:"",disc:"0",pay:"",dur:"",city:"",note:""},f:{},err:{},msg:"",done:0};
+const A=JSON.parse(JSON.stringify(A0));
+const FL=[["s1","العميل",[["client","العميل","sel",["منيرة الشهري","فهد العنزي","شركة نجد"],1,"",1],["phone","الجوال","txt","",1,"تصله رسائل المراحل",1]]],["s2","العاملة",[["cv","السيرة الذاتية","sel",["MARY GRACE SANTOS — الفلبين","JANE WANJIRU — كينيا","ANU PERERA — سريلانكا"],1,"المتاحة فقط",1]]],["s3","المالية",[["price","سعر العقد شامل الضريبة (ر.س)","txt","",1,"",1],["disc","الخصم (ر.س)","txt","0",0,"فوق 1,000 يمر على المدير",0],["pay","طريقة الدفع","sel",["تحويل بنكي","نقدي","ميسر"],1,"",1]]],["s4","العقد والوصول",[["dur","مدة العقد","sel",["24 شهراً","12 شهراً"],0,"",0],["city","مدينة الوصول","sel",["الرياض","جدة","الدمام"],0,"",0],["note","ملاحظات","txt","",0,"",0]]]];
+const vis=fs=>A.mode==="full"?fs:fs.filter(f=>f[6]);
+const gv=f=>A.v[f[0]];
+const calc=()=>{const p=num(A.v.price),d=num(A.v.disc),tot=Math.max(0,p-d),vat=tot-tot/1.15;return {p,d,tot,vat,base:tot-vat}};
+const secs=()=>FL.filter(s=>A.mode==="full"||s[0]!=="s4").concat([["s5","المرفقات",null],["s6",A.edit?"المراجعة قبل حفظ التعديلات":"المراجعة قبل الحفظ",null]]);
+const okOf=s=>s[2]?vis(s[2]).every(f=>!f[4]||String(gv(f)||"").trim()):s[0]==="s5"?(A.mode!=="full"||!!A.f.id):false;
+const ctl=f=>{const v=gv(f)||"",bad=A.err[f[0]]?" h14-bad":"",ch=A.edit&&String(v)!==String(ORIG[f[0]])?" h19-chg":"";
+ if(f[2]==="sel")return `<select data-ga="${f[0]}" class="${bad}${ch}"><option value="">اختر…</option>${f[3].map(o=>`<option${o===v?" selected":""}>${o}</option>`).join("")}</select>`;
+ return `<div class="inp${bad}${ch}"><input data-ga="${f[0]}" class="num" value="${v}"></div>`};
+const addBody=()=>{const c=calc(),sc=secs(),mgr=c.d>1000;
+ const chain=[["المبيعات","أنت",1,"الآن"]].concat(mgr?[["مدير الفرع","خصم فوق 1,000",0,""]]:[]).concat([["المالية","مراجعة العربون",0,""]]);
+ const diff=A.edit?FL.flatMap(s=>s[2]).filter(f=>String(A.v[f[0]])!==String(ORIG[f[0]])).map(f=>[f[1],`<span class="h19-old">${ORIG[f[0]]||"—"}</span> ← <b>${A.v[f[0]]||"—"}</b>`]):[];
+ if(A.done)return `<div class="card h14-ok">${X("check-circle-2")}<div><h3>${A.edit?"حُفظت التعديلات على CN-2026-0142":"تم حفظ العقد CN-2026-0143"+(A.mode==="short"?" — مختصر":"")}</h3><p>${A.edit?diff.length+" حقول تغيّرت وسُجّلت في سجل النشاط.":A.mode==="short"?"حُفظ بوسم «غير مكتمل»، وتظهر في صفحة العرض بطاقة «أكمل البيانات».":"وصل إشعار للعميل، وأُنشئت مهمة تسجيل العقد في مساند."}</p></div></div><div class="h14-next">${B("primary","eye","عرض العقد",'data-go="guideShow"'+(A.mode==="short"&&!A.edit?' data-g-short="1"':""))}${B("ghost","list","عقود الاستقدام",'data-go="guideTable"')}${B("ghost","plus","عقد جديد",'data-ga-act="reset"')}</div>`;
+ return `<div class="cvform h15">
+ <div class="card cvopts">
+  <div class="cvbar-g"><span>نوع العقد</span><div class="seg">${["استقدام","تأجير"].map(x=>`<button class="${A.type===x?"on":""}" data-ga-type="${x}">${x}</button>`).join("")}</div></div>
+  <div class="cvbar-g"><span>النموذج</span><div class="seg">${[["short","مختصر"],["full","كامل"]].map(x=>`<button class="${A.mode===x[0]?"on":""}" data-ga-mode="${x[0]}"${A.edit&&x[0]==="short"?" disabled":""}>${x[1]}</button>`).join("")}</div><small class="fhint">${A.edit?"التعديل بالنموذج الكامل دائماً":A.mode==="short"?"6 حقول إلزامية فقط · الباقي يُكمل من صفحة العقد":"كل الأقسام"}</small></div>
+  <div class="steps">${sc.map((s,i)=>{const ok=okOf(s);return `<button class="step${ok?" done":""}" data-ga-step="${s[0]}"><span class="num">${ok?X("check"):i+1}</span><b>${s[1]}</b></button>`}).join("")}</div>
+  <div class="cvbar-g col"><span>الإجمالي</span><div class="h16-net"><b class="num">${n2(c.tot)}</b><small>ر.س · منها ضريبة <b class="num">${n2(c.vat)}</b></small></div></div>
+  ${B("primary","save",A.edit?"حفظ التعديلات":"حفظ العقد",'data-ga-act="save"')}
+ </div>
+ <div class="card cvfields">
+  <div class="h15-chain"><div class="h15-ch-t">${X("git-branch")}<b>مسار الاعتماد</b><small>${mgr?"الخصم فوق 1,000 أضاف مدير الفرع":"يتغير مع الخصم"}</small></div>${CHAIN(chain)}</div>
+  ${sc.map((s,i)=>{const h=`<div class="fs-h" id="ga-${s[0]}"><span class="fs-n num">${i+1}</span><b>${s[1]}</b></div>`;
+   if(s[0]==="s5")return h+`<div class="msgrid up"><button class="mtile up h15-tile${A.f.id?" on":""}${A.err.id?" h14-bad":""}" data-ga-file="id"><span class="mimg">${X(A.f.id?"file-check-2":"id-card")}</span><b>صورة هوية العميل${A.mode==="full"?'<i class="rq">*</i>':""}</b><small>${A.f.id?"مرفوعة — اضغط للإزالة":A.mode==="full"?"إلزامية في الكامل":"اختيارية في المختصر"}</small></button><button class="mtile up h15-tile${A.f.sign?" on":""}" data-ga-file="sign"><span class="mimg">${X(A.f.sign?"file-check-2":"file-signature")}</span><b>العقد الموقّع</b><small>${A.f.sign?"مرفوع":"اختياري الآن"}</small></button></div>`;
+   if(s[0]==="s6")return h+`<div class="h15-rev"><div class="msec"><div class="msec-h">${X(A.edit?"git-compare":"file-text")}<b>${A.edit?"ما تغيّر":"ملخص العقد"}</b></div><div class="h17-in">${A.edit?(diff.length?kvs(diff):'<span class="empty">لم يتغير شيء بعد</span>'):kvs([["العميل",A.v.client||'<span class="h13-err">مطلوب</span>'],["العاملة",A.v.cv||'<span class="h13-err">مطلوب</span>'],["الإجمالي",n2(c.tot)+" ر.س"],["الدفع",A.v.pay||'<span class="h13-err">مطلوب</span>']])}</div></div>
+    <div class="msec"><div class="msec-h">${X("scan-search")}<b>الفحص</b></div><div class="h17-in">${CHK([[A.v.cv?"العاملة متاحة ومحجوزة لهذا العقد":"لم تُختر عاملة",A.v.cv?"تُحجز عند الحفظ":"",A.v.cv?"ok":"bad"],[mgr?"الخصم يحتاج موافقة المدير":"الخصم ضمن الصلاحية",mgr?n2(c.d)+" ر.س":"",mgr?"warn":"ok"],["الضريبة محسوبة 15%",n2(c.vat)+" ر.س","ok"]])}</div></div>
+    <div class="msec"><div class="msec-h">${X("play")}<b>بعد الحفظ</b></div><div class="h17-in"><div class="h8-after">${(A.edit?["يُسجَّل التعديل في سجل النشاط","يصل إشعار للعميل إذا تغيّر المبلغ"]:["تُحجز العاملة","مهمة تسجيل العقد في مساند","رسالة واتساب للعميل","قيد مسودة بالعربون عند السداد"]).map(x=>`<span>${X("check")}${x}</span>`).join("")}</div></div></div></div>
+    ${A.msg?`<div class="cvnote h15-warn">${X("alert-triangle")}<span>${A.msg}</span></div>`:""}`;
+   return h+`<div class="fgrid h15-g">${vis(s[2]).map(f=>FLD(f[1],ctl(f),f[4],A.err[f[0]]?'<span class="h13-err">مطلوب</span>':f[5])).join("")}</div>`}).join("")}
+  <div class="cvactions">${B("primary","save",A.edit?"حفظ التعديلات":"حفظ العقد",'data-ga-act="save"')}${A.edit?"":B("ghost","save","حفظ كمسودة",'data-ga-act="draft"')}${B("ghost","","إلغاء",`data-go="${A.edit?"guideShow":"guideTable"}"`)}<span class="empty">الحقول المعلّمة * إلزامية${A.edit?" · الحقل المعدَّل محاط بالأزرق":""}</span></div>
+ </div></div>`};
+S.guideAdd=()=>{try{const e=sessionStorage.getItem("gEdit");if(e!==null){sessionStorage.removeItem("gEdit");Object.assign(A,JSON.parse(JSON.stringify(A0)));if(e==="1"){A.edit=1;A.mode="full";A.v=Object.assign({},ORIG);A.f={id:1,sign:1}}}}catch(_){}
+ return `<div id="g-add">${BAR("الإضافة والتعديل")}
+ ${HEAD(A.edit?`تعديل العقد CN-2026-0142 <span class="tag a hdrtag">${X("pencil")}تعديل</span>`:"عقد استقدام جديد",A.edit?"النموذج الكامل بالقيم الحالية. المراجعة تعرض ما تغيّر قبل الحفظ.":"اختر النوع والنموذج من اللوحة، ثم املأ الأقسام بالترتيب، وراجع قبل الحفظ.",B("ghost","",A.edit?"رجوع للعقد":"إلغاء",`data-go="${A.edit?"guideShow":"guideTable"}"`),[A.edit?"guideShow":"guideTable",A.edit?"CN-2026-0142":"عقود الاستقدام"])}
+ <div data-ga-body="">${addBody()}</div></div>`};
+
+/* ---------- الأحداث ---------- */
+const rp=(id,fn)=>{const el=document.querySelector(id);if(el){el.innerHTML=fn();ico()}};
+const rpShow=()=>{const el=document.getElementById("g-show");if(el){el.outerHTML=S.guideShow();ico()}};
+if(!window.__h19){window.__h19=1;
+ /* قبل الانتقال بين صفحات المثال: وضع التعديل والحفظ المختصر */
+ document.addEventListener("click",e=>{const c=s=>e.target.closest&&e.target.closest(s);try{
+  if(c("[data-g-edit]"))sessionStorage.setItem("gEdit","1");else if(c('[data-go="guideAdd"]'))sessionStorage.setItem("gEdit","0");
+  if(c("[data-g-short]"))sessionStorage.setItem("gShort","1");else if(c('[data-go="guideShow"]')||c("[data-gt-open]"))sessionStorage.removeItem("gShort")}catch(_){}},true);
+ document.addEventListener("click",e=>{const c=s=>e.target.closest&&e.target.closest(s);
+  if(c("#g-tbl")){const g=c("[data-gt]");
+   if(g){e.preventDefault();const[k,v]=g.dataset.gt.split(":");if(k==="st"){TB.st=v;TB.page=1}else if(k==="pg"){TB.page=+v}else if(k==="sort"){TB.dir=TB.sort===v?-TB.dir:-1;TB.sort=v}else if(k==="clear")TB.sel={};else if(k==="reset")Object.assign(TB,{st:"",q:"",br:"",page:1});rp("[data-gt-body]",tableBody);return}
+   const ch=c("[data-gt-chk]");if(ch){TB.sel[ch.dataset.gtChk]=ch.checked;rp("[data-gt-body]",tableBody);return}
+   const all=c("[data-gt-all]");if(all){const r=fl().slice((TB.page-1)*PER,TB.page*PER);r.forEach(x=>TB.sel[x[0]]=all.checked);rp("[data-gt-body]",tableBody);return}
+   const row=c("[data-gt-open]");if(row&&!c("button")&&!c("input")){W.tab="over";W.short=0;location.href="guideShow.html"}return}
+  if(c("#g-show")){const g=c("[data-gs]");if(!g)return;e.preventDefault();const[k,v]=g.dataset.gs.split(":");
+   if(k==="tab")W.tab=v;else if(k==="sw")g.classList.toggle("on");else if(k==="cancel"){if(v==="2"){const w=document.querySelector("[data-gs-why]");if(!w||!w.value){w&&w.classList.add("h14-bad");return}W.cancel=2;W.tab="log"}else W.cancel=+v}
+   if(k!=="sw")rpShow();return}
+  if(c("#g-add")){let h=0;
+   if(c("[data-ga-mode]")&&!c("[data-ga-mode]").disabled){A.mode=c("[data-ga-mode]").dataset.gaMode;A.err={};h=1}
+   else if(c("[data-ga-type]")){A.type=c("[data-ga-type]").dataset.gaType;h=1}
+   else if(c("[data-ga-step]")){const t=document.getElementById("ga-"+c("[data-ga-step]").dataset.gaStep);if(t)t.scrollIntoView({behavior:"smooth",block:"start"})}
+   else if(c("[data-ga-file]")){const k=c("[data-ga-file]").dataset.gaFile;A.f[k]=A.f[k]?0:1;delete A.err[k];h=1}
+   else if(c("[data-ga-act]")){e.preventDefault();const a=c("[data-ga-act]").dataset.gaAct;
+    if(a==="save"){A.err={};secs().forEach(s=>{if(s[2])vis(s[2]).forEach(f=>{if(f[4]&&!String(gv(f)||"").trim())A.err[f[0]]=1})});if(A.mode==="full"&&!A.f.id)A.err.id=1;
+     if(Object.keys(A.err).length){A.msg="أكمل الحقول المعلَّمة بالأحمر ثم احفظ.";rp("[data-ga-body]",addBody);const b=document.querySelector("#g-add .h14-bad");if(b)b.scrollIntoView({block:"center"});return}
+     A.msg="";A.done=1;window.scrollTo(0,0)}
+    else if(a==="draft"){A.msg="حُفظت مسودة · تجدها في قائمة العقود بوسم «مسودة»."}
+    else if(a==="reset"){Object.assign(A,JSON.parse(JSON.stringify(A0)))}h=1}
+   if(h)rp("[data-ga-body]",addBody)}});
+ const keep=e=>{const t=e.target;if(!t.closest)return;
+  if(t.closest("#g-tbl")){if(t.dataset.gtQ!==undefined){TB.q=t.value.trim();TB.page=1;const p=t.selectionStart;rp("[data-gt-body]",tableBody);const n=document.querySelector("[data-gt-q]");if(n){n.focus();n.setSelectionRange(p,p)}}else if(t.dataset.gtBr!==undefined&&e.type==="change"){TB.br=t.value;TB.page=1;rp("[data-gt-body]",tableBody)}else if(t.dataset.gtSort!==undefined&&e.type==="change"){TB.sort=t.value;TB.dir=t.value==="amt"?-1:-1;rp("[data-gt-body]",tableBody)}return}
+  if(t.closest("#g-show")&&t.dataset.gsStatus!==undefined&&e.type==="change"){W.status=t.value;rpShow();return}
+  if(t.closest("#g-add")&&t.dataset.ga){A.v[t.dataset.ga]=t.value;delete A.err[t.dataset.ga];if(e.type==="change")rp("[data-ga-body]",addBody)}};
+ document.addEventListener("input",keep);document.addEventListener("change",keep)}
+try{Object.assign(T,{guideTable:{ar:"مثال: جدول",en:"Example: table"},guideShow:{ar:"مثال: عرض",en:"Example: details"},guideAdd:{ar:"مثال: إضافة وتعديل",en:"Example: add & edit"}})}catch(_){}
 Object.keys(S).forEach(k=>{screens[k]=S[k]});
 })();
 
