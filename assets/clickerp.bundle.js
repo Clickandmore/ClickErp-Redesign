@@ -11023,7 +11023,52 @@ const ALL=new Set(SCR.flatMap(o=>o.all)); /* v1.60: كل صلاحيات البر
 const ROLES=PR.map(r=>{const set=r[2]==="all"?new Set(ALL):new Set(r[2].filter(p=>ALL.has(p)));return {name:r[0],users:r[1],set,base:new Set(set),real:1,prot:r[2]==="all",tpl:r[2]==="all"?"admin":null,scope:r[2]==="all"?"all":"own"}});
 const near=set=>{let best=null;TPL.forEach(t=>{if(t[0]==="admin")return;const ts=TS[t[0]];let inter=0;set.forEach(p=>{if(ts.has(p))inter++});const j=inter/(set.size+ts.size-inter||1);if(!best||j>best.j)best={t,j,add:set.size-inter,miss:ts.size-inter}});return best};
 const U={r:1,d:-1,q:"",open:{},mode:"edit",way:"tpl",pick:"cs",desc:"",sugg:null,copy:1,nm:"",br:"كل الفروع",flash:"",show:"all",oall:false,tab:"info",sel:null,hov:null};
-const R=()=>ROLES[U.r];
+/* v1.61 — الحفظ الفعلي (يبقى بعد تحديث الصفحة)، صلاحيات خاصة لكل فرع، سجل التغييرات، الحذف والاسترجاع، التصدير والاستيراد */
+const G="كل الفروع",BRS=[G,"الفرع الرئيسي","فرع جدة","فرع الدمام"];
+const KI={};PK.forEach((k,i)=>KI[k]=i);
+const LOG=[],LS="cerp.roles.v1";
+ROLES.forEach((r,i)=>{r.id="r"+i;r.sets={};r.bases={};r.cb=G;r.cust=new Set();r.hist=[]});
+const swBr=(r,br)=>{if(r.cb===br)return;r.sets[r.cb]=r.set;r.bases[r.cb]=r.base;
+ if(r.cb!==G&&!r.cust.has(r.cb)){delete r.sets[r.cb];delete r.bases[r.cb]}
+ if(br!==G&&!r.cust.has(br)){const g=r.bases[G];r.base=new Set(g);r.set=new Set(g)}else{r.set=r.sets[br]||new Set(r.bases[br]);r.base=r.bases[br]}
+ r.cb=br;r.hist=[]};
+const R=()=>{const r=ROLES[U.r];if(r.cb!==U.br)swBr(r,U.br);return r};
+const dirty=r=>{if(r.set.size!==r.base.size)return true;for(const p of r.set)if(!r.base.has(p))return true;return false};
+const keysOf=s=>[...s].map(p=>PK[p]);
+const persist=()=>{try{localStorage.setItem(LS,JSON.stringify({v:1,roles:ROLES.map(r=>{const gb=r.cb===G?r.base:r.bases[G];const bb={};
+ r.cust.forEach(b=>{const s=r.cb===b?r.base:r.bases[b];if(s)bb[b]=keysOf(s)});return {id:r.id,name:r.name,real:r.real?1:0,users:r.users,tpl:r.tpl,del:r.del?1:0,base:keysOf(gb),bb}}),log:LOG.slice(0,100)}))}catch(_){}};
+(()=>{let d;try{d=JSON.parse(localStorage.getItem(LS)||"null")}catch(_){}if(!d||d.v!==1)return;
+ const ks=a=>new Set((a||[]).map(k=>KI[k]).filter(p=>p!=null&&ALL.has(p)));
+ d.roles.forEach(x=>{let r=ROLES.find(y=>y.id===x.id);if(!r){if(x.real)return;r={id:x.id,users:0,real:0,prot:0,sets:{},bases:{},cb:G,cust:new Set(),hist:[]};ROLES.push(r)}
+  if(r.prot)return;r.name=x.name;r.tpl=x.tpl;r.del=x.del;r.base=ks(x.base);r.set=new Set(r.base);
+  Object.keys(x.bb||{}).forEach(b=>{r.cust.add(b);r.bases[b]=ks(x.bb[b]);r.sets[b]=new Set(r.bases[b])})});
+ (d.log||[]).forEach(l=>LOG.push(l))})();
+ROLES.forEach(r=>{r.nm0=r.name});
+const logIt=(k,role,extra)=>{LOG.unshift(Object.assign({k,t:Date.now(),role,br:U.br,by:"مشرف النظام"},extra||{}));persist()};
+const save=()=>{const r=R(),add=[],rem=[];r.set.forEach(p=>{if(!r.base.has(p))add.push(PK[p])});r.base.forEach(p=>{if(!r.set.has(p))rem.push(PK[p])});
+ if(!add.length&&!rem.length)return;r.base=new Set(r.set);if(r.cb!==G)r.cust.add(r.cb);r.hist=[];logIt("save",r.name,{add,rem});
+ U.flash=`حُفظ «${esc(r.name)}»${r.cb!==G?" لـ"+r.cb:""} · <span class="num">+${add.length} −${rem.length}</span> · يُطبَّق على ${r.users} مستخدم عند تحديث صفحتهم`};
+const ask=(t,m,btns)=>{U.ask={t,m,b:btns};paint()};
+const guard=fn=>{const r=ROLES[U.r];if(U.mode==="edit"&&r&&dirty(r)){ask("تغييرات غير محفوظة",`في «${esc(r.name)}»${r.cb!==G?" — "+r.cb:""} <b class="num">${fmt([...r.set].filter(p=>!r.base.has(p)).length+[...r.base].filter(p=>!r.set.has(p)).length)}</b> تغييراً لم يُحفظ بعد.`,
+ [["حفظ ثم المتابعة","primary","save",()=>{save();fn()}],["تجاهل التغييرات","ghost","trash-2",()=>{r.set=new Set(r.base);r.hist=[];fn()}],["إلغاء","ghost","",()=>{}]])}else fn()};
+const live=()=>ROLES.map((r,i)=>[r,i]).filter(x=>!x[0].del);
+const download=(name,obj)=>{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(obj,null,2)],{type:"application/json"}));a.download=name;document.body.appendChild(a);a.click();a.remove()};
+const exportRole=()=>{const r=R();download(`role-${r.name.replace(/\s+/g,"-")}${r.cb!==G?"-"+r.cb.replace(/\s+/g,"-"):""}.json`,{role:r.name,branch:r.cb===G?null:r.cb,guard_name:"admin",count:r.set.size,saved:!dirty(r),exported_at:new Date().toISOString(),permissions:keysOf(r.set).sort()});
+ logIt("export",r.name,{n:r.set.size});U.flash=`صُدِّر «${esc(r.name)}»: <span class="num">${fmt(r.set.size)}</span> مفتاح صلاحية بصيغة ClickERP`;paint()};
+const importRole=txt=>{let d;try{d=JSON.parse(txt)}catch(_){U.flash="الملف ليس JSON صالحاً";paint();return}
+ const arr=Array.isArray(d)?d:(d.permissions||[]);const ok=arr.filter(k=>KI[k]!=null&&ALL.has(KI[k])),bad=arr.length-ok.length;
+ if(!ok.length){U.flash="لم أجد مفاتيح صلاحيات معروفة في الملف";paint();return}
+ mut(set=>{set.clear();ok.forEach(k=>set.add(KI[k]))});logIt("import",R().name,{n:ok.length});
+ U.flash=`استُورد <span class="num">${fmt(ok.length)}</span> صلاحية${bad?` · تُجوهل <span class="num">${bad}</span> مفتاحاً غير موجود في هذا البرنامج`:""} · راجعها ثم احفظ`;paint()};
+const tFmt=t=>{const d=new Date(t),p=n=>String(n).padStart(2,"0");return `${d.getDate()}/${d.getMonth()+1} ${p(d.getHours())}:${p(d.getMinutes())}`};
+const LOGK={save:["save","g","حفظ"],create:["plus","b","إنشاء"],del:["trash-2","r","حذف"],restore:["rotate-ccw","g","استرجاع"],rename:["pencil","n","إعادة تسمية"],export:["download","n","تصدير"],import:["upload","a","استيراد"],brreset:["git-branch","a","إرجاع الفرع للعامة"],copy:["copy","b","نسخ"]};
+const logH=()=>`<div class="pr-st">${X("history")}<b>سجل التغييرات</b><em class="num">${LOG.length}</em></div>
+ ${LOG.length?LOG.slice(0,40).map(l=>{const k=LOGK[l.k]||LOGK.save,lab=p=>KI[p]!=null&&LB[KI[p]]?esc(PL(KI[p])):esc(p);
+  return `<details class="pr-lgi"><summary><span class="pr-lk ${k[1]}">${X(k[0])}</span><span><b>${k[2]} «${esc(l.role)}»${l.to?` ← «${esc(l.to)}»`:""}${l.add?` <span class="pr-plus num">+${l.add.length}</span> <span class="pr-minus num">−${l.rem.length}</span>`:l.n!=null?` <span class="num">${fmt(l.n)}</span>`:""}</b><small><span class="num">${tFmt(l.t)}</span> · ${esc(l.by)}${l.br&&l.br!==G?" · "+esc(l.br):""}</small></span></summary>
+  ${l.add&&l.add.length?`<div class="pr-lgd"><small>أُضيف</small>${l.add.slice(0,25).map(p=>`<span class="pr-mi l2">${lab(p)}</span>`).join("")}${l.add.length>25?`<small>و${l.add.length-25} أخرى</small>`:""}</div>`:""}
+  ${l.rem&&l.rem.length?`<div class="pr-lgd"><small>أُزيل</small>${l.rem.slice(0,25).map(p=>`<span class="pr-mi lx">${lab(p)}</span>`).join("")}${l.rem.length>25?`<small>و${l.rem.length-25} أخرى</small>`:""}</div>`:""}</details>`}).join(""):`<small class="pr-none">لا تغييرات بعد. كل حفظ وإنشاء وحذف يُسجَّل هنا بالوقت ومن قام به.</small>`}
+ <button class="pr-more" data-pr-reset="">${X("rotate-ccw")} إعادة البيانات الأصلية من ClickERP</button>`;
+const askH=()=>U.ask?`<div class="pr-ov" data-pr-ov=""><div class="card pr-ask" role="dialog" aria-modal="true"><h4>${U.ask.t}</h4><div class="pr-am">${U.ask.m}</div><div class="b">${U.ask.b.map((x,i)=>B(x[1],x[2],x[0],`data-pr-ask="${i}"`)).join("")}</div></div></div>`:"";
 /* ---------- وصف الدور بالكلام ← صلاحيات — جديد ---------- */
 const TOP=[
  [/الطلبات المالية|طلبات? مالي/,["finance_requests"],"الطلبات المالية"],
@@ -11115,8 +11160,8 @@ const matchQ=()=>{const q=U.q.trim();if(!q)return null;const f={};
 const visScr=f=>{let a=U.d<0||f?SCR:DEPTS[U.d].scr;if(f)a=a.filter(o=>f[o.k]);const set=R().set;
  if(U.show==="on")a=a.filter(o=>has(set,o));else if(U.show==="off")a=a.filter(o=>has(set,o)<o.all.length);return a};
 const scopePs=()=>{const f=matchQ();return visScr(f).flatMap(o=>f&&f[o.k]!=="all"?[...f[o.k]].flatMap(ri=>o.rc[ri].flat()):o.all)};
-const rolesH=()=>`${ROLES.map((r,i)=>{const au=audit(r),red=au.some(x=>x[0]==="r");return `<button class="pr-role${i===U.r&&U.mode==="edit"?" on":""}" data-pr-role="${i}"><span class="pr-ri">${X(r.prot?"crown":r.real?"shield":"shield-plus")}</span><span class="pr-rn"><b>${esc(r.name)}</b><small><span class="num">${r.users}</span> مستخدم · <span class="num">${fmt(r.set.size)}</span></small></span>${au.length?`<i class="pr-dot ${red?"r":"a"}" title="${au.length} ملاحظات في فحص الدور"></i>`:""}</button>`}).join("")}
- <button class="pr-role add${U.mode==="new"?" on":""}" data-pr-new=""><span class="pr-ri">${X("plus")}</span><span class="pr-rn"><b>دور جديد</b><small>جاهز أو بالوصف</small></span></button>`;
+const rolesH=()=>{const del=ROLES.filter(r=>r.del).length;return `${ROLES.map((r,i)=>{if(r.del)return "";const au=audit(r),red=au.some(x=>x[0]==="r");return `<button class="pr-role${i===U.r&&U.mode==="edit"?" on":""}" data-pr-role="${i}"><span class="pr-ri">${X(r.prot?"crown":r.real?"shield":"shield-plus")}</span><span class="pr-rn"><b>${esc(r.name)}</b><small><span class="num">${r.users}</span> مستخدم · <span class="num">${fmt(r.set.size)}</span></small></span>${dirty(r)?`<i class="pr-dot n" title="تغييرات غير محفوظة"></i>`:au.length?`<i class="pr-dot ${red?"r":"a"}" title="${au.length} ملاحظات في فحص الدور"></i>`:""}</button>`}).join("")}
+ <button class="pr-role add${U.mode==="new"?" on":""}" data-pr-new=""><span class="pr-ri">${X("plus")}</span><span class="pr-rn"><b>دور جديد</b><small>جاهز أو بالوصف</small></span></button>${del?`<button class="pr-role trash" data-pr-trash=""><span class="pr-ri">${X("trash-2")}</span><span class="pr-rn"><b>المحذوفة</b><small><span class="num">${del}</span> دور</small></span></button>`:""}`};
 const COLN=["عرض","إضافة","تعديل","حذف"];
 const cellPs=sp=>{const x=sp.split("|");if(x[0]==="s"){const o=SK[x[1]];return +x[2]===9?o.all:o.cc[+x[2]]}
  if(x[0]==="r"){const c=SK[x[1]].rc[+x[2]];return +x[3]===9?c.flat():c[+x[3]]}
@@ -11141,26 +11186,27 @@ const grpTable=(d,g,set,f)=>{const gs=`g|${d.i}|${g[0]}`,q=U.q.trim();
 const deptBlock=(d,set,f,head)=>{const sc=visScr(f).filter(o=>o.di===d.i);if(!sc.length)return "";const grps=[];sc.forEach(o=>{let g=grps.find(x=>x[0]===o.grp);if(!g)grps.push(g=[o.grp,[]]);g[1].push(o)});
  const n=d.scr.reduce((a,o)=>a+has(set,o),0);
  return `${head?`<div class="pr-dbh">${X(d.ic)}<b>${d.n}</b><small class="num">${n} من ${d.total}</small>${f?"":`<label class="pr-dall"><input type="checkbox" class="pr-cb" data-pr-cb="d|${d.i}|9"${n===d.total?" checked":""}${n&&n<d.total?' data-ind="1"':""}><span>كل ${d.n}</span></label>`}</div>`:""}${grps.map(g=>grpTable(d,g,set,f)).join("")}`};
-const QK=[["all","check-check","تحديد الكل"],["view","eye","عرض فقط"],["work","pencil","عرض وإضافة وتعديل"],["nodel","trash-2","إزالة الحذف"],["nosens","shield-off","إزالة الحساسة"],["none","square","إلغاء الكل"]];
+const QK=[["all","check-check","الكل","تحديد كل الصلاحيات الظاهرة"],["view","eye","عرض فقط","عرض فقط: يلغي الإضافة والتعديل والحذف والأخرى"],["work","pencil","عرض وتعديل","عرض وإضافة وتعديل، بدون حذف وبدون الصلاحيات الأخرى"],["nodel","trash-2","بلا حذف","إزالة كل صلاحيات الحذف"],["nosens","shield-off","بلا حساسة","إزالة الحذف والاعتماد والتصدير ورؤية كل الفروع"],["none","square","إلغاء","إلغاء كل الصلاحيات الظاهرة"]];
 const editH=()=>{const r=R(),set=r.set,f=matchQ(),q=U.q.trim();
  const blocks=(U.d<0||f?DEPTS:[DEPTS[U.d]]).map(d=>deptBlock(d,set,f,U.d<0||f)).join("");
  const sp=scopePs(),son=sp.filter(p=>set.has(p)).length;
  const scopeName=f?`نتائج «${esc(q)}»`:U.d<0?"كل الصلاحيات":DEPTS[U.d].n;
  return `<div class="card pr-head"><div class="pr-hn"><input class="pr-name" data-pr-name="" value="${esc(r.name)}" aria-label="اسم الدور"${r.prot?" readonly":""}>
-  <div class="pr-tags">${r.real?TAG("n","دور حالي في ClickERP"):TAG("g","دور جديد")}${r.tpl&&!r.real?TAG("b","من قالب: "+TPL.find(t=>t[0]===r.tpl)[1]):""}<span class="pr-meta"><span class="num">${r.users}</span> مستخدم</span></div></div>
+  <div class="pr-tags">${r.real?TAG("n","دور حالي في ClickERP"):TAG("g","دور جديد")}${r.tpl&&!r.real&&TPL.find(t=>t[0]===r.tpl)?TAG("b","من قالب: "+TPL.find(t=>t[0]===r.tpl)[1]):""}<span class="pr-meta"><span class="num">${r.users}</span> مستخدم</span></div>
+  <div class="pr-ha"><button class="icon-btn" data-pr-dup="" title="نسخ الدور">${X("copy")}</button><button class="icon-btn" data-pr-exp="" title="تصدير بصيغة ClickERP (JSON)">${X("download")}</button><button class="icon-btn" data-pr-imp="" title="استيراد من ملف JSON"${r.prot?" disabled":""}>${X("upload")}</button><button class="icon-btn" data-pr-keys="" title="نسخ مفاتيح الصلاحيات">${X("clipboard-copy")}</button><button class="icon-btn pr-del" data-pr-delr="" title="حذف الدور"${r.prot?" disabled":""}>${X("trash-2")}</button><input type="file" accept=".json,application/json" data-pr-file="" hidden></div></div>
   <p class="pr-sum">${summary(set)}</p>
   <div class="pr-hs"><div class="pr-meter"><i style="width:${(set.size/TOTAL*100).toFixed(1)}%"></i></div><span><b class="num">${fmt(set.size)}</b> من <span class="num">${fmt(TOTAL)}</span> صلاحية · <b class="num">${fmt(sensN(set))}</b> حساسة</span>
-  <label class="pr-br">${X("git-branch")}<span>تُطبَّق على</span><select data-pr-br="">${["كل الفروع","الفرع الرئيسي","فرع جدة","فرع الدمام"].map(b=>`<option${U.br===b?" selected":""}>${b}</option>`).join("")}</select></label></div>
-  ${U.br!=="كل الفروع"?`<div class="cx-info">${X("git-branch")}<span>${U.br} يستخدم صلاحيات الدور العامة. أي تعديل الآن يُحفظ صلاحياتٍ خاصة بهذا الفرع فقط، وتبقى بقية الفروع كما هي.</span></div>`:""}</div>
+  <label class="pr-br">${X("git-branch")}<span>الفرع</span><select data-pr-br="">${BRS.map(b=>`<option value="${b}"${U.br===b?" selected":""}>${b===G?"كل الفروع (الصلاحيات العامة)":b+(r.cust.has(b)?" · خاصة":"")}</option>`).join("")}</select></label></div>
+  ${U.br!==G?(r.cust.has(U.br)?`<div class="cx-info pr-bri">${X("git-branch")}<span><b>${U.br}</b> له صلاحيات خاصة بهذا الدور، تختلف عن الصلاحيات العامة. بقية الفروع لا تتأثر.</span>${B("ghost sm","rotate-ccw","إرجاعه للصلاحيات العامة",'data-pr-brreset=""')}</div>`:`<div class="cx-info pr-bri">${X("git-branch")}<span><b>${U.br}</b> يستخدم الصلاحيات العامة للدور. إذا عدّلت وحفظت هنا تصبح صلاحيات خاصة بهذا الفرع فقط.</span></div>`):""}</div>
  <div class="pr-deps" role="tablist"><button role="tab" class="${U.d<0&&!f?"on":""}" data-pr-d="-1">${X("layers")}<span>كل الصلاحيات</span><em class="num">${fmt(set.size)}/${fmt(TOTAL)}</em><i class="pr-mini"><i style="width:${(set.size/TOTAL*100).toFixed(0)}%"></i></i></button>${DEPTS.map(x=>{const n=x.scr.reduce((a,o)=>a+has(set,o),0);return `<button role="tab" class="${x.i===U.d&&!f?"on":""}" data-pr-d="${x.i}">${X(x.ic)}<span>${x.n}</span><em class="num">${n}/${x.total}</em><i class="pr-mini"><i style="width:${(n/x.total*100).toFixed(0)}%"></i></i></button>`}).join("")}</div>
  <div class="card pr-qbar">
   <div class="pr-qr"><div class="inp">${X("search")}<input data-pr-q="" value="${esc(U.q)}" placeholder="ابحث باسم الصلاحية أو وصفها أو الشاشة: حذف، تصدير، مساند، الضمان…">${q?`<button class="pr-qx" data-pr-qx="" title="مسح البحث">${X("x")}</button>`:""}</div>
    <div class="seg pr-show">${[["all","الكل"],["on","المحدد"],["off","غير المحدد"]].map(x=>`<button class="${U.show===x[0]?"on":""}" data-pr-show="${x[0]}">${x[1]}</button>`).join("")}</div>
    <button class="btn btn-ghost sm" data-pr-oall="">${X("chevrons-up-down")}${U.oall?"طي الكل":"فتح الكل"}</button>
    <button class="btn btn-ghost sm" data-pr-back=""${(r.hist||[]).length?"":" disabled"} title="Ctrl+Z">${X("undo-2")}تراجع خطوة${(r.hist||[]).length?` <span class="num">(${r.hist.length})</span>`:""}</button></div>
-  <div class="pr-qr"><span class="pr-qs">${X("mouse-pointer-click")}<span>على <b>${scopeName}</b> · <span class="num">${fmt(son)}</span> من <span class="num">${fmt(sp.length)}</span></span></span>
-   ${QK.map(k=>`<button class="pr-q${k[0]==="none"||k[0]==="nosens"||k[0]==="nodel"?" neg":""}" data-pr-quick="${k[0]}"${r.prot?" disabled":""}>${X(k[1])}${k[2]}</button>`).join("")}
-   <label class="pr-qc">${X("copy")}<span>انسخ من</span><select data-pr-from=""${r.prot?" disabled":""}><option value="">دور آخر…</option>${ROLES.map((x,i)=>i===U.r?"":`<option value="${i}">${esc(x.name)}</option>`).join("")}</select></label></div></div>
+  <span class="pr-qs">${X("mouse-pointer-click")}<span>التحديد السريع على <b>${scopeName}</b> · <span class="num">${fmt(son)}</span> من <span class="num">${fmt(sp.length)}</span> محددة</span></span>
+  <div class="pr-qr">${QK.map(k=>`<button class="pr-q${k[0]==="none"||k[0]==="nosens"||k[0]==="nodel"?" neg":""}" data-pr-quick="${k[0]}" title="${k[3]}"${r.prot?" disabled":""}>${X(k[1])}${k[2]}</button>`).join("")}
+   <label class="pr-qc">${X("copy")}<span>انسخ من</span><select data-pr-from=""${r.prot?" disabled":""}><option value="">دور آخر…</option>${ROLES.map((x,i)=>i===U.r||x.del?"":`<option value="${i}">${esc(x.name)}</option>`).join("")}</select></label></div></div>
  ${r.prot?`<div class="cx-info pr-prot">${X("lock")}<span>دور محمي في ClickERP: يملك كل الصلاحيات الحالية وأي صلاحية تُضاف لاحقاً، ولا تُعدَّل صلاحياته من هنا.</span></div>`:""}
  <div class="card pr-list pr-tbl">${blocks||`<div class="pr-empty">${X("search-x")}<b>${f?"لا توجد صلاحية بهذا الاسم":"لا توجد شاشات بهذا الفلتر"}</b><small>${f?"جرّب كلمة أقصر: «حذف»، «تصدير»، «مساند»، «الضمان»":"غيّر «الكل / المحدد / غير المحدد»"}</small></div>`}</div>`};
 /* لوحة التفاصيل: اسم الصلاحية ووصفها ومفتاحها */
@@ -11176,18 +11222,19 @@ const sideH=()=>{const r=R(),set=r.set,au=audit(r);
  const sens=[...set].filter(p=>SEN[p]);
  const diff=(()=>{let add=0,rem=0;set.forEach(p=>{if(!r.base.has(p))add++});r.base.forEach(p=>{if(!set.has(p))rem++});return [add,rem]})();
  const nr=r.set.size&&r.set.size<TOTAL?near(r.set):null;
- const tabs=[["info","info","التفاصيل"],["sum","panel-right","القائمة"],["audit","scan-search","الفحص",au.length],["sens","shield-alert","الحساسة",sens.length]];
+ const tabs=[["info","info","التفاصيل"],["sum","panel-right","القائمة"],["audit","scan-search","الفحص",au.length],["sens","shield-alert","الحساسة",sens.length],["log","history","السجل"]];
  const tb=U.tab;
  let body="";
  if(tb==="info")body=infoH();
  else if(tb==="sum")body=`<div class="pr-st">${X("panel-right")}<b>ما يظهر له في القائمة</b></div>${menu||`<small class="pr-none">لا شيء — القائمة فارغة</small>`}<div class="pr-lg"><span class="pr-mi l3">كامل</span><span class="pr-mi l2">عرض وتعديل</span><span class="pr-mi l1">عرض فقط</span><span class="pr-mi lx">جزئي</span></div>`;
  else if(tb==="audit")body=`<div class="pr-st">${X("scan-search")}<b>فحص الدور ${NW}</b></div>${au.length?au.map(a=>`<div class="pr-ai ${a[0]}">${X(a[1])}<span><b>${a[2]}</b><small>${a[3]}</small></span></div>`).join(""):`<small class="pr-none">لا ملاحظات على هذا الدور.</small>`}
   ${nr&&nr.j>.05?`<div class="pr-near"><small>أقرب دور جاهز</small><b>${X(nr.t[2])}${nr.t[1]}</b><small>هذا الدور يزيد عليه <b class="num">${fmt(nr.add)}</b> صلاحية وينقصه <b class="num">${fmt(nr.miss)}</b></small>${B("ghost sm","wand-2","طبّق الدور الجاهز مع إبقاء الاسم",`data-pr-apply="${nr.t[0]}"`)}</div>`:""}`;
+ else if(tb=="log")body=logH();
  else body=`<div class="pr-st">${X("shield-alert")}<b>صلاحيات حساسة</b><em class="num">${fmt(sens.length)}</em></div><small class="pr-none">الحذف والاعتماد والتصدير والإلغاء ورؤية كل الفروع.</small>
   ${sens.slice(0,40).map(p=>`<div class="pr-si" data-pr-hv="p|${p}"><span><b>${esc(PL(p))}</b><small>${esc(PATH(WHERE[p]))}</small></span><button class="icon-btn" data-pr-p="${p}" title="إزالة">${X("x")}</button></div>`).join("")}
   ${sens.length>40?`<small class="pr-none">و${sens.length-40} أخرى</small>`:""}`;
  return `${U.flash?`<div class="pr-flash">${X("check-circle-2")}<span>${U.flash}</span></div>`:""}
- ${diff[0]||diff[1]?`<div class="card pr-sv"><b>تغييرات غير محفوظة</b><small><span class="pr-plus num">+${diff[0]}</span> <span class="pr-minus num">−${diff[1]}</span> صلاحية منذ آخر حفظ</small><div class="b">${B("ghost sm","rotate-ccw","إلغاء كل التغييرات",'data-pr-undo=""')}${B("primary sm","save","حفظ الدور",'data-pr-save=""')}</div></div>`:""}
+ ${diff[0]||diff[1]?`<div class="card pr-sv"><b>تغييرات غير محفوظة</b><small><span class="pr-plus num">+${diff[0]}</span> <span class="pr-minus num">−${diff[1]}</span> صلاحية منذ آخر حفظ</small><div class="b">${B("ghost sm","rotate-ccw","إلغاء كل التغييرات",'data-pr-undo=""')}${B("primary sm","save",U.br!==G?"حفظ لـ"+U.br:"حفظ الدور",'data-pr-save=""')}</div></div>`:""}
  <div class="card pr-pane"><div class="pr-tabs">${tabs.map(x=>`<button class="${tb===x[0]?"on":""}" data-pr-tab="${x[0]}">${X(x[1])}<span>${x[2]}</span>${x[3]?`<em class="num">${x[3]}</em>`:""}</button>`).join("")}</div><div class="pr-pb" data-pr-info="">${body}</div></div>`};
 /* ---------- دور جديد ---------- */
 const newH=()=>{const ways=[["tpl","layout-template","دور جاهز","اختر وظيفة ثم عدّل",""],["desc","message-square-text","صف الدور بكلامك","يقترح البرنامج الصلاحيات",NW],["copy","copy","انسخ دوراً موجوداً","وعدّل الفرق",""],["blank","square-dashed","من الصفر","كل الشاشات مغلقة",""]];
@@ -11209,7 +11256,8 @@ const newH=()=>{const ways=[["tpl","layout-template","دور جاهز","اختر
   <div class="pr-ways">${ways.map(w=>`<button class="${U.way===w[0]?"on":""}" data-pr-way="${w[0]}">${X(w[1])}<span><b>${w[2]} ${w[4]}</b><small>${w[3]}</small></span></button>`).join("")}</div>${body}</div>`};
 /* ---------- الرسم والأحداث ---------- */
 const paint=()=>{const root=document.getElementById("prl");if(!root)return;const put=(s,h)=>{const el=root.querySelector(s);if(el)el.innerHTML=h};
- put("[data-pr-roles]",rolesH());put("[data-pr-main]",U.mode==="new"?newH():editH());put("[data-pr-side]",U.mode==="new"?newSideH():sideH());ico()};
+ put("[data-pr-roles]",rolesH());put("[data-pr-main]",U.mode==="new"?newH():editH());put("[data-pr-side]",U.mode==="new"?newSideH():sideH());put("[data-pr-askw]",askH());ico();
+ const f=root.querySelector("[data-pr-ask]");if(f&&document.activeElement&&!root.querySelector("[data-pr-ov]").contains(document.activeElement))f.focus()};
 const paintInfo=()=>{const el=document.querySelector("#prl [data-pr-info]");if(el&&U.tab==="info"){el.innerHTML=infoH();ico()}};
 const newSideH=()=>`<div class="card pr-pane"><div class="pr-pb"><div class="pr-st">${X("info")}<b>كيف تعمل الصلاحيات</b></div><small class="pr-none">كل شاشة في القائمة صف في الجدول، وأعمدته: الكل · عرض · إضافة · تعديل · حذف. ما سوى ذلك (الاعتماد، التصدير، الطباعة، رؤية كل الفروع…) في عمود «صلاحيات أخرى» ويظهر بالضغط على الشاشة. وعند الوقوف على أي مربع تظهر أسماء صلاحياته ووصفها في هذه اللوحة.</small>
  <div class="pr-st" style="margin-top:14px">${X("database")}<b>من ClickERP</b></div><small class="pr-none"><b class="num">${fmt(TOTAL)}</b> صلاحية في <b class="num">${SCR.length}</b> شاشة و<b class="num">${DEPTS.length}</b> أقسام، بنفس أسماء شاشة الصلاحيات الحالية ومفاتيحها.</small></div></div>`;
@@ -11226,8 +11274,21 @@ const quick=k=>{const f=matchQ(),sc=visScr(f);mut(set=>{
  U.flash=(k[0]==="@"?`نُسخ من «${esc(ROLES[+k.slice(1)].name)}»`:nm[k])+` في ${f?"نتائج البحث":U.d<0?"كل الصلاحيات":DEPTS[U.d].n} · «تراجع خطوة» يعيدها`;paint()};
 if(!window.__prl){window.__prl=1;
  document.addEventListener("click",e=>{const root=e.target.closest&&e.target.closest("#prl");if(!root)return;const c=s=>e.target.closest(s);let b;
-  if(b=c("[data-pr-role]")){U.r=+b.dataset.prRole;U.mode="edit";U.flash="";U.sel=null;U.hov=null;paint()}
-  else if(c("[data-pr-new]")){U.mode="new";U.flash="";paint()}
+  if(b=c("[data-pr-ask]")){const a=U.ask.b[+b.dataset.prAsk][3];U.ask=null;a();paint();return}
+  else if(c("[data-pr-ov]")&&!c(".pr-ask")){U.ask=null;paint();return}
+  else if(b=c("[data-pr-restore]")){const r=ROLES[+b.dataset.prRestore];r.del=0;logIt("restore",r.name);U.ask=null;U.r=+b.dataset.prRestore;U.mode="edit";U.flash=`استُرجع «${esc(r.name)}»`;paint();return}
+  if(b=c("[data-pr-role]")){const i=+b.dataset.prRole;if(i===U.r&&U.mode==="edit")return;guard(()=>{U.r=i;U.mode="edit";U.flash="";U.sel=null;U.hov=null;U.br=G});paint()}
+  else if(c("[data-pr-new]")){guard(()=>{U.mode="new";U.flash=""});paint()}
+  else if(c("[data-pr-trash]")){const d=ROLES.map((r,i)=>[r,i]).filter(x=>x[0].del);ask("الأدوار المحذوفة","<div class=\"pr-trl\">"+d.map(x=>`<div><span><b>${esc(x[0].name)}</b><small><span class="num">${fmt(x[0].base.size)}</span> صلاحية</small></span>${B("ghost sm","rotate-ccw","استرجاع",`data-pr-restore="${x[1]}"`)}</div>`).join("")+"</div>",[["إغلاق","ghost","",()=>{}]])}
+  else if(c("[data-pr-dup]")){guard(()=>{const s=R();const r={id:"n"+Date.now(),name:"نسخة من "+s.name,users:0,real:0,prot:0,tpl:s.tpl,set:new Set(s.set),base:new Set(s.set),sets:{},bases:{},cb:G,cust:new Set(),hist:[],nm0:"نسخة من "+s.name};ROLES.push(r);U.r=ROLES.length-1;U.br=G;logIt("copy",s.name,{to:r.name,n:r.set.size});U.flash=`أُنشئ «${esc(r.name)}» — غيّر اسمه من الأعلى`});paint()}
+  else if(c("[data-pr-exp]")){exportRole()}
+  else if(c("[data-pr-imp]")){if(!R().prot)root.querySelector("[data-pr-file]").click()}
+  else if(c("[data-pr-keys]")){const t=keysOf(R().set).sort().join("\n");(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>{U.flash=`نُسخت <span class="num">${fmt(R().set.size)}</span> مفتاح صلاحية`;paint()},()=>{U.flash="تعذّر النسخ — استخدم التصدير";paint()})}
+  else if(c("[data-pr-delr]")){const r=R();if(r.prot)return;
+   if(r.users)ask("لا يمكن حذف هذا الدور",`عليه <b class="num">${r.users}</b> مستخدم. انقلهم إلى دور آخر من شاشة المستخدمين أولاً، ثم احذفه.`,[["فتح المستخدمين","primary","users",()=>{location.href="setUsers.html"}],["إغلاق","ghost","",()=>{}]]);
+   else ask(`حذف «${esc(r.name)}»؟`,"يُنقل إلى «المحذوفة» ويمكن استرجاعه في أي وقت.",[["حذف الدور","danger","trash-2",()=>{r.set=new Set(r.base);r.del=1;logIt("del",r.name);const n=live()[0];U.r=n?n[1]:0;U.br=G;U.flash=`حُذف «${esc(r.name)}» — تجده في «المحذوفة»`}],["إلغاء","ghost","",()=>{}]])}
+  else if(c("[data-pr-brreset]")){const r=R(),br=U.br;ask(`إرجاع ${br} للصلاحيات العامة؟`,"تُحذف الصلاحيات الخاصة بهذا الفرع لهذا الدور، ويعود لاستخدام الصلاحيات العامة.",[["إرجاع","primary","rotate-ccw",()=>{r.cust.delete(br);delete r.sets[br];delete r.bases[br];const g=r.bases[G];r.base=new Set(g);r.set=new Set(g);r.hist=[];logIt("brreset",r.name);U.flash=`${br} يستخدم الآن الصلاحيات العامة`}],["إلغاء","ghost","",()=>{}]])}
+  else if(c("[data-pr-reset]")){ask("إعادة البيانات الأصلية؟","تُمسح كل التعديلات والأدوار الجديدة والسجل المحفوظة في هذا المتصفح، وتعود الأدوار كما هي في ClickERP.",[["إعادة","danger","rotate-ccw",()=>{localStorage.removeItem(LS);window.__prlNoWarn=1;location.reload()}],["إلغاء","ghost","",()=>{}]])}
   else if(b=c("[data-pr-d]")){U.d=+b.dataset.prD;U.q="";paint()}
   else if(b=c("[data-pr-tab]")){U.tab=b.dataset.prTab;paint()}
   else if(c("[data-pr-unpin]")){U.sel=null;paint()}
@@ -11242,7 +11303,7 @@ if(!window.__prl){window.__prl=1;
   else if(b=c("[data-pr-set]")){const x=b.dataset.prSet,i=x.lastIndexOf("|"),ps=cellPs(x.slice(0,i)),on=x.slice(i+1)==="1";mut(set=>ps.forEach(p=>on?set.add(p):set.delete(p)));paint()}
   else if(b=c("[data-pr-p]")){const p=+b.dataset.prP;mut(set=>set.has(p)?set.delete(p):set.add(p));if(!c(".pr-pane"))U.sel="p|"+p;if(!c(".pr-pane"))U.tab="info";paint()}
   else if(c("[data-pr-undo]")){const r=R();(r.hist=r.hist||[]).push(new Set(r.set));r.set=new Set(r.base);U.flash="";paint()}
-  else if(c("[data-pr-save]")){const r=R();r.base=new Set(r.set);r.hist=[];U.flash=`حُفظ «${esc(r.name)}» · يُطبَّق على ${r.users} مستخدم عند تحديث الصفحة`;paint()}
+  else if(c("[data-pr-save]")){save();paint()}
   else if(b=c("[data-pr-apply]")){const k=b.dataset.prApply;mut(()=>{});R().set=new Set(TS[k]);R().tpl=k;paint()}
   else if(b=c("[data-pr-way]")){U.way=b.dataset.prWay;paint()}
   else if(b=c("[data-pr-pick]")){U.pick=b.dataset.prPick;paint()}
@@ -11253,8 +11314,8 @@ if(!window.__prl){window.__prl=1;
    else if(w==="desc"){if(!U.sugg)return;r={name:U.nm.trim()||"دور جديد",users:0,set:new Set(U.sugg.set),tpl:null,scope:U.sugg.scope||"own"}}
    else if(w==="copy"){const s=ROLES[U.copy];r={name:U.nm.trim()||"نسخة من "+s.name,users:0,set:new Set(s.set),tpl:s.tpl,scope:s.scope}}
    else r={name:U.nm.trim()||"دور جديد",users:0,set:new Set(),tpl:null,scope:"own"};
-   r.real=0;r.base=new Set();r.hist=[];ROLES.push(r);U.r=ROLES.length-1;U.mode="edit";U.nm="";U.q="";U.d=-1;U.show="all";
-   U.flash="أُنشئ الدور. راجع الجدول ثم احفظ.";paint()}});
+   Object.assign(r,{id:"n"+Date.now(),real:0,prot:0,base:new Set(r.set),hist:[],sets:{},bases:{},cb:G,cust:new Set(),nm0:r.name});ROLES.push(r);U.r=ROLES.length-1;U.mode="edit";U.nm="";U.q="";U.d=-1;U.show="all";U.br=G;
+   logIt("create",r.name,{n:r.set.size});U.flash=`أُنشئ «${esc(r.name)}» وحُفظ بـ<span class="num">${fmt(r.set.size)}</span> صلاحية. أي تعديل بعده يحتاج «حفظ الدور».`;paint()}});
  document.addEventListener("mouseover",e=>{const h=e.target.closest&&e.target.closest("#prl [data-pr-hv]");if(!h||U.sel||U.mode!=="edit")return;const v=h.dataset.prHv;if(v===U.hov)return;U.hov=v;paintInfo()});
  document.addEventListener("input",e=>{const t=e.target;if(!t.closest||!t.closest("#prl"))return;
   if(t.matches("[data-pr-q]")){U.q=t.value;const pos=t.selectionStart;paint();const n=document.querySelector("#prl [data-pr-q]");if(n){n.focus();try{n.setSelectionRange(pos,pos)}catch(_){}}}
@@ -11262,16 +11323,21 @@ if(!window.__prl){window.__prl=1;
   else if(t.matches("[data-pr-desc]"))U.desc=t.value;
   else if(t.matches("[data-pr-nm]"))U.nm=t.value});
  document.addEventListener("change",e=>{const t=e.target;if(!t.closest||!t.closest("#prl"))return;
-  if(t.matches("[data-pr-br]")){U.br=t.value;paint()}else if(t.matches("[data-pr-copy]")){U.copy=+t.value;paint()}
+  if(t.matches("[data-pr-name]")){const r=R(),v=t.value.trim();if(!v){t.value=r.nm0||r.name;return}if(r.nm0!==v){logIt("rename",r.nm0||v,{to:v});r.nm0=v}}
+  else if(t.matches("[data-pr-file]")){const fl=t.files&&t.files[0];if(fl){const rd=new FileReader();rd.onload=()=>importRole(String(rd.result));rd.readAsText(fl)}t.value=""}
+  else if(t.matches("[data-pr-br]")){const v=t.value;guard(()=>{U.br=v;U.sel=null});paint()}else if(t.matches("[data-pr-copy]")){U.copy=+t.value;paint()}
   else if(t.matches("[data-pr-from]")&&t.value!==""){quick("@"+t.value)}});
  document.addEventListener("keydown",e=>{const t=e.target;if(!document.getElementById("prl"))return;
   if(t.matches&&t.matches("#prl [data-pr-desc]")&&e.key==="Enter"&&(e.ctrlKey||e.metaKey)){U.desc=t.value;U.sugg=parse(U.desc);paint();return}
   if((e.ctrlKey||e.metaKey)&&e.key==="z"&&!/INPUT|TEXTAREA|SELECT/.test(t.tagName||"")){const r=R();if(r.hist&&r.hist.length){e.preventDefault();r.set=r.hist.pop();paint()}}
-  if(e.key==="Escape"&&U.sel){U.sel=null;paint()}})}
+  if(e.key==="Escape"&&U.ask){U.ask=null;paint();return}
+  if(e.key==="Escape"&&U.sel){U.sel=null;paint()}});
+ window.addEventListener("beforeunload",e=>{if(window.__prlNoWarn||!document.getElementById("prl"))return;if(ROLES.some(r=>!r.del&&dirty(r))){e.preventDefault();e.returnValue=""}})}
 S.setRoles=()=>{setTimeout(ico,0);return `<div id="prl">
- ${HEAD("الأدوار والصلاحيات",`كل صلاحيات ClickERP (<span class="num">${fmt(TOTAL)}</span>) في جدول واحد: لكل شاشة عرض وإضافة وتعديل وحذف. قف على أي مربع لترى اسم الصلاحية ووصفها، أو ابدأ من دور جاهز أو من وصف الدور بكلامك.`,B("ghost","history","سجل التغييرات")+B("primary","plus","دور جديد",'data-pr-new=""'),["setHome","الإعدادات"])}
+ ${HEAD("الأدوار والصلاحيات",`كل صلاحيات ClickERP (<span class="num">${fmt(TOTAL)}</span>) في جدول واحد: لكل شاشة عرض وإضافة وتعديل وحذف. قف على أي مربع لترى اسم الصلاحية ووصفها، أو ابدأ من دور جاهز أو من وصف الدور بكلامك.`,B("ghost","history","سجل التغييرات",'data-pr-tab="log"')+B("primary","plus","دور جديد",'data-pr-new=""'),["setHome","الإعدادات"])}
  ${window.CXH.TABS([["setUsers","users","المستخدمون",46],["setRoles","shield-check","الأدوار والصلاحيات",ROLES.length],["#trash","trash-2","المحذوفون",3]],"setRoles")}
  <div class="pr-rstrip" data-pr-roles="">${rolesH()}</div>
+ <div data-pr-askw="">${askH()}</div>
  <div class="pr-lay"><div class="pr-main" data-pr-main="">${U.mode==="new"?newH():editH()}</div><aside class="pr-side" data-pr-side="">${U.mode==="new"?newSideH():sideH()}</aside></div></div>`};
 Object.keys(S).forEach(k=>{screens[k]=S[k]});
 })();
@@ -11606,6 +11672,115 @@ if(!window.__h17){window.__h17=1;
   else if(t.dataset.h17Map&&e.type==="change"){Z.punch.map[t.dataset.h17Map]=t.value;Z.punch.msg="";paint("punch")}
   else if(t.dataset.h17Reason!==undefined&&e.type==="change"){A.eos.reason(t.value);paint("eos")}};
  document.addEventListener("input",keep);document.addEventListener("change",keep)}
+Object.keys(S).forEach(k=>{screens[k]=S[k]});
+})();
+
+/* ===== v1.59 — دليل التصميم: الأنماط المعتمدة لكل شاشات النظام ===== */
+(()=>{
+const {X,KV,TAG,FLD,HEAD,B,STAT}=window.CXH;
+const {CHK,TL}=window.HRX;const CHAIN=window.HRX2.CHAIN;
+window.CERP_PAGES=(window.CERP_PAGES||[]).concat(["designGuide"]);
+const S={};
+const P=n=>`<i class="h18-pin">${n}</i>`;
+const kvs=l=>`<div class="kvgrid">${l.map(x=>`<div class="kv"><span>${x[0]}</span><b>${x[1]}</b></div>`).join("")}</div>`;
+const LEG=l=>`<ol class="h18-leg">${l.map((x,i)=>`<li><i class="h18-pin">${i+1}</i><div><b>${x[0]}</b><span>${x[1]}</span></div></li>`).join("")}</ol>`;
+const DO=(d,n)=>`<div class="h18-dd"><div class="do"><b>${X("check-circle-2")}افعل</b><ul>${d.map(x=>`<li>${x}</li>`).join("")}</ul></div><div class="dont"><b>${X("x-circle")}لا تفعل</b><ul>${n.map(x=>`<li>${x}</li>`).join("")}</ul></div></div>`;
+const REF=l=>`<div class="h18-ref"><span>شاشات مرجعية:</span>${l.map(x=>`<a href="#" data-go="${x[0]}">${x[1]}</a>`).join("")}</div>`;
+const SEC=(id,n,title,lead,body)=>`<section class="card h18-sec" id="g-${id}"><div class="h18-h"><span class="num">${n}</span><div><h2>${title}</h2><p>${lead}</p></div></div>${body}</section>`;
+const TOC=[["principles","المبادئ"],["types","اختيار نمط الشاشة"],["add","الإضافة"],["short","المختصر والكامل"],["edit","التعديل"],["show","العرض والتفاصيل"],["table","الجداول والقوائم"],["inbox","صندوق القرارات"],["process","الإجراءات متعددة الخطوات"],["states","الحالات: فارغ وخطأ ونجاح"],["comp","المكوّنات"],["tokens","الألوان والقياسات"],["writing","الكتابة"],["check","قائمة المراجعة"],["map","خريطة التطبيق"]];
+
+/* ---------- عرض مصغّر حي لنمط الإضافة ---------- */
+const demoAdd=()=>`<div class="h18-demo"><div class="page-head"><div><a class="back" href="#">${X("arrow-right")}<span>القائمة</span></a><h1 style="font-size:20px">إضافة عقد ${P(1)}</h1><p>اختر النوع والنموذج من اللوحة، ثم املأ الأقسام بالترتيب، وراجع قبل الحفظ.</p></div><div class="actions">${B("ghost","","إلغاء")}</div></div>
+ <div class="cvform h15"><div class="card cvopts">${P(2)}
+  <div class="cvbar-g"><span>النوع</span><select><option>عقد استقدام</option></select></div>
+  <div class="cvbar-g"><span>النموذج ${P(3)}</span><div class="seg"><button class="on">مختصر</button><button>كامل</button></div><small class="fhint">الحقول الإلزامية فقط</small></div>
+  <div class="steps">${P(4)}${[["العميل",1],["العاملة",1],["المالية",0],["المراجعة",0]].map((s,i)=>`<button class="step${s[1]?" done":""}"><span class="num">${s[1]?X("check"):i+1}</span><b>${s[0]}</b></button>`).join("")}</div>
+  <div class="cvbar-g col"><span>الإجمالي ${P(5)}</span><div class="h16-net"><b class="num">18,500.00</b><small>ر.س · شامل الضريبة</small></div></div>
+  ${B("primary","save","حفظ العقد")} ${P(6)}
+ </div><div class="card cvfields">
+  <div class="h15-chain"><div class="h15-ch-t">${X("git-branch")}<b>مسار الاعتماد ${P(7)}</b><small>إن وُجد</small></div>${CHAIN([["المبيعات","أنت",1,"الآن"],["المالية","المحاسب",0,""]])}</div>
+  <div class="fs-h"><span class="fs-n num">1</span><b>العميل ${P(8)}</b></div>
+  <div class="fgrid h15-g">${FLD("العميل",'<select class="h14-bad"><option>اختر العميل…</option></select>',1,'<span class="h13-err">مطلوب</span>')}${FLD("رقم الجوال",'<div class="inp"><input class="num" value="0551234880"></div>',1)}${FLD("الفرع",'<select><option>الفرع الرئيسي</option></select>',0,"يُملأ تلقائياً")}</div>
+  <div class="fs-h"><span class="fs-n num">2</span><b>المرفقات ${P(9)}</b></div>
+  <div class="msgrid up"><button class="mtile up"><span class="mimg">${X("upload-cloud")}</span><b>صورة الهوية<i class="rq">*</i></b><small>اسحب الملف أو اضغط</small></button><button class="mtile up h15-tile on"><span class="mimg">${X("file-check-2")}</span><b>العقد الموقّع</b><small>مرفوع</small></button></div>
+  <div class="fs-h"><span class="fs-n num">3</span><b>المراجعة قبل الحفظ ${P(10)}</b></div>
+  <div class="h15-rev"><div class="msec"><div class="msec-h">${X("file-text")}<b>الملخص</b></div><div class="h17-in">${kvs([["العميل",'<span class="h13-err">مطلوب</span>'],["الإجمالي","18,500.00"]])}</div></div><div class="msec"><div class="msec-h">${X("scan-search")}<b>الفحص</b></div><div class="h17-in">${CHK([["العاملة متاحة","","ok"],["لا توجد عربون","","warn"]])}</div></div></div>
+  <div class="cvactions">${B("primary","save","حفظ العقد")}${B("ghost","save","حفظ كمسودة")}${B("ghost","","إلغاء")}<span class="empty">الحقول المعلّمة * إلزامية ${P(11)}</span></div>
+ </div></div></div>`;
+
+/* ---------- عرض مصغّر حي لنمط العرض ---------- */
+const demoShow=()=>`<div class="h18-demo"><div class="page-head compact"><div><a class="back" href="#">${X("arrow-right")}<span>القائمة</span></a><h1 style="font-size:20px">سارة القحطاني ${P(1)}</h1><p>EMP-014 · مسؤولة خدمة عملاء · خدمة العملاء</p></div><div class="actions">${B("primary","pencil","تعديل البيانات")}${B("ghost","printer","طباعة")}</div></div>
+ <div class="showgrid3"><aside class="cvside">
+  <div class="card idcard">${P(2)}<span class="bigph person">${X("user-round")}</span><b>سارة القحطاني</b><small class="num">EMP-014</small><span class="st tag g"><i></i>حاضرة</span><div class="idk">${[["الوظيفة","خدمة عملاء"],["الخدمة","4 سنوات"],["الصافي","7,480.81"],["الرصيد","14 يوماً"]].map(x=>`<div><small>${x[0]}</small><b>${x[1]}</b></div>`).join("")}</div></div>
+  <div class="card acard">${P(3)}<div class="sec-h">${X("settings-2")}<b>الإجراءات</b></div><div class="actrow col"><label>الحالة</label><select class="statsel"><option>نشطة</option></select></div><div class="acts2">${[["calendar-plus","إجازة"],["hand-coins","سلفة"],["file-badge","خطاب"],["user-x","إيقاف",1]].map(a=>`<button class="atile${a[2]?" danger":""}">${X(a[0])}<span>${a[1]}</span></button>`).join("")}</div></div>
+ </aside><div class="cvmain">
+  <div class="vtabs">${P(4)}${[["gauge","نظرة عامة",1],["user-circle","البيانات"],["wallet","الراتب"],["history","سجل النشاط"]].map(x=>`<button class="${x[2]?"on":""}">${X(x[0])}<span>${x[1]}</span></button>`).join("")}</div>
+  <div class="tabbody"><div class="card sec"><div class="sec-h">${X("gauge")}<b>ملخص الحالة ${P(5)}</b></div><div class="statgrid four">${[["الرصيد","14","calendar-days","g"],["الحضور","11/12","clock","n"],["السلفة","1,000","hand-coins","a"],["التقييم","82","award","g"]].map(x=>`<div class="scard st6"><span class="sci ${x[3]}">${X(x[2])}</span><span class="sct">${x[0]}</span><b class="num">${x[1]}</b></div>`).join("")}</div></div>
+  <div class="card sec"><div class="sec-h">${X("id-card")}<b>البطاقة السريعة ${P(6)}</b></div>${kvs([["القسم","خدمة العملاء"],["التعيين","2022-03-01"],["العقد","غير محدد المدة · موثّق"]])}</div>
+  <div class="card sec"><div class="sec-h">${X("bell")}<b>تنبيهات ومتابعة ${P(7)}</b></div><div class="alerts"><div class="alert a">${X("dot")}<div><b>استئذان بانتظار المدير</b><small>RQ-1048</small></div></div></div></div></div>
+ </div></div></div>`;
+
+/* ---------- عرض مصغّر حي لنمط الجدول ---------- */
+const demoTable=()=>`<div class="h18-demo"><div class="page-head"><div><h1 style="font-size:20px">الموظفون ${P(1)}</h1><p>42 موظفاً نشطاً على 3 منشآت · 3 غير نشطين</p></div><div class="actions">${B("ghost","file-spreadsheet","Excel")}${B("primary","user-plus","إضافة موظف")}</div></div>
+ <div class="cx-chips">${P(2)}${[["الكل","",45],["حاضر","g",36],["متأخر","a",3],["عليه تنبيه","r",4]].map((c,i)=>`<button class="${i===0?"on":""}">${c[1]?`<i class="d ${c[1]}"></i>`:""}${c[0]}<b class="num">${c[2]}</b></button>`).join("")}</div>
+ <div class="fbar">${P(3)}<div class="fb grow"><label>بحث</label><div class="inp">${X("search")}<input placeholder="الاسم أو الكود أو رقم الهوية"></div></div><div class="fb"><label>القسم</label><select><option>كل الأقسام</option></select></div><div class="fb"><label>الحالة</label><select><option>الكل</option></select></div></div>
+ <div class="card flush fx-t"><div class="tw"><table><thead><tr><th>الموظف ${P(4)}</th><th>القسم</th><th>التعيين</th><th>الحالة ${P(5)}</th><th>تنبيهات ${P(6)}</th><th class="act">${P(7)}</th></tr></thead><tbody>
+ ${[["سارة القحطاني","EMP-014","خدمة العملاء","2022-03-01",["g","حاضرة"],""],["خالد المطيري","EMP-021","المبيعات","2023-01-15",["a","متأخر"],["a","العقد بعد 18 يوماً"]],["محمد عبدالرحيم","EMP-024","العمليات","2023-11-28",["g","حاضر"],["r","ملحق غير موثّق"]]].map((r,i)=>`<tr${i===2?' class="fx-late"':""}><td><div class="hx-emp"><span class="hx-av">${r[0][0]}</span><div><b>${r[0]}</b><small class="num">${r[1]}</small></div></div></td><td>${r[2]}</td><td class="num">${r[3]}</td><td>${TAG(r[4][0],r[4][1])}</td><td>${r[5]?TAG(r[5][0],r[5][1]):'<span class="empty">—</span>'}</td><td class="act"><button class="icon-btn">${X("eye")}</button><button class="icon-btn">${X("pencil")}</button></td></tr>`).join("")}
+ </tbody></table></div><div class="tfoot"><span>عرض 3 من 45 ${P(8)}</span><div class="pager"><button class="on">1</button><button>2</button></div></div></div></div>`;
+
+S.designGuide=()=>`
+ ${HEAD("دليل التصميم","المرجع المعتمد لكل شاشات Click ERP: متى نستخدم كل نمط، وكيف تُبنى الإضافة والتعديل والعرض والجداول، وقائمة مراجعة لأي شاشة جديدة أو حالية. الأمثلة هنا مبنية بالمكوّنات الحقيقية نفسها.",B("ghost","list","فهرس الشاشات",'onclick="location.href=\'screens.html\'"'))}
+ <div class="h18-lay"><aside class="card h18-toc"><b>المحتويات</b>${TOC.map((t,i)=>`<a href="#g-${t[0]}" data-h18-toc="${t[0]}"><span class="num">${i+1}</span>${t[1]}</a>`).join("")}<small class="fhint">الإصدار v1.59 · 2026-11-20</small></aside><div class="h18-main">
+
+ ${SEC("principles",1,"المبادئ","سبع قواعد تحكم كل قرار تصميم. عند التعارض، القاعدة الأعلى تغلب.",`<div class="h18-grid3">${[["target","الأهم أولاً","كل شاشة تجيب أولاً عن «ماذا أفعل الآن؟»: المتأخر، والبانتظار، والناقص، قبل التفاصيل."],["list-ordered","نمط واحد لكل نوع شاشة","الإضافة كلها بنمط واحد، والعرض كله بنمط واحد، والجداول كلها بنمط واحد. المستخدم يتعلم مرة واحدة."],["zap","المختصر أولاً","ابدأ بالحقول الإلزامية فقط، والباقي يُكمل لاحقاً. الكامل متاح بضغطة."],["eye","المراجعة قبل الحفظ","قبل أي حفظ أو إرسال يرى المستخدم ملخصاً وفحصاً تلقائياً وأثر العملية."],["shield-check","النظام يمنع ولا ينصح","القاعدة النظامية قيد في الشاشة: يمنع أو يطلب سبباً، مع جملة تشرح لماذا."],["link","كل رقم له مصدر","الأرقام متطابقة بين الشاشات، وكل رقم محسوب يظهر بمعادلته أو بمصدره."],["type","عربية فصحى مبسطة","جمل قصيرة، بلا عامية ولا أسماء تقنية، وأزرار بأفعال واضحة."]].map(p=>`<div class="h18-pr">${X(p[0])}<b>${p[1]}</b><small>${p[2]}</small></div>`).join("")}</div>`)}
+
+ ${SEC("types",2,"اختيار نمط الشاشة","حدد نوع الشاشة أولاً، ثم اتبع نمطه بالكامل.",`<div class="tw"><table class="h18-t"><thead><tr><th>نوع الشاشة</th><th>متى</th><th>النمط</th><th>المرجع</th></tr></thead><tbody>${[["قائمة / جدول","استعراض سجلات كثيرة والبحث فيها","رأس + شرائح حالة + فلاتر + جدول + ترقيم","hrEmployees","الموظفون"],["إضافة","إنشاء سجل جديد (سيرة، عقد، عميل، موظف، طلب)","لوحة جانبية + أقسام مرقّمة + مراجعة قبل الحفظ","cvAdd","إضافة سيرة ذاتية"],["تعديل","تغيير سجل موجود","نفس شاشة الإضافة بالقيم الحالية + وسم «تعديل»","hrEmployeeAdd","إضافة موظف"],["عرض / تفاصيل","رؤية سجل واحد والتصرف فيه","بطاقة + إجراءات + تبويبات","cvShow","تفاصيل السيرة"],["صندوق قرارات","طلبات تنتظر اعتماداً أو رفضاً","أرقام + دورة + قائمة + لوحة الطلب","hrRequests","طلبات الموظفين"],["إجراء متعدد الخطوات","عملية لها مراحل (تجديد، مخالصة، رفع ملف)","نمط الإضافة بخطوات العملية + حالة «تم»","hrRenewal","تجديد الإقامة"],["إعدادات","قيم وقواعد تُضبط مرة","مركز بتبويبات + أقسام بعناوين","hrSettings","إعدادات الموارد البشرية"],["لوحة","نظرة يومية على الوضع","«اليوم» أولاً + ما ينتظرك + بطاقات تنقلك للتفاصيل","hrDash","لوحة الموارد البشرية"]].map(r=>`<tr><td><b>${r[0]}</b></td><td><small>${r[1]}</small></td><td><small>${r[2]}</small></td><td><a href="#" data-go="${r[3]}">${r[4]}</a></td></tr>`).join("")}</tbody></table></div>`)}
+
+ ${SEC("add",3,"نمط الإضافة","مأخوذ من «إضافة سيرة ذاتية»: لوحة جانبية ثابتة للخيارات والتقدم، وبطاقة واحدة بأقسام مرقّمة تنتهي بالمراجعة.",`${demoAdd()}<div class="h18-two">${LEG([["الرأس","رجوع للقائمة + عنوان «إضافة …» + سطر واحد يشرح الترتيب + «إلغاء». لا أزرار حفظ في الرأس."],["اللوحة الجانبية","ثابتة أثناء التمرير (290px). تحتوي فقط ما يغيّر النموذج أو يلخصه."],["الخيارات","النوع أو التصنيف، ومختصر / كامل. أي اختيار هنا يعيد بناء الأقسام فوراً."],["الخطوات","زر لكل قسم، يتعلّم ✓ عند اكتماله، والضغط عليه ينزل للقسم."],["الملخص الحي","الرقم الأهم يتحدّث مع الكتابة (إجمالي، صافي، تكلفة، نتيجة)."],["الإجراء الرئيسي","زر واحد باسم الفعل والكائن: «حفظ العقد»، «إرسال الطلب»."],["مسار الاعتماد","أعلى البطاقة عندما يمر السجل على معتمدين، ويتغير حسب القيم."],["قسم مرقّم","عنوان + شبكة حقول من 3 أعمدة. الإلزامي بنجمة، والتوضيح تحت الحقل."],["المرفقات","بلاطات رفع، والإلزامي بنجمة، والمرفوع أخضر مع «اضغط للإزالة»."],["المراجعة قبل الحفظ","ملخص ما سيُحفظ + الفحص التلقائي + أثر الحفظ (قيد، مهمة، إشعار)."],["شريط الإجراءات","الرئيسي أولاً ثم «حفظ كمسودة» ثم «إلغاء»، ثم «الحقول المعلّمة * إلزامية»."]])}
+ <div>${DO(["رتّب الأقسام بترتيب العمل الحقيقي","احسب ما يمكن حسابه (أيام، مبالغ، تواريخ) واعرضه للقراءة فقط","اجعل الحقل يتغير حسب الاختيار (مقيم ← قسم الإقامة)","اعرض الأثر قبل الحفظ: القيد، المهمة، الإشعار"],["لا تضع أكثر من 3 حقول في صف","لا تطلب بياناً موجوداً في النظام","لا تخفِ الخطأ في رسالة عامة دون تعليم الحقل","لا تضع زر الحفظ في أعلى الصفحة فقط"])}${REF([["cvAdd","إضافة سيرة ذاتية"],["hrEmployeeAdd","إضافة موظف"],["myRequestNew","طلب جديد"]])}</div></div>`)}
+
+ ${SEC("short","4","المختصر والكامل","كل شاشة إضافة لسجل كبير (سيرة، عقد، عميل، موظف) لها نموذجان. المختصر هو الافتراضي للإدخال اليومي.",`<div class="h18-two"><div class="tw"><table class="h18-t"><thead><tr><th></th><th>مختصر</th><th>كامل</th></tr></thead><tbody>${[["الحقول","الإلزامية فقط · 8 حقول بحد أقصى","كل الأقسام"],["متى","إدخال سريع، أو البيانات غير مكتملة بعد","إدخال من مستند كامل، أو التعديل"],["بعد الحفظ","يُحفظ بوسم «غير مكتمل» وتظهر بطاقة «أكمل البيانات» في صفحة العرض بالحقول الناقصة","يُحفظ مكتملاً"],["التبديل","بين النموذجين دون فقدان ما كُتب","نفس الشيء"],["التعديل","—","يفتح دائماً بالنموذج الكامل"]].map(r=>`<tr><td><b>${r[0]}</b></td><td><small>${r[1]}</small></td><td><small>${r[2]}</small></td></tr>`).join("")}</tbody></table></div>
+ <div><div class="h18-mini-t">الحقول الإلزامية في المختصر</div><div class="tw"><table class="h18-t"><thead><tr><th>السجل</th><th>المختصر يحتوي</th></tr></thead><tbody>${[["سيرة ذاتية","الاسم، الجنس، الجنسية، الديانة، المهنة، المكتب الخارجي، الراتب، رقم الجواز"],["عقد","العميل، العاملة أو السيرة، نوع العقد، المدة، الإجمالي، طريقة الدفع"],["عميل","الاسم، الجوال، رقم الهوية، المدينة"],["موظف","الاسم، الجوال، نوع الارتباط، الجنسية، الديانة، الهوية، القسم، المنشأة، التعيين، الراتب"],["طلب","حقول النوع الإلزامية فقط — الطلب مختصر دائماً"]].map(r=>`<tr><td><b>${r[0]}</b></td><td><small>${r[1]}</small></td></tr>`).join("")}</tbody></table></div></div></div>`)}
+
+ ${SEC("edit","5","التعديل","التعديل ليس شاشة جديدة: هو شاشة الإضافة نفسها بالقيم الحالية.",`<div class="h18-two">${LEG([["العنوان","«تعديل …» مع وسم «تعديل» بجانب العنوان، والرجوع يذهب لصفحة العرض لا للقائمة."],["النموذج","الكامل دائماً، والقيم معبّأة."],["ما تغيّر","الحقل المعدَّل يُعلَّم، والمراجعة تعرض «قبل ← بعد» للحقول المتغيرة فقط."],["الحساس","تغيير الراتب أو الكفالة أو المبلغ لا يُحفظ مباشرة: يُنشئ ملحقاً أو طلب اعتماد."],["الحفظ","«حفظ التعديلات»، ويُسجَّل في سجل النشاط باسم من عدّل ووقته."]])}${DO(["أعد استخدام شاشة الإضافة بنفس الأقسام","اعرض الفرق قبل الحفظ","اطلب سبباً للتعديلات الحساسة"],["لا تصمم شاشة تعديل منفصلة بشكل مختلف","لا تسمح بتعديل ما بعد الاعتماد دون مسار (ملحق، طلب)"])}</div>${REF([["cvEdit","تعديل السيرة"],["contractEdit","تعديل العقد"]])}`)}
+
+ ${SEC("show","6","نمط العرض والتفاصيل","مأخوذ من «تفاصيل السيرة»: بطاقة وإجراءات على الجانب، وتبويبات قصيرة في المنتصف.",`${demoShow()}<div class="h18-two">${LEG([["الرأس","رجوع + الاسم + سطر هوية (الكود · الوظيفة · الجهة) + «تعديل» رئيسي و«طباعة» ثانوي."],["البطاقة","صورة أو أيقونة، الاسم، الكود، الحالة بلونها، و4 أرقام هي الأهم لهذا السجل."],["الإجراءات","الحالة كقائمة، ومفاتيح التشغيل، وبلاطات للأفعال (8 بحد أقصى، والخطِر آخراً بالأحمر)."],["التبويبات","الأول «نظرة عامة» والأخير «سجل النشاط». الباقي حسب الموضوع، 8 بحد أقصى."],["ملخص الحالة","4 بطاقات أرقام في أعلى «نظرة عامة»."],["البطاقة السريعة","أهم 8–12 بياناً في شبكة، دون تكرار ما في البطاقة الجانبية."],["التنبيهات","ما يحتاج تصرفاً الآن، بلون الأولوية."]])}
+ <div>${DO(["اجعل كل تبويب قسماً أو قسمين قصيرين","اربط كل بلاطة إجراء بشاشته (الإجازة ← طلب جديد على النوع)","ضع مسار الاعتماد فوق التبويبات في السجلات التي تمر على معتمدين"],["لا تضع كل شيء في صفحة واحدة طويلة","لا تكرر الحقل نفسه في أكثر من تبويب","لا تجعل التبويبات أزراراً لا تعمل"])}${REF([["cvShow","تفاصيل السيرة"],["hrEmployeeShow","ملف الموظف"],["myRequestShow","تفاصيل الطلب"]])}</div></div>`)}
+
+ ${SEC("table","7","نمط الجداول والقوائم","القائمة أداة متابعة وليست دليل أسماء: كل صف يقول حالته وما يحتاجه.",`${demoTable()}<div class="h18-two">${LEG([["الرأس","العنوان + جملة عدّ تشرح المحتوى + Excel + الإضافة كزر رئيسي."],["شرائح الحالة","أهم الحالات بعدد كل منها، والأولى «الكل». الضغط يفلتر."],["الفلاتر","البحث أولاً ويأخذ المساحة الأكبر، ثم 2–4 قوائم. «فلاتر أكثر» للباقي."],["العمود الأول","الكيان: صورة أو حرف + الاسم بخط عريض + الكود صغيراً. الضغط يفتح العرض."],["الحالة","وسم ملوّن بكلمة أو كلمتين."],["التنبيهات","ما يحتاج تصرفاً فقط، وإلا «—»."],["الإجراءات","آخر عمود: عرض وتعديل كأيقونات، أو زر للخطوة التالية مباشرة."],["الترقيم","«عرض X من Y» + الصفحات. الإجماليات في تذييل الجدول."]])}
+ <div>${DO(["7 أعمدة بحد أقصى — اجمع الباقي في عمود يُفتح (مثل الخصومات)","الأرقام بخط الأرقام ومحاذاة واحدة، والمبالغ بالعملة في الرأس","علّم الصف المتأخر أو المخالف بلون الصف","رتّب افتراضياً بما يحتاج تصرفاً أولاً"],["لا تعرض أعمدة تقنية أو أكواد داخلية","لا تكرر الحالة بلونين مختلفين","لا تضع أكثر من زرين في عمود الإجراءات"])}${REF([["hrEmployees","الموظفون"],["cvs","السير الذاتية"],["hrPayroll","الرواتب"]])}</div></div>`)}
+
+ ${SEC("inbox","8","صندوق القرارات","لكل ما ينتظر اعتماداً: الطلبات، الموافقات، الاستثناءات.",`<div class="h18-two">${LEG([["الأرقام","بانتظار · متأخر · قيد التنفيذ · أُغلق — وكلها تفلتر بالضغط."],["الدورة","شريط مراحل (تقديم ← فحص ← اعتماد ← تنفيذ ← إغلاق) بعدد كل مرحلة."],["القائمة","3 أعمدة: الطلب والموظف · التفاصيل والتنبيه · المرحلة والمهلة. المتأخر أولاً."],["لوحة الطلب","المحتوى، الفحص، سلسلة الاعتماد، وما يتحدّث بعد الاعتماد بروابط."],["القرار","اعتماد · رفض بسبب إلزامي · طلب استيضاح. كل قرار يُسجَّل بوقته."],["التنقل","السابق / التالي و«3 من 10»، والأسهم في لوحة المفاتيح."]])}<div>${DO(["اجعل الرفض بسبب إلزامي يصل للموظف","اعرض أثر القرار قبل اتخاذه","المتأخر أولاً دائماً"],["لا تعتمد بالجملة دون رؤية الفحص","لا تخفِ الطلب بعد القرار دون سجل"])}</div></div><div class="card fx-track h13-cyc" style="margin-top:14px">${[["send","التقديم"],["scan-search","الفحص"],["git-branch","الاعتماد"],["play","التنفيذ"],["check-check","الإغلاق"]].map(s=>`<div class="s"><span class="n">${X(s[0])}</span><div><b>${s[1]}</b></div></div>`).join(`<i class="l"></i>`)}</div>${REF([["hrRequests","طلبات الموظفين"],["tcApprovals","الموافقات"]])}`)}
+
+ ${SEC("process","9","الإجراءات متعددة الخطوات","التجديد والمخالصة ورفع الملفات: نمط الإضافة نفسه، والخطوات هي مراحل العملية الحقيقية.",`${DO(["سمِّ الخطوات بأسماء العمل (السداد، التجديد في مقيم)","اعرض «تم» للخطوات المنجزة خارج النظام بزر","امنع الإغلاق قبل اكتمال الشروط مع رسالة تقول الناقص","انتهِ بحالة «تم» تذكر ما حدث تلقائياً والخطوة التالية"],["لا تستخدم معالجاً يخفي الخطوات السابقة","لا تُغلق العملية بصمت دون ملخص"])}${REF([["hrRenewal","تجديد الإقامة"],["hrEos","المخالصة"],["hrPunchImport","رفع ملفات البصمة"]])}`)}
+
+ ${SEC("states","10","الحالات: فارغ وخطأ ونجاح","كل شاشة تُصمَّم بحالاتها كلها، لا بالحالة المثالية فقط.",`<div class="h18-grid3"><div class="h18-st"><div class="h13-empty">${X("inbox")}<b>لا توجد طلبات بهذه الفلاتر</b><button class="btn btn-ghost sm">مسح الفلاتر</button></div><small>فارغ: جملة تقول السبب + الإجراء الذي يحل المشكلة.</small></div><div class="h18-st">${FLD("رقم الفاتورة",'<div class="inp h14-bad"><input></div>',1,'<span class="h13-err">مطلوب</span>')}<div class="cvnote h15-warn" style="margin:8px 0 0">${X("alert-triangle")}<span>أكمل الحقول المعلَّمة ثم احفظ.</span></div><small>خطأ: الحقل بالأحمر + «مطلوب» تحته + رسالة أعلى الأزرار + تمرير لأول حقل.</small></div><div class="h18-st"><div class="card h14-ok" style="margin:0">${X("check-circle-2")}<div><h3 style="font-size:15px">تم حفظ العقد CN-2026-0142</h3><p>وصل إشعار للعميل.</p></div></div><small>نجاح: ما حدث + الرقم + الخطوات التالية كأزرار.</small></div></div>`)}
+
+ ${SEC("comp","11","المكوّنات","استخدم هذه المكوّنات كما هي — لا تصنع بديلاً.",`<div class="h18-comp">
+  <div><div class="h18-mini-t">الأوسمة (الحالة)</div><div class="h18-row">${TAG("g","مكتمل / معتمد")}${TAG("a","بانتظار / تنبيه")}${TAG("r","متأخر / مرفوض")}${TAG("n","معلومة / محايد")}<span class="tag b h8-nw">جديد</span></div><small class="fhint">الأخضر للنجاح، والبرتقالي لما ينتظر، والأحمر لما يمنع أو تأخر، والرمادي للمعلومة. «جديد» لما ليس في الكود الحالي.</small></div>
+  <div><div class="h18-mini-t">الأزرار</div><div class="h18-row">${B("primary","save","حفظ العقد")}${B("ghost","save","حفظ كمسودة")}${B("ghost sm","eye","عرض")}<button class="atile danger" style="width:auto;padding:8px 14px">${X("trash-2")}<span>حذف</span></button></div><small class="fhint">زر رئيسي واحد في كل منطقة، بفعل + كائن. الحذف والإيقاف بالأحمر وآخر الصف، ويطلبان تأكيداً.</small></div>
+  <div><div class="h18-mini-t">الحقول</div><div class="fgrid">${FLD("حقل إلزامي",'<div class="inp"><input value="قيمة"></div>',1,"توضيح قصير تحت الحقل")}${FLD("محسوب",'<div class="inp h14-calc"><input readonly value="5 أيام عمل"></div>',0,"للقراءة فقط")}${FLD("قائمة",'<select><option>اختر…</option></select>')}</div></div>
+  <div><div class="h18-mini-t">الملاحظات</div><div class="cx-info">${X("info")}<span>معلومة تساعد على الفهم.</span></div><div class="cx-info warn" style="margin-top:8px">${X("alert-triangle")}<span>تنبيه يحتاج انتباهاً أو مراجعة مستشار.</span></div></div>
+  <div><div class="h18-mini-t">قائمة الفحص</div>${CHK([["شرط متحقق","التفصيل","ok"],["يحتاج انتباهاً","","warn"],["يمنع الحفظ","السبب","bad"]])}</div>
+  <div><div class="h18-mini-t">سلسلة الاعتماد</div>${CHAIN([["المدير المباشر","فيصل الدوسري",2,"اعتمد"],["الموارد البشرية","هند العتيبي",1,"الآن"],["المالية","—",0,""]])}</div>
+  <div><div class="h18-mini-t">الخط الزمني</div>${TL([["2026-11-12","قُدِّم الطلب","","n","send"],["2026-11-13","اعتمده المدير","","g","check"]])}</div>
+  <div><div class="h18-mini-t">بطاقات الأرقام</div><div class="statgrid">${STAT("a","inbox","بانتظار","8",1)+STAT("r","alarm-clock","متأخر","1")}</div></div>
+ </div>`)}
+
+ ${SEC("tokens","12","الألوان والقياسات","من ملف الأنماط الحالي — لا تُدخل لوناً جديداً.",`<div class="h18-sw">${[["--navy","#16233f","الأساسي: الأزرار الرئيسية والعناوين والاختيار"],["--green","#7ab648","النجاح والاكتمال والمبالغ الموجبة"],["--amber","#c8862a","الانتظار والتنبيه"],["--red","#d4453c","الخطأ والتأخر والحذف"],["--muted","#5f6c80","النص الثانوي والتوضيحات"],["--line","#dfe4ee","الحدود والفواصل"],["--bg","#f5f7fa","الخلفيات الثانوية ورؤوس الأقسام"]].map(c=>`<div><i style="background:${c[1]}"></i><b>${c[0]}</b><code>${c[1]}</code><small>${c[2]}</small></div>`).join("")}</div>
+ <div class="tw" style="margin-top:14px"><table class="h18-t"><tbody>${[["الزوايا","12px للبطاقات · 8px للحقول والأزرار · دائرية للأوسمة والشرائح"],["المسافات","20px داخل البطاقات · 14–16px بين البطاقات · 8px بين الأزرار"],["العناوين","عنوان الصفحة 26px · عنوان البطاقة 15px · النص 13.5px · التوضيح 11.5–12px"],["الأرقام","خط الأرقام (class num) للمبالغ والتواريخ والأكواد · فاصل الآلاف دائماً · خانتان عشريتان للمبالغ المحسوبة"],["التواريخ","YYYY-MM-DD في الجداول · الهجري تحت الميلادي في الوثائق الرسمية"],["العرض","اللوحة الجانبية 290px · الشبكة 3 أعمدة للحقول و2 للمراجعة · عمود واحد تحت 1100px"]].map(r=>`<tr><td><b>${r[0]}</b></td><td><small>${r[1]}</small></td></tr>`).join("")}</tbody></table></div>`)}
+
+ ${SEC("writing","13","الكتابة","النص جزء من التصميم.",`${DO(["عربية فصحى مبسطة في كل الواجهات والمطبوعات","الزر = فعل + كائن: «حفظ الموظف»، «إرسال الطلب»","الخطأ يقول ما الذي يجب فعله: «اختر سبب الرفض أولاً»","الحالة كلمة أو كلمتان: «معتمد»، «بانتظار المدير»","العملة والوحدة دائماً: 1,500 ر.س · 5 أيام","أرقام المواد النظامية بعد مراجعة مستشار"],["لا عامية (مش، لسه، اللي)","لا أسماء تقنية (insurances، tax، status)","لا «حدث خطأ» دون سبب أو حل","لا جمل أطول من 25 كلمة","لا «يرجى» و«عزيزي المستخدم»"])}`)}
+
+ ${SEC("check","14","قائمة المراجعة","لكل شاشة جديدة أو عند مراجعة شاشة حالية. اضغط البند عند تحققه.",`<div class="h18-chk" data-h18-chk="">${["نوع الشاشة محدد ونمطه مطبَّق بالكامل","الأهم يظهر أولاً: المتأخر والبانتظار والناقص","زر رئيسي واحد في كل منطقة باسم الفعل والكائن","الإضافة: لوحة جانبية + أقسام مرقّمة + مراجعة قبل الحفظ","السجلات الكبيرة: مختصر وكامل، والمختصر افتراضي","التعديل = شاشة الإضافة بالقيم + وسم «تعديل» + الفرق قبل الحفظ","العرض: بطاقة + إجراءات + تبويبات تعمل، وأولها «نظرة عامة»","الجدول: 7 أعمدة بحد أقصى، والعمود الأول الكيان، والإجراءات آخراً","الحقول الإلزامية بنجمة، والأخطاء على الحقل نفسه","الحالات الثلاث مصممة: فارغ، خطأ، نجاح","الأرقام متطابقة مع الشاشات الأخرى ولكل محسوب معادلته","القواعد النظامية تمنع أو تطلب سبباً","النص فصحى مبسطة بلا عامية ولا أسماء تقنية","ما ليس في الكود الحالي معلَّم «جديد»","كل الأزرار والتبويبات والفلاتر تعمل في النموذج"].map((x,i)=>`<button data-h18-ci="${i}"><span class="cbx"></span>${x}</button>`).join("")}<div class="h18-score"><b class="num" data-h18-score="">0 من 15</b><small>بنود متحققة</small></div></div>`)}
+
+ ${SEC("map","15","خريطة التطبيق","الشاشات الرئيسية لكل نوع وحالة تطبيق الدليل عليها. «للمراجعة» = تُراجع بقائمة المراجعة أعلاه.",`<div class="tw"><table class="h18-t"><thead><tr><th>الموديول</th><th>إضافة / تعديل</th><th>عرض</th><th>جداول</th></tr></thead><tbody>${[["الاستقدام",[["cvAdd","إضافة سيرة","g"],["contractAdd","إضافة عقد","a"],["contractEdit","تعديل عقد","a"]],[["cvShow","تفاصيل السيرة","g"],["contractShow","تفاصيل العقد","a"]],[["cvs","السير","a"],["contracts","العقود","a"]]],["العملاء",[["clientAdd","إضافة عميل","a"]],[["clientShow","ملف العميل","a"]],[["clients","العملاء","a"]]],["التأجير",[["rentalAdd","عقد تأجير","a"],["rentalCvAdd","سيرة تأجير","a"]],[["rentalShow","عقد التأجير","a"],["rentalCvShow","سيرة تأجير","a"]],[["rental","عقود التأجير","a"]]],["الإيواء ونقل الخدمات",[["housingAdd","إيواء","a"],["transferAdd","نقل خدمات","a"]],[["housingShow","الإيواء","a"],["transferShow","نقل الخدمات","a"]],[["housing","الإيواء","a"],["transfer","نقل الكفالة","a"]]],["المالية",[["finAdd","قيد يومي","a"],["finSaleAdd","فاتورة بيع","a"],["finRequestAdd","طلب مالي","a"]],[["finShow","القيد","a"],["finRequestShow","الطلب المالي","a"]],[["finEntries","القيود","a"],["finSales","الفواتير","a"]]],["الموارد البشرية",[["hrEmployeeAdd","إضافة موظف","g"],["myRequestNew","طلب جديد","g"],["hrRenewal","تجديد إقامة","g"],["hrEos","مخالصة","g"],["hrReview","تقييم","g"]],[["hrEmployeeShow","ملف الموظف","g"],["myRequestShow","تفاصيل الطلب","g"],["hrWorkerShow","رحلة العاملة","g"]],[["hrEmployees","الموظفون","g"],["hrRequests","الطلبات","g"],["hrPayroll","الرواتب","g"]]]].map(r=>`<tr><td><b>${r[0]}</b></td>${[1,2,3].map(k=>`<td><div class="h18-map">${r[k].map(x=>`<a href="#" data-go="${x[0]}" class="${x[2]}">${x[2]==="g"?X("check"):X("circle-dashed")}${x[1]}</a>`).join("")}</div></td>`).join("")}</tr>`).join("")}</tbody></table></div><div class="h18-legend"><span class="g">${X("check")}مطبَّق</span><span class="a">${X("circle-dashed")}للمراجعة</span></div>`)}
+ </div></div>`;
+
+if(!window.__h18){window.__h18=1;
+ document.addEventListener("click",e=>{const t=e.target.closest&&e.target.closest("[data-h18-toc]");if(t){e.preventDefault();const el=document.getElementById("g-"+t.dataset.h18Toc);if(el)el.scrollIntoView({behavior:"smooth",block:"start"});return}
+  const c=e.target.closest&&e.target.closest("[data-h18-ci]");if(c){c.classList.toggle("on");const n=document.querySelectorAll("[data-h18-ci].on").length,s=document.querySelector("[data-h18-score]");if(s)s.textContent=n+" من 15"}});}
+Object.assign(T,{designGuide:{ar:"دليل التصميم",en:"Design guide"}});
 Object.keys(S).forEach(k=>{screens[k]=S[k]});
 })();
 

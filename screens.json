@@ -9,6 +9,11 @@
       "title": "تسجيل الدخول"
     },
     {
+      "id": "designGuide",
+      "file": "designGuide.html",
+      "title": "دليل التصميم"
+    },
+    {
       "id": "dashboard",
       "file": "dashboard.html",
       "title": "لوحة التحكم"
