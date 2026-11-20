@@ -10978,7 +10978,7 @@ const PR=[["مدير النظام",15,"all"],["خدمة العملاء",31,[1,4,
 
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const fmt=n=>Number(n).toLocaleString("en-US");
-const ico=()=>{if(window.lucide)lucide.createIcons({attrs:{"stroke-width":1.8}})};
+const ico=()=>{if(window.lucide)lucide.createIcons({attrs:{"stroke-width":1.8}});document.querySelectorAll("#prl [data-ind]").forEach(x=>{x.indeterminate=true})};
 /* ---------- فهرسة الصلاحيات ---------- */
 const CR=["عرض","إضافة","تعديل","حذف"];
 const SENS=/حذف|اعتماد|رفض|إلغاء|تصدير|كل الفروع|استعادة|دمج|تجاوز|صرف|مبلغ|تغيير الفرع|أرشفة|إغلاق|تسوية|إدارة|استيراد|ترحيل|تعليق|إخلاء/;
@@ -10996,12 +10996,15 @@ PD.forEach((dp,di)=>dp[2].forEach(g=>g[1].forEach(sc=>{
    else{o.l2.push(p);if(/^عرض/.test(x[0])||/_(view|show|index)$/.test(PK[p]))o.l1.push(p)}})});
  if(!o.l2.length)o.l2=o.all.slice();if(!o.l1.length)o.l1=o.l2.slice();
  SCR.push(o);SK[o.k]=o})));
+SCR.forEach(o=>{const seen=new Set();o.rc=o.rows.map(rw=>{const c=[[],[],[],[],[]];rw[1].forEach((p,i)=>{if(p>=0&&!seen.has(p)){seen.add(p);c[i].push(p)}});
+ rw[2].forEach(x=>{const p=x[1];if(seen.has(p))return;seen.add(p);if(rw[1][0]<0&&!SEN[p]&&(/^عرض/.test(x[0])||/_(view|show|index)$/.test(PK[p])))c[0].push(p);else c[4].push(p)});return c});
+ o.cc=[0,1,2,3,4].map(i=>o.rc.flatMap(c=>c[i]))});
 const TOTAL=SCR.reduce((a,o)=>a+o.all.length,0);
 const DEPTS=PD.map((d,i)=>({n:d[0],ic:d[1],i,scr:SCR.filter(o=>o.di===i)}));
 DEPTS.forEach(d=>d.total=d.scr.reduce((a,o)=>a+o.all.length,0));
 const GEN=/^(عرض|إضافة|تعديل|حذف|إدارة|تصدير|اعتماد|رفض|طباعة|تقارير|تغيير حالة|استيراد|تصدير Excel|تصدير PDF)$/;
 const PL=p=>GEN.test(LB[p])?LB[p]+" — "+ROWT[p]:LB[p];
-const LV=[["لا يصل","ban"],["يعرض","eye"],["يعمل","pencil"],["كامل","shield-check"]];
+const LV=[["لا يصل","ban"],["عرض فقط","eye"],["عرض وإضافة وتعديل","pencil"],["كامل","shield-check"]];
 const LVS=["لا يصل إليها","يعرضها فقط","يعمل عليها: عرض وإضافة وتعديل","كاملة: مع الحذف والاعتماد والتصدير"];
 const levelSet=(o,l)=>l===0?[]:l===1?o.l1:l===2?o.l2:o.all;
 const setLevel=(set,o,l,ap)=>{o.all.forEach(p=>set.delete(p));levelSet(o,l).forEach(p=>set.add(p));if(ap&&l>0)o.appr.forEach(p=>set.add(p))};
@@ -11115,16 +11118,26 @@ const LEV=(o,set,k)=>{const l=lvOf(set,o);return `<div class="pr-lv" role="radio
 const rolesH=()=>`<div class="pr-rl-h"><b>الأدوار</b><small>${ROLES.length} أدوار · ${fmt(ROLES.reduce((a,r)=>a+r.users,0))} مستخدم</small></div>
  ${ROLES.map((r,i)=>{const au=audit(r),red=au.some(x=>x[0]==="r");return `<button class="pr-role${i===U.r&&U.mode==="edit"?" on":""}" data-pr-role="${i}"><span class="pr-ri">${X(r.set.size===TOTAL?"crown":r.real?"shield":"shield-plus")}</span><span class="pr-rn"><b>${esc(r.name)}</b><small><span class="num">${r.users}</span> مستخدم · <span class="num">${fmt(r.set.size)}</span> صلاحية</small></span>${au.length?`<i class="pr-dot ${red?"r":"a"}" title="${au.length} ملاحظات في فحص الدور"></i>`:""}</button>`}).join("")}
  <button class="pr-role add${U.mode==="new"?" on":""}" data-pr-new=""><span class="pr-ri">${X("plus")}</span><span class="pr-rn"><b>دور جديد</b><small>من قالب أو من وصف الدور</small></span></button>`;
-const scrH=(o,set)=>{const n=has(set,o),open=U.open[o.k],sn=o.sens.filter(p=>set.has(p)).length;
- return `<div class="pr-scr${open?" open":""}${n?"":" off"}"><button class="pr-sh" data-pr-open="${o.k}" aria-expanded="${!!open}">${X("chevron-left")}<span><b>${esc(o.t)}</b><small><span class="num">${n}</span> من <span class="num">${o.all.length}</span>${sn?` · <span class="pr-sn">${X("shield-alert")}<span class="num">${sn}</span> حساسة</span>`:""}</small></span></button>${LEV(o,set,o.k)}
- ${open?`<div class="pr-rows">${o.rows.map(rw=>{const ps=rw[1].map((p,i)=>p<0?null:[p,CR[i]]).filter(Boolean).concat(rw[2].map(x=>[x[1],x[0]]));const seen={};return `<div class="pr-row"><b>${esc(rw[0])}</b><div class="pr-chips">${ps.filter(x=>seen[x[0]]?0:(seen[x[0]]=1)).map(x=>`<button class="pr-c${set.has(x[0])?" on":""}${SEN[x[0]]?" s":""}" data-pr-p="${x[0]}" title="${PK[x[0]]}${SEN[x[0]]?" · حساسة":""}">${SEN[x[0]]?X("shield-alert"):X(set.has(x[0])?"check":"plus")}${esc(x[1])}</button>`).join("")}</div></div>`}).join("")}</div>`:""}</div>`};
+const COLN=["عرض","إضافة","تعديل","حذف"];
+const cellPs=sp=>{const x=sp.split("|");if(x[0]==="s"){const o=SK[x[1]];return +x[2]===9?o.all:o.cc[+x[2]]}
+ if(x[0]==="r"){const c=SK[x[1]].rc[+x[2]];return +x[3]===9?c.flat():c[+x[3]]}
+ const sc=DEPTS[+x[1]].scr.filter(o=>o.grp===x[2]);return +x[3]===9?sc.flatMap(o=>o.all):sc.flatMap(o=>o.cc[+x[3]])};
+const CB=(sp,set,lbl)=>{const ps=cellPs(sp);if(!ps.length)return `<td class="pr-na">—</td>`;const n=ps.reduce((a,p)=>a+(set.has(p)?1:0),0);
+ return `<td><input type="checkbox" class="pr-cb" data-pr-cb="${sp}"${n===ps.length?" checked":""}${n&&n<ps.length?' data-ind="1"':""} aria-label="${esc(lbl)}" title="${ps.length>1?n+" من "+ps.length:PK[ps[0]]}"></td>`};
+const CHP=(ps,set)=>`<div class="pr-chips">${ps.map(p=>`<button class="pr-c${set.has(p)?" on":""}${SEN[p]?" s":""}" data-pr-p="${p}" title="${PK[p]}${SEN[p]?" · حساسة":""}">${SEN[p]?X("shield-alert"):X(set.has(p)?"check":"plus")}${esc(LB[p])}</button>`).join("")}</div>`;
+const grpTable=(d,g,set)=>{const gs=`g|${d.i}|${g[0]}`;
+ return `<table class="pr-mx"><thead><tr><th class="pr-tn">${g[0]==="عام"?d.n:esc(g[0])}</th><th>الكل</th>${COLN.map((c,i)=>`<th>${i===3?`<span class="pr-dh">${X("shield-alert")}${c}</span>`:c}</th>`).join("")}<th class="pr-to">صلاحيات أخرى</th></tr>
+ <tr class="pr-ca"><td><small>كل شاشات المجموعة</small></td>${CB(gs+"|9",set,"الكل")}${[0,1,2,3].map(i=>CB(gs+"|"+i,set,COLN[i]+" لكل الشاشات")).join("")}<td></td></tr></thead><tbody>
+ ${g[1].map(o=>{const open=U.open[o.k],ot=o.cc[4],on=ot.filter(p=>set.has(p)).length,n=has(set,o);
+  return `<tr class="pr-sr${open?" open":""}${n?"":" off"}"><td><button class="pr-sh" data-pr-open="${o.k}" aria-expanded="${!!open}">${X("chevron-left")}<b>${esc(o.t)}</b></button></td>${CB(`s|${o.k}|9`,set,"الكل في "+o.t)}${[0,1,2,3].map(i=>CB(`s|${o.k}|${i}`,set,COLN[i]+" "+o.t)).join("")}
+  <td class="pr-to">${ot.length?`<button class="pr-ob${on?" on":""}" data-pr-open="${o.k}"><span class="num">${on}/${ot.length}</span>${X(open?"chevron-up":"chevron-down")}</button>`:`<span class="pr-na">—</span>`}</td></tr>
+  ${open?o.rc.map((c,ri)=>`<tr class="pr-sub"><td><span>${esc(o.rows[ri][0])}</span></td>${CB(`r|${o.k}|${ri}|9`,set,"الكل")}${[0,1,2,3].map(i=>CB(`r|${o.k}|${ri}|${i}`,set,COLN[i]+" "+o.rows[ri][0])).join("")}<td class="pr-to">${c[4].length?"":`<span class="pr-na">—</span>`}</td></tr>${c[4].length?`<tr class="pr-subx"><td colspan="7">${CHP(c[4],set)}</td></tr>`:""}`).join(""):""}`}).join("")}</tbody></table>`};
 const searchH=set=>{const q=U.q.trim();const hits=[];for(let p=0;p<PK.length&&hits.length<80;p++){const w=WHERE[p];if(!w)continue;const s=LB[p]+" "+ROWT[p]+" "+w.t+" "+PK[p];if(s.indexOf(q)>-1)hits.push(p)}
  if(!hits.length)return `<div class="pr-empty">${X("search-x")}<b>لا توجد صلاحية بهذا الاسم</b><small>جرّب كلمة أقصر: «حذف»، «تصدير»، «مساند»، «الضمان»</small></div>`;
  const by={};hits.forEach(p=>{(by[WHERE[p].k]=by[WHERE[p].k]||[]).push(p)});
  return `<div class="pr-hits-h">${hits.length>=80?"أول 80 نتيجة":`<span class="num">${hits.length}</span> نتيجة`} لـ «${esc(q)}»</div>`+Object.keys(by).map(k=>{const o=SK[k];return `<div class="pr-hit"><small>${o.dept} › ${o.grp==="عام"||o.grp===o.dept?"":o.grp+" › "}<b>${o.t}</b></small><div class="pr-chips">${by[k].map(p=>`<button class="pr-c${set.has(p)?" on":""}${SEN[p]?" s":""}" data-pr-p="${p}" title="${PK[p]}">${SEN[p]?X("shield-alert"):X(set.has(p)?"check":"plus")}${esc(PL(p))}</button>`).join("")}</div></div>`}).join("")};
 const editH=()=>{const r=R(),set=r.set,d=DEPTS[U.d];
  const grps=[];d.scr.forEach(o=>{let g=grps.find(x=>x[0]===o.grp);if(!g)grps.push(g=[o.grp,[]]);g[1].push(o)});
- const dl=(()=>{const ls=d.scr.map(o=>lvOf(set,o));return ls.every(l=>l===ls[0])?ls[0]:-2})();
  return `<div class="card pr-head"><div class="pr-hn"><input class="pr-name" data-pr-name="" value="${esc(r.name)}" aria-label="اسم الدور"${r.prot?" readonly":""}>
   <div class="pr-tags">${r.real?TAG("n","دور حالي في ClickERP"):TAG("g","دور جديد")}${r.tpl&&!r.real?TAG("b","من قالب: "+TPL.find(t=>t[0]===r.tpl)[1]):""}<span class="pr-meta"><span class="num">${r.users}</span> مستخدم</span></div></div>
   <p class="pr-sum">${summary(set)}</p>
@@ -11133,9 +11146,9 @@ const editH=()=>{const r=R(),set=r.set,d=DEPTS[U.d];
   ${U.br!=="كل الفروع"?`<div class="cx-info">${X("git-branch")}<span>${U.br} يستخدم صلاحيات الدور العامة. أي تعديل الآن يُحفظ صلاحياتٍ خاصة بهذا الفرع فقط، وتبقى بقية الفروع كما هي.</span></div>`:""}</div>
  <div class="pr-deps" role="tablist">${DEPTS.map(x=>{const n=x.scr.reduce((a,o)=>a+has(set,o),0);return `<button role="tab" class="${x.i===U.d&&!U.q?"on":""}" data-pr-d="${x.i}">${X(x.ic)}<span>${x.n}</span><em class="num">${n}/${x.total}</em><i class="pr-mini"><i style="width:${(n/x.total*100).toFixed(0)}%"></i></i></button>`}).join("")}</div>
  <div class="pr-tool"><div class="inp">${X("search")}<input data-pr-q="" value="${esc(U.q)}" placeholder="ابحث في ${fmt(TOTAL)} صلاحية: حذف، تصدير، مساند، الضمان…"></div>
-  ${U.q?"":`<div class="pr-all"><span>كل شاشات ${d.n}:</span><div class="pr-lv">${LV.map((x,i)=>`<button class="${dl===i?"on l"+i:""}" data-pr-lv="@${d.i}:${i}" title="${LVS[i]}">${X(x[1])}<span>${x[0]}</span></button>`).join("")}</div></div>`}</div>
+  <span class="pr-key"><span class="pr-dh">${X("shield-alert")}</span>حساسة: الحذف والاعتماد والتصدير ورؤية كل الفروع</span></div>
  ${r.prot?`<div class="cx-info pr-prot">${X("lock")}<span>دور محمي في ClickERP: يملك كل الصلاحيات الحالية وأي صلاحية تُضاف لاحقاً، ولا تُعدَّل صلاحياته من هنا.</span></div>`:""}
- <div class="card pr-list">${U.q?searchH(set):grps.map(g=>`${grps.length>1||g[0]!=="عام"?`<div class="pr-gh">${esc(g[0])}</div>`:""}${g[1].map(o=>scrH(o,set)).join("")}`).join("")}</div>`};
+ <div class="card pr-list${U.q?"":" pr-tbl"}">${U.q?searchH(set):grps.map(g=>grpTable(d,g,set)).join("")}</div>`};
 const sideH=()=>{const r=R(),set=r.set,au=audit(r);
  const menu=DEPTS.map(d=>{const s=d.scr.filter(o=>has(set,o));return s.length?`<div class="pr-mg"><b>${X(d.ic)}${d.n}</b><div>${s.map(o=>{const l=lvOf(set,o);return `<span class="pr-mi l${l<0?"x":l}">${esc(o.t)}</span>`}).join("")}</div></div>`:""}).join("");
  const sens=[...set].filter(p=>SEN[p]);
@@ -11145,7 +11158,7 @@ const sideH=()=>{const r=R(),set=r.set,au=audit(r);
  ${diff[0]||diff[1]?`<div class="card pr-sv"><b>تغييرات غير محفوظة</b><small><span class="pr-plus num">+${diff[0]}</span> <span class="pr-minus num">−${diff[1]}</span> صلاحية منذ آخر حفظ</small><div class="b">${B("ghost sm","undo-2","تراجع",'data-pr-undo=""')}${B("primary sm","save","حفظ الدور",'data-pr-save=""')}</div></div>`:""}
  ${au.length?`<div class="card pr-au"><div class="pr-st">${X("scan-search")}<b>فحص الدور ${NW}</b></div>${au.map(a=>`<div class="pr-ai ${a[0]}">${X(a[1])}<span><b>${a[2]}</b><small>${a[3]}</small></span></div>`).join("")}
   ${nr&&nr.j>.05?`<div class="pr-near"><small>أقرب دور جاهز</small><b>${X(nr.t[2])}${nr.t[1]}</b><small>هذا الدور يزيد عليه <b class="num">${fmt(nr.add)}</b> صلاحية وينقصه <b class="num">${fmt(nr.miss)}</b></small>${B("ghost sm","wand-2","طبّق الدور الجاهز مع إبقاء الاسم",`data-pr-apply="${nr.t[0]}"`)}</div>`:""}</div>`:""}
- <div class="card pr-mn"><div class="pr-st">${X("panel-right")}<b>ما يظهر له في القائمة</b></div>${menu||`<small class="pr-none">لا شيء — القائمة فارغة</small>`}<div class="pr-lg"><span class="pr-mi l3">كامل</span><span class="pr-mi l2">يعمل</span><span class="pr-mi l1">يعرض</span><span class="pr-mi lx">مخصص</span></div></div>
+ <div class="card pr-mn"><div class="pr-st">${X("panel-right")}<b>ما يظهر له في القائمة</b></div>${menu||`<small class="pr-none">لا شيء — القائمة فارغة</small>`}<div class="pr-lg"><span class="pr-mi l3">كامل</span><span class="pr-mi l2">عرض وتعديل</span><span class="pr-mi l1">عرض فقط</span><span class="pr-mi lx">جزئي</span></div></div>
  <div class="card pr-sx"><div class="pr-st">${X("shield-alert")}<b>صلاحيات حساسة</b><em class="num">${fmt(sens.length)}</em></div><small class="pr-none">الحذف والاعتماد والتصدير والإلغاء ورؤية كل الفروع.</small>
   ${sens.slice(0,8).map(p=>`<div class="pr-si"><span><b>${esc(PL(p))}</b><small>${WHERE[p].dept} › ${esc(WHERE[p].t)}</small></span><button class="icon-btn" data-pr-p="${p}" title="إزالة">${X("x")}</button></div>`).join("")}
   ${sens.length>8?`<button class="pr-more" data-pr-sq="">عرض الكل (${fmt(sens.length)}) في البحث</button>`:""}</div>`};
@@ -11170,7 +11183,7 @@ const newH=()=>{const ways=[["tpl","layout-template","دور جاهز","اختر
 /* ---------- الرسم والأحداث ---------- */
 const paint=()=>{const root=document.getElementById("prl");if(!root)return;const put=(s,h)=>{const el=root.querySelector(s);if(el)el.innerHTML=h};
  put("[data-pr-roles]",rolesH());put("[data-pr-main]",U.mode==="new"?newH():editH());put("[data-pr-side]",U.mode==="new"?newSideH():sideH());ico()};
-const newSideH=()=>`<div class="card pr-mn"><div class="pr-st">${X("info")}<b>كيف تعمل الصلاحيات</b></div><div class="pr-how">${LV.map((x,i)=>`<div><span class="pr-mi l${i||"0"}">${X(x[1])}${x[0]}</span><small>${LVS[i]}</small></div>`).join("")}</div><small class="pr-none">كل شاشة في القائمة لها مستوى واحد. ما لا يدخل في المستويات الثلاثة (الحذف، الاعتماد، التصدير، رؤية كل الفروع) يظهر كـ«حساسة» ويُختار وحده.</small></div>
+const newSideH=()=>`<div class="card pr-mn"><div class="pr-st">${X("info")}<b>كيف تعمل الصلاحيات</b></div><small class="pr-none">كل شاشة في القائمة صف في الجدول، وأعمدته: الكل · عرض · إضافة · تعديل · حذف. ما سوى ذلك (الاعتماد، التصدير، الطباعة، رؤية كل الفروع…) في عمود «صلاحيات أخرى» ويظهر بالضغط على الشاشة. المربع نصف المحدد يعني أن جزءاً من صلاحيات الخانة مختار.</small></div>
  <div class="card pr-mn"><div class="pr-st">${X("database")}<b>من ClickERP</b></div><small class="pr-none"><b class="num">${fmt(TOTAL)}</b> صلاحية في <b class="num">${SCR.length}</b> شاشة و<b class="num">${DEPTS.length}</b> أقسام، بنفس أسماء شاشة الصلاحيات الحالية ومفاتيحها (تظهر عند الوقوف على أي صلاحية).</small></div>`;
 if(!window.__prl){window.__prl=1;
  document.addEventListener("click",e=>{const root=e.target.closest&&e.target.closest("#prl");if(!root)return;const c=s=>e.target.closest(s);let b;
@@ -11178,7 +11191,8 @@ if(!window.__prl){window.__prl=1;
   else if(c("[data-pr-new]")){U.mode="new";U.flash="";paint()}
   else if(b=c("[data-pr-d]")){U.d=+b.dataset.prD;U.q="";paint()}
   else if(b=c("[data-pr-open]")){const k=b.dataset.prOpen;U.open[k]=!U.open[k];paint()}
-  else if(R().prot&&U.mode==="edit"&&(c("[data-pr-lv]")||c("[data-pr-p]"))){U.flash="";return}
+  else if(R().prot&&U.mode==="edit"&&(c("[data-pr-lv]")||c("[data-pr-p]")||c("[data-pr-cb]"))){e.preventDefault();return}
+  else if(b=c("[data-pr-cb]")){const ps=cellPs(b.dataset.prCb),set=R().set,all=ps.every(p=>set.has(p));ps.forEach(p=>all?set.delete(p):set.add(p));U.flash="";paint()}
   else if(b=c("[data-pr-lv]")){const [k,l]=b.dataset.prLv.split(":");const set=R().set;
    if(k[0]==="@")DEPTS[+k.slice(1)].scr.forEach(o=>setLevel(set,o,+l));else setLevel(set,SK[k],+l);U.flash="";paint()}
   else if(b=c("[data-pr-p]")){const p=+b.dataset.prP,set=R().set;set.has(p)?set.delete(p):set.add(p);U.flash="";paint()}
@@ -11205,10 +11219,10 @@ if(!window.__prl){window.__prl=1;
  document.addEventListener("change",e=>{const t=e.target;if(!t.closest||!t.closest("#prl"))return;
   if(t.matches("[data-pr-br]")){U.br=t.value;paint()}else if(t.matches("[data-pr-copy]")){U.copy=+t.value;paint()}});
  document.addEventListener("keydown",e=>{const t=e.target;if(t.matches&&t.matches("#prl [data-pr-desc]")&&e.key==="Enter"&&(e.ctrlKey||e.metaKey)){U.desc=t.value;U.sugg=parse(U.desc);paint()}})}
-S.setRoles=()=>`<div id="prl">
- ${HEAD("الأدوار والصلاحيات",`كل صلاحيات ClickERP (<span class="num">${fmt(TOTAL)}</span>) مرتبة على شاشات القائمة. اختر لكل شاشة مستوى واحداً، أو ابدأ من دور جاهز أو من وصف الدور بكلامك.`,B("ghost","history","سجل التغييرات")+B("primary","plus","دور جديد",'data-pr-new=""'),["setHome","الإعدادات"])}
+S.setRoles=()=>{setTimeout(ico,0);return `<div id="prl">
+ ${HEAD("الأدوار والصلاحيات",`كل صلاحيات ClickERP (<span class="num">${fmt(TOTAL)}</span>) مرتبة على شاشات القائمة: لكل شاشة صف فيه عرض وإضافة وتعديل وحذف. أو ابدأ من دور جاهز أو من وصف الدور بكلامك.`,B("ghost","history","سجل التغييرات")+B("primary","plus","دور جديد",'data-pr-new=""'),["setHome","الإعدادات"])}
  ${window.CXH.TABS([["setUsers","users","المستخدمون",46],["setRoles","shield-check","الأدوار والصلاحيات",ROLES.length],["#trash","trash-2","المحذوفون",3]],"setRoles")}
- <div class="pr-lay"><aside class="card pr-roles" data-pr-roles="">${rolesH()}</aside><div class="pr-main" data-pr-main="">${U.mode==="new"?newH():editH()}</div><aside class="pr-side" data-pr-side="">${U.mode==="new"?newSideH():sideH()}</aside></div></div>`;
+ <div class="pr-lay"><aside class="card pr-roles" data-pr-roles="">${rolesH()}</aside><div class="pr-main" data-pr-main="">${U.mode==="new"?newH():editH()}</div><aside class="pr-side" data-pr-side="">${U.mode==="new"?newSideH():sideH()}</aside></div></div>`};
 Object.keys(S).forEach(k=>{screens[k]=S[k]});
 })();
 
