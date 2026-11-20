@@ -12496,7 +12496,7 @@ const fmt=n=>Number(n).toLocaleString("en-US");
 const EV={created:["إضافة","plus","g"],updated:["تحديث","pencil","b"],deleted:["حذف","trash","r"],force_deleted:["حذف نهائي","trash-2","r"],restored:["استرجاع","rotate-ccw","g"],
  login:["تسجيل الدخول","log-in","n"],logout:["تسجيل الخروج","log-out","n"],login_failed:["محاولة دخول فاشلة","shield-alert","r"],login_locked:["قفل الدخول مؤقتاً","lock","r"],impersonated:["الدخول بحساب آخر","user-check","a"],
  role_attached:["إسناد دور","shield-check","a"],role_detached:["إلغاء دور","shield-off","a"],permission_attached:["منح صلاحية","key-round","a"],permission_detached:["إلغاء صلاحية","key-round","a"],
- export:["تصدير","download","n"],import:["استيراد","upload","a"],legacy:["نشاط سابق","archive","n"]};
+ export:["تصدير","download","n"],import:["استيراد","upload","a"],legacy:["نشاط سابق","archive","n"],reverted:["تراجع","undo-2","a"]};
 /* resolveLogNameLabel — auth مش متعرّف في الكود (بيظهر «Auth») */
 const SRC={default:"سجل النظام الحالي",finance:"المالية",hr:"الموارد البشرية",crm:"علاقات العملاء",authentication:"الدخول والحسابات",auth:"الدخول والحسابات",permissions:"الصلاحيات",settings:"إعدادات النظام",legacy_activity:"سجل النظام السابق"};
 const TGT={contractShow:"تفاصيل العقد",rentalShow:"تفاصيل العقد",orderShow:"تفاصيل الطلب",invoices:"تفاصيل الفاتورة",cvShow:"تفاصيل السيرة",clientShow:"تفاصيل العميل",finShow:"تفاصيل السجل",setUsers:"فتح المستخدم",setRoles:"فتح الدور",hrLeaves:"تفاصيل الطلب",setGeneral:"فتح الإعداد",setSite:"فتح الإعداد",waTemplates:"فتح القالب"};
@@ -12509,7 +12509,7 @@ const FK={"المرحلة":"status","الحالة":"status","رقم التأشي
  "الراتب":"salary","الخبرة":"experience_years","المكتب الخارجي":"office_id","رقم التفويض":"delegation_number","سبب التعليق":"suspension_reason","مستلم الشغل":"handover_admin_id","الدور":"role_id","الفروع":"branch_id",
  "الجوال":"phone","المدينة":"city_id","الإجمالي":"total_due","الضريبة":"vat_amount","تاريخ الاستحقاق":"due_date","العاملة":"maid_id","المدة":"duration","الإيجار الشهري":"price","اسم القالب":"name","القناة":"channel",
  "اللغة":"lang","الموظف المسؤول":"admin_id","ملاحظة":"notes","النوع":"vacation_type","من":"from_date","رقم عقد مساند":"musaned_contract_number","قيمة العقد":"contract_value","الفرع":"branch_id","السيرة":"maid_id",
- "اسم المستخدم":"username","إظهار رمز QR":"show_qr","حالة الضمان":"warranty_status","الصلاحية":"permission_ids","العميل":"user_id","الاسم":"name","مفتاح الإعداد":"key","القيمة":"value"};
+ "اسم المستخدم":"username","إظهار رمز QR":"show_qr","حالة الضمان":"warranty_status","الصلاحية":"permission_ids","العميل":"user_id","الاسم":"name","مفتاح الإعداد":"key","القيمة":"value","تاريخ الوصول":"arrival_date","البريد الإلكتروني":"email"};
 const PPL={m:["محمد العتيبي","مدير النظام",1],s:["سارة القحطاني","خدمة العملاء",9],k:["خالد المطيري","المبيعات",11],r:["ريم الدوسري","المحاسب",12],n:["نورة الحربي","خدمة العملاء",22],
  sys:["النظام","تنفيذ آلي للنظام",0],x:["غير معروف","لم تُحفظ هوية المنفذ عند تسجيل العملية",0],c:["عبدالله الشمري","عميل",5530],old:["أحمد (النظام السابق)","مستخدم النظام السابق",0]};
 /* [يوم قبل, الوقت, المنفذ, event, نوع السجل, subject_id, وصف السجل, log_name, التغييرات [الحقل, قبل, بعد], الشاشة, خصائص إضافية في properties, عمود description, batch] */
@@ -12555,7 +12555,90 @@ const RAW=[
  [4,"16:45","m","restored","السيرة الذاتية",1690,"ليزا كروز — الفلبين","default",[],"cvShow"],
  [5,"13:20","m","created","مستخدم النظام",22,"نورة الحربي","default",[["اسم المستخدم","","noura.h"],["الفرع","","الفرع الرئيسي"]],"setUsers"],
  [6,"11:30","m","updated","الإعداد",44,"booking_mode — موقع المكتب","settings",[["مفتاح الإعداد","booking_mode","booking_mode"],["القيمة","login_first","simple"]],"setSite",{table:"settings"}],
- [6,"09:00","old","legacy","سجل النظام السابق",4410,"تعديل بيانات العميل 4410","legacy_activity",[],null,null,"عدّل بيانات العميل رقم 4410 (من نظام الرافدين)"]];
+ [6,"09:00","old","legacy","سجل النظام السابق",4410,"تعديل بيانات العميل 4410","legacy_activity",[],null,null,"عدّل بيانات العميل رقم 4410 (من نظام الرافدين)"],
+ /* v1.72 — أمثلة التراجع: تعارض · عوائق مالية · خارج المدة */
+ [2,"10:05","r","updated","الإعداد",31,"warranty_days — قواعد التشغيل","settings",[["مفتاح الإعداد","warranty_days","warranty_days"],["القيمة","45","60"]],"setGeneral",{table:"settings"}],
+ [1,"18:10","k","updated","عقد الاستقدام",2175,"سلوى الغامدي","default",[["المرحلة","تذكرة","مرحلة الوصول"],["تاريخ الوصول","","2026-11-19"]],"contractShow"],
+ [9,"14:00","s","updated","العميل",5480,"منصور الحربي","crm",[["البريد الإلكتروني","","m.harbi@mail.com"]],"clientShow"]];
+/* ================= v1.72 — التراجع عن حركة (جديد، مش موجود في ClickERP) =================
+   كل حركة ليها حالة: direct تراجع مباشر · service عن طريق إجراء الشاشة نفسه · blocked ممنوع دلوقتي بسبب
+   · conflict اتغيرت بعدها · none مش متاح وليه بديل · done اتعمل عليها تراجع.
+   التراجع بيتسجّل حركة جديدة event = reverted ومعاها reverted_activity_id، ومفيش حاجة بتتمسح من السجل. */
+const RV_DAYS=7,RV_LS="cerp.alog.rev.v1";
+const ASU={admin:{name:"محمد العتيبي",role:"مدير النظام",cid:1,ck:"m",perm:true,mods:true},br:{name:"ماجد السهلي",role:"مدير فرع",cid:14,ck:"m",perm:true,mods:false},cs:{name:"سارة القحطاني",role:"خدمة العملاء",cid:9,ck:"s",perm:false,mods:false}};
+const STG=["عقود جديدة","مساند","تفويض","التفييز","تذكرة","مرحلة الوصول","عقد مكتمل"];
+const STK={"عقود جديدة":"new","مساند":"msaned","تفويض":"tafwed","التفييز":"taffez","تذكرة":"tazker","مرحلة الوصول":"arrival","عقد مكتمل":"completed"};
+/* blockingReasons() للعقود اللي عليها عوائق في البيانات التجريبية */
+const CBLOCK={2175:["إثبات إيراد الوصول بالقيد رقم 2310","الرحلة رقم 318 مكتملة (عدّل الرحلة أو ألغِها أولاً)"]};
+const CHECKS=["وجود عملية استرداد مالي للعقد","وجود إشعار دائن على فاتورة العقد","وجود عملية نقل خدمات","وجود طلب إرجاع داخل الضمان قيد المعالجة","وجود إجراء ترحيل مكتمل مرتبط بالعقد"];
+const FIN_T=["السند المالي","القيد المحاسبي","الفاتورة"];
+const SENS=e=>e.log==="settings"||e.log==="permissions"||e.type==="مستخدم النظام"||e.type==="إعدادات الضريبة"||e.type==="الدور";
+const keyF=c=>c[0]!=="مفتاح الإعداد"&&c[0]!=="صلاحيات أُضيفت"&&c[0]!=="صلاحيات أُزيلت";
+const stageOf=e=>(e.ch.find(c=>c[0]==="المرحلة")||null);
+const curStage=e=>{const l=sameRec(e).filter(x=>stageOf(x));return l.length?stageOf(l[0])[2]:null};
+const later=e=>{const f=e.ch.filter(keyF).map(c=>c[0]);return sameRec(e).filter(x=>x.t>e.t&&x.id!==e.id&&x.ch.some(c=>f.includes(c[0])))};
+const ageD=e=>(now()-e.t)/864e5;
+const rv=e=>{
+ if(e.revBy){const r=byId(e.revBy);if(r&&!r.revBy)return {k:"done",t:"اتعمل عليها تراجع",why:`رجّعها ${esc(r.actor)} ${dayLab(r.t)} <span class="num">${hm(r.t)}</span> في الحركة <button class="al-lnk" data-al-go="${r.id}">#${r.id}</button>.`}}
+ if(e.ev==="shared"||e.ev==="share_viewed")return {k:"none",t:"مشاركة، مش تعديل بيانات",why:"المشاركة مابتغيّرش أي سجل.",alt:"لو عايز توقف الرابط: «الروابط المشاركة» ← إلغاء الرابط."};
+ if(AUTH.test(e.ev))return {k:"none",t:"مفيش حاجة ترجع",why:"الدخول والخروج أحداث، مش بيانات اتغيرت.",alt:e.ev==="login_locked"?"لو عايز تفك القفل قبل الـ 15 دقيقة: من شاشة المستخدم ← «فك قفل الدخول».":null};
+ if(e.log==="legacy_activity")return {k:"none",t:"للقراءة بس",why:"سجل مستورد من النظام السابق، ومالوش بيانات قبل وبعد."};
+ if(e.ck==="sys")return {k:"none",t:"اتعملت تلقائياً",why:"المهمة اليومية <code>contracts:update-warranty-status</code> هي اللي غيّرتها، ولو رجعتها هترجع تتغير الليلة.",alt:"صحّح تاريخ الوصول في الرحلة، والمهمة هتحسب الضمان صح."};
+ if(FIN_T.includes(e.type))return {k:"none",t:"مالي — مايترجعش",why:"القيود والسندات والفواتير المعتمدة ماتتعدّلش ولا تتمسح عشان الدفاتر والإقرار الضريبي.",alt:e.type==="الفاتورة"?"إشعار دائن على الفاتورة (finCreditNoteAdd).":"قيد عكسي بنفس المبلغ والحسابات بالعكس، ويتسجّل حركة جديدة.",altGo:e.type==="الفاتورة"?"finCreditNoteAdd":"finAdd"};
+ if(e.ev==="force_deleted")return {k:"none",t:"اتحذف نهائياً",why:"الحذف النهائي بيشيل السطر من قاعدة البيانات، فمفيش حاجة ترجع.",alt:"البيانات وقت الحذف موجودة في الجدول تحت، تقدر تضيفه من جديد منها."};
+ if(e.ev==="created")return {k:"none",t:"الإضافة مابتترجعش من هنا",why:"التراجع عن إضافة معناه حذف السجل، والحذف ليه شاشته وقواعده.",alt:"احذف السجل من شاشته، والحذف نفسه بيتسجّل ويترجع."};
+ if(e.ev==="restored")return {k:"none",t:"مش متاح",why:"التراجع عن الاسترجاع معناه حذف تاني.",alt:"احذفه من شاشته لو لزم."};
+ if(ageD(e)>RV_DAYS)return {k:"none",t:`عدّى عليها أكتر من ${RV_DAYS} أيام`,why:`التراجع مسموح خلال ${RV_DAYS} أيام من الحركة بس، عشان البيانات اللي بعدها تكون اتبنت عليها.`,alt:"عدّل السجل من شاشته عادي."};
+ if(e.type==="طلب الإجازة")return {k:"service",t:"عن طريق إلغاء الطلب",via:"<code>Nami\\Hr</code> — إلغاء طلب الإجازة المعتمد من «الطلبات»",how:["الطلب يرجع «بانتظار الاعتماد»","رصيد الإجازة بيرجع للموظف","مسار الاعتماد بيبدأ من الأول"]};
+ if(e.ev==="deleted")return {k:"service",t:"استرجاع من المحذوفات",via:"<code>maids.restore</code> — نفس زرار «استرجاع» في المحذوفات",how:["السيرة ترجع ظاهرة في القائمة بنفس بياناتها","بيتسجّل حركة «استرجاع» جديدة"]};
+ const st=stageOf(e);
+ if(e.type==="عقد الاستقدام"&&st){const cur=curStage(e);
+  if(cur!==st[2])return {k:"blocked",t:"العقد اتحرك بعدها",why:`العقد دلوقتي في «${esc(cur)}». الإرجاع بيتم خطوة واحدة من المرحلة الحالية بس، زي <code>RecruitmentContractStageRollbackService</code>.`,alt:"ارجع عن الحركة الأحدث الأول.",fix:sameRec(e).find(x=>stageOf(x))};
+  const bl=CBLOCK[e.sid]||[];
+  if(bl.length)return {k:"blocked",t:"فيه عوائق مالية وتشغيلية",why:"الإرجاع هيتخطى مرحلة اتسجّل فيها قيود أو رحلة، و<code>blockingReasons()</code> بيرفضه:",list:bl,alt:"اعكس القيد وعدّل الرحلة الأول، وبعدها ارجع هنا."};
+  return {k:"service",t:"عن طريق «إرجاع المرحلة»",via:"<code>RecruitmentContractStageRollbackService::rollback()</code> — نفس زرار «إرجاع إلى…» في العقد",how:[`العقد يرجع من «${esc(st[2])}» لـ«${esc(st[1])}» (<code>${STK[st[2]]||""}</code> ← <code>${STK[st[1]]||""}</code>)`,"بيتسجّل في سجل حالة العقد (ContractStatusLog)","الحقول التانية في الحركة بترجع لقيمتها القديمة"],checks:true}}
+ const L=later(e).filter(x=>!(x.revOf===e.id));
+ if(L.length){const x=L[0],f=x.ch.filter(c=>e.ch.some(d=>d[0]===c[0])&&keyF(c)).map(c=>c[0]);
+  return {k:"conflict",t:"اتغيرت تاني بعدها",why:`«${esc(f.join("، "))}» اتغير بعد كده في الحركة <button class="al-lnk" data-al-go="${x.id}">#${x.id}</button> (${esc(x.actor)}، ${dayLab(x.t)} <span class="num">${hm(x.t)}</span>). التراجع هنا هيمسح التعديل ده من غير ما يبان.`,alt:"ارجع عن الحركة الأحدث الأول، أو عدّل القيمة من شاشتها.",fix:x}}
+ if(e.ev==="updated"||e.ev==="reverted"||e.ev==="permission_detached"||e.ev==="role_attached")return {k:"direct",t:"تراجع مباشر",how:[e.ev==="permission_detached"?"الصلاحية ترجع للدور":e.ev==="role_attached"?"الدور يتشال من المستخدم":"القيم ترجع زي ما كانت قبل الحركة","بيتسجّل حركة «تراجع» جديدة مربوطة بالحركة دي"]};
+ return {k:"none",t:"مش متاح",why:"النوع ده من الحركات مالوش تراجع."}};
+const RVK={direct:["g","undo-2","متاح"],service:["b","route","متاح عن طريق الإجراء"],blocked:["r","octagon-x","ممنوع دلوقتي"],conflict:["a","git-compare","اتغيرت بعدها"],none:["n","ban","مش متاح"],done:["n","check-check","اتعمل عليها تراجع"]};
+const canRv=r=>r.k==="direct"||r.k==="service";
+const permOk=e=>{const u=ASU[U.as];if(!u.perm)return "صلاحيتك مش فيها <code>activity_log_revert</code> (التراجع عن الحركات).";if(SENS(e)&&!u.mods)return "الحركة دي في الإعدادات أو الصلاحيات أو المستخدمين، ومحتاجة صلاحية الموديول نفسه كمان (مدير النظام).";return ""};
+const rvBox=e=>{const r=rv(e),k=RVK[r.k],p=canRv(r)?permOk(e):"";
+ return `<div class="al-rv ${k[0]}"><div class="al-rv-h">${X(k[1])}<div><b>التراجع عن الحركة: ${r.t}</b><small>${r.why||(r.via?"بيتنفّذ عن طريق "+r.via:"")}</small>
+ ${r.list?`<ul>${r.list.map(x=>`<li>${X("x-circle")}${esc(x)}</li>`).join("")}</ul>`:""}${r.alt?`<small class="al-rv-alt">${X("lightbulb")}<span><b>البديل:</b> ${r.alt}</span></small>`:""}</div>
+ ${canRv(r)?`<button class="btn ${p?"btn-ghost":"btn-primary"} sm" data-al-rv="${e.id}"${p?` disabled title="${p.replace(/<[^>]+>/g,"")}"`:""}>${X("undo-2")}تراجع…</button>`:r.fix?`<button class="btn btn-ghost sm" data-al-go="${r.fix.id}">${X("arrow-up-right")}الحركة الأحدث</button>`:r.altGo?`<a class="btn btn-ghost sm" href="${r.altGo}.html">${X("external-link")}${e.type==="الفاتورة"?"إشعار دائن":"قيد عكسي"}</a>`:""}</div>
+ ${p?`<div class="al-rv-p">${X("lock")}<span>${p}</span></div>`:""}</div>`};
+/* ---- التنفيذ ---- */
+let RVS=[];try{RVS=JSON.parse(localStorage.getItem(RV_LS)||"[]")||[]}catch(_){RVS=[]}
+const saveRVS=()=>{try{localStorage.setItem(RV_LS,JSON.stringify(RVS))}catch(_){}};
+const mkRev=(e,x)=>{const r=x.kind;
+ return {id:x.id,t:x.t,actor:x.by,role:x.role,cid:x.cid,ck:x.ck,ev:r==="restore"?"restored":"reverted",type:e.type,sid:e.sid,desc:e.desc,log:e.log,
+  ch:r==="restore"?[]:e.ch.filter(c=>c[0]!=="صلاحيات أُضيفت"&&c[0]!=="صلاحيات أُزيلت").map(c=>c[0]==="مفتاح الإعداد"?c:[c[0],c[2],c[1]]),go:e.go||(e.type==="السيرة الذاتية"?"cvShow":null),
+  px:Object.assign({reverted_activity_id:e.id,revert_reason:x.reason},x.otp?{otp_verified:true}:{},r==="service"?{via:"RecruitmentContractStageRollbackService::rollback"}:{}),raw:r==="restore"?"restored":r==="service"?"status_rollback":"reverted",revOf:e.id}};
+const applyRVS=out=>{RVS.forEach(x=>{const e=out.find(y=>y.id===x.of);if(!e)return;const n=mkRev(e,x);e.revBy=n.id;out.push(n)});return out.sort((a,b)=>b.t-a.t||b.id-a.id)};
+const rvFlow=e=>{const r=rv(e),st=U.rv,sens=SENS(e),cur=e.ch.filter(keyF);
+ const steps=[["معاينة","eye"],["السبب والتحقق","shield-check"],["تم","check"]];
+ const sh=`<div class="al-steps">${steps.map((s,i)=>`<span class="${i+1<st.step?"ok":i+1===st.step?"on":""}"><i class="num">${i+1<st.step?"✓":i+1}</i>${s[0]}</span>`).join("<em></em>")}</div>`;
+ if(st.step===1)return sh+`<p class="al-desc">${r.k==="service"?`التراجع ده بيتنفّذ عن طريق ${r.via}، مش بكتابة القيم القديمة على طول.`:"القيم دي هترجع زي ما كانت قبل الحركة. راجعها قبل ما تكمّل."}</p>
+  ${e.ev==="deleted"?"":`<div class="al-sec"><h4>${X("git-compare")}اللي هيتغيّر</h4><table class="al-tb rvt"><thead><tr><th>الحقل</th><th>دلوقتي</th><th>بعد التراجع</th></tr></thead><tbody>
+  ${cur.map(c=>`<tr><td>${esc(c[0])}</td><td>${c[2]!==""?`<del>${esc(c[2])}</del>`:"<i>فاضي</i>"}</td><td>${hasOld(c)?`<ins>${esc(c[1])}</ins>`:"<i>فاضي</i>"}</td></tr>`).join("")}</tbody></table></div>`}
+  ${r.checks?`<div class="al-sec"><h4>${X("list-checks")}فحص <code>blockingReasons()</code></h4><div class="al-chk">${CHECKS.map(c=>`<span>${X("check-circle-2")}مفيش: ${c.replace("وجود ","")}</span>`).join("")}<span>${X("check-circle-2")}الإرجاع خطوة واحدة من المرحلة الحالية</span></div></div>`:""}
+  <div class="al-sec"><h4>${X("info")}هيحصل إيه</h4><ul class="al-how">${(r.how||[]).map(h=>`<li>${h}</li>`).join("")}<li>${e.ck!==ASU[U.as].ck&&!anon(e)?`هيوصل تنبيه لـ <b>${esc(e.actor)}</b> إن حركته اترجعت`:"الحركة الأصلية بتفضل في السجل زي ما هي"}</li></ul></div>
+  <div class="al-rvf"><button class="btn btn-ghost" data-al-rvx="">إلغاء</button><button class="btn btn-primary" data-al-rvs="2">${X("arrow-left")}التالي</button></div>`;
+ if(st.step===2){const ok=st.reason.trim().length>=5&&(!sens||st.otp==="2468")&&st.ack;
+  return sh+`<div class="al-sec"><label class="al-lab" for="alRvR">سبب التراجع <b>*</b></label><textarea id="alRvR" class="al-ta" data-al-rvin="reason" rows="3" placeholder="مثلاً: المرحلة اتغيرت بالغلط قبل ما توصل التأشيرة">${esc(st.reason)}</textarea><small class="al-help">بيتحفظ مع الحركة الجديدة، وبيشوفه صاحب الحركة الأصلية. 5 حروف على الأقل.</small></div>
+  ${sens?`<div class="al-sec"><label class="al-lab" for="alRvO">رمز التحقق <b>*</b></label><div class="al-otp"><input id="alRvO" class="num" data-al-rvin="otp" inputmode="numeric" maxlength="4" value="${esc(st.otp)}" placeholder="••••" autocomplete="one-time-code"><small>الحركة دي حساسة (${e.log==="permissions"?"صلاحيات":e.log==="settings"?"إعدادات":"مستخدمين"}). اتبعت رمز على جوال <b>${esc(ASU[U.as].name)}</b> <span class="num">05•• ••• 120</span> — للتجربة: <b class="num">2468</b></small></div>${st.otp&&st.otp.length===4&&st.otp!=="2468"?`<small class="al-err">${X("alert-circle")}الرمز غلط</small>`:""}</div>`:""}
+  <label class="al-ack"><input type="checkbox" data-al-rvin="ack"${st.ack?" checked":""}><span>فاهم إن التراجع هيغيّر البيانات دلوقتي، وهيتسجّل باسمي.</span></label>
+  <div class="al-rvf"><button class="btn btn-ghost" data-al-rvs="1">${X("arrow-right")}رجوع</button><button class="btn btn-primary" data-al-rvdo=""${ok?"":" disabled"}>${X("undo-2")}نفّذ التراجع</button></div>`}
+ const n=byId(st.done);
+ return sh+`<div class="al-done">${X("check-circle-2")}<b>تم التراجع</b><small>اتسجّلت حركة جديدة <button class="al-lnk" data-al-go="${n.id}">#${n.id}</button> باسم ${esc(n.actor)}، والحركة <span class="num">#${e.id}</span> بقت «اتعمل عليها تراجع».${e.ck!==n.ck&&!anon(e)?` واتبعت تنبيه لـ ${esc(e.actor)}.`:""}</small>
+ <div class="al-rvf c">${e.go?`<a class="btn btn-ghost sm" href="${e.go}.html">${X("external-link")}${esc(TGT[e.go]||"فتح السجل")}</a>`:""}<button class="btn btn-ghost sm" data-al-go="${n.id}">${X("file-text")}حركة التراجع</button><button class="btn btn-primary sm" data-al-rvend="">تمام</button></div></div>`};
+const doRv=()=>{const e=byId(U.rv.id),r=rv(e),u=ASU[U.as];const id=186000+RVS.length+Math.floor(Math.random()*900);
+ const x={of:e.id,id,t:now(),by:u.name,role:u.role,cid:u.cid,ck:u.ck,reason:U.rv.reason.trim(),otp:SENS(e),kind:e.ev==="deleted"?"restore":r.k==="service"?"service":"direct"};
+ RVS.push(x);saveRVS();ALL=applyRVS(ALL.filter(y=>!y.revOf).map(y=>{delete y.revBy;return y}));U.rv.step=3;U.rv.done=id;paint();paintPop()};
+
 const now=()=>Date.now();
 const day0=()=>{const d=new Date();d.setHours(0,0,0,0);return d.getTime()};
 const ROLEMAP={save:"updated",create:"created",copy:"created",del:"deleted",restore:"restored",rename:"updated",export:"export",import:"import",brreset:"updated"};
@@ -12584,17 +12667,17 @@ const build=()=>{const z=day0(),out=[];
  (shs||[]).forEach((d,i)=>{const how={link:"رابط للقراءة",wa:"واتساب",mail:"إيميل",pdf:"PDF",csv:"CSV"}[d.how]||d.how;
   out.push({id:187000+i,t:d.t,actor:d.by||"مشرف النظام",role:"مدير النظام",cid:1,ck:"m",ev:"shared",type:"سجل النشاط",sid:null,desc:`${d.ref} — ${d.title}`,log:"default",ch:[["اللي اتشارك","",`${d.rows.length} حركة`],["الطريقة","",how+(d.to?" — "+d.to:"")],["السبب","",d.why||""],["البيانات الحساسة","",d.opts&&d.opts.mask?"مخفية":"ظاهرة"]].concat(d.revoked?[["الحالة","شغال","ملغي"]]:[]).concat(d.views&&d.views.length?[["اتفتح","",d.views.length+" مرة"]]:[]),go:null,px:{share_ref:d.ref,expires_at:d.exp?new Date(d.exp).toISOString():null},raw:"shared"})});
  (shs||[]).forEach((d,i)=>(d.views||[]).forEach((v,j)=>out.push({id:188000+i*50+j,t:v,actor:"زائر الرابط",role:"من خارج النظام",cid:null,ck:null,ev:"share_viewed",type:"",sid:null,desc:`${d.ref} — ${d.title}`,log:"default",ch:[],go:null,px:{share_ref:d.ref},raw:"share_viewed"})));
- return out.sort((a,b)=>b.t-a.t||b.id-a.id)};
+ return applyRVS(out)};
 let ALL=build();
 const byId=id=>ALL.find(e=>e.id===id);
 const QP=new URLSearchParams(location.search);
-const U={q:"all",per:"all",page:1,more:false,pop:null,ptab:"d",flash:"",
+const U={q:"all",per:"all",page:1,more:false,pop:null,ptab:"d",flash:"",as:"admin",rv:null,
  f:{s:"",emp:QP.get("employee")||"",ev:QP.get("action")||"",type:QP.get("subject_type")||"",sid:QP.get("subject_id")||"",log:QP.get("log_name")||"",from:QP.get("date_from")||"",to:QP.get("date_to")||""}};
 if(U.f.ev||U.f.type||U.f.sid||U.f.log||U.f.from||U.f.to)U.more=true;
 const PER=20;
 const ATT=e=>/^(login_failed|login_locked|impersonated|force_deleted)$/.test(e.ev);
 const QUICK=[["all","الكل","",()=>1],["changes","تعديلات البيانات","",e=>/^(created|updated|deleted|force_deleted|restored)$/.test(e.ev)&&e.log!=="permissions"],
- ["auth","الدخول والحسابات","",e=>e.log==="authentication"||e.log==="auth"],["perm","الصلاحيات","a",e=>e.log==="permissions"],["del","المحذوف","r",e=>/deleted/.test(e.ev)],["att","تحتاج انتباه","r",ATT]];
+ ["auth","الدخول والحسابات","",e=>e.log==="authentication"||e.log==="auth"],["perm","الصلاحيات","a",e=>e.log==="permissions"],["del","المحذوف","r",e=>/deleted/.test(e.ev)],["rev","قابلة للتراجع","g",e=>canRv(rv(e))],["revd","التراجعات","a",e=>e.ev==="reverted"||!!e.revOf],["att","تحتاج انتباه","r",ATT]];
 const PERS=[["today","اليوم",()=>day0()],["7","7 أيام",()=>day0()-6*864e5],["30","30 يوم",()=>day0()-29*864e5],["all","الكل",()=>0]];
 const D_=["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"],M_=["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
 const p2=n=>String(n).padStart(2,"0");
@@ -12614,6 +12697,7 @@ const hasOld=c=>c[1]!=null&&String(c[1])!=="";
 const anon=e=>/^(x|sys|old)$/.test(e.ck);
 /* buildDescription */
 const describe=e=>{const n=e.ch.length;
+ if(e.revOf){const o=byId(e.revOf);return `تراجع عن الحركة #${e.revOf}${o?` (${evOf(o)[0]} — ${o.actor})`:""}: القيم رجعت زي ما كانت قبلها. السبب: «${e.px&&e.px.revert_reason||""}».`}
  if(e.ev==="updated"&&n)return `تم تعديل ${n===1?"حقل واحد":n===2?"حقلين":n+" حقول"}، ${n>1?"أهمها":"وهو"}: ${e.ch.filter(c=>c[0]!=="مفتاح الإعداد").slice(0,4).map(c=>c[0]).join("، ")}${n>4?" وغير ذلك":""}.`;
  return ({created:"تم إنشاء هذا السجل وإضافة بياناته الأساسية.",deleted:"تم حذف هذا السجل أو إزالته من سياق العمل، ويمكن استرجاعه من المحذوفات.",force_deleted:"تم حذف هذا السجل نهائياً ولا يمكن استرجاعه.",
   restored:"تمت إعادة هذا السجل بعد حذفه.",login:"دخل إلى لوحة التحكم.",logout:"خرج من لوحة التحكم.",
@@ -12648,7 +12732,7 @@ const fbarH=()=>`<div class="card al-find">
   ${opt("المصدر","log",Object.keys(SRC).filter(k=>ALL.some(e=>e.log===k)),k=>SRC[k]+(k==="auth"?" (auth)":""),"كل المصادر")}
   <div class="fb"><label>من تاريخ</label><div class="inp"><input type="date" data-al-f="from" value="${esc(U.f.from)}"></div></div>
   <div class="fb"><label>إلى تاريخ</label><div class="inp"><input type="date" data-al-f="to" value="${esc(U.f.to)}"></div></div></div></div>`;
-const chipsH=()=>`<div class="cx-chips al-chips">${QUICK.map(c=>`<button data-al-q="${c[0]}" class="${U.q===c[0]?"on":""}">${c[2]?`<i class="d ${c[2]}"></i>`:""}${c[1]}<b class="num">${fmt(ALL.filter(e=>matchF(e)&&c[3](e)).length)}</b></button>`).join("")}</div>`;
+const chipsH=()=>`<div class="cx-chips al-chips">${RVS.length?`<button class="al-rvreset" data-al-rvreset="" title="رجّع البيانات التجريبية زي ما كانت">${X("rotate-ccw")}مسح تجارب التراجع (<span class="num">${RVS.length}</span>)</button>`:""}${QUICK.map(c=>`<button data-al-q="${c[0]}" class="${U.q===c[0]?"on":""}">${c[2]?`<i class="d ${c[2]}"></i>`:""}${c[1]}<b class="num">${fmt(ALL.filter(e=>matchF(e)&&c[3](e)).length)}</b></button>`).join("")}</div>`;
 /* تنبيه مبني على login_locked الحقيقي */
 const alertH=()=>ALL.filter(e=>e.ev==="login_locked"&&e.t>=day0()).map(e=>{const f=ALL.filter(x=>x.ev==="login_failed"&&x.t<=e.t&&e.t-x.t<15*6e4).length;
  return `<div class="al-warn">${X("lock")}<div><b>اتقفل الدخول مؤقتاً على <bdi>${esc(e.px.login)}</bdi> (${esc(e.desc.split(" (")[0])}) بعد ${e.px.attempts} محاولات خاطئة</b>
@@ -12678,7 +12762,7 @@ const rowH=(e,n)=>{const ev=evOf(e);
  <span class="al-who"><b>${esc(e.actor)}</b><small>${esc(e.ck==="x"?"بدون هوية":e.role)}</small></span>
  <span class="al-dif">${difH(e,n)}</span>
  <span class="al-src ${e.log}">${esc(SRC[e.log]||e.log)}</span>
- ${X("chevron-left")}</div>`};
+ ${e.revBy&&!(byId(e.revBy)||{}).revBy?`<span class="al-rvm" title="اتعمل عليها تراجع">${X("undo-2")}</span>`:X("chevron-left")}</div>`};
 /* دمج محاولات الدخول الفاشلة المتتالية في سطر واحد */
 const collapse=l=>{const o=[];l.forEach(e=>{const p=o[o.length-1];if(p&&e.ev==="login_failed"&&p.e.ev==="login_failed"&&p.e.t-e.t<15*6e4&&ymd(p.e.t)===ymd(e.t)){p.n++;return}o.push({e,n:1})});return o};
 const pagesH=pages=>{const c=U.page,s=Math.max(1,c-2),en=Math.min(pages,c+2),L=[];if(s>1){L.push(1);if(s>2)L.push("…")}for(let i=s;i<=en;i++)L.push(i);if(en<pages){if(en<pages-1)L.push("…");L.push(pages)}
@@ -12715,10 +12799,12 @@ const refList=e=>{const L=[["database","الجدول","<code>activity_log</code>
  else if(e.log==="legacy_activity")L.push(["file-code","مين بيسجّلها","<code>App\\Services\\ingaz\\LegacyActivityLogImportService</code> — <code>LOG_NAME = 'legacy_activity'</code>"]);
  else if(e.px&&e.px.execution_source==="console")L.push(["file-code","مين بيسجّلها",`أمر مجدول <code>${esc(e.px.execution_command)}</code> — <code>ExecutionContext</code> بيضيف <code>execution_source = console</code>، وكل العقود في نفس التشغيل ليها نفس <code>batch_uuid</code>`]);
  else L.push(["file-code","مين بيسجّلها",`<code>LogsActivity</code> في <code>${esc(CLS[e.type]||"")}</code> — <code>logOnlyDirty()</code>: بيتسجّل اللي اتغيّر بس`]);
+ if(e.revOf)L.push(["undo-2","مين بيسجّلها (مقترح)","<code>ActivityRevertService::revert()</code> (جديد) — <code>event = reverted</code> و<code>properties.reverted_activity_id</code> و<code>revert_reason</code>"]);
  L.push(["eye","العرض والتسميات","<code>ActivityLogController::describeActivity()</code> ← <code>resolveActivityActionLabel</code> · <code>resolveSubjectTypeLabel</code> · <code>resolveFieldLabel</code> · <code>buildChangeSet</code> (بيتجاهل created_at وupdated_at وpassword وtoken)"]);
  L.push(["shield","الحقول الحساسة","<code>AuditProperties::sanitize()</code> — أي مفتاح فيه password · token · secret · api_key · cookie · verification_code بيتحفظ <code>[محجوب]</code>"]);
  return L};
 const notes=e=>{const N=[];
+ if(e.revOf)N.push("التراجع ميزة جديدة في التصميم. في الكود محتاجة: صلاحية <code>activity_log_revert</code>، و<code>ActivityRevertService</code> بيتأكد إن القيم الحالية = <code>attributes</code> بتاعة الحركة قبل ما يكتب <code>old</code>، ويمرّ على خدمة الموديول (زي <code>RecruitmentContractStageRollbackService</code>) بدل الكتابة المباشرة، ورمز التحقق من «لوحة التحكم والأمان» للحركات الحساسة.");
  if(e.log==="auth")N.push("الحركة متسجّلة تحت <code>log_name = auth</code>، والشاشة الحالية بتعرف <code>authentication</code> بس، فبتظهر في ClickERP «Auth». ومفيش تسمية لـ <code>login_locked</code> في <code>resolveActivityActionLabel</code>، فبتظهر «تنفيذ إجراء». الحل: إضافتهم للدالتين، أو استخدام <code>activity('authentication')</code> في <code>logLock()</code>.");
  if(e.ev==="login_failed")N.push("<code>Failed</code> بيتسجّل بـ <code>causedByAnonymous()</code> ومن غير <code>performedOn</code>، فمش ممكن تعرف الحساب المستهدف ولا العنوان من السطر ده. الاسم والعنوان بيظهروا بس في <code>login_locked</code> بعد المحاولة الخامسة. اقتراح: حفظ <code>login</code> و<code>ip</code> في الحركة (من غير كلمة المرور).");
  if(/^(login|logout)$/.test(e.ev))N.push("<code>RecordAuthenticationActivity</code> مابيحفظش IP ولا المتصفح، فمش ممكن تعرف الموظف دخل منين. اقتراح: إضافة <code>request()->ip()</code> و<code>userAgent()</code> زي <code>logLock()</code>.");
@@ -12735,14 +12821,15 @@ const popD=e=>{const ev=evOf(e),rec=sameRec(e),burst=e.ev==="login_failed"?ALL.f
   <div><small>${X("clock")}الوقت</small><b class="num">${hm(e.t)}</b><span>${fullDate(e.t)}</span><span>${rel(e.t)}</span></div>
   <div><small>${X("folder")}السجل</small><b>${e.type?esc(e.type)+(e.sid?` <span class="num">#${e.sid}</span>`:""):"غير مرتبط بسجل"}</b><span>${esc(e.desc)}</span>${rec.length>1?`<button class="al-lnk" data-al-ptab="h">تاريخه: ${rec.length} حركة</button>`:""}</div>
   <div><small>${X("layers")}المصدر</small><b>${esc(SRC[e.log]||e.log)}</b><span class="al-badge ${ev[2]}">${ev[0]}</span></div></div>
+ ${e.revOf?`<div class="al-note2 a">${X("undo-2")}<span>دي حركة تراجع عن <button class="al-lnk" data-al-go="${e.revOf}">#${e.revOf}</button>. السبب: «${esc(e.px.revert_reason)}»${e.px.otp_verified?" · اتأكدت برمز التحقق":""}.</span></div>`:""}
  ${e.px&&e.px.impersonator_admin_id?`<div class="al-note2 a">${X("user-check")}<span>الدخول تم بواسطة <b>محمد العتيبي</b>. أي حركة بعدها في نفس الجلسة باسم ${esc(e.desc)} بتحمل <code>impersonator_admin_id = ${e.px.impersonator_admin_id}</code> في properties.</span></div>`:""}
  ${e.px&&e.px.execution_source==="console"?`<div class="al-note2">${X("bot")}<span>اتعملت تلقائياً من أمر مجدول، مش من موظف. كل العقود اللي اتحدّثت في نفس التشغيل ليها نفس رقم الدفعة.</span></div>`:""}
  ${e.ev==="login_locked"?kvH([["اسم الدخول",`<bdi>${esc(e.px.login)}</bdi>`],["العنوان (IP)",`<span class="num">${esc(e.px.ip)}</span>`],["عدد المحاولات",`<span class="num">${e.px.attempts}</span>`],["مدة القفل","15 دقيقة"],["مقفول لحد",`<span class="num">${hm(e.t+15*6e4)}</span>`],["المتصفح",`<bdi class="al-ua">${esc(e.px.user_agent)}</bdi>`]]):""}
  ${burst.length>1?`<div class="al-sec"><h4>${X("shield-alert")}محاولات فاشلة متتالية <em class="num">${burst.length}</em></h4><div class="al-burst">${burst.map(x=>`<button class="${x.id===e.id?"on":""}" data-al-go="${x.id}"><span class="num">${iso(x.t).slice(11)}</span></button>`).join("")}</div>${lk?`<p class="al-small">وبعدها <button class="al-lnk" data-al-go="${lk.id}">اتقفل الدخول على <bdi>${esc(lk.px.login)}</bdi></button> — غالباً نفس المحاولات.</p>`:""}</div>`:""}
  ${chTable(e)}
+ ${rvBox(e)}
  <div class="al-pacts">${e.go&&!/deleted/.test(e.ev)?`<a class="btn btn-primary sm" href="${e.go}.html">${X("external-link")}${esc(TGT[e.go]||"فتح السجل")}</a>`:""}
   ${rec.length>1?`<button class="btn btn-ghost sm" data-al-act="rec">${X("filter")}اعرض حركات السجل ده بس</button>`:""}
-  ${e.ev==="deleted"?`<button class="btn btn-ghost sm" data-al-act="restore">${X("rotate-ccw")}استرجاع</button>`:""}
   <button class="btn btn-ghost sm" data-al-share="one">${X("share-2")}مشاركة الحركة</button><button class="btn btn-ghost sm" data-al-act="link">${X("link")}نسخ رابط الحركة</button></div>`};
 const popHist=e=>{const rec=sameRec(e);
  if(rec.length<2)return `<div class="al-empty in">${X("history")}<b>${e.type?"مفيش حركات تانية على السجل ده":"الحركة دي مش مرتبطة بسجل"}</b><small>${e.ev==="login_failed"?"محاولة الدخول الفاشلة بتتسجّل من غير الحساب، فمش ممكن نربطها بسجل.":"أي تعديل جاي على نفس السجل هيظهر هنا."}</small></div>`;
@@ -12771,8 +12858,8 @@ const popH=()=>{const e=byId(U.pop);if(!e)return "";const ev=evOf(e),list=rows()
  <div class="al-dh2"><span class="al-ic lg ${ev[2]}">${X(ev[1])}</span><div class="al-dtt"><h3 id="alT">${esc(title(e))}</h3><p>${e.desc?esc(e.desc)+" · ":""}${esc(e.actor)} · <span class="num">${hm(e.t)}</span> ${dayLab(e.t)} · <span class="al-mono">#${e.id}</span></p></div>
   <div class="al-nav">${i>-1?`<button data-al-go="${i>0?list[i-1].id:""}"${i>0?"":" disabled"} title="الأحدث (→)" aria-label="الحركة الأحدث">${X("chevron-right")}</button><span class="num">${i+1} / ${list.length}</span><button data-al-go="${i<list.length-1?list[i+1].id:""}"${i<list.length-1?"":" disabled"} title="الأقدم (←)" aria-label="الحركة الأقدم">${X("chevron-left")}</button>`:""}
   <button class="al-x2" data-al-close="" aria-label="إغلاق">${X("x")}</button></div></div>
- <div class="al-tabs" role="tablist">${[["d","file-text","التفاصيل"],["h","history","تاريخ السجل",rec.length>1?rec.length:null],["t","code-2","مرجع تقني",notes(e).length?"!":null]].map(t=>`<button role="tab" aria-selected="${tab===t[0]}" class="${tab===t[0]?"on":""}" data-al-ptab="${t[0]}">${X(t[1])}${t[2]}${t[3]?`<em class="num${t[3]==="!"?" r":""}">${t[3]}</em>`:""}</button>`).join("")}</div>
- <div class="al-bd">${tab==="h"?popHist(e):tab==="t"?popTech(e):popD(e)}</div>
+ <div class="al-tabs${U.rv&&U.rv.id===e.id?" al-off":""}" role="tablist">${U.rv&&U.rv.id===e.id?`<span class="al-rvt">${X("undo-2")}التراجع عن الحركة</span>`:""}${[["d","file-text","التفاصيل"],["h","history","تاريخ السجل",rec.length>1?rec.length:null],["t","code-2","مرجع تقني",notes(e).length?"!":null]].map(t=>`<button role="tab" aria-selected="${tab===t[0]}" class="${tab===t[0]?"on":""}" data-al-ptab="${t[0]}">${X(t[1])}${t[2]}${t[3]?`<em class="num${t[3]==="!"?" r":""}">${t[3]}</em>`:""}</button>`).join("")}</div>
+ <div class="al-bd">${U.rv&&U.rv.id===e.id?rvFlow(e):tab==="h"?popHist(e):tab==="t"?popTech(e):popD(e)}</div>
  <div class="al-ft"><small><kbd>Esc</kbd> إغلاق · <kbd>→</kbd> <kbd>←</kbd> الحركة الأحدث والأقدم</small></div></div>`};
 
 const ico=()=>{if(window.lucide)lucide.createIcons({attrs:{"stroke-width":1.8}})};
@@ -12787,8 +12874,8 @@ const paint=()=>{const r=document.getElementById("alog");if(!r)return;const list
  const fl=r.querySelector("[data-al-flash]");fl.innerHTML=U.flash?`<div class="al-flash">${X("check-circle-2")}<span>${U.flash}</span></div>`:"";ico()};
 const syncF=()=>{document.querySelectorAll("#alog [data-al-f]").forEach(el=>{const v=U.f[el.dataset.alF]||"";if(el.value!==v)el.value=v})};
 const setF=(k,v)=>{U.f[k]=v;U.page=1;U.flash="";syncF();paint()};
-const openP=id=>{U.pop=id;U.ptab="d";paintPop()};
-const closeP=()=>{const id=U.pop;U.pop=null;U.ptab="d";paintPop();const r=document.querySelector(`#alog .al-r[data-al-pop="${id}"]`);if(r)r.focus()};
+const openP=id=>{U.pop=id;U.ptab="d";U.rv=null;paintPop()};
+const closeP=()=>{const id=U.pop;U.pop=null;U.ptab="d";U.rv=null;paintPop();const r=document.querySelector(`#alog .al-r[data-al-pop="${id}"]`);if(r)r.focus()};
 const flash=msg=>{const w=document.querySelector("#alogPop .al-dlg");if(w){let t=w.querySelector(".al-toast");if(!t){t=document.createElement("div");t.className="al-toast";w.appendChild(t)}t.textContent=msg;clearTimeout(t._h);t._h=setTimeout(()=>t.remove(),2200)}else{U.flash=msg;paint()}};
 const copy=(txt,msg)=>{try{navigator.clipboard.writeText(txt).then(()=>flash(msg),()=>flash(msg))}catch(_){flash(msg)}};
 /* export(): نفس أعمدة ActivityLogController::export */
@@ -12801,7 +12888,7 @@ const csv=()=>{const H=["رقم السجل","التاريخ","الوقت","من�
 if(!window.__alBound){window.__alBound=1;
  document.addEventListener("click",ev=>{const t=ev.target;if(!t.closest||!t.closest("#alog,#alogPop"))return;let el;
   if(t.closest("[data-al-close]")){closeP();return}
-  if((el=t.closest("[data-al-go]"))){if(el.disabled||!el.dataset.alGo)return;U.pop=+el.dataset.alGo;if(t.closest(".al-htl,.al-burst,.al-small"))U.ptab="d";paintPop();return}
+  if((el=t.closest("[data-al-go]"))){if(el.disabled||!el.dataset.alGo)return;U.pop=+el.dataset.alGo;U.rv=null;if(t.closest(".al-htl,.al-burst,.al-small"))U.ptab="d";paintPop();return}
   if((el=t.closest("[data-al-ptab]"))){U.ptab=el.dataset.alPtab;paintPop();return}
   if((el=t.closest("[data-al-copy]"))){const e=byId(U.pop),k=el.dataset.alCopy;copy(k==="json"?JSON.stringify(props(e),null,2):k==="sql"?sqlOf(e):routeOf(e),k==="json"?"اتنسخت properties":k==="sql"?"اتنسخ الاستعلام":"اتنسخ الرابط");return}
   if((el=t.closest("[data-al-act]"))){const e=byId(U.pop),a=el.dataset.alAct;
@@ -12809,6 +12896,12 @@ if(!window.__alBound){window.__alBound=1;
    if(a==="rec"){U.pop=null;paintPop();U.q="all";U.per="all";U.f.s="";U.f.type=e.type;U.more=true;const adv=document.querySelector("#alog .al-adv"),b=document.querySelector("#alog [data-al-more]");if(adv)adv.hidden=false;if(b)b.classList.add("on");setF("sid",e.sid!=null?String(e.sid):"");window.scrollTo({top:0,behavior:"smooth"});return}
    if(a==="link"){copy(location.href.split("#")[0]+"#a"+e.id,"اتنسخ رابط الحركة — اللي يفتحه هيشوف نفس النافذة");return}
    if(a==="restore"){flash(`في ClickERP الاسترجاع بيسجّل حركة «استرجاع» جديدة على ${subj(e)}`);return}}
+  if((el=t.closest("[data-al-rv]"))){if(el.disabled)return;U.rv={id:+el.dataset.alRv,step:1,reason:"",otp:"",ack:false};paintPop();return}
+  if((el=t.closest("[data-al-rvs]"))){U.rv.step=+el.dataset.alRvs;paintPop();const f=document.querySelector("#alogPop #alRvR");if(f)f.focus();return}
+  if(t.closest("[data-al-rvx]")){U.rv=null;paintPop();return}
+  if(t.closest("[data-al-rvend]")){U.rv=null;paintPop();return}
+  if((el=t.closest("[data-al-rvdo]"))){if(!el.disabled)doRv();return}
+  if(t.closest("[data-al-rvreset]")){RVS=[];saveRVS();ALL=build();U.flash="اتمسحت تجارب التراجع ورجعت البيانات الأصلية.";paint();return}
   if((el=t.closest("[data-al-pop]"))){openP(+el.dataset.alPop);return}
   if((el=t.closest("[data-al-q]"))){U.q=el.dataset.alQ;U.page=1;U.flash="";paint();return}
   if((el=t.closest("[data-al-per]"))){U.per=el.dataset.alPer;U.page=1;U.flash="";paint();return}
@@ -12818,12 +12911,19 @@ if(!window.__alBound){window.__alBound=1;
   if(t.closest("[data-al-csv]")){csv();return}
   if(t.closest("[data-al-pdf]")){window.print();return}});
  document.addEventListener("keydown",ev=>{if(!document.getElementById("alog"))return;const inTabs=!!(ev.target.closest&&ev.target.closest(".al-tabs"));
-  if(U.pop){if(ev.key==="Escape"){ev.preventDefault();closeP();return}
+  if(U.pop){if(ev.key==="Escape"){ev.preventDefault();if(U.rv){U.rv=null;paintPop()}else closeP();return}
+   if(U.rv&&(ev.key==="ArrowRight"||ev.key==="ArrowLeft"))return;
    if((ev.key==="ArrowRight"||ev.key==="ArrowLeft")&&!/INPUT|TEXTAREA|SELECT/.test(ev.target.tagName||"")&&!inTabs){const l=rows(),i=l.findIndex(x=>x.id===U.pop),j=i+(ev.key==="ArrowLeft"?1:-1);if(i>-1&&l[j]){ev.preventDefault();U.pop=l[j].id;paintPop()}return}
    if((ev.key==="ArrowRight"||ev.key==="ArrowLeft")&&inTabs){const T3=["d","h","t"],i=T3.indexOf(U.ptab),j=(i+(ev.key==="ArrowLeft"?1:2))%3;ev.preventDefault();U.ptab=T3[j];paintPop();return}
    if(ev.key==="Tab"){const d=document.querySelector("#alogPop .al-dlg");if(!d)return;const f=[...d.querySelectorAll("button:not([disabled]),a[href]")];if(!f.length)return;
     if(ev.shiftKey&&document.activeElement===f[0]){ev.preventDefault();f[f.length-1].focus()}else if(!ev.shiftKey&&document.activeElement===f[f.length-1]){ev.preventDefault();f[0].focus()}}return}
   const r=ev.target.closest&&ev.target.closest("#alog .al-r");if(r&&(ev.key==="Enter"||ev.key===" ")){ev.preventDefault();openP(+r.dataset.alPop)}});
+ const onRv=ev=>{const el=ev.target;if(!el.matches)return;
+  if(el.matches("[data-al-as]")){U.as=el.value;paint();if(U.pop)paintPop();return}
+  if(!el.matches("#alogPop [data-al-rvin]")||!U.rv)return;const k=el.dataset.alRvin;U.rv[k]=k==="ack"?el.checked:el.value;
+  const st=U.rv,e=byId(st.id),ok=st.reason.trim().length>=5&&(!SENS(e)||st.otp==="2468")&&st.ack,b=document.querySelector("#alogPop [data-al-rvdo]");if(b)b.disabled=!ok;
+  if(k==="otp"){const er=document.querySelector("#alogPop .al-err");if(st.otp.length===4&&st.otp!=="2468"&&!er){paintPop();const f=document.querySelector("#alogPop #alRvO");if(f){f.focus();f.setSelectionRange(9,9)}}else if(er&&st.otp.length<4)er.remove()}};
+ document.addEventListener("input",onRv);document.addEventListener("change",onRv);
  const onF=ev=>{const el=ev.target;if(!el.matches||!el.matches("#alog [data-al-f]"))return;U.f[el.dataset.alF]=el.value;U.page=1;U.flash="";paint()};
  document.addEventListener("input",onF);document.addEventListener("change",onF);
  window.addEventListener("storage",e=>{if(e.key==="cerp.roles.v1"){ALL=build();paint()}})}
@@ -12907,7 +13007,7 @@ window.addEventListener("storage",e=>{if(e.key===SHK&&document.getElementById("a
 
 const S={};
 S.setActivity=()=>{setTimeout(()=>{paint();const m=location.hash.match(/^#a(\d+)(?:-([dht]))?$/);if(m&&byId(+m[1])){openP(+m[1]);if(m[2]){U.ptab=m[2];paintPop()}}},0);const list=rows();return `<div id="alog">
- ${HEAD("سجل النشاط","كل حركة في النظام: مين عمل إيه، على أي سجل، وإمتى. اضغط أي حركة لتفاصيلها وتاريخ السجل ومرجعها التقني في ClickERP.",B("ghost","link","الروابط المشاركة",'data-al-share="links"')+B("ghost","share-2","مشاركة النتائج",'data-al-share="list"')+B("ghost","file-spreadsheet","CSV",'data-al-csv=""')+B("ghost","printer","PDF",'data-al-pdf="" title="طباعة أو حفظ PDF — أحدث 500 حركة بنفس الفلاتر"'),["setHome","الإعدادات"])}
+ ${HEAD("سجل النشاط","كل حركة في النظام: مين عمل إيه، على أي سجل، وإمتى. اضغط أي حركة لتفاصيلها وتاريخ السجل ومرجعها التقني في ClickERP.",`<label class="al-as" title="جرّب التراجع بصلاحيات مختلفة">${X("user-cog")}<span>تجربة كـ</span><select data-al-as="">${Object.keys(ASU).map(k=>`<option value="${k}"${U.as===k?" selected":""}>${ASU[k].name} — ${ASU[k].role}${ASU[k].perm?"":" (من غير صلاحية التراجع)"}</option>`).join("")}</select></label>`+B("ghost","link","الروابط المشاركة",'data-al-share="links"')+B("ghost","share-2","مشاركة النتائج",'data-al-share="list"')+B("ghost","file-spreadsheet","CSV",'data-al-csv=""')+B("ghost","printer","PDF",'data-al-pdf="" title="طباعة أو حفظ PDF — أحدث 500 حركة بنفس الفلاتر"'),["setHome","الإعدادات"])}
  ${TABS([["setUsers","users","المستخدمون",46],["setRoles","shield-check","الأدوار والصلاحيات",6],["#trash","trash-2","المحذوفون",3],["setActivity","history","سجل النشاط"]],"setActivity")}
  <div data-al-flash=""></div>${alertH()}
  ${fbarH()}

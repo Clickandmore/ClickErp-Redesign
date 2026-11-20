@@ -8096,6 +8096,68 @@ body.al-lock{overflow:hidden}
 @media (max-width:760px){.al-hd{display:none}.al-r{grid-template-columns:30px minmax(0,1fr) auto;row-gap:2px}.al-r>.al-tm{grid-column:3;grid-row:1;order:3}.al-r>.al-who,.al-r>.al-dif{grid-column:2}.al-r>svg{display:none}
  .al-cards{grid-template-columns:1fr 1fr}.al-kv2{grid-template-columns:1fr 1fr}.al-adv{grid-template-columns:1fr 1fr}.al-dlg{width:calc(100vw - 16px);max-height:calc(100vh - 16px)}.al-hint{display:none}}
 @media print{.al-warn,.al-chips,.vtabs,.al-foot,.al-find,.al-clear,.al-hint,.al-pill svg,#alogPop{display:none!important}.al-dh{position:static}.al-r{break-inside:avoid}}
+/* v1.72 التراجع عن حركة */
+.al-as{display:inline-flex;align-items:center;gap:6px;height:40px;padding:0 4px 0 10px;border:1px dashed var(--line);border-radius:10px;font-size:12.5px;color:var(--muted);background:#fff}
+.al-as svg{width:15px;height:15px}
+.al-as select{border:0;background:none;font:inherit;font-size:12.5px;font-weight:600;color:var(--ink);height:36px;width:auto;max-width:260px;padding:0 6px}
+.al-rvreset{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:20px;border:1px dashed var(--amber);background:var(--amber-soft);color:var(--amber);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;order:9}
+.al-rvreset svg{width:14px;height:14px}
+.al-rvm{display:grid;place-items:center;width:16px;color:var(--amber)}
+.al-rvm svg{width:15px;height:15px}
+.al-rv{border:1px solid var(--line);border-radius:10px;margin:0 0 14px;overflow:hidden}
+.al-rv-h{display:flex;align-items:flex-start;gap:10px;padding:12px 14px}
+.al-rv-h>svg{width:20px;height:20px;flex:none;margin-top:1px}
+.al-rv-h>div{flex:1;min-width:0}
+.al-rv-h b{display:block;font-size:13.5px;color:var(--ink)}
+.al-rv-h small{display:block;font-size:12.5px;color:var(--body);line-height:1.8;margin-top:2px}
+.al-rv-h ul{margin:6px 0 0;padding:0;list-style:none}
+.al-rv-h li{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--red)}
+.al-rv-h li svg{width:14px;height:14px;flex:none}
+.al-rv-alt{display:flex!important;gap:6px;margin-top:6px!important}
+.al-rv-alt svg{width:14px;height:14px;flex:none;margin-top:4px;color:var(--amber)}
+.al-rv-h .btn{flex:none}
+.al-rv.g{border-color:#cfe8d6;background:#f6fbf7}.al-rv.g .al-rv-h>svg{color:var(--green-d)}
+.al-rv.b{border-color:#cddcf3;background:#f6f9fe}.al-rv.b .al-rv-h>svg{color:var(--blue)}
+.al-rv.r{border-color:#f6d4d4;background:#fff8f8}.al-rv.r .al-rv-h>svg{color:var(--red)}
+.al-rv.a{border-color:#f3e0bd;background:#fffbf3}.al-rv.a .al-rv-h>svg{color:var(--amber)}
+.al-rv.n{background:#fafbfc}.al-rv.n .al-rv-h>svg{color:var(--muted)}
+.al-rv-p{display:flex;align-items:center;gap:8px;padding:8px 14px;border-top:1px dashed var(--line);font-size:12.5px;color:var(--body);background:#fff}
+.al-rv-p svg{width:14px;height:14px;color:var(--muted);flex:none}
+.al-rv code,.al-rv-p code,.al-sec h4 code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;background:#eef1f5;border-radius:4px;padding:0 4px;direction:ltr;unicode-bidi:isolate}
+.al-tabs.al-off button{display:none}
+.al-rvt{display:inline-flex;align-items:center;gap:6px;padding:10px 2px;font-size:13.5px;font-weight:700;color:var(--amber);border-bottom:2px solid var(--amber);margin-bottom:-1px}
+.al-rvt svg{width:15px;height:15px}
+.al-steps{display:flex;align-items:center;gap:8px;margin:0 0 16px}
+.al-steps span{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--muted)}
+.al-steps i{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-size:12px;border:1px solid var(--line);background:#fff}
+.al-steps span.on{color:var(--navy)}.al-steps span.on i{background:var(--navy);border-color:var(--navy);color:#fff}
+.al-steps span.ok{color:var(--green-d)}.al-steps span.ok i{background:var(--green-soft);border-color:var(--green-soft);color:var(--green-d)}
+.al-steps em{flex:0 1 40px;height:1px;background:var(--line)}
+.al-tb.rvt tbody td:first-child{width:28%}
+.al-chk{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px}
+.al-chk span{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--body)}
+.al-chk svg{width:15px;height:15px;color:var(--green-d);flex:none}
+.al-how{margin:0;padding-inline-start:20px;font-size:13px;color:var(--body);line-height:1.9}
+.al-rvf{display:flex;justify-content:flex-end;gap:8px;padding-top:12px;border-top:1px solid var(--line);margin-top:4px}
+.al-rvf.c{justify-content:center;border:0}
+.al-rvf .btn[disabled]{opacity:.45;cursor:not-allowed}
+.al-lab{display:block;font-size:13px;font-weight:600;color:var(--ink);margin-bottom:6px}
+.al-lab b{color:var(--red)}
+.al-ta{width:100%;border:1px solid var(--line);border-radius:8px;padding:9px 11px;font:inherit;font-size:13.5px;resize:vertical;min-height:72px}
+.al-ta:focus,.al-otp input:focus{outline:2px solid var(--navy-soft);border-color:var(--navy)}
+.al-help{display:block;margin-top:4px;font-size:12px;color:var(--muted)}
+.al-otp{display:flex;align-items:center;gap:12px}
+.al-otp input{width:110px;height:42px;text-align:center;font-size:20px;letter-spacing:8px;border:1px solid var(--line);border-radius:8px;direction:ltr}
+.al-otp small{font-size:12.5px;color:var(--body);line-height:1.7}
+.al-err{display:flex;align-items:center;gap:5px;margin-top:6px;font-size:12.5px;color:var(--red)}
+.al-err svg{width:14px;height:14px}
+.al-ack{display:flex;align-items:flex-start;gap:8px;margin:0 0 6px;font-size:13px;color:var(--body);cursor:pointer}
+.al-ack input{margin-top:3px}
+.al-done{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;padding:18px 10px 4px}
+.al-done>svg{width:42px;height:42px;color:var(--green-d)}
+.al-done b{font-size:16px;color:var(--ink)}
+.al-done small{font-size:13px;color:var(--body);max-width:520px;line-height:1.8}
+@media (max-width:760px){.al-chk{grid-template-columns:1fr}.al-rv-h{flex-wrap:wrap}.al-as{display:none}}
 /* v1.68 — محرك الإعدادات: حفظ، تغييرات مش محفوظة، مراجعة، سجل */
 .sxe-dirty{position:relative;background:linear-gradient(90deg,transparent,rgba(122,182,72,.08));border-radius:10px}
 .sx-rule.sxe-dirty,.actrow.sxe-dirty{box-shadow:inset -3px 0 0 var(--green)}
