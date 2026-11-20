@@ -3536,22 +3536,27 @@ const DEPTS=[
   H("خدمة العملاء"),A("claims","alert-triangle","الشكاوى","Complaints","23")]},
  {id:"finance",i:"wallet",ar:"المالية",en:"Finance",s:"المالية",d:"المحاسبة العامة: القيود والسندات والحسابات والتقارير والقوائم المالية",items:[
   H("عام"),A("finDash","gauge","لوحة المالية","Finance dashboard"),A("finDaily","calendar-days","اليومية: الصندوق والبنوك","Daily cash & banks"),
-  H("القيود والسندات"),A("finEntries","book-open","القيود اليومية","Journal entries"),A("finBonds","receipt-text","سندات القبض والصرف","Receipt & payment bonds"),A("finSales","receipt","الفواتير والاعتماد","Invoices & approvals"),A("finMoyasar","credit-card","مدفوعات ميسر","Moyasar payments"),
+  H("القيود والسندات"),A("finEntries","book-open","القيود اليومية","Journal entries"),A("finBonds","receipt-text","سندات القبض والصرف","Receipt & payment bonds"),A("finQuotes","file-signature","عروض الأسعار","Quotations"),A("finSales","receipt","الفواتير والاعتماد","Invoices & approvals"),A("finMoyasar","credit-card","مدفوعات ميسر","Moyasar payments"),
   H("الحسابات والخزينة"),A("finAccounts","list-tree","الدليل المحاسبي","Chart of accounts"),A("finBanks","landmark","البنوك والصناديق","Banks & cashboxes"),A("finBalances","scale","الأرصدة","Balances"),
   H("العملاء والموردون"),A("finClients","contact","العملاء","Clients"),A("finSuppliers","truck","الموردون والوكلاء","Suppliers & agents"),A("finPurchases","shopping-bag","المشتريات","Purchases"),
   H("الأصول ومراكز التكلفة"),A("finAssets","building","الأصول","Assets"),A("finCenters","target","مراكز التكلفة","Cost centres"),
   H("التقارير والقوائم"),A("finReports","bar-chart-3","التقارير المحاسبية","Accounting reports"),A("finStatements","file-bar-chart","القوائم المالية","Financial statements"),A("finTax","badge-check","الضريبة و ZATCA","Tax & ZATCA"),
   H("الإعدادات"),A("finSettings","settings-2","إعدادات النظام المحاسبي","Accounting settings")]},
- /* v1.75 — التجارة (جديد): المحاسبة التجارية والمخزون ونقاط البيع — نسخ «عام» بس (commerce_inventory ← commerce_pos ← commerce_restaurant).
-    الشاشات في assets/commerce/*.js، والسطر بيستخبى لو ميزته مقفولة من Super Admin ← نوع المحاسبة والنشاط. */
- {id:"commerce",i:"store",ar:"التجارة",en:"Commerce",s:"التجارة",d:"الأصناف والمخازن والتكلفة والفواتير التجارية ونقاط البيع",items:[
-  H("اليوم"),A("cmDash","gauge","لوحة التجارة اليوم","Commerce today"),
-  H("الأصناف"),A("cmItems","package","الأصناف","Items"),A("cmCats","folder-tree","التصنيفات والوحدات","Categories & units"),A("cmPrices","tags","قوائم الأسعار","Price lists"),
-  H("المخزون"),A("cmStock","boxes","أرصدة المخزون","Stock balances"),A("cmDocs","file-stack","مستندات المخزون","Stock documents"),A("cmCount","scan-barcode","الجرد","Stock count"),A("cmStores","warehouse","المخازن","Warehouses"),
-  H("البيع والشراء"),A("cmSales","receipt","فواتير البيع","Sales invoices"),A("cmPurchases","shopping-bag","فواتير الشراء","Purchase invoices"),A("cmReturns","undo-2","المرتجعات","Returns"),
-  H("نقاط البيع"),A("cmShifts","clock","الورديات","Shifts"),A("cmPosInvoices","receipt-text","فواتير نقاط البيع","POS invoices"),A("cmRegisters","monitor-smartphone","نقاط البيع والأجهزة","Registers & devices"),A("cmCashiers","user-round-check","الكاشيرية","Cashiers"),A("cmPayMethods","credit-card","طرق الدفع","Payment methods"),A("cmPromos","badge-percent","العروض","Promotions"),A("cmSettle","landmark","تسويات البطاقات","Card settlements"),
-  H("الضريبة والتقارير"),A("cmZatca","shield-check","وحدات ZATCA للأجهزة","ZATCA units"),A("cmReports","bar-chart-3","تقارير التجارة","Commerce reports"),
-  H("الإعدادات"),A("cmSettings","settings-2","إعدادات التجارة والحسابات","Commerce settings")]},
+ /* v1.77 — الأقسام التجارية (نسخ «عام» بنوع محاسبة «تجاري» بس) متوزعة على 3 إدارات بدل قسم واحد طويل:
+    مبيعات المنتجات (commerce_inventory) · المخزون والمشتريات (commerce_inventory) · نقاط البيع (commerce_pos). الشاشات في assets/commerce/*.js */
+ {id:"psales",i:"shopping-cart",ar:"مبيعات المنتجات",en:"Product sales",s:"المبيعات",d:"فواتير بيع المنتجات والمرتجعات والأسعار وتقاريرها",items:[
+  H("البيع"),A("cmSales","receipt","فواتير بيع المنتجات","Product invoices"),A("cmReturns","undo-2","مرتجعات البيع والشراء","Returns"),SC("finQuotes","file-signature","عروض الأسعار","Quotations","psales"),
+  H("التسعير"),A("cmPrices","tags","قوائم الأسعار","Price lists"),
+  H("التقارير"),A("cmReports","bar-chart-3","تقارير المبيعات والمخزون","Sales & stock reports")]},
+ {id:"stock",i:"boxes",ar:"المخزون والمشتريات",en:"Inventory & purchasing",s:"المخزون",d:"الأصناف والمخازن والأرصدة والجرد ومشتريات البضاعة",items:[
+  H("الأصناف"),A("cmItems","package","الأصناف","Items"),A("cmCats","folder-tree","التصنيفات والوحدات","Categories & units"),
+  H("المخزون"),A("cmStock","layers","أرصدة المخزون","Stock balances"),A("cmDocs","file-stack","حركات المخزون","Stock movements"),A("cmCount","scan-barcode","الجرد","Stock count"),A("cmStores","warehouse","المخازن","Warehouses"),
+  H("المشتريات"),A("cmPurchases","shopping-bag","مشتريات البضاعة","Goods purchases"),
+  H("الإعدادات"),A("cmSettings","settings-2","إعدادات المخزون والحسابات","Inventory settings")]},
+ {id:"pos",i:"monitor-smartphone",ar:"نقاط البيع",en:"Point of sale",s:"الكاشير",d:"الكاشير والورديات والأجهزة وتبليغ الفواتير للهيئة",items:[
+  H("اليوم"),A("cmDash","gauge","لوحة نقاط البيع اليوم","POS today"),A("cmShifts","clock","الورديات","Shifts"),A("cmPosInvoices","receipt-text","فواتير الكاشير","Cashier invoices"),
+  H("التشغيل"),A("cmRegisters","monitor-smartphone","نقاط البيع والأجهزة","Registers & devices"),A("cmCashiers","user-round-check","الكاشيرية","Cashiers"),A("cmPayMethods","credit-card","طرق الدفع","Payment methods"),A("cmPromos","badge-percent","العروض والخصومات","Promotions"),
+  H("التسوية والضريبة"),A("cmSettle","landmark","تسويات البطاقات","Card settlements"),A("cmZatca","shield-check","وحدات ZATCA للأجهزة","ZATCA units")]},
  {id:"hr",i:"user-cog",ar:"الموارد البشرية",en:"HR",s:"الموارد",d:"الموظفون والحضور والطلبات والرواتب",items:[
   H("أنا"),A("myRequests","send","طلباتي","My requests"),A("hrTeam","users-round","فريقي","My team"),
   H("كل يوم"),A("hrDash","gauge","لوحة الموارد البشرية","HR dashboard"),A("hrRequests","inbox","طلبات الموظفين","Employee requests","7"),A("hrAttendance","clock","الحضور","Attendance"),
@@ -3579,9 +3584,9 @@ const PROGS={
  recruitment:{ar:"نظام الاستقدام",en:"Recruitment",i:"briefcase",c:"rec",home:"dashboard",d:"أساس البرنامج: الاستقدام والتأجير ونقل الخدمات والإيواء، ومعاهم العملاء والمالية والموارد البشرية"},
  general:{ar:"النظام العام — المالية",en:"General — Finance",i:"wallet",c:"gen",home:"finDashGen",d:"محاسبة عامة لأي شركة: القيود والسندات والفواتير والتقارير، والتأجير بالساعة ومركز المهام اختياري"},
  tasks:{ar:"نظام المهام والموارد البشرية",en:"Tasks & HR",i:"list-checks",c:"tsk",home:"tcMy",d:"شركة خدمات شغلها مهام وفريق: مركز المهام والحضور والطلبات والرواتب، من غير استقدام ولا مالية"}};
-const PG_DEPT={all:["recruitment","general","tasks"],ops:["recruitment","general"],crm:["recruitment","general","tasks"],finance:["recruitment","general"],commerce:["general"],hr:["recruitment","general","tasks"],tasks:["general","tasks"],settings:["recruitment","general","tasks"]};
+const PG_DEPT={all:["recruitment","general","tasks"],ops:["recruitment"],crm:["recruitment","general","tasks"],finance:["recruitment","general"],psales:["general"],stock:["general"],pos:["general"],hr:["recruitment","general","tasks"],tasks:["general","tasks"],settings:["recruitment","general","tasks"]};
 const PG_RG=["recruitment","general"],PG_R=["recruitment"];
-const PG_ITEM={arrivals:PG_R,finAgents:PG_R,setSite:PG_RG,cmsHome:PG_RG,rentalSettings:PG_R,transferTerms:PG_R,visaSettings:PG_R,claimTypes:PG_R,couponSettings:PG_RG,finSettings:PG_RG,finCommissionRules:PG_RG,tcSettings:["general","tasks"],dashboard:PG_R,reports:PG_RG,recDash:PG_RG,"hb-board":PG_RG,"hb-visits":PG_RG,"hb-alerts":PG_RG,"hb-clients":PG_RG,hbCollect:PG_RG,"hb-services":PG_RG,claims:PG_R,hrWorkers:PG_R,coupons:PG_RG,selectWorkers:PG_R,setCountry:PG_R,setRecruit:PG_R,setRental:PG_R};
+const PG_ITEM={finQuotes:["general"],"hb-services":PG_R,arrivals:PG_R,finAgents:PG_R,setSite:PG_RG,cmsHome:PG_RG,rentalSettings:PG_R,transferTerms:PG_R,visaSettings:PG_R,claimTypes:PG_R,couponSettings:PG_RG,finSettings:PG_RG,finCommissionRules:PG_RG,tcSettings:["general","tasks"],dashboard:PG_R,reports:PG_RG,recDash:PG_RG,"hb-board":PG_RG,"hb-visits":PG_RG,"hb-alerts":PG_RG,"hb-clients":PG_RG,hbCollect:PG_RG,claims:PG_R,hrWorkers:PG_R,coupons:PG_RG,selectWorkers:PG_R,setCountry:PG_R,setRecruit:PG_R,setRental:PG_R};
 const PG_OPS_DEF=PG_R; /* أي سطر في العمليات من غير تحديد = استقدام بس */
 const PG_KEY="clickerp-program";
 let PROG=(QP.get("program")||"").trim();
@@ -3604,17 +3609,27 @@ for(let k=DEPTS.length-1;k>=0;k--){const d=DEPTS[k];
  const qa=QP.get("acct");if(qa==="commercial"||qa==="services"){C=Object.assign({},C||{},{acct:qa});try{localStorage.setItem("cerp.commerce.v1",JSON.stringify(C))}catch(e){}}
  window.CERP_ACCT=C&&C.acct||null;
  if(PROG!=="recruitment"&&curReport==="register")curReport="finance"; /* تقرير «سجل عقود الاستقدام» الافتراضي مالوش مكان في العام */
- const on=k=>!C||!C.f||C.f[k]!==false;const ix=DEPTS.findIndex(d=>d.id==="commerce");if(ix<0)return;
- if(!C||C.acct!=="commercial"){DEPTS.splice(ix,1);return}
- const P=["pos"],NEED={cmShifts:P,cmPosInvoices:P,cmRegisters:P,cmCashiers:P,cmPayMethods:P,cmSettle:P,cmZatca:P,cmPromos:["pos","promotions"],cmPrices:["price_lists"]};
- const d=DEPTS[ix],keep=d.items.filter(p=>p.sec||(NEED[p.id]||[]).every(on));
- d.items=keep.filter((p,j)=>!p.sec||(keep[j+1]&&!keep[j+1].sec))})();
+ const on=k=>!C||!C.f||C.f[k]!==false;const TR=["psales","stock","pos"];
+ if(!C||C.acct!=="commercial"){for(let k=DEPTS.length-1;k>=0;k--)if(TR.includes(DEPTS[k].id))DEPTS.splice(k,1);
+  /* خدمي: عروض الأسعار في المالية بس، من غير اختصار في مبيعات المنتجات */return}
+ const NEED={cmPromos:["promotions"],cmPrices:["price_lists"]};
+ for(let k=DEPTS.length-1;k>=0;k--){const d=DEPTS[k];if(!TR.includes(d.id))continue;
+  if(d.id==="pos"&&!on("pos")){DEPTS.splice(k,1);continue}
+  const keep=d.items.filter(p=>p.sec||(NEED[p.id]||[]).every(on));
+  d.items=keep.filter((p,j)=>!p.sec||(keep[j+1]&&!keep[j+1].sec))}})();
+/* v1.77 — المالية في النظام العام: «المبيعات والتحصيل» مجموعة لوحدها (عروض الأسعار ← الفواتير ← مدفوعات ميسر) */
+(()=>{if(PROG!=="general")return;const d=DEPTS.find(x=>x.id==="finance");if(!d)return;
+ const ids=["finQuotes","finSales","finMoyasar"],mv=d.items.filter(p=>ids.includes(p.id));if(!mv.length)return;
+ d.items=d.items.filter(p=>!ids.includes(p.id));const k=d.items.findIndex(p=>p.sec&&p.ar==="القيود والسندات");
+ d.items.splice(k<0?0:k,0,H("المبيعات والتحصيل"),...mv);
+ d.items=d.items.filter((p,j,a)=>!p.sec||(a[j+1]&&!a[j+1].sec));
+ d.d="المحاسبة العامة: عروض الأسعار والفواتير والقيود والسندات والحسابات والتقارير"})();
 /* نصوص الإدارات لكل برنامج = v2.nav.depts_profiles في الكود */
 const PG_DTXT={general:{ops:"التأجير بالساعة والعمليات"},tasks:{all:"الشركة اليوم والتقارير والمفضلة",crm:"العملاء والمتابعة والتواصل"}}[PROG]||{};
 DEPTS.forEach(d=>{if(PG_DTXT[d.id])d.d=PG_DTXT[d.id]});
-const PG_ORDER={recruitment:["all","ops","crm","finance","hr","settings"],general:["all","finance","commerce","ops","crm","hr","tasks","settings"],tasks:["all","tasks","hr","crm","settings"]}[PROG];
+const PG_ORDER={recruitment:["all","ops","crm","finance","hr","settings"],general:["all","finance","psales","stock","pos","crm","hr","tasks","settings"],tasks:["all","tasks","hr","crm","settings"]}[PROG];
 DEPTS.sort((a,b)=>PG_ORDER.indexOf(a.id)-PG_ORDER.indexOf(b.id));
-const SUBS={cmItems:["cmItemAdd","cmItemCard","cmImport"],cmDocs:["cmDocShow"],cmCount:["cmCountRun"],cmSales:["cmSaleAdd","cmSaleShow"],cmPurchases:["cmPurchaseAdd"],cmReturns:["cmReturnAdd"],cmShifts:["cmShiftShow"],cmRegisters:["cmDevicePair"],cmZatca:["cmZatcaWizard"],cmPosInvoices:["cmPosInvoiceShow"],cmPrices:["cmPriceEdit"],cmCats:["cmUnits"],finDash:["finDashGen"],cmsHome:["cmsBlogs","cmsBlogForm","cmsOffers","cmsHero","cmsSections","cmsTestimonials","cmsPartners","cmsFaq"],reqRec:["orderShow"],reqRent:["rentalOrders","rentalOrderShow"],rcExtensions:["rcRenewals","rcReturns","rcReturnShow"],absconding:["abscShow"],rentalSettings:["rentalTerms"],rcFinance:["rcFinanceShow"],inbound:["inboundShow"],finCreditNotes:["finCreditNoteAdd"],setDev:["saSubscription","saModules","saEmployees","saDesigns","saUpdates","saUpdateForm","saBackups","saScheduler","saRecovery","saInvoices","saInvoiceFix","saMcp","saMoyasar","saTestAccounts"],tcMy:["tcPolicy","tcClose"],tcBoard:["tcTask","tcForm","tcList","tcLanes","tcBoardD","tcCard","tcNew","tcCardQA","tcShare"],tcQA:["tcQALib"],tcAdmin:["tcRemind"],hrAttendance:["tcCheckin","tcGeo","hrPunchImport","hrRemote"],hrDocuments:["hrRenewal","hrMuqeem"],hrWorkers:["hrWorkerShow"],hrPerformance:["hrReview","hrSurvey"],hrSettings:["hrEstablishments","hrApprovalFlows","hrCompliance"],myRequests:["myRequestNew","myRequestShow"],tcTeam:["tcMember","tcShots","tcSessions"],tcHours:["tcAttend"],tcSettings:["tcMigrate"],contracts:["contractShow","contractAdd","contractEdit"],cvs:["cvAdd","cvShow","cvEdit","cvReview","cvShares"],rentalCvs:["rentalCvShow","rentalCvAdd"],clients:["clientShow","clientAdd"],
+const SUBS={finQuotes:["finQuoteAdd","finQuoteShow"],cmItems:["cmItemAdd","cmItemCard","cmImport"],cmDocs:["cmDocShow"],cmCount:["cmCountRun"],cmSales:["cmSaleAdd","cmSaleShow"],cmPurchases:["cmPurchaseAdd"],cmReturns:["cmReturnAdd"],cmShifts:["cmShiftShow"],cmRegisters:["cmDevicePair"],cmZatca:["cmZatcaWizard"],cmPosInvoices:["cmPosInvoiceShow"],cmPrices:["cmPriceEdit"],cmCats:["cmUnits"],finDash:["finDashGen"],cmsHome:["cmsBlogs","cmsBlogForm","cmsOffers","cmsHero","cmsSections","cmsTestimonials","cmsPartners","cmsFaq"],reqRec:["orderShow"],reqRent:["rentalOrders","rentalOrderShow"],rcExtensions:["rcRenewals","rcReturns","rcReturnShow"],absconding:["abscShow"],rentalSettings:["rentalTerms"],rcFinance:["rcFinanceShow"],inbound:["inboundShow"],finCreditNotes:["finCreditNoteAdd"],setDev:["saSubscription","saModules","saEmployees","saDesigns","saUpdates","saUpdateForm","saBackups","saScheduler","saRecovery","saInvoices","saInvoiceFix","saMcp","saMoyasar","saTestAccounts"],tcMy:["tcPolicy","tcClose"],tcBoard:["tcTask","tcForm","tcList","tcLanes","tcBoardD","tcCard","tcNew","tcCardQA","tcShare"],tcQA:["tcQALib"],tcAdmin:["tcRemind"],hrAttendance:["tcCheckin","tcGeo","hrPunchImport","hrRemote"],hrDocuments:["hrRenewal","hrMuqeem"],hrWorkers:["hrWorkerShow"],hrPerformance:["hrReview","hrSurvey"],hrSettings:["hrEstablishments","hrApprovalFlows","hrCompliance"],myRequests:["myRequestNew","myRequestShow"],tcTeam:["tcMember","tcShots","tcSessions"],tcHours:["tcAttend"],tcSettings:["tcMigrate"],contracts:["contractShow","contractAdd","contractEdit"],cvs:["cvAdd","cvShow","cvEdit","cvReview","cvShares"],rentalCvs:["rentalCvShow","rentalCvAdd"],clients:["clientShow","clientAdd"],
  rental:["rentalShow","rentalAdd"],housing:["housingShow","housingAdd"],transfer:["transferShow","transferAdd","transferOverview"],
  reports:["report","arrivals"],finBonds:["finBondsGen","finComPay","finTransfers"],finSales:["finSaleAdd","finCreditNotes","finCreditNoteAdd"],finBanks:["finBoxes","finChecksIn","finChecksOut"],finClients:["finClientCats"],finSuppliers:["finSupplierTypes","finAgents"],finPurchases:["finPurchaseReq","finReturns"],
  finCenters:["finCentersTree"],finReports:["finReport"],finEntries:["finEntriesPending","finAdd","finShow"],finAccounts:["finGuide"],clArchive:[],delegations:["delAdd","delShow"],trips:["tripShow"],agents:["agentShow"],"hb-board":["hbNew","hbRenewals"],"hb-visits":["hbVisit","hb-schedule","hb-tracking","hbExceptions"],"hb-alerts":["hbSos"],"hb-clients":["hbMerge"],"hb-services":["hb-zones","hbDrivers"],coupons:["couponsHourly","couponForm","couponShow","couponBulk","couponReport","couponSettings"],claims:["claimAdd","claimShow","claimTypes"],campaigns:["campaignNew"],finRequests:["finRequestAdd","finRequestShow"],musanedTransfers:["finNetSales"],finDaily:["finDailyLines"],finStatements:[],finBalances:[],finAssets:["finAssetShow"],finCommissions:["finCommissionShow","finCommissionRules"],finTax:["finTaxReports","finZatca"],hrEmployees:["hrEmployeeShow","hrEmployeeAdd"],hrPayroll:["hrPayrollRun","hrGosi","hrEntries"],setUsers:["setRoles","setActivity"],visaDash:["visaRequests","visaAdd","visaShow","visaBalance","visaReports","visaPrebook","visaSettings"]};
@@ -13138,7 +13153,7 @@ Object.assign(T,{setActivity:{ar:"سجل النشاط",en:"Activity log"}});
 Object.keys(S).forEach(k=>{screens[k]=S[k]});
 })();
 /* v1.75 — التجارة: ids الشاشات في كل الصفحات (عشان التنقل بينها)، والشاشات نفسها بتتسجل من assets/commerce/*.js اللي بتتحمّل قبل الباندل في صفحات cm*.html */
-window.CERP_PAGES=(window.CERP_PAGES||[]).concat(["cmDash","cmItems","cmItemAdd","cmItemCard","cmImport","cmCats","cmUnits","cmPrices","cmPriceEdit","cmStock","cmDocs","cmDocShow","cmCount","cmCountRun","cmStores","cmSales","cmSaleAdd","cmSaleShow","cmPurchases","cmPurchaseAdd","cmReturns","cmReturnAdd","cmShifts","cmShiftShow","cmPosInvoices","cmPosInvoiceShow","cmRegisters","cmDevicePair","cmCashiers","cmPayMethods","cmPromos","cmSettle","cmZatca","cmZatcaWizard","cmReports","cmSettings"]);
+window.CERP_PAGES=(window.CERP_PAGES||[]).concat(["finQuotes","finQuoteAdd","finQuoteShow","cmDash","cmItems","cmItemAdd","cmItemCard","cmImport","cmCats","cmUnits","cmPrices","cmPriceEdit","cmStock","cmDocs","cmDocShow","cmCount","cmCountRun","cmStores","cmSales","cmSaleAdd","cmSaleShow","cmPurchases","cmPurchaseAdd","cmReturns","cmReturnAdd","cmShifts","cmShiftShow","cmPosInvoices","cmPosInvoiceShow","cmRegisters","cmDevicePair","cmCashiers","cmPayMethods","cmPromos","cmSettle","cmZatca","cmZatcaWizard","cmReports","cmSettings"]);
 (window.CERP_EXT||[]).forEach(f=>{try{f()}catch(e){console.error("CERP_EXT",e)}});
 (function(){var P=window.CERP_PAGE;if(!P)return;var PAGES=window.CERP_PAGES||[];
 if(P==="login"){renderLogin();return}
@@ -13281,8 +13296,8 @@ const nv=document.querySelector("#app .nav"),on=nv&&nv.querySelector("a.on");if(
   location.href=(v==="commercial"?(/^cm[A-Z]/.test(P)?P:"cmDash"):(/^cm[A-Z]/.test(P)?"finDashGen":P))+".html?program=general"};
  const lbl=A==="commercial"?"تجاري":A==="services"?"خدمي":"لم يُحدد";
  const card=()=>{const d=document.createElement("div");d.className="acct-pick"+(A?" set":"");d.dataset.acctPick="";
-  d.innerHTML=A?`<span class="ap-i">${I(A==="commercial"?"store":"hand-helping")}</span><div><b>نوع المحاسبة: ${lbl}</b><small>${A==="commercial"?"الخدمات + الأصناف والمخازن والتكلفة ونقاط البيع — قسم «التجارة» ظاهر.":"محاسبة الخدمات: فواتير بنوع خدمة من غير أصناف ولا مخازن — قسم «التجارة» مخفي."}</small></div><div class="ap-b"><button data-acct-set="${A==="commercial"?"services":"commercial"}" class="btn btn-ghost sm">${I("repeat")}تحويل إلى ${A==="commercial"?"خدمي":"تجاري"} (معاينة)</button><a class="btn btn-ghost sm" href="superadmin/commerce.html">${I("shield-check")}Super Admin</a></div>`
-  :`<span class="ap-i warn">${I("calculator")}</span><div><b>اختر نوع المحاسبة للنسخة</b><small>النظام العام يعمل خدمياً أو تجارياً. التجاري يضيف ولا يلغي: كل شاشات المالية تبقى، ويُضاف قسم «التجارة» (الأصناف والمخازن والتكلفة ونقاط البيع).</small></div><div class="ap-b"><button class="ap-c" data-acct-set="services">${I("hand-helping")}<b>خدمي</b><small>فواتير بنوع خدمة</small></button><button class="ap-c" data-acct-set="commercial">${I("store")}<b>تجاري</b><small>أصناف ومخازن ونقاط بيع</small></button></div>`;
+  d.innerHTML=A?`<span class="ap-i">${I(A==="commercial"?"store":"hand-helping")}</span><div><b>نوع المحاسبة: ${lbl}</b><small>${A==="commercial"?"الخدمات + الأصناف والمخازن والتكلفة ونقاط البيع — أقسام مبيعات المنتجات والمخزون ونقاط البيع ظاهرة.":"محاسبة الخدمات: عروض أسعار وفواتير بنوع خدمة من غير أصناف ولا مخازن — المالية تكفي، ومعها عروض الأسعار."}</small></div><div class="ap-b"><button data-acct-set="${A==="commercial"?"services":"commercial"}" class="btn btn-ghost sm">${I("repeat")}تحويل إلى ${A==="commercial"?"خدمي":"تجاري"} (معاينة)</button><a class="btn btn-ghost sm" href="superadmin/commerce.html">${I("shield-check")}Super Admin</a></div>`
+  :`<span class="ap-i warn">${I("calculator")}</span><div><b>اختر نوع المحاسبة للنسخة</b><small>النظام العام يعمل خدمياً أو تجارياً. التجاري يضيف ولا يلغي: كل شاشات المالية تبقى، وتُضاف أقسام مبيعات المنتجات والمخزون والمشتريات ونقاط البيع.</small></div><div class="ap-b"><button class="ap-c" data-acct-set="services">${I("hand-helping")}<b>خدمي</b><small>فواتير بنوع خدمة</small></button><button class="ap-c" data-acct-set="commercial">${I("store")}<b>تجاري</b><small>أصناف ومخازن ونقاط بيع</small></button></div>`;
   return d};
  const put=()=>{const pg=document.querySelector("#app .page");if(!pg||pg.querySelector("[data-acct-pick]"))return;
   const home=P==="finDashGen"||P==="finSettings",cm=/^cm[A-Z]/.test(P);

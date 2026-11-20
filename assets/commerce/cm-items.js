@@ -157,7 +157,7 @@ const accRow=(k,label,req,hint)=>{const a=accOf(k);return `<div class="cmi-acc${
  :`<div class="cmi-acc-v">${a[0]?`<span class="cmi-accn">${X("book-open")}<span class="cm-mono">${a[0].split(" ")[0]}</span> ${a[0].split(" ").slice(1).join(" ")}</span><em>${X("corner-down-left")}${a[1]}</em>`:`<span class="cmi-accn none">${X("circle-off")}لا يوجد حساب</span><em class="bad">التصنيف بلا حساب، والإعداد العام فارغ</em>`}</div>`}
  ${tog("acc_"+k,F.acc[k]!=null,"تخصيص","")}${ferr(k)}</div>`};
 const tAccounts=()=>`<div class="cmi-sec"><div class="cm-sec-h">${X("book-open")}<b>الحسابات</b><small>ترتيب الوراثة: الصنف ← التصنيف وأبوه ← الإعداد العام. يُقبل الحساب النهائي فقط.</small></div>
- ${F.noacc?CM.note(`التصنيف «منتجات جديدة — بلا إعداد» ليس له حساب إيراد، والإعداد العام للإيراد فارغ. <b>الحفظ ممنوع</b> حتى تختار حساباً هنا أو تضبطه في <a href="#" data-go="cmSettings">إعدادات التجارة</a>.`,"bad"):""}
+ ${F.noacc?CM.note(`التصنيف «منتجات جديدة — بلا إعداد» ليس له حساب إيراد، والإعداد العام للإيراد فارغ. <b>الحفظ ممنوع</b> حتى تختار حساباً هنا أو تضبطه في <a href="#" data-go="cmSettings">إعدادات المخزون والحسابات</a>.`,"bad"):""}
  <div class="cmi-chain">${[["الصنف",F.acc.sale!=null||F.acc.cogs!=null||F.acc.inv!=null],["التصنيف: "+fCat().n,!!(fCat().acc.sale||fCat().acc.cogs||fCat().acc.inv)],["التصنيف الأب",!!fCat().p],["الإعداد العام",1]].map(x=>`<span class="${x[1]?"on":""}">${x[0]}</span>`).join(X("chevron-left"))}</div>
  ${accRow("sale","حساب الإيراد",1,"يُقيد فيه صافي البيع بدون الضريبة")}
  ${F.kind!=="service"?accRow("cogs","حساب التكلفة",0,"تكلفة البضاعة المباعة بالمتوسط المرجح")+accRow("inv","حساب المخزون",0,"افتراضياً حساب المخزن نفسه"):CM.note("الصنف الخدمي لا يُخزّن، فلا حساب مخزون ولا تكلفة له.","","hand-helping")}</div>`;

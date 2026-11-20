@@ -1526,7 +1526,7 @@
     {
       "id": "cmDash",
       "file": "cmDash.html",
-      "title": "لوحة التجارة اليوم"
+      "title": "لوحة نقاط البيع اليوم"
     },
     {
       "id": "cmItems",
@@ -1576,12 +1576,12 @@
     {
       "id": "cmDocs",
       "file": "cmDocs.html",
-      "title": "مستندات المخزون"
+      "title": "حركات المخزون"
     },
     {
       "id": "cmDocShow",
       "file": "cmDocShow.html",
-      "title": "مستند مخزون"
+      "title": "مستند حركة مخزون"
     },
     {
       "id": "cmCount",
@@ -1601,12 +1601,12 @@
     {
       "id": "cmSales",
       "file": "cmSales.html",
-      "title": "فواتير البيع"
+      "title": "فواتير بيع المنتجات"
     },
     {
       "id": "cmSaleAdd",
       "file": "cmSaleAdd.html",
-      "title": "فاتورة بيع جديدة"
+      "title": "فاتورة بيع منتجات"
     },
     {
       "id": "cmSaleShow",
@@ -1616,17 +1616,17 @@
     {
       "id": "cmPurchases",
       "file": "cmPurchases.html",
-      "title": "فواتير الشراء"
+      "title": "مشتريات البضاعة"
     },
     {
       "id": "cmPurchaseAdd",
       "file": "cmPurchaseAdd.html",
-      "title": "فاتورة شراء جديدة"
+      "title": "فاتورة شراء بضاعة"
     },
     {
       "id": "cmReturns",
       "file": "cmReturns.html",
-      "title": "المرتجعات"
+      "title": "مرتجعات البيع والشراء"
     },
     {
       "id": "cmReturnAdd",
@@ -1646,12 +1646,12 @@
     {
       "id": "cmPosInvoices",
       "file": "cmPosInvoices.html",
-      "title": "فواتير نقاط البيع"
+      "title": "فواتير الكاشير"
     },
     {
       "id": "cmPosInvoiceShow",
       "file": "cmPosInvoiceShow.html",
-      "title": "فاتورة نقطة بيع"
+      "title": "فاتورة كاشير"
     },
     {
       "id": "cmRegisters",
@@ -1676,7 +1676,7 @@
     {
       "id": "cmPromos",
       "file": "cmPromos.html",
-      "title": "العروض"
+      "title": "العروض والخصومات"
     },
     {
       "id": "cmSettle",
@@ -1696,17 +1696,32 @@
     {
       "id": "cmReports",
       "file": "cmReports.html",
-      "title": "تقارير التجارة"
+      "title": "تقارير المبيعات والمخزون"
     },
     {
       "id": "cmSettings",
       "file": "cmSettings.html",
-      "title": "إعدادات التجارة والحسابات"
+      "title": "إعدادات المخزون والحسابات"
     },
     {
       "id": "pos",
       "file": "pos.html",
       "title": "تطبيق الكاشير"
+    },
+    {
+      "id": "finQuotes",
+      "file": "finQuotes.html",
+      "title": "عروض الأسعار"
+    },
+    {
+      "id": "finQuoteAdd",
+      "file": "finQuoteAdd.html",
+      "title": "عرض سعر جديد"
+    },
+    {
+      "id": "finQuoteShow",
+      "file": "finQuoteShow.html",
+      "title": "تفاصيل عرض السعر"
     }
   ],
   "states": [

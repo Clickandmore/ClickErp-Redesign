@@ -1,0 +1,66 @@
+/* ClickERP — المالية ← عروض الأسعار (v1.77). البادئة fq- */
+.fq-attn{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px;margin-bottom:14px}
+.fq-at{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:var(--r);border:1px solid var(--line);background:#fff;cursor:pointer;text-align:start;font:inherit}
+.fq-at:hover{box-shadow:var(--shadow)}
+.fq-at>svg:first-child{width:34px;height:34px;padding:8px;border-radius:10px;flex:none}
+.fq-at.a>svg:first-child{background:var(--amber-soft);color:var(--amber)}.fq-at.n>svg:first-child{background:var(--navy-soft);color:var(--navy)}.fq-at.g>svg:first-child{background:var(--green-soft);color:var(--green-d)}
+.fq-at span{flex:1;min-width:0}.fq-at b{display:block;font-size:13.5px;color:var(--ink)}.fq-at small{display:block;color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fq-at>svg:last-child{width:16px;height:16px;color:var(--muted-2)}
+.fq-row{cursor:pointer}.fq-tbl td{vertical-align:middle}
+.fq-lines td{vertical-align:top}.fq-lines .inp.sm{max-width:96px}.fq-lines td:first-child{min-width:240px}
+.fq-it{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:700;color:var(--navy);background:var(--navy-soft);border-radius:5px;padding:0 6px;margin-bottom:4px}.fq-it svg{width:11px;height:11px}
+.fq-ladd{display:flex}.fq-ladd .cmi-addrow{flex:1}
+.fq-tot{margin:12px 0 4px auto;max-width:340px;display:flex;flex-direction:column;gap:6px;margin-inline-start:auto;margin-inline-end:0}
+.fq-tot div{display:flex;justify-content:space-between;font-size:13px;color:var(--body)}.fq-tot .big{border-top:1px solid var(--line);padding-top:8px;font-size:15px}.fq-tot .big b{font-size:18px}
+.fq-sec{display:grid;grid-template-columns:220px 1fr auto;gap:10px;align-items:start;margin-bottom:10px}
+.fq-sec textarea{min-height:64px}.fq-sadd{border:1px dashed #c9d1df;border-radius:var(--r-s);width:auto}
+.fq-chk{display:flex;flex-direction:column;gap:7px;font-size:13px}.fq-chk span{display:flex;gap:6px;align-items:center}.fq-chk svg{width:15px;height:15px}
+.fq-chk .ok svg{color:var(--green-d)}.fq-chk .warn{color:#8a5a12}.fq-chk .warn svg{color:var(--amber)}
+.hdrtag{vertical-align:middle;margin-inline-start:8px;font-size:14px}
+/* المستند */
+.fq-paper{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:34px 38px;box-shadow:var(--shadow);font-size:13px;color:var(--body)}
+.fq-ph{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;padding-bottom:18px;border-bottom:3px solid var(--navy)}
+.fq-co{display:flex;gap:12px;align-items:center}.fq-co b{display:block;font-size:16px;color:var(--ink)}.fq-co small{color:var(--muted);font-size:11.5px}
+.fq-logo{width:46px;height:46px;border-radius:12px;background:var(--navy);color:var(--green);display:grid;place-items:center}.fq-logo svg{width:22px;height:22px}
+.fq-pt{text-align:end}.fq-pt h2{margin:0;font-size:22px;color:var(--navy)}.fq-pt span{color:var(--muted)}
+.fq-cover{margin:20px 0 6px;padding:22px 24px;border-radius:12px;background:linear-gradient(135deg,var(--navy),var(--navy-2));color:#fff}
+.fq-cover small{color:#b9c3d6}.fq-cover h3{margin:4px 0;font-size:20px}.fq-cover p{margin:0;color:#dfe5f0}
+.fq-pm{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:18px 0}
+.fq-pm small{display:block;color:var(--muted);font-size:11.5px}.fq-pm b{display:block;font-size:13.5px;color:var(--ink)}.fq-pm span{font-size:11.5px;color:var(--muted)}
+.fq-psec{margin:0 0 14px}.fq-psec h4{margin:0 0 4px;font-size:14px;color:var(--navy);padding-inline-start:10px;border-inline-start:3px solid var(--green)}.fq-psec p{margin:0;line-height:1.9}
+.fq-pt2{width:100%;border-collapse:collapse;margin:10px 0}
+.fq-pt2 th{background:var(--navy);color:#fff;font-weight:600;font-size:12px;padding:8px 10px;text-align:start}
+.fq-pt2 td{padding:8px 10px;border-bottom:1px solid var(--line-2)}
+.fq-ptot{margin-inline-start:auto;max-width:300px;display:flex;flex-direction:column;gap:5px}
+.fq-ptot div{display:flex;justify-content:space-between}.fq-ptot .big{background:var(--green-soft);padding:8px 10px;border-radius:8px;font-weight:800;color:var(--ink)}
+.fq-terms{margin-top:22px;padding-top:14px;border-top:1px dashed var(--line)}.fq-terms h4{margin:0 0 6px;color:var(--navy)}
+.fq-terms pre{font-family:inherit;white-space:pre-wrap;margin:0 0 10px;line-height:1.8;color:var(--body)}.fq-terms p{margin:0;color:var(--muted)}
+.fq-paper.slides .fq-cover{min-height:150px;display:flex;flex-direction:column;justify-content:flex-end}
+.fq-sum{padding:18px}.fq-sum small{color:var(--muted);font-size:12px}.fq-sum b{display:block;font-size:26px;margin:4px 0}.fq-sum span{color:var(--muted);font-size:12px}
+.fq-follow{display:flex;flex-direction:column;gap:8px}
+.fq-ask{padding:16px 18px;margin-bottom:16px;border:1.5px solid var(--amber)}.fq-ask b{display:block;margin-bottom:8px}.fq-ask p{margin:0 0 10px;color:var(--muted)}
+.fq-why{display:flex;flex-wrap:wrap;gap:8px}.fq-why button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 14px;font:inherit;font-size:13px;cursor:pointer}.fq-why button:hover{border-color:var(--red);color:var(--red)}
+.fq-ov{position:fixed;inset:0;background:rgba(17,28,51,.45);z-index:200;display:grid;place-items:center;padding:20px}
+.fq-dlg{width:min(720px,100%);max-height:88vh;overflow:auto;padding:20px 22px}
+@media (max-width:760px){.fq-pm{grid-template-columns:1fr}.fq-sec{grid-template-columns:1fr}.fq-paper{padding:20px}}
+
+/* v1.77 — بنود كبطاقات، وشريط ملخص أعلى المستند */
+.fq-lines{display:flex;flex-direction:column;gap:10px}
+.fq-line{display:flex;gap:12px;padding:12px;border:1px solid var(--line);border-radius:var(--r);background:#fcfdfe}
+.fq-ln{width:26px;height:26px;border-radius:50%;background:var(--navy);color:#fff;display:grid;place-items:center;font-size:12px;flex:none;margin-top:8px}
+.fq-lb{flex:1;min-width:0;display:flex;flex-direction:column;gap:10px}
+.fq-l1{display:flex;gap:8px;align-items:center}.fq-l1 .inp{flex:1}
+.fq-l2{display:grid;grid-template-columns:1.3fr 1fr .7fr 1fr .8fr 1fr;gap:8px;align-items:end}
+.fq-l2 label{display:flex;flex-direction:column;gap:3px;min-width:0}.fq-l2 small,.fq-lt small{color:var(--muted);font-size:11.5px}
+.fq-l2 select,.fq-l2 .inp{height:38px;width:100%}
+.fq-lt{display:flex;flex-direction:column;gap:3px;text-align:end}.fq-lt b{font-size:15px;line-height:38px}
+.fq-ladd{display:flex;gap:10px}.fq-ladd .cmi-addrow{border:1px dashed #c9d1df;border-radius:var(--r-s)}
+@media (max-width:900px){.fq-l2{grid-template-columns:1fr 1fr 1fr}}
+.fq-strip{display:grid;grid-template-columns:260px 1fr auto;gap:14px;margin-bottom:14px;align-items:stretch}
+@media (max-width:1000px){.fq-strip{grid-template-columns:1fr}}
+.fq-sum b .num,.cm-kpi b .num,.cm-kpi b .cur{font-size:inherit}
+.fq-kv{display:grid;grid-template-columns:repeat(3,1fr);gap:10px 18px;padding:14px 18px}
+.fq-kv small{display:block;color:var(--muted);font-size:11.5px}.fq-kv b{font-size:13.5px;color:var(--ink)}
+.fq-follow{padding:14px;display:flex;flex-direction:column;gap:8px;justify-content:center}.fq-follow small{color:var(--muted);font-size:12px}
+.fq-paper{overflow-x:auto}
+.fq-sum b .cm-m,.cm-kpi b .cm-m{font-size:inherit!important}
