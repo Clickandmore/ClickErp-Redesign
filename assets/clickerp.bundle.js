@@ -11206,7 +11206,7 @@ const editH=()=>{const r=R(),set=r.set,f=matchQ(),q=U.q.trim();
    <button class="btn btn-ghost sm" data-pr-back=""${(r.hist||[]).length?"":" disabled"} title="Ctrl+Z">${X("undo-2")}تراجع خطوة${(r.hist||[]).length?` <span class="num">(${r.hist.length})</span>`:""}</button></div>
   <span class="pr-qs">${X("mouse-pointer-click")}<span>التحديد السريع على <b>${scopeName}</b> · <span class="num">${fmt(son)}</span> من <span class="num">${fmt(sp.length)}</span> محددة</span></span>
   <div class="pr-qr">${QK.map(k=>`<button class="pr-q${k[0]==="none"||k[0]==="nosens"||k[0]==="nodel"?" neg":""}" data-pr-quick="${k[0]}" title="${k[3]}"${r.prot?" disabled":""}>${X(k[1])}${k[2]}</button>`).join("")}
-   <label class="pr-qc">${X("copy")}<span>انسخ من</span><select data-pr-from=""${r.prot?" disabled":""}><option value="">دور آخر…</option>${ROLES.map((x,i)=>i===U.r||x.del?"":`<option value="${i}">${esc(x.name)}</option>`).join("")}</select></label></div></div>
+   <label class="pr-qc" title="انسخ اختيارات دور آخر على الصلاحيات الظاهرة">${X("copy")}<select data-pr-from=""${r.prot?" disabled":""}><option value="">انسخ من دور…</option>${ROLES.map((x,i)=>i===U.r||x.del?"":`<option value="${i}">${esc(x.name)}</option>`).join("")}</select></label></div></div>
  ${r.prot?`<div class="cx-info pr-prot">${X("lock")}<span>دور محمي في ClickERP: يملك كل الصلاحيات الحالية وأي صلاحية تُضاف لاحقاً، ولا تُعدَّل صلاحياته من هنا.</span></div>`:""}
  <div class="card pr-list pr-tbl">${blocks||`<div class="pr-empty">${X("search-x")}<b>${f?"لا توجد صلاحية بهذا الاسم":"لا توجد شاشات بهذا الفلتر"}</b><small>${f?"جرّب كلمة أقصر: «حذف»، «تصدير»، «مساند»، «الضمان»":"غيّر «الكل / المحدد / غير المحدد»"}</small></div>`}</div>`};
 /* لوحة التفاصيل: اسم الصلاحية ووصفها ومفتاحها */

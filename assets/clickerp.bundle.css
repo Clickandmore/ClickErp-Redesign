@@ -7883,3 +7883,7 @@ button.pr-pin{cursor:pointer;color:var(--navy);font-weight:600;background:var(--
 #prl .pr-qs{margin:2px 2px -2px}
 #prl .pr-qc{margin-inline-start:auto}
 #prl .pr-qc select{max-width:130px}
+#prl .pr-lay{grid-template-columns:minmax(0,1fr) 330px}
+#prl .pr-q{padding:5px 9px}
+#prl .pr-qr{gap:6px}
+#prl .pr-qc select{max-width:118px}
