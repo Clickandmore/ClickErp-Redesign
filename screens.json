@@ -29,6 +29,16 @@
       "title": "مثال الدليل: إضافة وتعديل"
     },
     {
+      "id": "guideReport",
+      "file": "guideReport.html",
+      "title": "مثال الدليل: تقرير"
+    },
+    {
+      "id": "guidePrint",
+      "file": "guidePrint.html",
+      "title": "مثال الدليل: المستند المطبوع"
+    },
+    {
       "id": "dashboard",
       "file": "dashboard.html",
       "title": "لوحة التحكم"
@@ -802,6 +812,11 @@
       "id": "setMessages",
       "file": "setMessages.html",
       "title": "الرسائل والإشعارات"
+    },
+    {
+      "id": "setPrint",
+      "file": "setPrint.html",
+      "title": "نماذج الطباعة"
     },
     {
       "id": "setIntegrations",

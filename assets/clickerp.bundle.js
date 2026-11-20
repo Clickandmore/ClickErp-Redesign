@@ -3557,7 +3557,7 @@ const DEPTS=[
   H("الإعدادات"),A("tcSettings","settings","إعدادات مركز المهام","Settings")]},
  {id:"settings",i:"settings",ar:"الإعدادات",en:"Settings",s:"الإعدادات",d:"إعدادات المكتب والمستخدمين والتكاملات",items:[
   A("setHome","layout-grid","كل الإعدادات","All settings"),A("setGeneral","sliders-horizontal","العامة","General"),A("coupons","ticket-percent","كوبونات الخصم","Coupons"),A("setSite","globe","موقع المكتب","Office website"),A("cmsHome","layout-template","محتوى الموقع","Website content"),A("selectWorkers","list-checks","صفحة اختيار العمالة","Select-workers page"),A("setCountry","flag","سياسات الدول","Country policies"),A("setRecruit","files","الاستقدام والسير","Recruitment & CVs"),A("setRental","repeat","التأجير","Rental"),
-  A("setUsers","shield-check","المستخدمون والصلاحيات","Users & roles"),A("setBranches","git-branch","الفروع","Branches"),A("setLists","list","القوائم المرجعية","Reference lists"),A("setMessages","bell","الرسائل والإشعارات","Messages & notifications"),
+  A("setUsers","shield-check","المستخدمون والصلاحيات","Users & roles"),A("setBranches","git-branch","الفروع","Branches"),A("setLists","list","القوائم المرجعية","Reference lists"),A("setMessages","bell","الرسائل والإشعارات","Messages & notifications"),A("setPrint","printer","نماذج الطباعة","Print templates"),
   A("setIntegrations","plug","التكاملات","Integrations"),A("setImport","upload","استيراد البيانات","Data import"),A("setAi","sparkles","المساعد الذكي","AI assistant"),A("setSupport","life-buoy","الدعم","Support"),A("setDev","code","المطوّر (Super Admin)","Developer")]}];
 /* v1.58 — البرامج الثلاثة: كل نسخة نوعها واحد (config/product_profiles.php) والقائمة بتتفلتر بيه زي مفتاح profiles في config/v2_nav.php.
    الإدارة = موديول ممكن يتنقل لبرنامج تاني بتعديل PG_DEPT/PG_ITEM بس. */
@@ -11680,6 +11680,9 @@ Object.keys(S).forEach(k=>{screens[k]=S[k]});
 const {X,KV,TAG,FLD,HEAD,B,STAT}=window.CXH;
 const {CHK,TL}=window.HRX;const CHAIN=window.HRX2.CHAIN;
 window.CERP_PAGES=(window.CERP_PAGES||[]).concat(["designGuide"]);
+/* v1.63 — صفحات clickerp.docs.js: مثال التقرير، المستند المطبوع، نماذج الطباعة */
+window.CERP_PAGES=window.CERP_PAGES.concat(["guideReport","guidePrint","setPrint"]);
+Object.assign(T,{setPrint:{ar:"نماذج الطباعة",en:"Print templates"},guideReport:{ar:"مثال: تقرير",en:"Example: report"},guidePrint:{ar:"مثال: المستند المطبوع",en:"Example: printed document"}});
 const S={};
 const P=n=>`<i class="h18-pin">${n}</i>`;
 const kvs=l=>`<div class="kvgrid">${l.map(x=>`<div class="kv"><span>${x[0]}</span><b>${x[1]}</b></div>`).join("")}</div>`;
