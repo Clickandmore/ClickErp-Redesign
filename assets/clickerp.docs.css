@@ -347,3 +347,44 @@
 .p22-ctext{color:#1b2333}
 .p22-sheet.st-modern .p22-tot tr:last-child *{color:#fff!important}
 .p23-lay .p23-stage .p22-sheet.pp-slide{zoom:.55}
+/* ===== v1.67 الربط بالعمليات والمراحل (p25) ===== */
+.p25{display:flex;flex-direction:column;gap:10px}
+.p25-lbl{font-size:13px;font-weight:700;color:var(--ink);margin-top:6px}
+.p25-lbl small{display:block;font-weight:400;font-size:11.5px;color:var(--muted);margin-top:2px;line-height:1.7}
+.p25-lbl b.g{color:var(--green-d)}.p25-lbl b.a{color:var(--amber)}
+.p25-procs{display:flex;flex-wrap:wrap;gap:6px}
+.p25-procs button{display:inline-flex;align-items:center;gap:6px;padding:7px 11px;border:1px solid var(--line);border-radius:999px;background:#fff;font:inherit;font-size:12.5px;cursor:pointer;color:var(--body)}
+.p25-procs button svg{width:14px;height:14px}
+.p25-procs button.on{border-color:var(--navy);background:var(--navy);color:#fff}
+.p25-path{display:flex;flex-wrap:wrap;align-items:center;gap:4px;padding:10px;background:var(--bg);border-radius:var(--r)}
+.p25-ar{display:inline-grid;color:#b8c2d4;font-style:normal}.p25-ar svg{width:14px;height:14px}
+.p25-st{display:inline-flex;align-items:center;gap:5px;padding:6px 10px;border-radius:8px;border:1.5px dashed #c3ccda;background:#fff;font:inherit;font-size:12px;cursor:pointer;color:var(--muted)}
+.p25-st svg{width:13px;height:13px;flex:none}
+.p25-st em{font-style:normal;font-size:10.5px;font-weight:700;padding:1px 6px;border-radius:999px}
+.p25-st.on{border:1.5px solid var(--green);background:var(--green-soft,#eef6e8);color:var(--green-d)}
+.p25-st.on em{background:var(--green);color:#fff}
+.p25-st.req{border:1.5px solid var(--amber);background:#fdf3e4;color:#94600f}
+.p25-st.req em{background:var(--amber);color:#fff}
+.p25-st.ex{font-size:11.5px}
+.p25-exr{display:flex;flex-wrap:wrap;align-items:center;gap:6px}.p25-exr small{color:var(--muted)}
+.p25-auto{display:flex;flex-direction:column;gap:2px}.p25-auto select{max-width:320px;margin-bottom:4px}
+.p25-sug{align-items:center}.p25-sug .btn{flex:none}
+.p25-mock{border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.p25-sim{display:flex;flex-wrap:wrap;gap:4px;padding:8px;background:var(--bg);border-bottom:1px solid var(--line)}
+.p25-sim button{padding:4px 9px;border:1px solid var(--line);border-radius:6px;background:#fff;font:inherit;font-size:11.5px;cursor:pointer;color:var(--muted)}
+.p25-sim button.has{color:var(--ink);font-weight:600}
+.p25-sim button.on{background:var(--navy);border-color:var(--navy);color:#fff}
+.p25-scr{padding:12px;display:flex;flex-direction:column;gap:10px}
+.p25-sh{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.p25-sh>div:first-child{flex:1;min-width:150px}.p25-sh small{display:block;color:var(--muted);font-size:11px}
+.p25-pm{position:relative;display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.p25-menu{display:flex;flex-direction:column;min-width:230px;border:1px solid var(--line);border-radius:8px;background:#fff;box-shadow:0 6px 18px rgba(11,19,35,.08);padding:4px}
+.p25-menu span{display:flex;align-items:center;gap:7px;padding:6px 8px;border-radius:6px;font-size:12.5px}
+.p25-menu span svg{width:14px;height:14px;color:var(--muted)}
+.p25-menu span.me{background:var(--navy-soft,#eef2f8);font-weight:700;color:var(--navy)}
+.p25-menu span em{margin-inline-start:auto;font-style:normal;font-size:10.5px;background:var(--amber);color:#fff;padding:1px 6px;border-radius:999px}
+.p25-menu .no{color:var(--muted)}
+.p25-gate{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;background:#fdf3e4;border:1px solid #f0d3a5}
+.p25-gate>svg{width:18px;height:18px;color:var(--amber);flex:none}.p25-gate>div{flex:1;display:flex;flex-direction:column;font-size:12.5px}
+.p25-ok{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--green-d)}.p25-ok svg{width:16px;height:16px}
+.p25-autoinfo{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--navy);background:var(--navy-soft,#eef2f8);padding:8px 10px;border-radius:8px}.p25-autoinfo svg{width:15px;height:15px}
