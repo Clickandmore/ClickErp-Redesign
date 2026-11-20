@@ -74,6 +74,7 @@
 .sac-steps{display:flex;gap:6px;margin-bottom:6px}.sac-steps span{flex:1;height:4px;border-radius:4px;background:var(--line)}.sac-steps span.on{background:var(--green)}
 .sac-log td small{color:var(--muted)}
 .sac-num{font-family:inherit;font-variant-numeric:tabular-nums}
+.sac-lic{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}.sac-lic>span{font-weight:700;font-size:13px}.sac-lic small{color:var(--muted);font-size:12px}
 </style>
 </head>
 <body dir="rtl" data-page="commerce">
@@ -113,6 +114,7 @@ var changes=function(){var a=[],o=saved,n=S.c;
  var AL=function(x){return x==="commercial"?"تجاري":x==="services"?"خدمات":"لم يُحدد"};if(o.acct!==n.acct)a.push(["نوع المحاسبة",AL(o.acct),AL(n.acct)]);
  if(n.acct==="commercial"){if(o.tpl!==n.tpl)a.push(["قالب النشاط",(TPL[o.tpl]||{}).n||"—",TPL[n.tpl].n]);
   FEAT.forEach(function(f){if(!!o.f[f[0]]!==!!n.f[f[0]])a.push([f[1],o.f[f[0]]?"مفعّل":"مقفول",n.f[f[0]]?"مفعّل":"مقفول"])});
+  if((o.lic||"device")!==(n.lic||"device"))a.push(["أساس الترخيص",(o.lic||"device")==="device"?"لكل جهاز":"لكل فرع",n.lic==="branch"?"لكل فرع":"لكل جهاز"]);
   ["branches","stores","devices","users"].forEach(function(k,i){if(String(o.limits[k])!==String(n.limits[k]))a.push([["حد الفروع","حد المخازن","حد أجهزة الكاشير","حد المستخدمين"][i],o.limits[k],n.limits[k]])})}
  return a};
 var stopped=function(){return FEAT.filter(function(f){return saved.f[f[0]]&&!S.c.f[f[0]]&&S.inst==="used"}).map(function(f){return f[1]})};
@@ -151,7 +153,8 @@ function render(){
    '<label class="sa-choice is-on"><input type="radio" checked'+(used?" disabled":"")+'><span><b>المتوسط المرجح المستمر '+(used?ic("lock"):"")+'</b><small>الوارد يعيد حساب المتوسط لكل منتج في كل مخزن، والصادر يخرج بالمتوسط الحالي.</small></span></label>'+
    '<label class="sa-choice" style="opacity:.55;pointer-events:none"><input type="radio" disabled><span><b>الوارد أولاً يصرف أولاً (FIFO) <span class="sa-badge sa-badge--muted">غير متاح حالياً</span></b><small>يُضاف كخيار لاحقاً إن طُلب (المرحلة 1b).</small></span></label></div></section>';
   /* الحدود */
-  h+='<section class="sa-card"><div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon">'+ic("gauge")+'</span><div><h2 class="sa-card-title">الحدود</h2><p class="sa-card-desc">ترتبط بالباقة المباعة. التسعير لكل جهاز أم لكل فرع ما زال قراراً تجارياً مفتوحاً (D8).</p></div></div></div><div class="sac-lim">'+
+  h+='<section class="sa-card"><div class="sa-card-head"><div class="sa-card-head-start"><span class="sa-card-icon">'+ic("gauge")+'</span><div><h2 class="sa-card-title">الحدود</h2><p class="sa-card-desc">ترتبط بالباقة المباعة، وأساس الترخيص يحدد الحد الملزم (D8).</p></div></div></div>'+
+   '<div class="sac-lic"><span>أساس الترخيص</span><div class="sac-seg">'+[["device","لكل جهاز كاشير","الحد الملزم: أجهزة الكاشير"],["branch","لكل فرع","الحد الملزم: الفروع، والأجهزة داخل الفرع مفتوحة"]].map(function(x){var on=(c.lic||"device")===x[0];return '<button class="'+(on?"on":"")+'" data-sac-lic="'+x[0]+'" title="'+x[2]+'">'+x[1]+'</button>'}).join("")+'</div><small>'+((c.lic||"device")==="device"?"إضافة جهاز فوق الحد تُمنع في «ربط جهاز».":"إضافة فرع فوق الحد تُمنع، وعدد الأجهزة داخل الفرع حسب الحاجة.")+'</small></div><div class="sac-lim">'+
    [["branches","الفروع","3 مستخدمة"],["stores","المخازن","3 مستخدمة"],["devices","أجهزة الكاشير","4 مستخدمة"+(c.limits.devices<4?' — <b style="color:var(--red)">أقل من المستخدم</b>':"")],["users","المستخدمون","18 مستخدماً"]].map(function(x){return '<div class="sa-field"><label class="sa-label">'+x[1]+'</label><input class="sa-input sac-num" dir="ltr" type="number" min="0" value="'+c.limits[x[0]]+'" data-sac-lim="'+x[0]+'"><small>'+x[2]+'</small></div>'}).join("")+'</div></section>';
  }
  /* السجل */
@@ -183,6 +186,7 @@ function dlgRender(){var ch=changes(),steps=first()?3:2,i=S.step,b='<div class="
 document.addEventListener("click",function(e){var t=function(s){return e.target.closest(s)};var x;
  if((x=t("[data-sac-pv]"))){var p=x.dataset.sacPv.split(":");S[p[0]]=p[1];if(p[0]==="inst"){if(p[1]==="first")saved={acct:"services",tpl:"grocery",f:flagsOf("grocery"),costing:"avg",limits:{branches:3,stores:6,devices:4,users:25}};else{saved=load();saved.acct="commercial"}S.c=JSON.parse(JSON.stringify(saved))}S.blockSvc=0;S.dep="";render();return}
  if((x=t("[data-sac-acct]"))){var v=x.dataset.sacAcct;if(v==="services"&&S.inst==="used"&&saved.acct==="commercial"){S.blockSvc=1;render();return}S.blockSvc=0;S.c.acct=v;render();return}
+ if((x=t("[data-sac-lic]"))){S.c.lic=x.dataset.sacLic;render();return}
  if((x=t("[data-sac-tpl]"))){var k=x.dataset.sacTpl;if(!LAUNCH[k]){window.saToast&&saToast("«"+TPL[k].n+"» قريباً — بعد الإطلاق الأول");return}S.c.tpl=k;if(TPL[k].f)S.c.f=flagsOf(k);S.dep="";render();return}
  if((x=t("[data-sac-f]"))){e.stopPropagation();if(x.disabled)return;var f=x.dataset.sacF,now=!S.c.f[f];S.c.f[f]=now;S.dep="";
   if(!now){var ds=desc(f).filter(function(k){return S.c.f[k]});if(ds.length){ds.forEach(function(k){S.c.f[k]=false});S.dep="إيقاف «"+name(f)+"» سيوقف أيضاً: <b>"+ds.map(name).join("، ")+"</b>."}}
@@ -200,7 +204,7 @@ document.addEventListener("click",function(e){var t=function(s){return e.target.
   dlg.close();S.dep="";render();window.saToast&&saToast("حُفظ وسُجّل — "+ch.length+" تغييرات. الأقسام التجارية في النسخة تتحدّث فوراً");return}
 },true);
 document.addEventListener("input",function(e){var el=e.target;if(el.matches("[data-sac-lim]")){S.c.limits[el.dataset.sacLim]=el.value;var y=scrollY;render();scrollTo(0,y);var n=document.querySelector('[data-sac-lim="'+el.dataset.sacLim+'"]');if(n){n.focus()}}if(el.matches("[data-sac-pw]"))S.pw=el.value});
-var q=new URLSearchParams(location.search);if(q.get("program")==="recruitment")S.prog="recruitment";if(q.get("inst")==="first"){saved={acct:"services",tpl:"grocery",f:flagsOf("grocery"),costing:"avg",limits:{branches:3,stores:6,devices:4,users:25}};S.inst="first";S.c=JSON.parse(JSON.stringify(saved))}
+var q=new URLSearchParams(location.search);if(q.get("program")==="recruitment")S.prog="recruitment";if(q.get("acct")==="commercial"&&saved.acct!=="commercial"){saved.acct="commercial";S.c=JSON.parse(JSON.stringify(saved));S.inst="used"}if(q.get("inst")==="first"){saved={acct:"services",tpl:"grocery",f:flagsOf("grocery"),costing:"avg",limits:{branches:3,stores:6,devices:4,users:25}};S.inst="first";S.c=JSON.parse(JSON.stringify(saved))}
 render();
 })();
 </script>

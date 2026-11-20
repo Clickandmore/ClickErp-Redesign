@@ -182,3 +182,14 @@ td .cm-sub,.cm-sub{display:block;color:var(--muted);font-size:12px;font-weight:5
 .cmc-steps{flex:1 1 100%;overflow:visible;flex-wrap:wrap;row-gap:4px}
 @media (max-width:1180px){.cmc-st:not(.on) span{display:none}.cmc-st{padding:5px 7px}}
 @media (max-width:420px){.cmc-ar{display:none}.cmc-steps{justify-content:space-between}}
+
+/* ---------- قواعد التشغيل (v1.83) ---------- */
+.cmo-r{padding:16px 18px;margin-bottom:12px}
+.cmo-h{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px}.cmo-h>div{flex:1}.cmo-h b{display:block;font-size:14.5px;color:var(--ink)}.cmo-h small{color:var(--muted);font-size:12.5px}
+.cmo-ref{font-size:11px;font-weight:700;color:var(--muted);background:#f3f5f9;border-radius:999px;padding:2px 9px;white-space:nowrap}
+.cmo-opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.cmo-o{display:flex;gap:10px;align-items:flex-start;text-align:start;padding:12px 14px;border:1.5px solid var(--line);border-radius:var(--r-s);background:#fff;font:inherit;cursor:pointer;transition:.15s}
+.cmo-o:hover{border-color:#c9d1df}.cmo-o.on{border-color:var(--navy);background:var(--navy-soft)}
+.cmo-dot{width:18px;height:18px;border-radius:50%;border:2px solid #c3cad6;flex:none;margin-top:2px}.cmo-o.on .cmo-dot{border:5px solid var(--navy)}
+.cmo-o b{display:block;font-size:13.5px;color:var(--ink)}.cmo-o b em{font-style:normal;font-size:10.5px;font-weight:700;color:var(--green-d);background:var(--green-soft);border-radius:999px;padding:1px 7px;margin-inline-start:4px}
+.cmo-o small{display:block;color:var(--muted);font-size:12px;line-height:1.6;margin-top:2px}

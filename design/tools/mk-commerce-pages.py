@@ -13,7 +13,7 @@ PAGES = {
  "cmReturns": "المرتجعات", "cmReturnAdd": "مرتجع جديد",
  "cmShifts": "ورديات الكاشير", "cmShiftShow": "تفاصيل الوردية", "cmPosInvoices": "فواتير الكاشير", "cmPosInvoiceShow": "فاتورة كاشير",
  "cmRegisters": "أجهزة الكاشير", "cmDevicePair": "ربط جهاز كاشير", "cmCashiers": "الكاشيرية", "cmPayMethods": "طرق الدفع", "cmPromos": "العروض والخصومات",
- "cmSettle": "تسوية مدى والبطاقات", "cmZatca": "ربط الأجهزة بالزكاة", "cmZatcaWizard": "ربط جهاز بالهيئة", "cmReports": "تقارير البيع والمخزون", "cmSettings": "إعدادات المخزون والحسابات",
+ "cmSettle": "تسوية مدى والبطاقات", "cmZatca": "ربط الأجهزة بالزكاة", "cmZatcaWizard": "ربط جهاز بالهيئة", "cmReports": "تقارير البيع والمخزون", "cmSettings": "إعدادات المبيعات والمخازن",
 }
 src = open(os.path.join(ROOT, "finSuppliers.html"), encoding="utf-8").read()
 head, rest = src.split('<main class="page">', 1)

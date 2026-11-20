@@ -173,6 +173,28 @@ if(!window.__cmPrint){window.__cmPrint=1;
  const pp=new URLSearchParams(location.search).get("print");if(pp)setTimeout(()=>CM.print(pp),400);
  document.addEventListener("keydown",e=>{if(e.key==="Escape"){const ov=document.getElementById("cmPrintOv");if(ov&&!ov.classList.contains("hidden")){ov.classList.add("hidden");document.body.classList.remove("printing")}}});
 }
+
+/* ---------- قواعد التشغيل (v1.83): القرارات اللي كانت مفتوحة في الخطة بقت إعدادات تختارها كل شركة ----------
+   تُحفظ مع إعدادات التجارة (CommerceSettings). [المفتاح, العنوان, الشرح, [[القيمة, الاسم, الأثر]], الافتراضي (المقترح في الخطة), المرجع] */
+CM.OPS=[
+ ["approve","اعتماد قيود المخزون والورديات","القيود الآلية من مستندات المخزون وإقفال الورديات.",[["doc","معتمدة تلقائياً، والاعتماد على المستند","زر «اعتماد وترحيل» على الوردية والجرد هو نقطة الاعتماد الوحيدة، والقيد يظهر في التقارير فوراً."],["entry","تحتاج اعتماد المحاسب","القيد يذهب إلى «قيود بانتظار الاعتماد»، ومبيعات الكاشير لا تظهر في التقارير المالية حتى يعتمدها."]],"doc","D2"],
+ ["vat","أسعار البيع","السعر المكتوب على الرف وفي الكاشير وقوائم الأسعار.",[["incl","شاملة الضريبة","السلة والإيصال يعرضان «منها ضريبة 15%». الأنسب للتجزئة."],["excl","غير شاملة الضريبة","الضريبة تُضاف فوق السعر. الأنسب للجملة."]],"incl","13.2"],
+ ["blind","العدّ عند إقفال الوردية","هل يرى الكاشير المبلغ المتوقع في الدرج قبل أن يعدّ؟",[["blind","عدّ أعمى","الكاشير يعدّ أولاً ثم يظهر المتوقع والفرق. أدق."],["show","يظهر المتوقع","أسرع، لكن العدّ يتأثر بالرقم المعروض."]],"blind","13.2"],
+ ["snap","الكمية المتوقعة في الجرد","المخزون يتحرك أثناء العدّ لأن الكاشير يبيع.",[["start","تُثبّت عند بدء العدّ","المبيعات أثناء العدّ لا تُحسب فرقاً. مناسب للمحلات المفتوحة."],["approve","تُحسب عند الاعتماد","مناسب للمخازن المغلقة أثناء الجرد."]],"start","13.2"],
+ ["credit","البيع الآجل فوق حد الائتمان","في الكاشير وفاتورة البيع.",[["block","منع","لا يُكمل البيع حتى يُسدَّد جزء أو يُرفع الحد."],["sup","بموافقة المشرف","رقم المشرف السري، والموافقة تُسجّل على الفاتورة."],["warn","تحذير فقط","يظهر تنبيه ويكمل البيع."]],"sup","13.2"],
+ ["b2b","فاتورة ضريبية لعميل منشأة بلا إنترنت","لتطبيق أندرويد (المرحلة 3). نسخة الويب تحتاج اتصالاً دائماً.",[["hold","تُحفظ معلّقة","تُطبع بعد اعتماد الهيئة عند عودة الاتصال."],["simp","تصدر مبسطة","تصدر فاتورة مبسطة فوراً، والضريبية بإشعار لاحق."]],"hold","D6"],
+ ["ret","مدة الإرجاع بالإيصال","تظهر في الإيصال وتُتحقق عند المرتجع.",[["7","7 أيام",""],["14","14 يوماً",""],["30","30 يوماً",""],["0","لا إرجاع",""]],"7",""]];
+CM.ops=()=>{const c=CM.cfg(),o={};CM.OPS.forEach(x=>o[x[0]]=(c.ops&&c.ops[x[0]])||x[4]);return o};
+let OPSDRAFT=null;
+window.CM_OPS=()=>{const cur=CM.ops();if(!OPSDRAFT)OPSDRAFT=Object.assign({},cur);const d=OPSDRAFT,chg=CM.OPS.filter(x=>d[x[0]]!==cur[x[0]]);
+ return `${CM.note("كانت قرارات مفتوحة في الخطة. الآن كل شركة تختار ما يناسبها، والقيمة الافتراضية هي المقترح في الخطة (معلّمة «موصى به»). التغيير يُسجّل في سجل النشاط ويسري من العملية التالية.","","sliders-horizontal")}
+ ${CM.OPS.map(x=>`<div class="card sec cmo-r"><div class="cmo-h"><div><b>${x[1]}</b><small>${x[2]}</small></div>${x[5]?`<span class="cmo-ref">${x[5].startsWith("D")?"قرار "+x[5]:"الموجز §"+x[5]}</span>`:""}</div>
+  <div class="cmo-opts">${x[3].map(o=>`<button class="cmo-o${d[x[0]]===o[0]?" on":""}" data-cmo="${x[0]}:${o[0]}"><span class="cmo-dot"></span><span><b>${o[1]}${o[0]===x[4]?' <em>موصى به</em>':""}</b>${o[2]?`<small>${o[2]}</small>`:""}</span></button>`).join("")}</div></div>`).join("")}
+ <div class="cvactions">${B("primary","save",chg.length?`حفظ (${chg.length})`:"حفظ","data-cmo-save=\"\""+(chg.length?"":" disabled"))}${chg.length?B("ghost","rotate-ccw","تراجع","data-cmo-reset=\"\""):""}<span class="cmi-muted">${chg.length?chg.map(x=>x[1]).join("، ")+" — لم تُحفظ":"كل القواعد محفوظة"}</span></div>`};
+if(!window.__cmOps){window.__cmOps=1;document.addEventListener("click",e=>{let x;
+ if((x=e.target.closest("[data-cmo]"))){const[k,v]=x.dataset.cmo.split(":");OPSDRAFT[k]=v;CM.re();return}
+ if(e.target.closest("[data-cmo-reset]")){OPSDRAFT=null;CM.re();return}
+ if(e.target.closest("[data-cmo-save]")){let c={};try{c=JSON.parse(localStorage.getItem("cerp.commerce.v1"))||{}}catch(_){}c.ops=Object.assign({},OPSDRAFT);CM.save(c);OPSDRAFT=null;CM.re();CM.toast("حُفظت قواعد التشغيل وسُجّلت في سجل النشاط");return}})}
 /* ---------- أحداث مشتركة ---------- */
 CM.re=()=>{const pg=document.querySelector("#app .page"),id=window.CERP_PAGE;if(!pg||!screens[id])return;const y=scrollY;pg.innerHTML=screens[id]();if(window.lucide)lucide.createIcons({attrs:{"stroke-width":1.8}});scrollTo(0,y)};
 CM.toast=(m,ic)=>{let el=document.querySelector(".cm-toast");if(!el){el=document.createElement("div");el.className="cm-toast";document.body.appendChild(el)}el.innerHTML=`${X(ic||"check-circle-2")}<span>${m}</span>`;if(window.lucide)lucide.createIcons({attrs:{"stroke-width":1.8}});el.classList.add("on");clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove("on"),2600)};
