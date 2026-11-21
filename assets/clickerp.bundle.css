@@ -8322,3 +8322,14 @@ td.sxe-dirty{box-shadow:inset 0 -2px 0 var(--green)}
 @media (max-width:900px){table.pr-mx{display:block;overflow-x:auto;max-width:100%}}
 @media (max-width:900px){.pr-lay{grid-template-columns:minmax(0,1fr)!important}.pr-main,.pr-lay>*{min-width:0}}
 @media (max-width:900px){.pr-tbl{overflow-x:auto;max-width:100%}table.pr-mx{display:table;min-width:560px}}
+/* ===== v1.85 — mobile menu: panel above the dim layer, wider nav column, pin button in the row (not over the name) ===== */
+@media (max-width:900px){
+ .side{z-index:90;width:min(360px,calc(100vw - 28px));grid-template-columns:76px minmax(0,1fr)}
+ .side .nav{min-width:0}
+ .side .nav a{position:relative;gap:10px}
+ .side .nav a>span:not(.badge):not(.pin){flex:1 1 auto;min-width:0;white-space:normal;overflow:visible;text-overflow:clip;line-height:1.4}
+ .side .nav a>span.pin{position:static;transform:none;opacity:1;flex:none;margin-inline-start:4px;background:none;box-shadow:none;color:#9aa4b2}
+ .side .nav a>span.pin.is{color:var(--green-d)}
+ .side .nav a:hover>.badge{visibility:visible}
+ .side-head{min-width:0}
+}

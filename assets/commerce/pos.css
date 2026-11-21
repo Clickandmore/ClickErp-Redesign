@@ -323,3 +323,27 @@ html{font-size:max(11px,min(1.25vw,2vh))}
 .pos-plainbody>.pos-install{max-width:70rem;margin:0}
 @media (max-width:820px) and (orientation:portrait),(max-width:640px){.pos-plainbody{justify-content:flex-start;padding:1rem}.pos-plainbody>*{width:100%}}
 .pos-plainbody{justify-content:safe center}
+/* v1.85 — الجوال: الصفحة كلها بتسكرول (المنتجات مهما كترت)، وشريط الإجمالي والدفع سطر واحد صغير بدل الكارت الكبير */
+@media (max-width:820px) and (orientation:portrait),(max-width:640px){
+ .pos-app,.pos-shell{height:auto!important;min-height:100vh;overflow:visible;overflow-x:clip}
+ .pos-stage{flex:none;min-height:0}
+ .pos-grid{overflow:visible!important;max-height:none!important;flex:none}
+ .pos-catalog{overflow:visible}
+ .pos-foot{display:grid!important;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:.35rem .6rem;padding:.45rem .6rem}
+ .pos-foot>.pos-weboff,.pos-foot>.pos-sums{grid-column:1/-1}
+ .pos-main[data-ptab=items] .pos-foot .pos-sums{display:none}
+ .pos-foot .pos-sums{display:flex;gap:.9rem;flex-wrap:wrap;font-size:.8rem}
+ .pos-foot .pos-sums div{flex-direction:row;gap:.3rem;align-items:baseline}
+ .pos-foot .pos-sums b{font-size:.85rem}
+ .pos-foot .pos-sums i{display:none}
+ .pos-grand{flex-direction:column;align-items:flex-start;gap:0;padding:0;line-height:1.1}
+ .pos-grand>span{font-size:.75rem}
+ .pos-grand strong{font-size:1.45rem}
+ .pos-acts{grid-template-columns:3.1rem minmax(0,1fr);gap:.4rem}
+ .pos-hold{min-height:3.1rem;padding:0}.pos-hold span{display:none}
+ .pos-paybtn{min-height:3.1rem;font-size:1.25rem;padding:0 1rem}.pos-paybtn .pos-i{width:1.3rem;height:1.3rem}
+ .pos-main{padding-bottom:7.5rem}
+ .pos-main[data-ptab=cart]{padding-bottom:9rem}
+ .pos-payfoot{padding:.45rem .6rem}.pos-payfoot .pos-xl{min-height:3.1rem;font-size:1.2rem}
+ .pos-payscr{padding-bottom:5.5rem}
+}

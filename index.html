@@ -118,6 +118,8 @@ footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
 .progs .pg:hover{box-shadow:0 12px 28px -18px rgba(16,26,46,.5)}
 @media (max-width:900px){.progs .pg-grid{grid-template-columns:1fr 1fr}}@media (max-width:560px){.progs .pg-grid{grid-template-columns:1fr}}
 .guide .gcards{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:14px;margin-top:18px}
+.progs .gcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;margin-top:18px}
+.gcard .gurl{font-size:12.5px;color:var(--navy);background:var(--paper);border-radius:8px;padding:2px 8px;align-self:flex-start}
 .gcard{display:flex;flex-direction:column;gap:6px;padding:18px;border:1px solid var(--line);border-radius:14px;background:var(--card);text-decoration:none;transition:.15s}
 .gcard:hover{border-color:var(--navy);transform:translateY(-2px)}
 .gcard b{font-family:var(--display);font-size:18px;color:var(--ink)}
@@ -177,6 +179,16 @@ footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
       <a class="pg gen" href="finDashGen.html?program=general"><b>النظام العام — المالية</b><small>المحاسبة العامة لأي شركة، ومعها الساعات ومركز المهام اختياري</small><em>افتح ←</em></a>
       <a class="pg tsk" href="tcMy.html?program=tasks"><b>نظام المهام والموارد البشرية</b><small>مركز المهام والحضور والطلبات والرواتب، من غير استقدام ولا مالية</small><em>افتح ←</em></a>
       <a class="pg sa" href="superadmin/programs.html"><b>Super Admin</b><small>خريطة البرامج والموديلات، ونوع النسخة، ونقل ميزة من برنامج لبرنامج</small><em>افتح ←</em></a>
+    </div>
+  </section>
+  <section class="progs">
+    <header class="sec-h"><span class="idx">00</span><div><h2>روابط مباشرة لكل نشاط <span style="font-size:13px;color:#65a034">جديد · v1.85</span></h2><p>كل نشاط له رابط قصير ثابت بيفتح برنامجه ونوعه على طول، من غير ما تختار من القائمة. ينفع يتبعت للعميل أو يتحط في كارت تطوير.</p></div></header>
+    <div class="gcards">
+      <a class="gcard" href="commercial/"><b>التجاري</b><span class="gurl" dir="ltr">…/commercial/</span><span>النظام العام بنوع «تجاري»: المبيعات ونقاط البيع والمخازن والمالية، ويبدأ من «مبيعات اليوم».</span><em>افتح ←</em></a>
+      <a class="gcard" href="pos/"><b>الكاشير (نقاط البيع)</b><span class="gurl" dir="ltr">…/pos/</span><span>تطبيق الكاشير نفسه. <span dir="ltr">pos/#sale</span> يفتح شاشة البيع على طول.</span><em>افتح ←</em></a>
+      <a class="gcard" href="general/"><b>المالية العامة (خدمي)</b><span class="gurl" dir="ltr">…/general/</span><span>النظام العام بنوع «خدمي»: عروض الأسعار والفواتير والقيود والتقارير.</span><em>افتح ←</em></a>
+      <a class="gcard" href="recruitment/"><b>الاستقدام</b><span class="gurl" dir="ltr">…/recruitment/</span><span>نظام الاستقدام والتأجير ونقل الخدمات والإيواء.</span><em>افتح ←</em></a>
+      <a class="gcard" href="tasks/"><b>المهام والموارد البشرية</b><span class="gurl" dir="ltr">…/tasks/</span><span>مركز المهام والحضور والطلبات والرواتب.</span><em>افتح ←</em></a>
     </div>
   </section>
   <section class="progs">
